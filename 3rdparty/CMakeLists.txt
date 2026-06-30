@@ -73,21 +73,8 @@ if(${QT_VERSION_MAJOR} EQUAL 6)
   set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 endif()
 
-cpmaddpackage(
-  NAME
-  robin_hood
-  GITHUB_REPOSITORY
-  martinus/robin-hood-hashing
-  GIT_TAG
-  3.11.2
-  EXCLUDE_FROM_ALL
-  YES
-)
-if(NOT TARGET robin_hood)
-  message("Adding imported target for robin_hood")
-  add_library(robin_hood INTERFACE)
-  target_include_directories(robin_hood INTERFACE ${ROBIN_HOOD_INCLUDE_DIRS})
-endif(NOT TARGET robin_hood)
+# robin_hood
+add_subdirectory(vendor/robin-hood-hashing)
 
 if(KLOGG_BUILD_TESTS)
   cpmaddpackage("gh:bombela/backward-cpp@1.6")

@@ -16,6 +16,7 @@
 | `vectorscan/` | vectorscan | d29730e | Hyperscan 多架构移植版 | [vectorscan/README_Z.md](vectorscan/README_Z.md) |
 | `uchardet/` | uchardet | 0.0.8 | 字符编码自动检测 | [uchardet/README_Z.md](uchardet/README_Z.md) |
 | `klogg_karchive/` | klogg_karchive | f546bf6 | KF5Archive Qt5/Qt6 兼容 fork | [klogg_karchive/README_Z.md](klogg_karchive/README_Z.md) |
+| `robin-hood-hashing/` | robin_hood | 3.11.5 | 快速哈希表/集合 | [robin-hood-hashing/README_Z.md](robin-hood-hashing/README_Z.md) |
 
 ## 注意事项
 - 更新依赖时，需同步更新对应子目录的 `README.md` 和本总览文件中的版本号或者commit hash。
