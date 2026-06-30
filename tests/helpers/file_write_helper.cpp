@@ -43,7 +43,7 @@ int main( int argc, const char** argv )
 
     QFile file{ argv[ 1 ] };
 
-    file.open( QIODevice::Unbuffered | QIODevice::WriteOnly | QIODevice::Append );
+    (void)file.open( QIODevice::Unbuffered | QIODevice::WriteOnly | QIODevice::Append );
 
     if ( !file.isOpen() ) {
         return -1;
@@ -85,7 +85,7 @@ int main( int argc, const char** argv )
 
     file.close();
 
-    file.open( QIODevice::Unbuffered | QIODevice::ReadOnly | QIODevice::Append );
+    (void)file.open( QIODevice::Unbuffered | QIODevice::ReadOnly | QIODevice::Append );
 
     LOG_INFO << "Write to " << argv[ 1 ] << " finished, size " << file.size();
 

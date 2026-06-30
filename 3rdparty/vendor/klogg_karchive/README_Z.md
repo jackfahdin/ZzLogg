@@ -58,6 +58,14 @@ endif()
 
 由于本地 fork 的 `CMakeLists.txt` 会直接创建 `klogg_karchive` 静态库目标，因此不再需要系统包回退分支。
 
+### 3. 修复 Qt6 下 `QString::arg(QIODevice::OpenMode)` 编译错误
+
+Qt6 中 `QIODevice::OpenMode` 无法直接传给 `QString::arg`，因此在以下位置显式转换为 `int`：
+
+- `karchive/src/kar.cpp`
+- `karchive/src/krcc.cpp`
+- `karchive/src/karchive.cpp`
+
 ## 更新步骤
 
 1. 从上游 fork 获取目标提交（例如 `f546bf6`）。
