@@ -156,34 +156,17 @@ if(WIN32)
 endif()
 
 # mimalloc
-set(CPM_USE_LOCAL_PACKAGES OFF)
-cpmaddpackage(
-  NAME
-  mimalloc
-  GITHUB_REPOSITORY
-  microsoft/mimalloc
-  VERSION
-  2.1.7
-  EXCLUDE_FROM_ALL
-  YES
-  OPTIONS
-  "MI_BUILD_TESTS OFF"
-  "MI_SECURE OFF"
-  "MI_BUILD_SHARED OFF"
-  "MI_BUILD_STATIC ON"
-  "MI_BUILD_OBJECT OFF"
-  "MI_OVERRIDE OFF"
-)
-if(mimalloc_ADDED)
-  message("Adding alias for mimalloc")
-  add_library(klogg_mimalloc_wrapper INTERFACE)
-  target_link_libraries(klogg_mimalloc_wrapper INTERFACE mimalloc-static)
-  target_include_directories(klogg_mimalloc_wrapper INTERFACE ${mimalloc_SOURCE_DIR}/include)
-else()
-  add_library(klogg_mimalloc_wrapper INTERFACE)
-  target_link_libraries(klogg_mimalloc_wrapper INTERFACE ${MIMALLOC_LIBRARY})
-  target_include_directories(klogg_mimalloc_wrapper INTERFACE ${MIMALLOC_INCLUDE_DIR})
-endif()
+set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(MI_SECURE OFF CACHE BOOL "" FORCE)
+set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(MI_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
+set(MI_OVERRIDE OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/mimalloc)
+message("Adding alias for mimalloc")
+add_library(klogg_mimalloc_wrapper INTERFACE)
+target_link_libraries(klogg_mimalloc_wrapper INTERFACE mimalloc-static)
+target_include_directories(klogg_mimalloc_wrapper INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/mimalloc/include)
 
 set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 
