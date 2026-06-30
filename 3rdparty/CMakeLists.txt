@@ -17,19 +17,12 @@ add_subdirectory(vendor/CRoaring)
 add_subdirectory(vendor/streamvbyte)
 
 if(APPLE)
-  cpmaddpackage(
-    NAME
-    macdeployqtfix
-    GITHUB_REPOSITORY
-    arl/macdeployqtfix
-    GIT_TAG
-    df888505849d3c06d20a4338af276dfa7d11826a
-    DOWNLOAD_ONLY
-    YES
+  # macdeployqtfix 脚本本地存放，避免联网下载
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/macdeployqtfix/macdeployqtfix.py
+    ${CMAKE_BINARY_DIR}/macdeployqtfix.py
+    COPYONLY
   )
-  if(macdeployqtfix_ADDED)
-    configure_file(${macdeployqtfix_SOURCE_DIR}/macdeployqtfix.py ${CMAKE_BINARY_DIR}/macdeployqtfix.py COPYONLY)
-  endif()
 endif()
 
 cpmaddpackage(
