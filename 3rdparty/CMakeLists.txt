@@ -192,16 +192,7 @@ if(KLOGG_USE_SENTRY)
      CACHE INTERNAL "" FORCE
   )
 
-  cpmaddpackage(
-    NAME
-    sentry
-    GITHUB_REPOSITORY
-    getsentry/sentry-native
-    GIT_TAG
-    a3d58622a807b9dda174cb9fc18fa0f98c89d043
-    EXCLUDE_FROM_ALL
-    YES
-  )
+  add_subdirectory(vendor/sentry-native)
 
   if(WIN32)
     set_target_properties(crashpad_handler PROPERTIES OUTPUT_NAME "klogg_crashpad_handler.exe")

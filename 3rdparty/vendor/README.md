@@ -27,6 +27,7 @@
 | `KDToolBox/` | KDToolBox | 6468867d | Qt 工具箱（klogg 仅使用 KDSignalThrottler） | [KDToolBox/README_Z.md](KDToolBox/README_Z.md) |
 | `oneTBB/` | oneTBB | c9be1ac2 | Intel oneAPI Threading Building Blocks | [oneTBB/README_Z.md](oneTBB/README_Z.md) |
 | `mimalloc/` | mimalloc | 2.1.7 | 微软高性能内存分配器 | [mimalloc/README_Z.md](mimalloc/README_Z.md) |
+| `sentry-native/` | sentry-native | a3d58622 | Sentry 原生崩溃报告 SDK（可选） | [sentry-native/README_Z.md](sentry-native/README_Z.md) |
 
 ## 注意事项
 - 更新依赖时，需同步更新对应子目录的 `README.md` 和本总览文件中的版本号或者commit hash。
