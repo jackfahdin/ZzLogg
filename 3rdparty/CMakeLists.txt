@@ -56,28 +56,14 @@ elseif(KLOGG_USE_VECTORSCAN)
   )
 endif()
 
-cpmaddpackage(
-  NAME
-  Uchardet
-  GIT_REPOSITORY
-  https://gitlab.freedesktop.org/uchardet/uchardet
-  VERSION
-  0.0.8
-  EXCLUDE_FROM_ALL
-  YES
-  OPTIONS
-  "BUILD_BINARY OFF"
-)
-if(Uchardet_ADDED)
-  message("Adding alias for uchardet")
-  add_library(klogg_uchardet_wrapper INTERFACE)
-  target_link_libraries(klogg_uchardet_wrapper INTERFACE libuchardet)
-  target_include_directories(klogg_uchardet_wrapper INTERFACE ${Uchardet_SOURCE_DIR}/src)
-else()
-  add_library(klogg_uchardet_wrapper INTERFACE)
-  target_link_libraries(klogg_uchardet_wrapper INTERFACE ${UCHARDET_LIBRARY})
-  target_include_directories(klogg_uchardet_wrapper INTERFACE ${UCHARDET_INCLUDE_DIR})
-endif()
+# uchardet
+set(BUILD_BINARY OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/uchardet)
+message("Adding alias for uchardet")
+add_library(klogg_uchardet_wrapper INTERFACE)
+target_link_libraries(klogg_uchardet_wrapper INTERFACE libuchardet)
+target_include_directories(klogg_uchardet_wrapper INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/uchardet/src)
 
 if(${QT_VERSION_MAJOR} EQUAL 6) 
 set(CPM_USE_LOCAL_PACKAGES OFF)
