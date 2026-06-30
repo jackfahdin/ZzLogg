@@ -111,32 +111,21 @@ add_library(
 )
 target_include_directories(whereami PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src)
 
-cpmaddpackage(
-  NAME
+# exprtk
+add_library(exprtk INTERFACE)
+target_link_libraries(exprtk INTERFACE robin_hood)
+target_include_directories(exprtk SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/klogg_exprtk)
+target_compile_definitions(
   exprtk
-  GITHUB_REPOSITORY
-  variar/klogg_exprtk
-  GIT_TAG
-  1f9f4cd7d2620b7b24232de9ea22908d63913459
-  DOWNLOAD_ONLY
-  YES
+  INTERFACE -Dexprtk_disable_caseinsensitivity
+            -Dexprtk_disable_comments
+            -Dexprtk_disable_break_continue
+            -Dexprtk_disable_return_statement
+            -Dexprtk_disable_superscalar_unroll
+            -Dexprtk_disable_rtl_io_file
+            -Dexprtk_disable_rtl_vecops
+            -Dexprtk_disable_string_capabilities
 )
-if(exprtk_ADDED)
-  add_library(exprtk INTERFACE)
-  target_link_libraries(exprtk INTERFACE robin_hood)
-  target_include_directories(exprtk SYSTEM INTERFACE ${exprtk_SOURCE_DIR})
-  target_compile_definitions(
-    exprtk
-    INTERFACE -Dexprtk_disable_caseinsensitivity
-              -Dexprtk_disable_comments
-              -Dexprtk_disable_break_continue
-              -Dexprtk_disable_return_statement
-              -Dexprtk_disable_superscalar_unroll
-              -Dexprtk_disable_rtl_io_file
-              -Dexprtk_disable_rtl_vecops
-              -Dexprtk_disable_string_capabilities
-  )
-endif()
 
 cpmaddpackage(
   NAME
