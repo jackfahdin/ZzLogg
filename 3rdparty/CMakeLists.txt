@@ -98,36 +98,18 @@ target_link_libraries(kdsingleapp Qt${QT_VERSION_MAJOR}::Core)
 target_compile_definitions(kdsingleapp PUBLIC KDSINGLEAPPLICATION_STATIC_BUILD)
 set_target_properties(kdsingleapp PROPERTIES AUTOMOC ON)
 
-cpmaddpackage(
-  NAME
-  xxHash
-  GITHUB_REPOSITORY
-  Cyan4973/xxHash
-  VERSION
-  0.8.1
-  DOWNLOAD_ONLY
-  YES
-)
-if(xxHash_ADDED)
-  set(XXHASH_BUILD_ENABLE_INLINE_API OFF)
-  set(XXHASH_BUILD_XXHSUM OFF)
-  add_subdirectory(${xxHash_SOURCE_DIR}/cmake_unofficial ${CMAKE_BINARY_DIR}/xxhash EXCLUDE_FROM_ALL)
-endif()
+# xxHash
+set(XXHASH_BUILD_ENABLE_INLINE_API OFF CACHE BOOL "" FORCE)
+set(XXHASH_BUILD_XXHSUM OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/xxHash/cmake_unofficial ${CMAKE_BINARY_DIR}/xxhash)
 
-cpmaddpackage(
-  NAME
-  whereami
-  GITHUB_REPOSITORY
-  gpakosz/whereami
-  GIT_TAG
-  dcb52a058dc14530ba9ae05e4339bd3ddfae0e0e
-  DOWNLOAD_ONLY
-  YES
+# whereami
+add_library(
+  whereami STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src/whereami.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src/whereami.c
 )
-if(whereami_ADDED)
-  add_library(whereami STATIC ${whereami_SOURCE_DIR}/src/whereami.h ${whereami_SOURCE_DIR}/src/whereami.c)
-  target_include_directories(whereami PUBLIC ${whereami_SOURCE_DIR}/src)
-endif()
+target_include_directories(whereami PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src)
 
 cpmaddpackage(
   NAME
@@ -177,6 +159,7 @@ if(KDToolBox_ADDED)
   set_target_properties(kdtoolbox PROPERTIES AUTOMOC ON)
 endif()
 
+# efsw
 cpmaddpackage(
   NAME
   efsw
@@ -196,6 +179,7 @@ endif()
 if(WIN32)
   set(BUILD_SHARED_LIBS ON)
 endif()
+# tbb
 cpmaddpackage(
   NAME
   tbb
@@ -215,6 +199,7 @@ if(WIN32)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
+# mimalloc
 set(CPM_USE_LOCAL_PACKAGES OFF)
 cpmaddpackage(
   NAME
