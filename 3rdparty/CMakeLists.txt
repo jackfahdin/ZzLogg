@@ -146,20 +146,10 @@ if(WIN32)
   set(BUILD_SHARED_LIBS ON)
 endif()
 # tbb
-cpmaddpackage(
-  NAME
-  tbb
-  GITHUB_REPOSITORY
-  variar/oneTBB
-  GIT_TAG
-  c9be1ac2930f02dea523003ed801b4489f3e6b6e
-  EXCLUDE_FROM_ALL
-  YES
-  OPTIONS
-  "TBB_TEST OFF"
-  "TBB_EXAMPLES OFF"
-  "TBB_STRICT OFF"
-)
+set(TBB_TEST OFF CACHE BOOL "" FORCE)
+set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(TBB_STRICT OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/oneTBB)
 
 if(WIN32)
   set(BUILD_SHARED_LIBS OFF)
