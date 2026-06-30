@@ -10,8 +10,9 @@ add_subdirectory(vendor/simdutf)
 # type_safe
 add_subdirectory(vendor/type_safe)
 
-cpmaddpackage("gh:RoaringBitmap/CRoaring@4.2.1")
-cpmaddpackage("gh:RoaringBitmap/CRoaring@4.2.1")
+# CRoaring
+add_subdirectory(vendor/CRoaring)
+
 cpmaddpackage("gh:lemire/streamvbyte@1.0.0")
 
 if(APPLE)
