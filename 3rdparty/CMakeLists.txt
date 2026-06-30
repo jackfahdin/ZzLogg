@@ -80,21 +80,9 @@ if(KLOGG_BUILD_TESTS)
   # backward-cpp
   add_subdirectory(vendor/backward-cpp)
 
-  cpmaddpackage(
-    NAME
-    Catch2
-    GITHUB_REPOSITORY
-    catchorg/Catch2
-    VERSION
-    2.13.8
-    EXCLUDE_FROM_ALL
-    YES
-  )
-  if(NOT TARGET Catch2)
-    message("Adding imported target for catch2")
-    add_library(Catch2 INTERFACE)
-    target_include_directories(Catch2 INTERFACE ${CATCH2_INCLUDE_DIRS})
-  endif(NOT TARGET Catch2)
+  # Catch2
+  set(CATCH_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+  add_subdirectory(vendor/Catch2)
 endif()
 
 cpmaddpackage(
