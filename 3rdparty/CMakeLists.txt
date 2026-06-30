@@ -29,50 +29,30 @@ endif()
 add_subdirectory(vendor/maddy)
 
 if(KLOGG_USE_HYPERSCAN)
-  cpmaddpackage(
-    NAME
-    hyperscan
-    GITHUB_REPOSITORY
-    variar/hyperscan
-    GIT_TAG
-    0931a40e0cf1d7f92189bc546c3491ed5c113f8b
-    EXCLUDE_FROM_ALL
-    YES
-  )
+  # hyperscan 使用本地仓库
+  set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  add_subdirectory(vendor/hyperscan)
   message("Adding alias for hyperscan")
   add_library(klogg_hyperscan INTERFACE)
   target_link_libraries(klogg_hyperscan INTERFACE hs)
-  target_include_directories(klogg_hyperscan INTERFACE ${hyperscan_SOURCE_DIR}/src)
+  target_include_directories(klogg_hyperscan INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/hyperscan/src)
 elseif(KLOGG_USE_VECTORSCAN)
-  cpmaddpackage(
-    NAME
-    vectorscan
-    GITHUB_REPOSITORY
-    VectorCamp/vectorscan
-    GIT_TAG
-    d29730e1cb9daaa66bda63426cdce83505d2c809
-    EXCLUDE_FROM_ALL
-    YES
-    OPTIONS
-    "BUILD_STATIC_LIBS ON"
-    "BUILD_UNIT OFF"
-    "BUILD_TOOLS OFF"
-    "BUILD_EXAMPLES OFF"
-    "BUILD_BENCHMARKS OFF"
-    "BUILD_DOC OFF"
-    "BUILD_CHIMERA OFF"
-    "BUIlD_AVX2 OFF"
-    "BUIlD_AVX512 OFF"
-    "BUIlD_AVX512VBMI OFF"
-    "FAT_RUNTIME OFF"
-  )
- 
+  # vectorscan 使用本地仓库
+  set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+  set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+  set(FAT_RUNTIME OFF CACHE BOOL "" FORCE)
+  set(BUILD_AVX2 OFF CACHE BOOL "" FORCE)
+  set(BUILD_AVX512 OFF CACHE BOOL "" FORCE)
+  set(BUILD_AVX512VBMI OFF CACHE BOOL "" FORCE)
+  set(BUILD_CHIMERA OFF CACHE BOOL "" FORCE)
+  add_subdirectory(vendor/vectorscan)
   message("Adding alias for vectorscan")
   add_library(klogg_vectorscan INTERFACE)
   target_link_libraries(klogg_vectorscan INTERFACE hs)
-  target_include_directories(klogg_vectorscan INTERFACE 
-    ${vectorscan_SOURCE_DIR}/src
-    ${vectorscan_BINARY_DIR}
+  target_include_directories(klogg_vectorscan INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vectorscan/src
+    ${CMAKE_CURRENT_BINARY_DIR}/vendor/vectorscan
   )
 endif()
 
