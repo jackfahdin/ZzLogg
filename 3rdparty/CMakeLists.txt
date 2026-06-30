@@ -4,7 +4,9 @@ include(CPM)
 
 set(_TMP_CPM_USE_LOCAL_PACKAGES ${CPM_USE_LOCAL_PACKAGES})
 
-cpmaddpackage("gh:simdutf/simdutf@5.6.2")
+# simdutf
+add_subdirectory(vendor/simdutf)
+
 cpmaddpackage("gh:foonathan/type_safe@0.2.4")
 cpmaddpackage("gh:RoaringBitmap/CRoaring@4.2.1")
 cpmaddpackage("gh:lemire/streamvbyte@1.0.0")
