@@ -19,6 +19,7 @@
 | `robin-hood-hashing/` | robin_hood | 3.11.5 | 快速哈希表/集合 | [robin-hood-hashing/README_Z.md](robin-hood-hashing/README_Z.md) |
 | `backward-cpp/` | backward-cpp | 3bb9240 | C++ 崩溃堆栈跟踪 | [backward-cpp/README_Z.md](backward-cpp/README_Z.md) |
 | `Catch2/` | Catch2 | 2.13.8 | C++ 测试框架 | [Catch2/README_Z.md](Catch2/README_Z.md) |
+| `KDSingleApplication/` | KDSingleApplication | 5b30db3 | 单实例应用支持 | [KDSingleApplication/README_Z.md](KDSingleApplication/README_Z.md) |
 
 ## 注意事项
 - 更新依赖时，需同步更新对应子目录的 `README.md` 和本总览文件中的版本号或者commit hash。

@@ -85,29 +85,18 @@ if(KLOGG_BUILD_TESTS)
   add_subdirectory(vendor/Catch2)
 endif()
 
-cpmaddpackage(
-  NAME
-  KDSingleApplication
-  GITHUB_REPOSITORY
-  variar/KDSingleApplication
-  GIT_TAG
-  5b30db30266f92bc01f1439777803ce8dbf16c79
-  DOWNLOAD_ONLY
-  YES
+# KDSingleApplication
+add_library(
+  kdsingleapp STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDSingleApplication/src/kdsingleapplication.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDSingleApplication/src/kdsingleapplication_localsocket.cpp
 )
-if(KDSingleApplication_ADDED)
-  add_library(
-    kdsingleapp STATIC ${KDSingleApplication_SOURCE_DIR}/src/kdsingleapplication.cpp
-                     ${KDSingleApplication_SOURCE_DIR}/src/kdsingleapplication_localsocket.cpp
-  )
-
-  target_include_directories(kdsingleapp PUBLIC ${KDSingleApplication_SOURCE_DIR}/src)
-  target_link_libraries(kdsingleapp Qt${QT_VERSION_MAJOR}::Core)
-  target_compile_definitions(kdsingleapp PUBLIC KDSINGLEAPPLICATION_STATIC_BUILD)
-
-  set_target_properties(kdsingleapp PROPERTIES AUTOMOC ON)
-endif()
-
+target_include_directories(
+  kdsingleapp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDSingleApplication/src
+)
+target_link_libraries(kdsingleapp Qt${QT_VERSION_MAJOR}::Core)
+target_compile_definitions(kdsingleapp PUBLIC KDSINGLEAPPLICATION_STATIC_BUILD)
+set_target_properties(kdsingleapp PROPERTIES AUTOMOC ON)
 
 cpmaddpackage(
   NAME
