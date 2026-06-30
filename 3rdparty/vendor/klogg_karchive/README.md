@@ -1,0 +1,1 @@
+This a fork of KArchive that has bundled zlib, bzip2 and lzma libraries. 

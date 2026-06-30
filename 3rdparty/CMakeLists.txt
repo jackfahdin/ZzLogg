@@ -65,29 +65,12 @@ add_library(klogg_uchardet_wrapper INTERFACE)
 target_link_libraries(klogg_uchardet_wrapper INTERFACE libuchardet)
 target_include_directories(klogg_uchardet_wrapper INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/uchardet/src)
 
-if(${QT_VERSION_MAJOR} EQUAL 6) 
-set(CPM_USE_LOCAL_PACKAGES OFF)
-endif()
-
-cpmaddpackage(
-  NAME
-  KF5Archive
-  GITHUB_REPOSITORY
-  variar/klogg_karchive
-  GIT_TAG
-  f546bf6ae66a8d34b43da5a41afcfbf4e1a47906
-  EXCLUDE_FROM_ALL
-  YES
-)
-if(NOT KF5Archive_ADDED)
-  find_package(KF5Archive)
-  add_library(klogg_karchive INTERFACE)
-  target_link_libraries(klogg_karchive INTERFACE KF5::Archive)
-endif()
+# klogg_karchive（KF5Archive 的 Qt5/Qt6 兼容 fork）
+add_subdirectory(vendor/klogg_karchive)
 
 if(${QT_VERSION_MAJOR} EQUAL 6)
-message("Resetting CPM_USE_LOCAL_PACKAGES to ${_TMP_CPM_USE_LOCAL_PACKAGES}")
-set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
+  message("Resetting CPM_USE_LOCAL_PACKAGES to ${_TMP_CPM_USE_LOCAL_PACKAGES}")
+  set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 endif()
 
 cpmaddpackage(
