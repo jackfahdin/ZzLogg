@@ -149,21 +149,10 @@ if(KDToolBox_ADDED)
 endif()
 
 # efsw
-cpmaddpackage(
-  NAME
-  efsw
-  GITHUB_REPOSITORY
-  SpartanJ/efsw
-  GIT_TAG
-  1.4.1
-  EXCLUDE_FROM_ALL
-  YES
-  OPTIONS
-  "BUILD_TEST_APP OFF"
-)
-if(efsw_ADDED)
-  target_compile_definitions(efsw PRIVATE EFSW_FSEVENTS_NOT_SUPPORTED)
-endif()
+# efsw
+set(BUILD_TEST_APP OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/efsw)
+target_compile_definitions(efsw PRIVATE EFSW_FSEVENTS_NOT_SUPPORTED)
 
 if(WIN32)
   set(BUILD_SHARED_LIBS ON)

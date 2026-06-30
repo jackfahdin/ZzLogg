@@ -23,6 +23,7 @@
 | `xxHash/` | xxHash | 0.8.1 | 高速哈希算法 | [xxHash/README_Z.md](xxHash/README_Z.md) |
 | `whereami/` | whereami | dcb52a0 | 可执行文件路径获取 | [whereami/README_Z.md](whereami/README_Z.md) |
 | `klogg_exprtk/` | exprtk | 1f9f4cd | 数学表达式解析 | [klogg_exprtk/README_Z.md](klogg_exprtk/README_Z.md) |
+| `efsw/` | efsw | 1.4.1 | 文件系统监控 | [efsw/README_Z.md](efsw/README_Z.md) |
 
 ## 注意事项
 - 更新依赖时，需同步更新对应子目录的 `README.md` 和本总览文件中的版本号或者commit hash。
