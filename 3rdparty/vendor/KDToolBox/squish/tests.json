@@ -1,0 +1,47 @@
+{
+    "tests": [
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature1"
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature2"
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature3",
+            "supports_offscreen": false
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature4",
+            "disabled": false
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature5",
+            "failure_expected": true
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature6",
+            "failure_expected": "linux"
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature6",
+            "supports_offscreen": [
+                "macos",
+                "windows"
+            ]
+        },
+        {
+            "suite": "mysuite1",
+            "name": "tst_myfeature7",
+            "categories": [
+                "mycategory"
+            ]
+        }
+    ]
+}

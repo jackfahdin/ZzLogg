@@ -127,28 +127,16 @@ target_compile_definitions(
             -Dexprtk_disable_string_capabilities
 )
 
-cpmaddpackage(
-  NAME
-  KDToolBox
-  GITHUB_REPOSITORY
-  KDAB/KDToolBox
-  GIT_TAG
-  6468867d1a46eabe1bcb2cd342f338fe66f06675
-  DOWNLOAD_ONLY
-  YES
+# KDToolBox (KDSignalThrottler only)
+add_library(
+  kdtoolbox STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src/KDSignalThrottler.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src/KDSignalThrottler.h
 )
-if(KDToolBox_ADDED)
-  add_library(
-    kdtoolbox STATIC ${KDToolBox_SOURCE_DIR}/qt/KDSignalThrottler/src/KDSignalThrottler.cpp
-                     ${KDToolBox_SOURCE_DIR}/qt/KDSignalThrottler/src/KDSignalThrottler.h
-  )
+target_include_directories(kdtoolbox PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src)
+target_link_libraries(kdtoolbox Qt${QT_VERSION_MAJOR}::Core)
+set_target_properties(kdtoolbox PROPERTIES AUTOMOC ON)
 
-  target_include_directories(kdtoolbox PUBLIC ${KDToolBox_SOURCE_DIR}/qt/KDSignalThrottler/src)
-  target_link_libraries(kdtoolbox Qt${QT_VERSION_MAJOR}::Core)
-  set_target_properties(kdtoolbox PROPERTIES AUTOMOC ON)
-endif()
-
-# efsw
 # efsw
 set(BUILD_TEST_APP OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/efsw)
