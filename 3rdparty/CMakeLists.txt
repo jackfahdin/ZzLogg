@@ -13,7 +13,8 @@ add_subdirectory(vendor/type_safe)
 # CRoaring
 add_subdirectory(vendor/CRoaring)
 
-cpmaddpackage("gh:lemire/streamvbyte@1.0.0")
+# streamvbyte
+add_subdirectory(vendor/streamvbyte)
 
 if(APPLE)
   cpmaddpackage(
