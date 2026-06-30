@@ -77,7 +77,9 @@ endif()
 add_subdirectory(vendor/robin-hood-hashing)
 
 if(KLOGG_BUILD_TESTS)
-  cpmaddpackage("gh:bombela/backward-cpp@1.6")
+  # backward-cpp
+  add_subdirectory(vendor/backward-cpp)
+
   cpmaddpackage(
     NAME
     Catch2
