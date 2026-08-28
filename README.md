@@ -71,7 +71,7 @@ Latest news about klogg development can be found at https://klogg.filimonov.dev.
 
 Klogg has all best features of glogg:
 
-* Runs on Unix-like systems, Windows and Mac thanks to Qt5
+* Runs on Unix-like systems, Windows and Mac thanks to Qt 6
 * Is fast and reads the file directly from disk, without loading it into memory
 * Can operate on huge text files (10+ Gb is not a problem)
 * Search results are displayed separately from original file

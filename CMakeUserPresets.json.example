@@ -1,0 +1,71 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-qt6",
+      "displayName": "Windows Qt 6",
+      "inherits": "windows-vs2026",
+      "binaryDir": "${sourceDir}/out/build/windows-qt6",
+      "cacheVariables": {
+        "CMAKE_GENERATOR_INSTANCE": "C:/Path/To/Microsoft Visual Studio/18/Community",
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.x/msvc2022_64",
+        "KLOGG_USE_HYPERSCAN": false
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-qt6-debug",
+      "configurePreset": "windows-qt6",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-qt6-relwithdebinfo",
+      "configurePreset": "windows-qt6",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-qt6-release",
+      "configurePreset": "windows-qt6",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-qt6-debug",
+      "configurePreset": "windows-qt6",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-qt6-relwithdebinfo",
+      "configurePreset": "windows-qt6",
+      "configuration": "RelWithDebInfo",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "windows-qt6-release",
+      "configurePreset": "windows-qt6",
+      "configuration": "Release",
+      "output": { "outputOnFailure": true }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "windows-qt6-debug",
+      "steps": [
+        { "type": "configure", "name": "windows-qt6" },
+        { "type": "build", "name": "windows-qt6-debug" },
+        { "type": "test", "name": "windows-qt6-debug" }
+      ]
+    },
+    {
+      "name": "windows-qt6-relwithdebinfo",
+      "steps": [
+        { "type": "configure", "name": "windows-qt6" },
+        { "type": "build", "name": "windows-qt6-relwithdebinfo" },
+        { "type": "test", "name": "windows-qt6-relwithdebinfo" }
+      ]
+    }
+  ]
+}

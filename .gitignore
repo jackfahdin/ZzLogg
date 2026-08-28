@@ -39,6 +39,10 @@ build_root_qt5/
 build_root_qt6/
 test_data/
 build/
+out/
+
+# Local machine paths and personal CMake preset overrides
+CMakeUserPresets.json
 
 compile_commands.json
 

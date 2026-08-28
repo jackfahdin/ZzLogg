@@ -18,11 +18,7 @@ set(TS_FILES
 )
 
 find_package(Qt${QT_VERSION_MAJOR}LinguistTools REQUIRED)
-if (${QT_VERSION_MAJOR} EQUAL 5)
-  qt5_add_translation(QM_FILES ${TS_FILES})
-else (${QT_VERSION_MAJOR} EQUAL 6)
-  qt6_add_translation(QM_FILES ${TS_FILES})
-endif()
+qt6_add_translation(QM_FILES ${TS_FILES})
 
 if (NOT TARGET Qt${QT_VERSION_MAJOR}::lupdate)
     message(FATAL_ERROR "The package \"Qt${QT_VERSION_MAJOR}LinguistTools\" is required.")

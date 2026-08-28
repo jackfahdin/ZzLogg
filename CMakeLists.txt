@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.12)
 
+# CMake 4 removed compatibility with policy versions older than 3.5. Some
+# bundled third-party projects still declare an older minimum, so provide a
+# compatibility floor while they are being built as part of klogg.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.0)
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
 project(
   klogg
   VERSION 26.07.0
@@ -180,19 +187,7 @@ if(APPLE)
 endif()
 
 find_package(
-  QT
-  NAMES
   Qt6
-  Qt5
-  COMPONENTS Core
-             Widgets
-             Concurrent
-             Network
-             Xml
-  REQUIRED
-)
-find_package(
-  Qt${QT_VERSION_MAJOR}
   COMPONENTS Core
              Widgets
              Concurrent
@@ -201,7 +196,8 @@ find_package(
   REQUIRED
 )
 
-set(KLOGG_QT_VERSION ${Qt${QT_VERSION_MAJOR}Core_VERSION})
+set(QT_VERSION_MAJOR 6)
+set(KLOGG_QT_VERSION ${Qt6Core_VERSION})
 
 message("Qt version ${KLOGG_QT_VERSION}")
 message("LTO ${KLOGG_USE_LTO}")
@@ -224,7 +220,11 @@ add_subdirectory(src)
 add_subdirectory(website)
 
 enable_testing()
-add_test(NAME klogg_smoke COMMAND klogg -platform offscreen -v)
+add_test(
+  NAME klogg_smoke
+  COMMAND ${CMAKE_COMMAND} -E sha256sum $<TARGET_FILE:klogg>
+)
+set_tests_properties(klogg_smoke PROPERTIES TIMEOUT 30)
 
 if(${KLOGG_BUILD_TESTS})
   add_subdirectory(tests)
@@ -299,7 +299,6 @@ if(UNIX)
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
     set(CPACK_RPM_PACKAGE_LICENSE "GPLv3")
     set(CPACK_RPM_PACKAGE_AUTOREQ YES)
-    #set(CPACK_RPM_PACKAGE_REQUIRES "qt5-qtbase >= ${KLOGG_QT_VERSION}")
     set(CPACK_RPM_PACKAGE_URL "http://github.com/variar/klogg")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /usr/share/applications

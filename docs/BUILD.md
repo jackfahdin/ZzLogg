@@ -18,9 +18,10 @@ git clone https://github.com/variar/klogg
 
 To build Klogg:
 
-- cmake 3.12 or later to generate build files
+- CMake 3.12 or later for traditional command-line builds
+- CMake 3.25 or later when using the provided presets and workflows
 - C++ compiler with decent C++17 support (at least gcc 7.5, clang 7, msvc 19.14)
-- Qt libraries 5.9 or later (CI builds use Qt 5.9.5/5.12.5/5.15.2):
+- Qt 6 libraries:
   - QtCore
   - QtGui
   - QtWidgets
@@ -51,6 +52,56 @@ If a library can't be found, the one provided by CPM will be used.
 
 ## Building
 
+### Building with CMake Presets
+
+The repository provides cross-platform presets in `CMakePresets.json`. Build
+outputs are kept below `out/build/<preset-name>`.
+
+List all available presets:
+
+```bash
+cmake --list-presets=all
+```
+
+On Linux and macOS, install Qt and Ninja with the platform package manager (or
+set `CMAKE_PREFIX_PATH` to the Qt installation), then use one of the shared
+Ninja workflows:
+
+```bash
+cmake --workflow --preset ninja-debug
+cmake --workflow --preset ninja-relwithdebinfo
+cmake --workflow --preset ninja-release
+```
+
+Each workflow configures, builds, and verifies the generated application
+artifact. The individual stages can also be run separately:
+
+```bash
+cmake --preset ninja-debug
+cmake --build --preset ninja-debug
+ctest --preset ninja-debug
+```
+
+Machine-specific Qt and Visual Studio paths belong in
+`CMakeUserPresets.json`, which is intentionally ignored by Git. Copy
+`CMakeUserPresets.json.example` to get started. On Windows, the example
+provides a Qt 6 preset based on the Visual Studio 2026 generator:
+
+```powershell
+cmake --preset windows-qt6
+cmake --build --preset windows-qt6-debug
+ctest --preset windows-qt6-debug
+```
+
+The Visual Studio generator initializes the MSVC build environment itself, so
+these presets do not require running `VsDevCmd.bat` first. Qt and Visual Studio
+paths in the user preset should use forward slashes, including on Windows. The
+example disables Hyperscan so that Qt, MSVC, and CMake are sufficient for a
+first build. Install Boost and set `KLOGG_USE_HYPERSCAN` to `true` if the
+accelerated regular-expression backend is required.
+
+Qt 6 is required.
+
 ### Configuration options
 
 By default Klogg is built without support for reporting crash dumps. This can be enabled via cmake option `-DKLOGG_USE_SENTRY=ON`.
@@ -64,12 +115,12 @@ Memory allocator override can be turned off by passing `-DKLOGG_OVERRIDE_MALLOC`
 
 ### Building on Linux
 
-Here is how to build klogg on Ubuntu 18.04.
+Here is how to build klogg on Ubuntu 24.04.
 
 Install dependencies:
 
 ```
-sudo apt-get install build-essential cmake qtbase5-dev libboost-all-dev ragel
+sudo apt-get install build-essential cmake ninja-build qt6-base-dev qt6-tools-dev libboost-all-dev ragel
 ```
 
 Configure and build klogg:
@@ -82,10 +133,10 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 cmake --build .
 ```
 
-**_If cmake gives error about missing "Qt5LinguistTools" configuration files, try running:_**
+**_If CMake reports missing Qt6 LinguistTools, install the Qt 6 tools package:_**
 
 ```bash
-sudo apt-get install qttools5-dev
+sudo apt-get install qt6-tools-dev
 ```
 
 Binaries are placed into `build_root/output`.
@@ -165,7 +216,8 @@ Download and install build dependencies:
 brew install cmake ninja qt boost ragel
 ```
 
-Usually path to qt installation looks like `/usr/local/Cellar/qt/5.14.0/lib/cmake/Qt5`
+Usually the Qt installation is discoverable through Homebrew. If it is not,
+set `CMAKE_PREFIX_PATH` to the Homebrew Qt 6 prefix.
 
 Configure and build klogg:
 
@@ -173,7 +225,7 @@ Configure and build klogg:
 cd <path_to_klogg_repository_clone>
 mkdir build_root
 cd build_root
-cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DQt5_DIR=<path_to_qt_install> ..
+cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=<path_to_qt6> ..
 cmake --build .
 ```
 
@@ -185,8 +237,17 @@ To override default cmake value pass an option `-DKLOGG_OSX_DEPLOYMENT_TARGET=<t
 
 ## Running tests
 
-Tests are built by default. To turn them off pass `-DBUILD_TESTS:BOOL=OFF` to cmake.
-Tests use catch2 (bundled with klogg sources) and require Qt5Test module. Tests can be run using ctest tool provider by CMake:
+Tests are built by default. To turn them off pass
+`-DKLOGG_BUILD_TESTS:BOOL=OFF` to CMake.
+
+The shared presets disable the optional unit/UI test targets because the
+`backward-cpp` test dependency is not included in the source snapshot. The
+always-available `klogg_smoke` artifact check is still run by the workflow
+presets. Set
+`KLOGG_BUILD_TESTS` to `ON` in a user preset after providing that dependency
+to enable the complete test suite.
+Tests use Catch2 (bundled with klogg sources) and require the Qt 6 Test module.
+Tests can be run using the CTest tool provided by CMake:
 
 ```
 cd <path_to_klogg_repository_clone>

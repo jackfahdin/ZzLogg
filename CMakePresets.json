@@ -1,0 +1,174 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "KLOGG_BUILD_TESTS": false,
+        "KLOGG_USE_LTO": false,
+        "KLOGG_USE_SENTRY": false
+      }
+    },
+    {
+      "name": "ninja-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja"
+    },
+    {
+      "name": "ninja-debug",
+      "displayName": "Ninja Debug",
+      "description": "Cross-platform debug build using Ninja",
+      "inherits": "ninja-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "ninja-relwithdebinfo",
+      "displayName": "Ninja RelWithDebInfo",
+      "description": "Cross-platform optimized build with debug information",
+      "inherits": "ninja-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "KLOGG_USE_LTO": true
+      }
+    },
+    {
+      "name": "ninja-release",
+      "displayName": "Ninja Release",
+      "description": "Cross-platform release build using Ninja",
+      "inherits": "ninja-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "KLOGG_USE_LTO": true
+      }
+    },
+    {
+      "name": "windows-vs2026",
+      "displayName": "Visual Studio 2026 x64",
+      "description": "Windows multi-config build; provide Qt through CMAKE_PREFIX_PATH",
+      "inherits": "base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja-debug",
+      "configurePreset": "ninja-debug"
+    },
+    {
+      "name": "ninja-relwithdebinfo",
+      "configurePreset": "ninja-relwithdebinfo"
+    },
+    {
+      "name": "ninja-release",
+      "configurePreset": "ninja-release"
+    },
+    {
+      "name": "windows-vs2026-debug",
+      "configurePreset": "windows-vs2026",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-relwithdebinfo",
+      "configurePreset": "windows-vs2026",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-vs2026-release",
+      "configurePreset": "windows-vs2026",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "ninja-debug",
+      "configurePreset": "ninja-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ninja-relwithdebinfo",
+      "configurePreset": "ninja-relwithdebinfo",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ninja-release",
+      "configurePreset": "ninja-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-debug",
+      "configurePreset": "windows-vs2026",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-relwithdebinfo",
+      "configurePreset": "windows-vs2026",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-release",
+      "configurePreset": "windows-vs2026",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "ninja-debug",
+      "steps": [
+        { "type": "configure", "name": "ninja-debug" },
+        { "type": "build", "name": "ninja-debug" },
+        { "type": "test", "name": "ninja-debug" }
+      ]
+    },
+    {
+      "name": "ninja-relwithdebinfo",
+      "steps": [
+        { "type": "configure", "name": "ninja-relwithdebinfo" },
+        { "type": "build", "name": "ninja-relwithdebinfo" },
+        { "type": "test", "name": "ninja-relwithdebinfo" }
+      ]
+    },
+    {
+      "name": "ninja-release",
+      "steps": [
+        { "type": "configure", "name": "ninja-release" },
+        { "type": "build", "name": "ninja-release" },
+        { "type": "test", "name": "ninja-release" }
+      ]
+    }
+  ]
+}
