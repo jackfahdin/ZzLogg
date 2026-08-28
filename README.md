@@ -34,7 +34,7 @@ combination of grep, less, and tail.
 ![Klogg main window](website/static/screenshots/mainwindow.png)
 
 Please refer to the
-[documentation](DOCUMENTATION.md)
+[documentation](docs/DOCUMENTATION.md)
 page for how to use Klogg.
 
 ### Latest testing builds
@@ -188,13 +188,13 @@ As indicated by this link from the official appimage documentation: https://docs
 ## Building
 
 Please review
-[BUILD.md](BUILD.md)
+[build guide](docs/BUILD.md)
 for how to setup Klogg on your local machine for development and testing purposes.
 
 ## How to Get Help
 
 First, please refer to the
-[documentation](DOCUMENTATION.md)
+[documentation](docs/DOCUMENTATION.md)
 page.
 
 You can open issues using [klogg issues page](https://github.com/variar/klogg/issues)
@@ -202,7 +202,7 @@ or post questions to glogg development [mailing list](http://groups.google.co.uk
 
 ## Contributing
 
-We encourage public contributions! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and development process.
+We encourage public contributions! Please review the [contributing guide](.github/CONTRIBUTING.md) for details on our code of conduct and development process.
 
 ## License
 
