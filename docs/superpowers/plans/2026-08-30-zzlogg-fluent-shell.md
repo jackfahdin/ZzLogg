@@ -453,10 +453,10 @@ void OptionsThemeTest::showsOnlyTheModeOwnedByTheEntryPoint()
 运行：
 
 ```powershell
-& 'D:/SoftWare/CMake/bin/cmake.exe' --build out/build/ui2-contract `
+cmake --build out/build/ui2-contract `
   --config Debug --target zzlogg_options_theme_test
 
-$testInfo = & 'D:/SoftWare/CMake/bin/ctest.exe' --test-dir out/build/ui2-contract `
+$testInfo = ctest --test-dir out/build/ui2-contract `
   -C Debug -N -V -R '^zzlogg_ui2.options_theme$'
 $runtimeDirs = $testInfo | Select-String 'PATH=path_list_prepend:(.+)$' | ForEach-Object {
   $_.Matches[0].Groups[1].Value
