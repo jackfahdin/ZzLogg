@@ -23,6 +23,11 @@ set(IDENTIFIER "com.github.variar.klogg")
 set(PROJECT_DESCRIPTION "${PROJECT_NAME} log viewer")
 
 option(KLOGG_BUILD_TESTS "Build tests" ON)
+option(KLOGG_BUILD_UI2 "Build the experimental ZzPureTools UI" OFF)
+option(KLOGG_BUILD_UI2_TESTS "Build tests for the experimental UI" ${KLOGG_BUILD_UI2})
+if(KLOGG_BUILD_UI2_TESTS AND NOT KLOGG_BUILD_UI2)
+  message(FATAL_ERROR "KLOGG_BUILD_UI2_TESTS requires KLOGG_BUILD_UI2=ON")
+endif()
 option(KLOGG_USE_LTO "Use link time optimization" ON)
 option(KLOGG_USE_SENTRY "Use Sentry" OFF)
 option(KLOGG_GENERIC_CPU "Build for generic CPU" OFF)
@@ -212,6 +217,11 @@ endif()
 set(CMAKE_AUTOMOC OFF)
 set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 set(BUILD_SHARED_LIBS OFF)
+
+if(KLOGG_BUILD_UI2)
+  include(ZzPureTools)
+  klogg_add_zzpuretools()
+endif()
 
 add_custom_target(ci_build)
 
