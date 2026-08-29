@@ -70,11 +70,11 @@ ZzFluentTitleBar
 
 ```text
 zzlogg_ui2
+├── ZzWindowKitBootstrap::prepare()（QApplication 前）
 ├── 现有 KloggApp
 ├── ZzLoggUiRuntime（应用级）
-│   ├── ZzWindowKitBootstrap
 │   ├── ZzThemeController
-│   ├── ZzFluentStyle
+│   ├── ZzFluentStyle 安装与应用状态管理
 │   └── 窗口装饰入口
 ├── 现有 MainWindow
 │   ├── 工具栏
@@ -117,7 +117,9 @@ ZzLogg 只链接以下目标：
 
 ## 6. 应用与窗口所有权
 
-`ZzLoggUiRuntime` 由 `zzlogg_ui2` 应用入口创建并在所有窗口之前完成初始化。它拥有应用级主题控制器和 Fluent Style，确保多个窗口共享同一主题状态。
+`zzlogg_ui2` 应用入口必须在构造 `KloggApp` / `QApplication` 前调用 `ZzWindowKitBootstrap::prepare()`。Bootstrap 是无状态的启动步骤，不由 Runtime 持有。
+
+`ZzLoggUiRuntime` 在 `KloggApp` 构造后由 `zzlogg_ui2` 入口创建，并在任何窗口创建前完成初始化。它拥有应用级主题控制器，并把 `ZzFluentStyle` 安装到 `QApplication`；安装后 Style 的生命周期由 `QApplication` 管理。这确保多个窗口共享同一主题状态，同时不违反 Qt 对应用对象和 Style 的所有权约定。
 
 `KloggApp` 增加一个可选窗口装饰回调：
 
