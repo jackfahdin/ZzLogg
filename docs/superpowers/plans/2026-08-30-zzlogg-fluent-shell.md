@@ -455,9 +455,19 @@ void OptionsThemeTest::showsOnlyTheModeOwnedByTheEntryPoint()
 ```powershell
 & 'D:/SoftWare/CMake/bin/cmake.exe' --build out/build/ui2-contract `
   --config Debug --target zzlogg_options_theme_test
+
+$testInfo = & 'D:/SoftWare/CMake/bin/ctest.exe' --test-dir out/build/ui2-contract `
+  -C Debug -N -V -R '^zzlogg_ui2.options_theme$'
+$runtimeDirs = $testInfo | Select-String 'PATH=path_list_prepend:(.+)$' | ForEach-Object {
+  $_.Matches[0].Groups[1].Value
+}
+$env:PATH = ($runtimeDirs + $env:PATH) -join [IO.Path]::PathSeparator
+& 'out/build/ui2-contract/output/Debug/zzlogg_options_theme_test.exe' `
+  showsOnlyTheModeOwnedByTheEntryPoint -platform offscreen
 ```
 
-预期：FAIL，`themeBox` 和 `themeModeComboBox` 不存在。
+预期：构建成功；聚焦执行以 exit 1 失败，`showsOnlyTheModeOwnedByTheEntryPoint` 中
+`legacyTheme` 断言报告 `themeBox` 不存在（因此 `themeModeComboBox` 也尚不存在）。
 
 - [ ] **步骤 3：在原 Appearance 行内加入 Theme 组**
 

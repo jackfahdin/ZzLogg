@@ -1,7 +1,9 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QSettings>
 #include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include "configuration.h"
@@ -53,6 +55,10 @@ class OptionsThemeTest final : public QObject {
         auto* combo = dialog.findChild<QComboBox*>( QStringLiteral( "themeModeComboBox" ) );
         QVERIFY( combo );
         combo->setCurrentIndex( 1 );
+        auto* languageCombo
+            = dialog.findChild<QComboBox*>( QStringLiteral( "languageComboBox" ) );
+        QVERIFY( languageCombo );
+        config.setLanguage( languageCombo->currentData().toString() );
 
         QVERIFY( QMetaObject::invokeMethod( &dialog, "updateConfigFromDialog" ) );
         QCOMPARE( config.uiThemeMode(), UiThemeMode::Light );
@@ -76,6 +82,10 @@ class OptionsThemeTest final : public QObject {
         auto* combo = dialog.findChild<QComboBox*>( QStringLiteral( "styleComboBox" ) );
         QVERIFY( combo );
         combo->setCurrentIndex( 0 );
+        auto* languageCombo
+            = dialog.findChild<QComboBox*>( QStringLiteral( "languageComboBox" ) );
+        QVERIFY( languageCombo );
+        config.setLanguage( languageCombo->currentData().toString() );
 
         QVERIFY( QMetaObject::invokeMethod( &dialog, "updateConfigFromDialog" ) );
         QCOMPARE( config.style(), style );
@@ -89,6 +99,16 @@ int main( int argc, char* argv[] )
     QApplication app( argc, argv );
     app.setOrganizationName( QStringLiteral( "zzlogg-options-theme-test" ) );
     app.setApplicationName( QStringLiteral( "zzlogg-options-theme-test-20260830" ) );
+    QTemporaryDir settingsDir;
+    if ( !settingsDir.isValid() ) {
+        return 1;
+    }
+    QSettings::setPath( QSettings::IniFormat, QSettings::UserScope, settingsDir.path() );
+    QSettings isolatedSettings( QSettings::IniFormat, QSettings::UserScope,
+                                QStringLiteral( "klogg" ), QStringLiteral( "klogg" ) );
+    if ( !isolatedSettings.fileName().startsWith( settingsDir.path() ) ) {
+        return 1;
+    }
     Configuration::getSynced();
     SavedSearches::getSynced();
     RecentFiles::getSynced();

@@ -492,9 +492,6 @@ void OptionsDialog::checkShortcutsOnDuplicate() const
 int OptionsDialog::updateTranslate()
 {
     auto mw = dynamic_cast<MainWindow*>( parent() );
-    if ( !mw ) {
-        return 0;
-    }
     return mw->installLanguage( languageComboBox->currentData().toString() );
 }
 
