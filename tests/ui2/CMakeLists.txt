@@ -28,3 +28,16 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
+
+add_executable(zzlogg_fluent_shell_test
+  windowkittestmain.cpp fluentshelltest.cpp)
+target_link_libraries(zzlogg_fluent_shell_test PRIVATE
+  zzlogg_ui2_shell Qt6::Test Qt6::Widgets)
+set_target_properties(zzlogg_fluent_shell_test PROPERTIES AUTOMOC ON)
+klogg_copy_ui2_runtime_dlls(zzlogg_fluent_shell_test)
+add_test(NAME zzlogg_ui2.fluent_shell
+         COMMAND zzlogg_fluent_shell_test)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.fluent_shell PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
+endif()
