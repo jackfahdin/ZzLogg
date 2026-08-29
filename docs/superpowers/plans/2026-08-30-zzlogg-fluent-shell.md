@@ -180,9 +180,21 @@ endif()
 
 - [ ] **步骤 6：重新运行配置契约**
 
-运行步骤 4 的两个命令。
+重复步骤 4 的配置命令，然后从 ZzPureTools 的嵌套生成目录构建目标：
 
-预期：PASS；生成并构建 `ZzFluentUI`、`ZzFluentFoundation`、`ZzWindowKit`，根项目的 `CMAKE_CXX_STANDARD` 缓存仍为 `17`。
+```powershell
+& 'D:/SoftWare/CMake/bin/cmake.exe' -S . -B out/build/ui2-contract `
+  -G 'Visual Studio 18 2026' -A x64 `
+  -DCMAKE_GENERATOR_INSTANCE='D:/SoftWare/Microsoft Visual Studio/18/Community' `
+  -DCMAKE_PREFIX_PATH='D:/SoftWare/Qt/6.11.0/msvc2022_64' `
+  -DKLOGG_BUILD_TESTS=OFF -DKLOGG_BUILD_UI2=ON -DKLOGG_USE_HYPERSCAN=OFF
+& 'D:/SoftWare/CMake/bin/cmake.exe' --build out/build/ui2-contract/_deps/zzpuretools/ZzFluentUI `
+  --config Debug --target ZzFluentUI
+```
+
+预期：PASS；生成并构建 `ZzFluentUI`、`ZzFluentFoundation`、`ZzWindowKit`，根项目的 `CMAKE_CXX_STANDARD` 仍为 `17`。
+
+保留 `EXCLUDE_FROM_ALL` 是依赖隔离契约的一部分。在 Visual Studio 18 / CMake 4.4 生成的根 `klogg.slnx` 中，这会使直接依赖目标不作为根解决方案的可直接构建项目暴露，因此根目录的 `--target ZzFluentUI` 不能作为 GREEN 验收命令。后续根目录构建 `zzlogg_ui2` 时，链接依赖会传递地构建所需的 Zz 库。
 
 - [ ] **步骤 7：确认默认构建没有新增依赖要求**
 
