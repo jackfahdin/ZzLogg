@@ -56,6 +56,32 @@ static const Configuration DefaultConfiguration = {};
 
 } // namespace
 
+QString uiThemeModeStorageValue( UiThemeMode mode )
+{
+    switch ( mode ) {
+    case UiThemeMode::Light: return QStringLiteral( "light" );
+    case UiThemeMode::Dark: return QStringLiteral( "dark" );
+    case UiThemeMode::System: return QStringLiteral( "system" );
+    }
+    return QStringLiteral( "system" );
+}
+
+UiThemeMode uiThemeModeFromStorageValue( QStringView value, bool* valid )
+{
+    const auto normalized = value.trimmed().toString().toLower();
+    if ( valid )
+        *valid = true;
+    if ( normalized == QStringLiteral( "light" ) )
+        return UiThemeMode::Light;
+    if ( normalized == QStringLiteral( "dark" ) )
+        return UiThemeMode::Dark;
+    if ( normalized == QStringLiteral( "system" ) )
+        return UiThemeMode::System;
+    if ( valid )
+        *valid = false;
+    return UiThemeMode::System;
+}
+
 Configuration::Configuration()
 {
     splitterSizes_ << 400 << 100;
@@ -283,6 +309,14 @@ void Configuration::retrieveFromStorage( QSettings& settings )
 
     style_ = settings.value( "view.style", DefaultConfiguration.style_ ).toString();
 
+    bool themeModeValid = false;
+    const auto themeModeValue
+        = settings.value( "view.themeMode", QStringLiteral( "system" ) ).toString();
+    uiThemeMode_ = uiThemeModeFromStorageValue( themeModeValue, &themeModeValid );
+    if ( !themeModeValid ) {
+        settings.setValue( "view.themeMode", QStringLiteral( "system" ) );
+    }
+
     auto styles = StyleManager::availableStyles();
     if ( !styles.contains( style_ ) ) {
         style_ = StyleManager::defaultPlatformStyle();
@@ -410,6 +444,7 @@ void Configuration::saveToStorage( QSettings& settings ) const
     settings.setValue( "view.lineNumbersVisibleInFiltered", lineNumbersVisibleInFiltered_ );
     settings.setValue( "view.minimizeToTray", minimizeToTray_ );
     settings.setValue( "view.style", style_ );
+    settings.setValue( "view.themeMode", uiThemeModeStorageValue( uiThemeMode_ ) );
     settings.setValue( "view.language", language_ );
     settings.setValue( "view.textWrap", useTextWrap_ );
 

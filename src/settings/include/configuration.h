@@ -42,7 +42,9 @@
 
 #include <QColor>
 #include <QFont>
+#include <QMetaType>
 #include <QSettings>
+#include <QStringView>
 #include <qcolor.h>
 #include <string>
 #include <string_view>
@@ -57,6 +59,12 @@ enum class SearchRegexpType {
 };
 
 enum class RegexpEngine { Hyperscan, QRegularExpression };
+enum class UiThemeMode { System, Light, Dark };
+Q_DECLARE_METATYPE( UiThemeMode )
+
+[[nodiscard]] QString uiThemeModeStorageValue( UiThemeMode mode );
+[[nodiscard]] UiThemeMode uiThemeModeFromStorageValue( QStringView value, bool* valid = nullptr );
+
 static constexpr int MAX_RECENT_FILES = 25;
 
 // Configuration class containing everything in the "Settings" dialog
@@ -300,6 +308,14 @@ class Configuration final : public Persistable<Configuration> {
     void setStyle( const QString& style )
     {
         style_ = style;
+    }
+    UiThemeMode uiThemeMode() const
+    {
+        return uiThemeMode_;
+    }
+    void setUiThemeMode( UiThemeMode mode )
+    {
+        uiThemeMode_ = mode;
     }
 
     bool enableLogging() const
@@ -563,6 +579,7 @@ class Configuration final : public Persistable<Configuration> {
     bool lineNumbersVisibleInFiltered_ = true;
     bool minimizeToTray_ = false;
     QString style_;
+    UiThemeMode uiThemeMode_ = UiThemeMode::System;
 
     // Default settings for new views
     bool searchAutoRefresh_ = false;

@@ -240,6 +240,11 @@ if(${KLOGG_BUILD_TESTS})
   add_subdirectory(tests)
 endif()
 
+if(KLOGG_BUILD_UI2_TESTS)
+  find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
+  add_subdirectory(tests/ui2)
+endif()
+
 # Installation and packaging
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 set(CPACK_SOURCE_IGNORE_FILES "build_root;.git")
