@@ -93,6 +93,22 @@ cmake --build --preset windows-qt6-debug
 ctest --preset windows-qt6-debug
 ```
 
+Create a self-contained Windows portable folder:
+
+```powershell
+cmake --workflow --preset windows-qt6-portable
+```
+
+The generated artifacts are placed in:
+
+```text
+out/build/windows-qt6/portable/RelWithDebInfo/klogg-portable/
+```
+
+The folder contains `klogg_portable.exe`, the required Qt plugins and runtime
+libraries, the MSVC runtime, TBB libraries, and the project documentation and
+license files.
+
 The Visual Studio generator initializes the MSVC build environment itself, so
 these presets do not require running `VsDevCmd.bat` first. Qt and Visual Studio
 paths in the user preset should use forward slashes, including on Windows. The

@@ -59,9 +59,11 @@ set(MAIN_LIBS
 
 add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES} ${KLOGG_UI_SOURCES})
 add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES} ${KLOGG_UI_SOURCES})
-add_executable(klogg_grep ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})
+# Keep the experimental command-line frontend available for explicit builds,
+# but do not include it in the default build until its runtime issues are fixed.
+add_executable(klogg_grep EXCLUDE_FROM_ALL ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})
 
-add_dependencies(ci_build klogg klogg_grep)
+add_dependencies(ci_build klogg)
 
 if(WIN32)
   add_dependencies(ci_build klogg_portable)
@@ -143,6 +145,63 @@ if(WIN32)
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Copy tbbmalloc_proxy"
     )
+  endif()
+endif()
+
+if(WIN32 AND TARGET Qt6::qmake)
+  include(InstallRequiredSystemLibraries)
+
+  get_target_property(KLOGG_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+  get_filename_component(KLOGG_QT_BIN_DIR "${KLOGG_QMAKE_EXECUTABLE}" DIRECTORY)
+  find_program(KLOGG_WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${KLOGG_QT_BIN_DIR}")
+
+  if(KLOGG_WINDEPLOYQT_EXECUTABLE)
+    set(KLOGG_PORTABLE_ROOT "${CMAKE_BINARY_DIR}/portable/$<CONFIG>")
+    set(KLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_ROOT}/klogg-portable")
+    set(KLOGG_PORTABLE_DOCUMENTS
+        "${README_FILE};${COPYING_FILE};${NOTICE_FILE};${DOCUMENTATION_FILE}"
+    )
+
+    set(KLOGG_PORTABLE_DEPENDENCIES klogg_portable)
+    set(KLOGG_PORTABLE_RUNTIME_COMMANDS)
+
+    foreach(runtime_target tbb tbbmalloc tbbmalloc_proxy)
+      if(TARGET ${runtime_target})
+        list(APPEND KLOGG_PORTABLE_DEPENDENCIES ${runtime_target})
+        list(APPEND KLOGG_PORTABLE_RUNTIME_COMMANDS
+             COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     $<TARGET_FILE:${runtime_target}> "${KLOGG_PORTABLE_DIR}"
+        )
+      endif()
+    endforeach()
+
+    foreach(runtime_file IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+      if(EXISTS "${runtime_file}")
+        list(APPEND KLOGG_PORTABLE_RUNTIME_COMMANDS
+             COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     "${runtime_file}" "${KLOGG_PORTABLE_DIR}"
+        )
+      endif()
+    endforeach()
+
+    add_custom_target(
+      klogg_portable_folder
+      COMMAND
+        ${CMAKE_COMMAND}
+        "-DAPP_EXECUTABLE=$<TARGET_FILE:klogg_portable>"
+        "-DDEPLOY_DIR=${KLOGG_PORTABLE_DIR}"
+        "-DWINDEPLOYQT=${KLOGG_WINDEPLOYQT_EXECUTABLE}"
+        "-DCONFIG=$<CONFIG>"
+        "-DPORTABLE_DOCUMENTS=${KLOGG_PORTABLE_DOCUMENTS}"
+        -P "${CMAKE_SOURCE_DIR}/cmake/DeployPortable.cmake"
+      ${KLOGG_PORTABLE_RUNTIME_COMMANDS}
+      DEPENDS ${KLOGG_PORTABLE_DEPENDENCIES}
+      COMMENT "Creating portable klogg folder"
+      VERBATIM
+    )
+
+  else()
+    message(WARNING "windeployqt was not found; portable package targets are unavailable")
   endif()
 endif()
 

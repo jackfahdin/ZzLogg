@@ -28,6 +28,12 @@
       "name": "windows-qt6-release",
       "configurePreset": "windows-qt6",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-qt6-portable",
+      "configurePreset": "windows-qt6",
+      "configuration": "RelWithDebInfo",
+      "targets": ["klogg_portable_folder"]
     }
   ],
   "testPresets": [
@@ -65,6 +71,13 @@
         { "type": "configure", "name": "windows-qt6" },
         { "type": "build", "name": "windows-qt6-relwithdebinfo" },
         { "type": "test", "name": "windows-qt6-relwithdebinfo" }
+      ]
+    },
+    {
+      "name": "windows-qt6-portable",
+      "steps": [
+        { "type": "configure", "name": "windows-qt6" },
+        { "type": "build", "name": "windows-qt6-portable" }
       ]
     }
   ]
