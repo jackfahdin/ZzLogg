@@ -1,6 +1,7 @@
 #include "zzloggfluentshell.h"
 #include "zzloggfluentchrome_p.h"
 #include "zzloggfluentshell_p.h"
+#include "log.h"
 
 #include <exception>
 #include <utility>
@@ -124,7 +125,11 @@ ZzCore::ZzResult<void> configureDefaultChrome( QMainWindow& window,
     titleBar.setSystemButtonsVisible( !nativeButtons );
     const ZzWindowKit::ZzWindowChromeConfiguration chrome
         = ZzLoggUi2Internal::buildFluentChromeConfiguration( titleBar, capabilities );
-    return agent.configureChrome( chrome );
+    auto configured = agent.configureChrome( chrome );
+    if ( configured ) {
+        LOG_DEBUG << "Fluent window capabilities: " << capabilities.toInt();
+    }
+    return configured;
 }
 
 } // namespace

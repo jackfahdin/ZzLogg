@@ -35,6 +35,11 @@ function(klogg_copy_ui2_runtime_dlls target)
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               $<TARGET_RUNTIME_DLLS:${target}>
               $<TARGET_FILE_DIR:${target}>
+      COMMAND ${CMAKE_COMMAND} -E make_directory
+              $<TARGET_FILE_DIR:${target}>/platforms
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              $<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>
+              $<TARGET_FILE_DIR:${target}>/platforms
       COMMAND_EXPAND_LISTS)
   endif()
 endfunction()

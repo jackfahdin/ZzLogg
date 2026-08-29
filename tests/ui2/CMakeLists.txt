@@ -47,3 +47,22 @@ if(WIN32)
   set_property(TEST zzlogg_ui2.fluent_shell PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
 endif()
+
+add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+target_link_libraries(zzlogg_runtime_contract_test PRIVATE
+  zzlogg_ui2_runtime klogg_ui klogg_logdata klogg_versioncheck
+  klogg_crash_handler roaring kdsingleapp Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_runtime_contract_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app")
+set_target_properties(zzlogg_runtime_contract_test PROPERTIES
+  AUTOMOC ON
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime-contract")
+add_test(NAME zzlogg_ui2.runtime_contract
+         COMMAND zzlogg_runtime_contract_test)
+if(WIN32)
+  klogg_copy_ui2_runtime_dlls(zzlogg_runtime_contract_test)
+  set_property(TEST zzlogg_ui2.runtime_contract PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
+endif()

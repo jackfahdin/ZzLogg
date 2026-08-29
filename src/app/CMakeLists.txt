@@ -62,6 +62,15 @@ add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES}
   ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES}
   ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+if(KLOGG_BUILD_UI2)
+  add_executable(zzlogg_ui2 ${OS_BUNDLE} ${MAIN_SOURCES}
+    ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main_ui2.cpp)
+  set_target_properties(zzlogg_ui2 PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_compile_features(zzlogg_ui2 PRIVATE cxx_std_20)
+  target_link_libraries(zzlogg_ui2 PRIVATE
+    ${MAIN_LIBS} klogg_ui zzlogg_ui2_runtime)
+  klogg_copy_ui2_runtime_dlls(zzlogg_ui2)
+endif()
 # Keep the experimental command-line frontend available for explicit builds,
 # but do not include it in the default build until its runtime issues are fixed.
 add_executable(klogg_grep EXCLUDE_FROM_ALL ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})

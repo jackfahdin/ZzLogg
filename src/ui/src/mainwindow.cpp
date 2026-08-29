@@ -1835,6 +1835,7 @@ void MainWindow::updateTitleBar( const QString& file_name )
 
     setWindowTitle( tr( "%1 - %2%3" ).arg( shownName, tr( "klogg" ), indexPart ) + tr( " (build " )
                     + kloggVersion() + ")" );
+    Q_EMIT activeDocumentNameChanged( file_name.isEmpty() ? QString{} : strippedName( file_name ) );
 }
 
 void MainWindow::addRecentFile( const QString& fileName )

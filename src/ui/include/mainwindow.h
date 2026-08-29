@@ -176,6 +176,7 @@ class MainWindow : public QMainWindow {
     // Is emitted when new settings must be used
     void optionsChanged();
     void uiThemeChanged( UiThemeMode mode );
+    void activeDocumentNameChanged( const QString& fileName );
     // Is emitted when the 'follow' option is enabled/disabled
     void followSet( bool checked );
     // Is emitted when the 'text wrap' option is enabled/disabled
