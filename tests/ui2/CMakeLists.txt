@@ -9,6 +9,8 @@ set_target_properties(zzlogg_theme_configuration_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.theme_configuration
          COMMAND zzlogg_theme_configuration_test -platform offscreen)
 if(WIN32)
+  set_property(TEST zzlogg_ui2.theme_configuration PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
   set_property(TEST zzlogg_ui2.theme_configuration APPEND PROPERTY
     ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
@@ -23,6 +25,8 @@ set_target_properties(zzlogg_options_theme_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.options_theme
          COMMAND zzlogg_options_theme_test -platform offscreen)
 if(WIN32)
+  set_property(TEST zzlogg_ui2.options_theme PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
   set_property(TEST zzlogg_ui2.options_theme APPEND PROPERTY
     ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
@@ -33,6 +37,8 @@ add_executable(zzlogg_fluent_shell_test
   windowkittestmain.cpp fluentshelltest.cpp)
 target_link_libraries(zzlogg_fluent_shell_test PRIVATE
   zzlogg_ui2_shell Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_fluent_shell_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/ui2/src")
 set_target_properties(zzlogg_fluent_shell_test PROPERTIES AUTOMOC ON)
 klogg_copy_ui2_runtime_dlls(zzlogg_fluent_shell_test)
 add_test(NAME zzlogg_ui2.fluent_shell

@@ -6,8 +6,14 @@
 void verifyTitleFormatting();
 void verifySuccessfulMenuMigration();
 void verifyConfigureFailureRollsBack();
+void verifyDuplicateInstallIsRejectedWithoutMutation();
+void verifyNoMenuDirectFailureIsNonMutating();
+void verifyAttachedFailureDestroysWindowKitTemporaries();
+void verifyInterruptedMenuCommitSurvivesDeferredDeleteDelivery();
+void verifyCustomMenuWidgetIsRejectedWithoutMutation();
 void verifyActiveDocumentTitleSynchronization();
 void verifyChromeStateAndIconSynchronization();
+void verifyCompleteChromeConfigurationBuilder();
 void verifyWindowButtonIntents();
 void verifyAlwaysOnTopPreservesWindowPresentation();
 void verifySharedThemeObservationAndForwarding();
@@ -33,6 +39,31 @@ private Q_SLOTS:
         verifyConfigureFailureRollsBack();
     }
 
+    void rejectsDuplicateInstallBeforeTouchingInstalledChrome()
+    {
+        verifyDuplicateInstallIsRejectedWithoutMutation();
+    }
+
+    void leavesNoMenuWindowUntouchedWhenAttachDirectlyFails()
+    {
+        verifyNoMenuDirectFailureIsNonMutating();
+    }
+
+    void destroysWindowKitTemporariesAfterAttachedFailure()
+    {
+        verifyAttachedFailureDestroysWindowKitTemporaries();
+    }
+
+    void rollsBackInterruptedMenuCommitBeforeDeferredDelete()
+    {
+        verifyInterruptedMenuCommitSurvivesDeferredDeleteDelivery();
+    }
+
+    void rejectsCustomMenuWidgetBeforeWindowKitConfiguration()
+    {
+        verifyCustomMenuWidgetIsRejectedWithoutMutation();
+    }
+
     void synchronizesCompleteLogicalDocumentTitles()
     {
         verifyActiveDocumentTitleSynchronization();
@@ -41,6 +72,11 @@ private Q_SLOTS:
     void synchronizesWindowKitChromeStateAndIcon()
     {
         verifyChromeStateAndIconSynchronization();
+    }
+
+    void buildsCompleteWindowKitChromeConfiguration()
+    {
+        verifyCompleteChromeConfigurationBuilder();
     }
 
     void executesWindowButtonIntents()

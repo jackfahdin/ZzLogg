@@ -1,5 +1,7 @@
 add_library(zzlogg_ui2_shell STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include/zzloggfluentshell.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/zzloggfluentchrome_p.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/zzloggfluentshell_p.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/zzloggfluentshell.cpp)
 target_include_directories(zzlogg_ui2_shell
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

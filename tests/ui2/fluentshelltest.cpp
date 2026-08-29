@@ -9,7 +9,7 @@
 #include <QMenuBar>
 #include <QPointer>
 #include <QSplitter>
-#include <QStyleFactory>
+#include <QStyle>
 #include <QToolBar>
 #include <QToolButton>
 
@@ -23,7 +23,9 @@
 #include <ZzFluentUI/ZzTitleBarMenuDisplayMode.h>
 #include <ZzWindowKit/ZzWindowAgent.h>
 
+#include "zzloggfluentchrome_p.h"
 #include "zzloggfluentshell.h"
+#include "zzloggfluentshell_p.h"
 
 namespace {
 
@@ -41,10 +43,24 @@ protected:
 
 class ApplicationStyleReset final {
 public:
+    ApplicationStyleReset()
+        : style_( QApplication::style() )
+        , palette_( QApplication::palette() )
+    {
+        if ( style_ != nullptr && style_->parent() == qApp ) {
+            style_->setParent( nullptr );
+        }
+    }
+
     ~ApplicationStyleReset()
     {
-        QApplication::setStyle( QStyleFactory::create( QStringLiteral( "Fusion" ) ) );
+        QApplication::setStyle( style_ );
+        QApplication::setPalette( palette_ );
     }
+
+private:
+    QStyle* style_;
+    QPalette palette_;
 };
 
 ZzFluentUI::ZzFluentTitleBar* titleBarFor( QMainWindow& window )
@@ -178,6 +194,179 @@ void verifyConfigureFailureRollsBack()
     QCOMPARE( triggered, 2 );
 }
 
+void verifyDuplicateInstallIsRejectedWithoutMutation()
+{
+    QMainWindow window;
+    QMenu* const fileMenu = window.menuBar()->addMenu( QStringLiteral( "File" ) );
+    QAction* const openAction = fileMenu->addAction( QStringLiteral( "Open" ) );
+    ZzFluentUI::ZzThemeController theme;
+    const auto firstInstall = ZzLoggFluentShell::install( window, theme );
+    QVERIFY( firstInstall );
+
+    QWidget* const installedMenuWidget = window.menuWidget();
+    auto* const installedTitleBar = titleBarFor( window );
+    const Qt::WindowFlags installedFlags = window.windowFlags();
+    const QVariant installedProperty = window.property( "zzlogg.fluentShellInstalled" );
+    const QList<QAction*> installedActions = installedTitleBar->menuBar()->actions();
+    int configuratorCalls = 0;
+    const auto secondInstall = ZzLoggFluentShell::install(
+        window, theme,
+        [ &configuratorCalls ]( QMainWindow&, ZzFluentUI::ZzFluentTitleBar&,
+                                ZzWindowKit::ZzWindowAgent& ) {
+            ++configuratorCalls;
+            return ZzCore::ZzResult<void>::failure( ZzCore::ZzError(
+                ZzCore::ZzErrorCode::Backend, QStringLiteral( "must not be called" ) ) );
+        } );
+
+    QVERIFY( !secondInstall );
+    QCOMPARE( secondInstall.error().code(), ZzCore::ZzErrorCode::InvalidState );
+    QCOMPARE( configuratorCalls, 0 );
+    QCOMPARE( window.menuWidget(), installedMenuWidget );
+    QCOMPARE( titleBarFor( window ), installedTitleBar );
+    QCOMPARE( window.windowFlags(), installedFlags );
+    QCOMPARE( window.property( "zzlogg.fluentShellInstalled" ), installedProperty );
+    QCOMPARE( installedTitleBar->menuBar()->actions(), installedActions );
+    QCOMPARE( fileMenu->actions(), QList<QAction*>( { openAction } ) );
+    QCOMPARE(
+        window.findChildren<ZzLoggFluentShell*>( QString(), Qt::FindDirectChildrenOnly ).size(),
+        1 );
+    QCOMPARE(
+        window.findChildren<ZzFluentUI::ZzFluentTitleBar*>( QString(), Qt::FindDirectChildrenOnly )
+            .size(),
+        1 );
+}
+
+void verifyNoMenuDirectFailureIsNonMutating()
+{
+    QMainWindow window;
+    QVERIFY( window.menuWidget() == nullptr );
+    const Qt::WindowFlags originalFlags = window.windowFlags();
+    const QString originalTitle = window.windowTitle();
+    int configuratorCalls = 0;
+    QPointer<ZzFluentUI::ZzFluentTitleBar> titleBarGuard;
+    QPointer<ZzWindowKit::ZzWindowAgent> agentGuard;
+    ZzFluentUI::ZzThemeController theme;
+    const auto result
+        = ZzLoggFluentShell::install( window, theme,
+                                      [ & ]( QMainWindow&, ZzFluentUI::ZzFluentTitleBar& titleBar,
+                                             ZzWindowKit::ZzWindowAgent& agent ) {
+                                          ++configuratorCalls;
+                                          titleBarGuard = &titleBar;
+                                          agentGuard = &agent;
+                                          return agent.attach( nullptr );
+                                      } );
+
+    QVERIFY( !result );
+    QCOMPARE( result.error().code(), ZzCore::ZzErrorCode::InvalidArgument );
+    QCOMPARE( configuratorCalls, 1 );
+    QVERIFY( window.menuWidget() == nullptr );
+    QCOMPARE( window.windowFlags(), originalFlags );
+    QCOMPARE( window.windowTitle(), originalTitle );
+    QVERIFY( !window.property( "zzlogg.fluentShellInstalled" ).toBool() );
+    QVERIFY( titleBarGuard.isNull() );
+    QVERIFY( agentGuard.isNull() );
+}
+
+void verifyAttachedFailureDestroysWindowKitTemporaries()
+{
+    QMainWindow window;
+    QVERIFY( window.menuWidget() == nullptr );
+    const Qt::WindowFlags originalFlags = window.windowFlags();
+    QPointer<ZzFluentUI::ZzFluentTitleBar> titleBarGuard;
+    QPointer<ZzWindowKit::ZzWindowAgent> agentGuard;
+    ZzFluentUI::ZzThemeController theme;
+    const auto result = ZzLoggFluentShell::install(
+        window, theme,
+        [ & ]( QMainWindow& host, ZzFluentUI::ZzFluentTitleBar& titleBar,
+               ZzWindowKit::ZzWindowAgent& agent ) {
+            titleBarGuard = &titleBar;
+            agentGuard = &agent;
+            auto attached = agent.attach( &host );
+            if ( !attached ) {
+                return attached;
+            }
+            return ZzCore::ZzResult<void>::failure( ZzCore::ZzError(
+                ZzCore::ZzErrorCode::Backend, QStringLiteral( "failure after attach" ) ) );
+        } );
+
+    QVERIFY( !result );
+    QCOMPARE( result.error().code(), ZzCore::ZzErrorCode::Backend );
+    QVERIFY( window.menuWidget() == nullptr );
+    QCOMPARE( window.windowFlags(), originalFlags );
+    QVERIFY( titleBarGuard.isNull() );
+    QVERIFY( agentGuard.isNull() );
+    QVERIFY( !window.property( "zzlogg.fluentShellInstalled" ).toBool() );
+}
+
+void verifyInterruptedMenuCommitSurvivesDeferredDeleteDelivery()
+{
+    QMainWindow window;
+    QMenuBar* const originalMenuBar = window.menuBar();
+    QMenu* const fileMenu = originalMenuBar->addMenu( QStringLiteral( "File" ) );
+    QAction* const triggerable = fileMenu->addAction( QStringLiteral( "Trigger" ) );
+    QAction* const topAction = originalMenuBar->addAction( QStringLiteral( "Top" ) );
+    const QList<QAction*> originalTopActions = originalMenuBar->actions();
+    const bool originalMenuHidden = originalMenuBar->isHidden();
+    QPointer<QMenuBar> menuBarGuard( originalMenuBar );
+    QPointer<QMenu> menuGuard( fileMenu );
+    QPointer<QAction> triggerableGuard( triggerable );
+    QPointer<QAction> topActionGuard( topAction );
+    auto* const titleBar = new ZzFluentUI::ZzFluentTitleBar( &window );
+    QPointer<ZzFluentUI::ZzFluentTitleBar> titleBarGuard( titleBar );
+    bool interruptionEscaped = false;
+    try {
+        ZzLoggUi2Internal::commitFluentMenu( window, *titleBar, originalMenuBar,
+                                             [] { throw 1729; } );
+    } catch ( int value ) {
+        QCOMPARE( value, 1729 );
+        interruptionEscaped = true;
+    }
+    QVERIFY( interruptionEscaped );
+
+    QCoreApplication::sendPostedEvents( nullptr, QEvent::DeferredDelete );
+    QCoreApplication::processEvents();
+    QVERIFY( !menuBarGuard.isNull() );
+    QVERIFY( !menuGuard.isNull() );
+    QVERIFY( !triggerableGuard.isNull() );
+    QVERIFY( !topActionGuard.isNull() );
+    QVERIFY( !titleBarGuard.isNull() );
+    QCOMPARE( window.menuWidget(), static_cast<QWidget*>( originalMenuBar ) );
+    QCOMPARE( originalMenuBar->actions(), originalTopActions );
+    QCOMPARE( fileMenu->parent(), static_cast<QObject*>( originalMenuBar ) );
+    QCOMPARE( topAction->parent(), static_cast<QObject*>( originalMenuBar ) );
+    QCOMPARE( originalMenuBar->isHidden(), originalMenuHidden );
+    QVERIFY( titleBar->menuBar()->actions().isEmpty() );
+    int triggered = 0;
+    QObject::connect( triggerable, &QAction::triggered, &window, [ &triggered ] { ++triggered; } );
+    triggerable->trigger();
+    QCOMPARE( triggered, 1 );
+}
+
+void verifyCustomMenuWidgetIsRejectedWithoutMutation()
+{
+    QMainWindow window;
+    auto* const customMenuWidget = new QWidget( &window );
+    customMenuWidget->setObjectName( QStringLiteral( "customMenuWidget" ) );
+    window.setMenuWidget( customMenuWidget );
+    const Qt::WindowFlags originalFlags = window.windowFlags();
+    int configuratorCalls = 0;
+    ZzFluentUI::ZzThemeController theme;
+    const auto result = ZzLoggFluentShell::install(
+        window, theme,
+        [ &configuratorCalls ]( QMainWindow&, ZzFluentUI::ZzFluentTitleBar&,
+                                ZzWindowKit::ZzWindowAgent& ) {
+            ++configuratorCalls;
+            return ZzCore::ZzResult<void>::success();
+        } );
+
+    QVERIFY( !result );
+    QCOMPARE( result.error().code(), ZzCore::ZzErrorCode::InvalidState );
+    QCOMPARE( configuratorCalls, 0 );
+    QCOMPARE( window.menuWidget(), static_cast<QWidget*>( customMenuWidget ) );
+    QCOMPARE( window.windowFlags(), originalFlags );
+    QVERIFY( !window.property( "zzlogg.fluentShellInstalled" ).toBool() );
+}
+
 void verifyActiveDocumentTitleSynchronization()
 {
     QMainWindow window;
@@ -246,6 +435,30 @@ void verifyChromeStateAndIconSynchronization()
     window.close();
 }
 
+void verifyCompleteChromeConfigurationBuilder()
+{
+    ZzFluentUI::ZzFluentTitleBar titleBar;
+    const auto customButtonChrome
+        = ZzLoggUi2Internal::buildFluentChromeConfiguration( titleBar, {} );
+    QCOMPARE( customButtonChrome.titleBar, static_cast<QWidget*>( &titleBar ) );
+    QCOMPARE( customButtonChrome.windowIcon, titleBar.windowIconWidget() );
+    QCOMPARE( customButtonChrome.interactiveWidgets, titleBar.hitTestVisibleWidgets() );
+    QCOMPARE( customButtonChrome.minimizeButton,
+              static_cast<QWidget*>( titleBar.minimizeButton() ) );
+    QCOMPARE( customButtonChrome.maximizeButton,
+              static_cast<QWidget*>( titleBar.maximizeButton() ) );
+    QCOMPARE( customButtonChrome.closeButton, static_cast<QWidget*>( titleBar.closeButton() ) );
+
+    const auto nativeButtonChrome = ZzLoggUi2Internal::buildFluentChromeConfiguration(
+        titleBar, ZzWindowKit::ZzWindowCapability::NativeSystemButtons );
+    QCOMPARE( nativeButtonChrome.titleBar, static_cast<QWidget*>( &titleBar ) );
+    QCOMPARE( nativeButtonChrome.windowIcon, titleBar.windowIconWidget() );
+    QCOMPARE( nativeButtonChrome.interactiveWidgets, titleBar.hitTestVisibleWidgets() );
+    QVERIFY( nativeButtonChrome.minimizeButton == nullptr );
+    QVERIFY( nativeButtonChrome.maximizeButton == nullptr );
+    QVERIFY( nativeButtonChrome.closeButton == nullptr );
+}
+
 void verifyWindowButtonIntents()
 {
     CloseProbeWindow window;
@@ -309,42 +522,48 @@ void verifyAlwaysOnTopPreservesWindowPresentation()
 
 void verifySharedThemeObservationAndForwarding()
 {
-    ZzFluentUI::ZzThemeController theme;
-    theme.setMode( ZzFluentUI::ZzThemeMode::Light );
-    QApplication::setStyle( new ZzFluentUI::ZzFluentStyle( &theme ) );
-    ApplicationStyleReset styleReset;
-    QMainWindow first;
-    QMainWindow second;
-    QLineEdit ordinaryWidget;
-    const auto firstInstalled = ZzLoggFluentShell::install( first, theme );
-    const auto secondInstalled = ZzLoggFluentShell::install( second, theme );
-    QVERIFY( firstInstalled );
-    QVERIFY( secondInstalled );
-    auto* firstTitleBar = titleBarFor( first );
-    auto* secondTitleBar = titleBarFor( second );
-    QVERIFY( firstTitleBar );
-    QVERIFY( secondTitleBar );
-    QCOMPARE( firstTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
-    QCOMPARE( secondTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
+    QStyle* const enteringStyle = QApplication::style();
+    const QPalette enteringPalette = QApplication::palette();
+    {
+        ZzFluentUI::ZzThemeController theme;
+        theme.setMode( ZzFluentUI::ZzThemeMode::Light );
+        ApplicationStyleReset styleReset;
+        QApplication::setStyle( new ZzFluentUI::ZzFluentStyle( &theme ) );
+        QMainWindow first;
+        QMainWindow second;
+        QLineEdit ordinaryWidget;
+        const auto firstInstalled = ZzLoggFluentShell::install( first, theme );
+        const auto secondInstalled = ZzLoggFluentShell::install( second, theme );
+        QVERIFY( firstInstalled );
+        QVERIFY( secondInstalled );
+        auto* firstTitleBar = titleBarFor( first );
+        auto* secondTitleBar = titleBarFor( second );
+        QVERIFY( firstTitleBar );
+        QVERIFY( secondTitleBar );
+        QCOMPARE( firstTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
+        QCOMPARE( secondTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
 
-    QSignalSpy requestSpy( firstInstalled.value(), &ZzLoggFluentShell::themeModeRequested );
-    QVERIFY( QMetaObject::invokeMethod(
-        firstTitleBar, "themeModeRequested",
-        Q_ARG( ZzFluentUI::ZzThemeMode, ZzFluentUI::ZzThemeMode::Dark ) ) );
-    QCOMPARE( requestSpy.count(), 1 );
-    QCOMPARE( requestSpy.at( 0 ).at( 0 ).value<ZzFluentUI::ZzThemeMode>(),
-              ZzFluentUI::ZzThemeMode::Dark );
-    QCOMPARE( theme.mode(), ZzFluentUI::ZzThemeMode::Light );
+        QSignalSpy requestSpy( firstInstalled.value(), &ZzLoggFluentShell::themeModeRequested );
+        QVERIFY( QMetaObject::invokeMethod(
+            firstTitleBar, "themeModeRequested",
+            Q_ARG( ZzFluentUI::ZzThemeMode, ZzFluentUI::ZzThemeMode::Dark ) ) );
+        QCOMPARE( requestSpy.count(), 1 );
+        QCOMPARE( requestSpy.at( 0 ).at( 0 ).value<ZzFluentUI::ZzThemeMode>(),
+                  ZzFluentUI::ZzThemeMode::Dark );
+        QCOMPARE( theme.mode(), ZzFluentUI::ZzThemeMode::Light );
 
-    const QColor before = ordinaryWidget.palette().color( QPalette::Window );
-    theme.setMode( ZzFluentUI::ZzThemeMode::Dark );
-    QCOMPARE( firstTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Dark );
-    QCOMPARE( secondTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Dark );
-    const QColor expected = theme.snapshot()->color( ZzFluentUI::ZzColorToken::Surface );
-    QCOMPARE( QApplication::palette().color( QPalette::Window ), expected );
-    QCoreApplication::processEvents();
-    QCOMPARE( ordinaryWidget.palette().color( QPalette::Window ), expected );
-    QVERIFY( ordinaryWidget.palette().color( QPalette::Window ) != before );
+        const QColor before = ordinaryWidget.palette().color( QPalette::Window );
+        theme.setMode( ZzFluentUI::ZzThemeMode::Dark );
+        QCOMPARE( firstTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Dark );
+        QCOMPARE( secondTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Dark );
+        const QColor expected = theme.snapshot()->color( ZzFluentUI::ZzColorToken::Surface );
+        QCOMPARE( QApplication::palette().color( QPalette::Window ), expected );
+        QCoreApplication::processEvents();
+        QCOMPARE( ordinaryWidget.palette().color( QPalette::Window ), expected );
+        QVERIFY( ordinaryWidget.palette().color( QPalette::Window ) != before );
+    }
+    QCOMPARE( QApplication::style(), enteringStyle );
+    QCOMPARE( QApplication::palette(), enteringPalette );
 }
 
 void verifyWindowOwnsShellLifetime()
@@ -373,16 +592,20 @@ void verifyConfiguratorExceptionBecomesFailure()
     const Qt::WindowFlags originalFlags = window.windowFlags();
     ZzFluentUI::ZzThemeController theme;
     bool exceptionEscaped = false;
+    QPointer<ZzFluentUI::ZzFluentTitleBar> titleBarGuard;
+    QPointer<ZzWindowKit::ZzWindowAgent> agentGuard;
     try {
         const auto result = ZzLoggFluentShell::install(
             window, theme,
-            []( QMainWindow& host, ZzFluentUI::ZzFluentTitleBar&,
-                ZzWindowKit::ZzWindowAgent& agent ) -> ZzCore::ZzResult<void> {
+            [ & ]( QMainWindow& host, ZzFluentUI::ZzFluentTitleBar& titleBar,
+                   ZzWindowKit::ZzWindowAgent& agent ) -> ZzCore::ZzResult<void> {
+                titleBarGuard = &titleBar;
+                agentGuard = &agent;
                 auto attached = agent.attach( &host );
                 if ( !attached ) {
                     return attached;
                 }
-                throw std::runtime_error( "injected decorator exception" );
+                throw 1729;
             } );
         QVERIFY( !result );
     } catch ( ... ) {
@@ -393,4 +616,6 @@ void verifyConfiguratorExceptionBecomesFailure()
     QCOMPARE( window.menuBar(), originalMenuBar );
     QVERIFY( !window.property( "zzlogg.fluentShellInstalled" ).toBool() );
     QVERIFY( titleBarFor( window ) == nullptr );
+    QVERIFY( titleBarGuard.isNull() );
+    QVERIFY( agentGuard.isNull() );
 }
