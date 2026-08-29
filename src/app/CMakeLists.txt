@@ -40,10 +40,11 @@ set(MAIN_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cli.h
                  ${KLOGG_I18N_RES}
                  ${KLOGG_QT_TRANSLATION_RES})
 
-set(KLOGG_UI_SOURCES
+set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/messagereceiver.h
     ${CMAKE_CURRENT_SOURCE_DIR}/kloggapp.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
     ${DOCUMENTATION_RESOURCE}
     ${ICON_FILE}
 )
@@ -57,8 +58,10 @@ set(MAIN_LIBS
     kdsingleapp
 )
 
-add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES} ${KLOGG_UI_SOURCES})
-add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES} ${KLOGG_UI_SOURCES})
+add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES}
+  ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES}
+  ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 # Keep the experimental command-line frontend available for explicit builds,
 # but do not include it in the default build until its runtime issues are fixed.
 add_executable(klogg_grep EXCLUDE_FROM_ALL ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})

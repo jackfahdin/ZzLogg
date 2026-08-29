@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <numeric>
 #include <qapplication.h>
@@ -134,6 +135,20 @@ class KloggApp : public QApplication {
         crashHandler_ = std::make_unique<CrashHandler>();
     }
 
+    using WindowDecorator = std::function<void( MainWindow& )>;
+    void setWindowDecorator( WindowDecorator decorator )
+    {
+        windowDecorator_ = std::move( decorator );
+    }
+    QList<MainWindow*> mainWindows() const
+    {
+        QList<MainWindow*> result;
+        for ( const auto& entry : mainWindows_ ) {
+            result.push_back( entry.second );
+        }
+        return result;
+    }
+
     MainWindow* reloadSession()
     {
         if ( !session_ ) {
@@ -239,6 +254,9 @@ class KloggApp : public QApplication {
         mainWindows_.emplace_back( session, new MainWindow( session ) );
 
         auto& window = mainWindows_.back().second;
+        if ( windowDecorator_ ) {
+            windowDecorator_( *window );
+        }
 
         activeWindows_.push( QPointer<MainWindow>( window ) );
 
@@ -330,6 +348,7 @@ class KloggApp : public QApplication {
 
     std::list<std::pair<WindowSession, MainWindow*>> mainWindows_;
     std::stack<QPointer<MainWindow>> activeWindows_;
+    WindowDecorator windowDecorator_;
 
     VersionChecker versionChecker_;
 };
