@@ -63,6 +63,14 @@ OptionsDialog::OptionsDialog( QWidget* parent )
 {
     setupUi( this );
 
+    const bool fluentUi = qApp->property( "zzlogg.fluentUi" ).toBool();
+    styleBox->setVisible( !fluentUi );
+    themeBox->setVisible( fluentUi );
+    themeModeComboBox->addItem( tr( "Use system setting" ),
+                                 static_cast<int>( UiThemeMode::System ) );
+    themeModeComboBox->addItem( tr( "Light" ), static_cast<int>( UiThemeMode::Light ) );
+    themeModeComboBox->addItem( tr( "Dark" ), static_cast<int>( UiThemeMode::Dark ) );
+
     setupTabs();
     setupFontList();
     setupRegexp();
@@ -320,6 +328,10 @@ void OptionsDialog::updateDialogFromConfig()
         styleComboBox->setCurrentText( style );
     }
 
+    const auto themeIndex
+        = themeModeComboBox->findData( static_cast<int>( config.uiThemeMode() ) );
+    themeModeComboBox->setCurrentIndex( themeIndex < 0 ? 0 : themeIndex );
+
     hideAnsiColorsCheckBox->setChecked( config.hideAnsiColorSequences() );
 
     // Regexp types
@@ -480,6 +492,9 @@ void OptionsDialog::checkShortcutsOnDuplicate() const
 int OptionsDialog::updateTranslate()
 {
     auto mw = dynamic_cast<MainWindow*>( parent() );
+    if ( !mw ) {
+        return 0;
+    }
     return mw->installLanguage( languageComboBox->currentData().toString() );
 }
 
@@ -545,9 +560,15 @@ void OptionsDialog::updateConfigFromDialog()
 
     config.setVerifySslPeers( verifySslCheckBox->isChecked() );
 
-    restartAppMessage = config.style() != styleComboBox->currentText();
-
-    config.setStyle( styleComboBox->currentText() );
+    const bool fluentUi = qApp->property( "zzlogg.fluentUi" ).toBool();
+    if ( fluentUi ) {
+        config.setUiThemeMode(
+            static_cast<UiThemeMode>( themeModeComboBox->currentData().toInt() ) );
+    }
+    else {
+        restartAppMessage = config.style() != styleComboBox->currentText();
+        config.setStyle( styleComboBox->currentText() );
+    }
     config.setHideAnsiColorSequences( hideAnsiColorsCheckBox->isChecked() );
 
     config.setDefaultEncodingMib( encodingComboBox->currentData().toInt() );

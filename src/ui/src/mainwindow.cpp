@@ -1205,6 +1205,7 @@ void MainWindow::options()
 
         updateShortcuts();
         updateRecentFileActions();
+        Q_EMIT uiThemeChanged( config.uiThemeMode() );
     } );
     dialog.exec();
 

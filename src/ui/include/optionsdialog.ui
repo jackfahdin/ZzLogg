@@ -346,6 +346,18 @@
            </layout>
           </widget>
          </item>
+         <item>
+          <widget class="QGroupBox" name="themeBox">
+           <property name="title">
+            <string>Theme</string>
+           </property>
+           <layout class="QVBoxLayout" name="themeLayout">
+            <item>
+             <widget class="QComboBox" name="themeModeComboBox"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>

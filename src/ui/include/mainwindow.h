@@ -175,6 +175,7 @@ class MainWindow : public QMainWindow {
   Q_SIGNALS:
     // Is emitted when new settings must be used
     void optionsChanged();
+    void uiThemeChanged( UiThemeMode mode );
     // Is emitted when the 'follow' option is enabled/disabled
     void followSet( bool checked );
     // Is emitted when the 'text wrap' option is enabled/disabled
