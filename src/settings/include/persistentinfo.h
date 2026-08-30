@@ -51,6 +51,8 @@ struct app_settings {
 struct session_settings {
 };
 
+QString kloggPortableConfigPath();
+
 class PersistentInfo {
   public:
     static QSettings& getSettings( app_settings );

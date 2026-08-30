@@ -34,17 +34,14 @@ if(NOT seed_result EQUAL 0)
   message(FATAL_ERROR "UI2 session seed failed: ${seed_result}")
 endif()
 if(WIN32)
-  if(NOT EXISTS "${TEST_CONFIG_DIR}/Roaming/klogg/klogg.ini"
-     OR NOT EXISTS "${TEST_CONFIG_DIR}/Roaming/klogg/klogg_session.ini")
-    message(FATAL_ERROR "UI2 session seed did not write isolated INI files")
-  endif()
+  set(settings_root "${TEST_CONFIG_DIR}/Roaming")
+  set(settings_suffix ".ini")
 else()
-  file(GLOB_RECURSE isolated_settings LIST_DIRECTORIES false "${TEST_CONFIG_DIR}/*")
-  list(LENGTH isolated_settings isolated_settings_count)
-  if(isolated_settings_count LESS 2)
-    message(FATAL_ERROR "UI2 session seed did not write isolated settings files")
-  endif()
+  set(settings_root "${TEST_CONFIG_DIR}/config")
+  set(settings_suffix ".conf")
 endif()
+include("${CMAKE_CURRENT_LIST_DIR}/isolatedsettingscheck.cmake")
+assert_ui2_isolated_settings("${settings_root}" "${settings_suffix}")
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env ${config_env}

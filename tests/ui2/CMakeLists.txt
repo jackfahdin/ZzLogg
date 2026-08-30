@@ -84,13 +84,48 @@ add_test(NAME zzlogg_ui2.session_restore_smoke
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/session-smoke-config"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
 set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
+
+add_test(NAME zzlogg_ui2.portable_guard_smoke
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/portable-guard-smoke"
+          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/portableguardsmoke.cmake")
+set_tests_properties(zzlogg_ui2.portable_guard_smoke PROPERTIES TIMEOUT 20)
+
+add_test(NAME zzlogg_ui2.smoke_setup_diagnostics
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/smoke-setup-diagnostics"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/smokesetupdiagnosticstest.cmake")
+set_tests_properties(zzlogg_ui2.smoke_setup_diagnostics PROPERTIES TIMEOUT 15)
+
+add_test(NAME zzlogg_ui2.async_object_lifetime_smoke
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/async-object-lifetime-smoke"
+          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
+          "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/asyncobjectlifetimesmoke.cmake")
+set_tests_properties(zzlogg_ui2.async_object_lifetime_smoke PROPERTIES TIMEOUT 20)
+
+add_test(NAME zzlogg_ui2.settings_path_contract
+  COMMAND "${CMAKE_COMMAND}"
+          "-DCHECK_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/isolatedsettingscheck.cmake"
+          "-DVERIFY_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/isolatedsettingsverify.cmake"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/settings-path-contract"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/settingspathcontracttest.cmake")
 if(WIN32)
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
+    zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
+    zzlogg_ui2.async_object_lifetime_smoke
     PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
+    zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
+    zzlogg_ui2.async_object_lifetime_smoke
     PROPERTY ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:zzlogg_ui2>")
 endif()

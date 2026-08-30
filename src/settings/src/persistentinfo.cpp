@@ -66,7 +66,7 @@ QString makeSessionSettingsPath( const QString& appConfigPath )
 }
 } // namespace
 
-PersistentInfo::PersistentInfo()
+QString kloggPortableConfigPath()
 {
     QString executablePath;
 
@@ -78,8 +78,12 @@ PersistentInfo::PersistentInfo()
         executablePath = QString::fromUtf8( path.data(), dirnameLength );
     }
 
-    const auto portableConfigPath
-        = executablePath + QDir::separator() + ApplicationSessionFile + PortableExtension;
+    return executablePath + QDir::separator() + ApplicationSessionFile + PortableExtension;
+}
+
+PersistentInfo::PersistentInfo()
+{
+    const auto portableConfigPath = kloggPortableConfigPath();
 
     LOG_INFO << "Portable config path " << portableConfigPath;
 
