@@ -1,7 +1,7 @@
 #include "zzloggfluentshell.h"
+#include "log.h"
 #include "zzloggfluentchrome_p.h"
 #include "zzloggfluentshell_p.h"
-#include "log.h"
 
 #include <exception>
 #include <utility>
@@ -49,6 +49,8 @@ void ZzLoggUi2Internal::commitFluentMenu( QMainWindow& window,
     struct OriginalAction final {
         QAction* action;
         QObject* parent;
+        QMenu* menu;
+        Qt::WindowFlags menuFlags;
     };
     const bool originalMenuHidden = originalMenuBar != nullptr && originalMenuBar->isHidden();
     const QList<QAction*> originalActions
@@ -56,9 +58,10 @@ void ZzLoggUi2Internal::commitFluentMenu( QMainWindow& window,
     QList<OriginalAction> originalActionOwners;
     originalActionOwners.reserve( originalActions.size() );
     for ( QAction* action : originalActions ) {
-        QObject* const parent
-            = action->menu() != nullptr ? action->menu()->parent() : action->parent();
-        originalActionOwners.append( { action, parent } );
+        QMenu* const menu = action->menu();
+        QObject* const parent = menu != nullptr ? menu->parent() : action->parent();
+        const Qt::WindowFlags menuFlags = menu != nullptr ? menu->windowFlags() : Qt::WindowFlags();
+        originalActionOwners.append( { action, parent, menu, menuFlags } );
     }
     QMenuBar* const fluentMenuBar = titleBar.menuBar();
 
@@ -71,8 +74,9 @@ void ZzLoggUi2Internal::commitFluentMenu( QMainWindow& window,
         if ( originalMenuBar != nullptr ) {
             originalMenuBar->clear();
             for ( const OriginalAction& original : originalActionOwners ) {
-                if ( QMenu* menu = original.action->menu() ) {
-                    menu->setParent( qobject_cast<QWidget*>( original.parent ) );
+                if ( original.menu != nullptr ) {
+                    original.menu->setParent( qobject_cast<QWidget*>( original.parent ),
+                                              original.menuFlags );
                 }
                 else {
                     original.action->setParent( original.parent );
@@ -83,14 +87,14 @@ void ZzLoggUi2Internal::commitFluentMenu( QMainWindow& window,
         }
     } );
 
-    for ( QAction* action : originalActions ) {
-        if ( QMenu* menu = action->menu() ) {
-            menu->setParent( fluentMenuBar );
+    for ( const OriginalAction& original : originalActionOwners ) {
+        if ( original.menu != nullptr ) {
+            original.menu->setParent( fluentMenuBar, original.menuFlags );
         }
         else {
-            action->setParent( fluentMenuBar );
+            original.action->setParent( fluentMenuBar );
         }
-        fluentMenuBar->addAction( action );
+        fluentMenuBar->addAction( original.action );
     }
     if ( originalMenuBar != nullptr ) {
         originalMenuBar->clear();

@@ -112,6 +112,10 @@ void verifySuccessfulMenuMigration()
     originalMenuBar->addAction( topAction );
 
     const QList<QAction*> originalTopLevelActions = originalMenuBar->actions();
+    const Qt::WindowFlags originalFileMenuFlags = fileMenu->windowFlags();
+    const Qt::WindowFlags originalEditMenuFlags = editMenu->windowFlags();
+    QCOMPARE( fileMenu->windowType(), Qt::Popup );
+    QCOMPARE( editMenu->windowType(), Qt::Popup );
     QWidget* const originalCentral = window.centralWidget();
     QToolBar* const originalToolbar = toolbar;
     const QPointer<QMenu> fileGuard( fileMenu );
@@ -140,12 +144,36 @@ void verifySuccessfulMenuMigration()
     QVERIFY( !separatorGuard.isNull() );
     QVERIFY( !topActionGuard.isNull() );
     QCOMPARE( fileMenu->parent(), static_cast<QObject*>( titleBar->menuBar() ) );
+    QCOMPARE( fileMenu->windowFlags(), originalFileMenuFlags );
+    QCOMPARE( editMenu->windowFlags(), originalEditMenuFlags );
+    QCOMPARE( fileMenu->windowType(), Qt::Popup );
+    QCOMPARE( editMenu->windowType(), Qt::Popup );
     QCOMPARE( topSeparator->parent(), static_cast<QObject*>( titleBar->menuBar() ) );
     QCOMPARE( topAction->parent(), static_cast<QObject*>( titleBar->menuBar() ) );
     QCOMPARE( openAction->shortcut(), QKeySequence::Open );
     QVERIFY( openAction->isChecked() );
     QVERIFY( !disabledAction->isEnabled() );
     QVERIFY( topSeparator->isSeparator() );
+    bool openActionTriggered = false;
+    QObject::connect( openAction, &QAction::triggered, &window,
+                      [ &openActionTriggered ] { openActionTriggered = true; } );
+    window.resize( 1600, 900 );
+    window.move( 100, 100 );
+    window.show();
+    QTRY_VERIFY( window.isVisible() );
+    QTRY_VERIFY( titleBar->menuBar()->isVisible() );
+    const QRect fileActionGeometry = titleBar->menuBar()->actionGeometry( fileMenu->menuAction() );
+    QVERIFY( fileActionGeometry.isValid() );
+    QTest::mouseClick( titleBar->menuBar(), Qt::LeftButton, Qt::NoModifier,
+                       fileActionGeometry.center() );
+    QTRY_VERIFY( fileMenu->isVisible() );
+    QVERIFY( fileMenu->isWindow() );
+    QCOMPARE( fileMenu->windowType(), Qt::Popup );
+    const QRect openActionGeometry = fileMenu->actionGeometry( openAction );
+    QVERIFY( openActionGeometry.isValid() );
+    QTest::mouseClick( fileMenu, Qt::LeftButton, Qt::NoModifier, openActionGeometry.center() );
+    QTRY_VERIFY( openActionTriggered );
+
     bool topActionTriggered = false;
     QObject::connect( topAction, &QAction::triggered, &window,
                       [ &topActionTriggered ] { topActionTriggered = true; } );
@@ -306,6 +334,7 @@ void verifyInterruptedMenuCommitSurvivesDeferredDeleteDelivery()
     QAction* const triggerable = fileMenu->addAction( QStringLiteral( "Trigger" ) );
     QAction* const topAction = originalMenuBar->addAction( QStringLiteral( "Top" ) );
     const QList<QAction*> originalTopActions = originalMenuBar->actions();
+    const Qt::WindowFlags originalFileMenuFlags = fileMenu->windowFlags();
     const bool originalMenuHidden = originalMenuBar->isHidden();
     QPointer<QMenuBar> menuBarGuard( originalMenuBar );
     QPointer<QMenu> menuGuard( fileMenu );
@@ -333,6 +362,9 @@ void verifyInterruptedMenuCommitSurvivesDeferredDeleteDelivery()
     QCOMPARE( window.menuWidget(), static_cast<QWidget*>( originalMenuBar ) );
     QCOMPARE( originalMenuBar->actions(), originalTopActions );
     QCOMPARE( fileMenu->parent(), static_cast<QObject*>( originalMenuBar ) );
+    QCOMPARE( fileMenu->windowFlags(), originalFileMenuFlags );
+    QVERIFY( fileMenu->isWindow() );
+    QCOMPARE( fileMenu->windowType(), Qt::Popup );
     QCOMPARE( topAction->parent(), static_cast<QObject*>( originalMenuBar ) );
     QCOMPARE( originalMenuBar->isHidden(), originalMenuHidden );
     QVERIFY( titleBar->menuBar()->actions().isEmpty() );
