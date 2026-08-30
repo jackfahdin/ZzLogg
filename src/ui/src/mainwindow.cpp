@@ -185,6 +185,7 @@ MainWindow::MainWindow( WindowSession session )
                         SLOT( handleFilteredViewChanged() ) );
 
     // Configure the main tabbed widget
+    mainTabWidget_.setObjectName( QStringLiteral( "documentTabs" ) );
     mainTabWidget_.setDocumentMode( true );
     mainTabWidget_.setMovable( true );
     // mainTabWidget_.setTabShape( QTabWidget::Triangular );

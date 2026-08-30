@@ -1077,6 +1077,7 @@ void CrawlerWidget::setup()
     // Construct the Search line
     searchLineCompleter_ = new QCompleter( savedSearches_->recentSearches(), this );
     searchLineEdit_ = new QComboBox;
+    searchLineEdit_->setObjectName( QStringLiteral( "mainSearchEdit" ) );
     searchLineEdit_->setEditable( true );
     searchLineEdit_->setCompleter( searchLineCompleter_ );
     searchLineEdit_->addItems( savedSearches_->recentSearches() );
@@ -1105,6 +1106,7 @@ void CrawlerWidget::setup()
     clearButton_->setContentsMargins( 2, 2, 2, 2 );
 
     searchButton_ = new QToolButton();
+    searchButton_->setObjectName( QStringLiteral( "mainSearchButton" ) );
     searchButton_->setText( tr( "Search" ) );
     searchButton_->setAutoRaise( true );
     searchButton_->setContentsMargins( 2, 2, 2, 2 );
@@ -1143,6 +1145,7 @@ void CrawlerWidget::setup()
 
     // Construct the bottom window
     tabbedFilteredView_ = new QTabWidget;
+    tabbedFilteredView_->setObjectName( QStringLiteral( "filteredResultsTabs" ) );
     tabbedFilteredView_->setTabsClosable( true );
     tabbedFilteredView_->addTab( filteredView_, "" );
     tabbedFilteredView_->setDocumentMode( true );

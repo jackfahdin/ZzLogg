@@ -66,3 +66,31 @@ if(WIN32)
   set_property(TEST zzlogg_ui2.runtime_contract PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
 endif()
+
+add_test(NAME zzlogg_ui2.application_smoke
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_RUNTIME_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-runtime"
+          "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-config"
+          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
+          "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationsmoke.cmake")
+set_tests_properties(zzlogg_ui2.application_smoke PROPERTIES
+  TIMEOUT 35)
+
+add_test(NAME zzlogg_ui2.session_restore_smoke
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/session-smoke-config"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
+set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
+if(WIN32)
+  set_property(TEST
+    zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
+    PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
+  set_property(TEST
+    zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
+    PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:zzlogg_ui2>")
+endif()
