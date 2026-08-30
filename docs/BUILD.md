@@ -12,7 +12,18 @@ This project is [hosted on GitHub](https://github.com/variar/klogg). You can clo
 
 ```
 git clone https://github.com/variar/klogg
+cd klogg
+git submodule update --init --recursive -- 3rdparty/vendor/ZzPureTools
 ```
+
+The UI2 build uses the `3rdparty/vendor/ZzPureTools` submodule at the commit
+pinned by this repository. Initialize submodules before configuring a fresh
+clone, and do not replace that pinned revision with an arbitrary checkout.
+If a source snapshot retains a `backward-cpp` gitlink without a matching
+`.gitmodules` entry, an unscoped recursive update reports `No url found for
+submodule` and the checkout is not fully initialized. Repair that repository
+metadata before treating an unscoped recursive update as verified. The scoped
+command above still initializes the declared dependency needed by UI2.
 
 ## Dependencies
 
@@ -29,6 +40,12 @@ To build Klogg:
   - QtNetwork
   - QtXml
   - QtTools
+
+The optional `zzlogg_ui2` target has newer requirements: CMake 3.23 or later,
+Qt 6.8 or later, a C++20 compiler, and the matching Qt private development
+files. Its Qt modules are Core, Gui, Widgets, Svg, Concurrent, and Test.
+ZzPureTools requires a macOS deployment target of 13.3 for UI2 builds. The
+traditional targets are unaffected by that value when UI2 is disabled.
 
 To build Hyperscan regular expressions backend (default):
 
@@ -73,6 +90,13 @@ cmake --workflow --preset ninja-relwithdebinfo
 cmake --workflow --preset ninja-release
 ```
 
+Build and test the optional UI2 application with the shared cross-platform
+workflow:
+
+```bash
+cmake --workflow --preset ninja-ui2-debug
+```
+
 Each workflow configures, builds, and verifies the generated application
 artifact. The individual stages can also be run separately:
 
@@ -93,6 +117,13 @@ cmake --build --preset windows-qt6-debug
 ctest --preset windows-qt6-debug
 ```
 
+After adding the machine-specific Qt and Visual Studio paths, build and test
+UI2 on Windows with:
+
+```powershell
+cmake --workflow --preset windows-qt6-ui2-debug
+```
+
 Create a self-contained Windows portable folder:
 
 ```powershell
@@ -109,6 +140,10 @@ The folder contains `klogg_portable.exe`, the required Qt plugins and runtime
 libraries, the MSVC runtime, TBB libraries, and the project documentation and
 license files.
 
+The first UI2 phase does not provide a UI2 portable folder, zip archive, or
+installer. The portable workflow and its green output directory continue to
+refer only to the legacy `klogg_portable_folder` target.
+
 The Visual Studio generator initializes the MSVC build environment itself, so
 these presets do not require running `VsDevCmd.bat` first. Qt and Visual Studio
 paths in the user preset should use forward slashes, including on Windows. The
@@ -119,6 +154,11 @@ accelerated regular-expression backend is required.
 Qt 6 is required.
 
 ### Configuration options
+
+`KLOGG_BUILD_UI2` defaults to `OFF`. With UI2 disabled, the existing Qt 6
+targets remain on their C++17 build path. Enabling UI2 adds the C++20
+`zzlogg_ui2` target and, when `KLOGG_BUILD_UI2_TESTS` is enabled, its focused
+test targets.
 
 By default Klogg is built without support for reporting crash dumps. This can be enabled via cmake option `-DKLOGG_USE_SENTRY=ON`.
 

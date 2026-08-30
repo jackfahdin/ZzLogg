@@ -24,6 +24,16 @@
       "generator": "Ninja"
     },
     {
+      "name": "ui2-base",
+      "hidden": true,
+      "cacheVariables": {
+        "KLOGG_BUILD_UI2": true,
+        "KLOGG_BUILD_UI2_TESTS": true,
+        "KLOGG_BUILD_TESTS": false,
+        "KLOGG_OSX_DEPLOYMENT_TARGET": "13.3"
+      }
+    },
+    {
       "name": "ninja-debug",
       "displayName": "Ninja Debug",
       "description": "Cross-platform debug build using Ninja",
@@ -53,6 +63,12 @@
       }
     },
     {
+      "name": "ninja-ui2-debug",
+      "displayName": "Ninja UI2 Debug",
+      "inherits": ["ninja-debug", "ui2-base"],
+      "binaryDir": "${sourceDir}/out/ui2-ninja"
+    },
+    {
       "name": "windows-vs2026",
       "displayName": "Visual Studio 2026 x64",
       "description": "Windows multi-config build; provide Qt through CMAKE_PREFIX_PATH",
@@ -67,6 +83,12 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       }
+    },
+    {
+      "name": "windows-vs2026-ui2",
+      "displayName": "Visual Studio 2026 UI2 x64",
+      "inherits": ["windows-vs2026", "ui2-base"],
+      "binaryDir": "${sourceDir}/out/ui2-vs"
     }
   ],
   "buildPresets": [
@@ -83,6 +105,10 @@
       "configurePreset": "ninja-release"
     },
     {
+      "name": "ninja-ui2-debug",
+      "configurePreset": "ninja-ui2-debug"
+    },
+    {
       "name": "windows-vs2026-debug",
       "configurePreset": "windows-vs2026",
       "configuration": "Debug"
@@ -96,6 +122,16 @@
       "name": "windows-vs2026-release",
       "configurePreset": "windows-vs2026",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-vs2026-ui2-debug",
+      "configurePreset": "windows-vs2026-ui2",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-ui2-relwithdebinfo",
+      "configurePreset": "windows-vs2026-ui2",
+      "configuration": "RelWithDebInfo"
     }
   ],
   "testPresets": [
@@ -121,6 +157,18 @@
       }
     },
     {
+      "name": "ninja-ui2-debug",
+      "configurePreset": "ninja-ui2-debug",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "windows-vs2026-debug",
       "configurePreset": "windows-vs2026",
       "configuration": "Debug",
@@ -140,6 +188,32 @@
       "name": "windows-vs2026-release",
       "configurePreset": "windows-vs2026",
       "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-ui2-debug",
+      "configurePreset": "windows-vs2026-ui2",
+      "configuration": "Debug",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-ui2-relwithdebinfo",
+      "configurePreset": "windows-vs2026-ui2",
+      "configuration": "RelWithDebInfo",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
       "output": {
         "outputOnFailure": true
       }
@@ -168,6 +242,30 @@
         { "type": "configure", "name": "ninja-release" },
         { "type": "build", "name": "ninja-release" },
         { "type": "test", "name": "ninja-release" }
+      ]
+    },
+    {
+      "name": "ninja-ui2-debug",
+      "steps": [
+        { "type": "configure", "name": "ninja-ui2-debug" },
+        { "type": "build", "name": "ninja-ui2-debug" },
+        { "type": "test", "name": "ninja-ui2-debug" }
+      ]
+    },
+    {
+      "name": "windows-vs2026-ui2-debug",
+      "steps": [
+        { "type": "configure", "name": "windows-vs2026-ui2" },
+        { "type": "build", "name": "windows-vs2026-ui2-debug" },
+        { "type": "test", "name": "windows-vs2026-ui2-debug" }
+      ]
+    },
+    {
+      "name": "windows-vs2026-ui2-relwithdebinfo",
+      "steps": [
+        { "type": "configure", "name": "windows-vs2026-ui2" },
+        { "type": "build", "name": "windows-vs2026-ui2-relwithdebinfo" },
+        { "type": "test", "name": "windows-vs2026-ui2-relwithdebinfo" }
       ]
     }
   ]
