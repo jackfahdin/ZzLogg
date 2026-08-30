@@ -13,17 +13,12 @@ This project is [hosted on GitHub](https://github.com/variar/klogg). You can clo
 ```
 git clone https://github.com/variar/klogg
 cd klogg
-git submodule update --init --recursive -- 3rdparty/vendor/ZzPureTools
+git submodule update --init --recursive
 ```
 
-The UI2 build uses the `3rdparty/vendor/ZzPureTools` submodule at the commit
-pinned by this repository. Initialize submodules before configuring a fresh
-clone, and do not replace that pinned revision with an arbitrary checkout.
-If a source snapshot retains a `backward-cpp` gitlink without a matching
-`.gitmodules` entry, an unscoped recursive update reports `No url found for
-submodule` and the checkout is not fully initialized. Repair that repository
-metadata before treating an unscoped recursive update as verified. The scoped
-command above still initializes the declared dependency needed by UI2.
+The UI2 build uses the `3rdparty/vendor/ZzPureTools` submodule. Initialize all
+submodules before configuring a fresh clone, and do not replace repository-
+pinned submodule revisions with arbitrary checkouts.
 
 ## Dependencies
 
@@ -72,7 +67,9 @@ If a library can't be found, the one provided by CPM will be used.
 ### Building with CMake Presets
 
 The repository provides cross-platform presets in `CMakePresets.json`. Build
-outputs are kept below `out/build/<preset-name>`.
+outputs for the traditional presets are kept below `out/build/<preset-name>`.
+To avoid Windows path-length failures in generated forwarding headers, UI2
+uses the shorter `out/ui2-ninja`, `out/ui2-vs`, and `out/ui2-win` directories.
 
 List all available presets:
 
@@ -123,6 +120,12 @@ UI2 on Windows with:
 ```powershell
 cmake --workflow --preset windows-qt6-ui2-debug
 ```
+
+The workflows automate configuration, compilation, and focused tests. Windows
+interactive DPI, theme, high-contrast, and multi-monitor acceptance, together
+with Linux and macOS real-host builds, remain pending release/final-delivery
+checks. The release owner approved deferring them for this implementation
+phase; they must not be reported as passed until they are performed.
 
 Create a self-contained Windows portable folder:
 

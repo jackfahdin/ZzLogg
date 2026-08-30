@@ -1,3 +1,6 @@
 [submodule "3rdparty/vendor/ZzPureTools"]
 	path = 3rdparty/vendor/ZzPureTools
 	url = https://github.com/jackfahdin/ZzPureTools.git
+[submodule "3rdparty/vendor/backward-cpp"]
+	path = 3rdparty/vendor/backward-cpp
+	url = https://github.com/bombela/backward-cpp.git
