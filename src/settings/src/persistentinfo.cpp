@@ -43,6 +43,9 @@
 #include <QDir>
 #include <QFileInfo>
 
+#include <mutex>
+#include <optional>
+
 #include <whereami.h>
 
 #include "log.h"
@@ -58,6 +61,10 @@ constexpr const char SessionSettingsFile[] = "klogg_session";
 constexpr const char PortableExtension[] = ".conf";
 
 namespace {
+std::mutex settingsOverrideMutex;
+std::optional<QSettings::Format> settingsFormatOverride;
+bool persistentInfoInitialized = false;
+
 QString makeSessionSettingsPath( const QString& appConfigPath )
 {
     return QFileInfo( appConfigPath )
@@ -81,8 +88,25 @@ QString kloggPortableConfigPath()
     return executablePath + QDir::separator() + ApplicationSessionFile + PortableExtension;
 }
 
+bool setPersistentSettingsOverrideForProcess( QSettings::Format format, const QString& path )
+{
+    const std::lock_guard<std::mutex> lock( settingsOverrideMutex );
+    if ( persistentInfoInitialized || settingsFormatOverride ) {
+        return false;
+    }
+
+    QSettings::setPath( format, QSettings::UserScope, path );
+    settingsFormatOverride = format;
+    return true;
+}
+
 PersistentInfo::PersistentInfo()
 {
+    {
+        const std::lock_guard<std::mutex> lock( settingsOverrideMutex );
+        persistentInfoInitialized = true;
+    }
+
     const auto portableConfigPath = kloggPortableConfigPath();
 
     LOG_INFO << "Portable config path " << portableConfigPath;
@@ -114,10 +138,13 @@ void PersistentInfo::PreparePortableSettings( const QString& portableConfigPath 
 void PersistentInfo::PrepareOsSettings()
 {
 #ifdef Q_OS_WIN
-    const auto format = QSettings::IniFormat;
+    auto format = QSettings::IniFormat;
 #else
-    const auto format = QSettings::NativeFormat;
+    auto format = QSettings::NativeFormat;
 #endif
+    if ( settingsFormatOverride ) {
+        format = *settingsFormatOverride;
+    }
 
     appSettings_ = std::make_unique<QSettings>( format, QSettings::UserScope, "klogg",
                                                 ApplicationSessionFile );

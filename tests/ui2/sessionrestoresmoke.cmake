@@ -35,13 +35,11 @@ if(NOT seed_result EQUAL 0)
 endif()
 if(WIN32)
   set(settings_root "${TEST_CONFIG_DIR}/Roaming")
-  set(settings_suffix ".ini")
 else()
   set(settings_root "${TEST_CONFIG_DIR}/config")
-  set(settings_suffix ".conf")
 endif()
 include("${CMAKE_CURRENT_LIST_DIR}/isolatedsettingscheck.cmake")
-assert_ui2_isolated_settings("${settings_root}" "${settings_suffix}")
+assert_ui2_isolated_settings("${settings_root}")
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env ${config_env}

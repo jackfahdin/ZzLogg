@@ -101,11 +101,9 @@ Ui2SmokeRequest prepareUi2SmokeRequest( const KloggApplicationOptions& options )
 #ifdef Q_OS_WIN
     const QString settingsRoot = qEnvironmentVariable( "APPDATA" );
     const QString settingsRootVariable = QStringLiteral( "APPDATA" );
-    constexpr auto settingsFormat = QSettings::IniFormat;
 #else
     const QString settingsRoot = qEnvironmentVariable( "XDG_CONFIG_HOME" );
     const QString settingsRootVariable = QStringLiteral( "XDG_CONFIG_HOME" );
-    constexpr auto settingsFormat = QSettings::NativeFormat;
 #endif
     if ( settingsRoot.isEmpty() ) {
         request.error = QStringLiteral( "UI2 smoke settings root is missing: %1 is empty" )
@@ -113,8 +111,16 @@ Ui2SmokeRequest prepareUi2SmokeRequest( const KloggApplicationOptions& options )
         return request;
     }
 
-    QSettings::setPath( settingsFormat, QSettings::UserScope,
-                        QDir::fromNativeSeparators( settingsRoot ) );
+    const auto normalizedSettingsRoot = QDir::fromNativeSeparators( settingsRoot );
+    if ( !setPersistentSettingsOverrideForProcess( QSettings::IniFormat,
+                                                   normalizedSettingsRoot ) ) {
+        request.error = QStringLiteral(
+                            "UI2 smoke settings override was rejected because PersistentInfo "
+                            "was already initialized or another process override was installed; "
+                            "format=IniFormat; path=%1" )
+                            .arg( normalizedSettingsRoot );
+        return request;
+    }
     return request;
 }
 
@@ -334,11 +340,32 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         if ( state->mode == QStringLiteral( "destroy-search-edit" ) ) {
             state->searchEdit->deleteLater();
         }
+        else if ( state->mode == QStringLiteral( "close-second-window-during-search" ) ) {
+            if ( state->secondWindow == nullptr ) {
+                finishUi2Smoke(
+                    *state, EXIT_FAILURE,
+                    QStringLiteral( "second window disappeared before close regression" ) );
+                return;
+            }
+            state->secondWindow->setAttribute( Qt::WA_DeleteOnClose );
+            state->secondWindow->close();
+        }
         state->waitingFor = QStringLiteral( "the search to finish" );
         state->stage = Ui2SmokeStage::WaitForSearch;
         return;
     }
     case Ui2SmokeStage::WaitForSearch: {
+        if ( state->firstTitleBar == nullptr ) {
+            finishUi2Smoke( *state, EXIT_FAILURE,
+                            QStringLiteral( "first title bar disappeared while waiting for search" ) );
+            return;
+        }
+        if ( state->secondTitleBar == nullptr ) {
+            finishUi2Smoke(
+                *state, EXIT_FAILURE,
+                QStringLiteral( "second title bar disappeared while waiting for search" ) );
+            return;
+        }
         if ( state->searchEdit == nullptr ) {
             finishUi2Smoke( *state, EXIT_FAILURE,
                             QStringLiteral( "mainSearchEdit disappeared while waiting for search" ) );

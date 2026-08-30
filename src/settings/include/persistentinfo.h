@@ -52,6 +52,7 @@ struct session_settings {
 };
 
 QString kloggPortableConfigPath();
+bool setPersistentSettingsOverrideForProcess( QSettings::Format format, const QString& path );
 
 class PersistentInfo {
   public:

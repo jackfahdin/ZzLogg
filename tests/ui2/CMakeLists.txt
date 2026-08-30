@@ -16,6 +16,20 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
+add_executable(zzlogg_settings_override_test settingsoverridetest.cpp)
+target_link_libraries(zzlogg_settings_override_test
+  PRIVATE klogg_settings Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_settings_override_test PROPERTIES AUTOMOC ON)
+set_target_properties(zzlogg_settings_override_test PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/settings-override-contract")
+add_test(NAME zzlogg_ui2.settings_override
+         COMMAND zzlogg_settings_override_test)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.settings_override APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()
+
 add_executable(zzlogg_options_theme_test optionsthemetest.cpp)
 target_link_libraries(zzlogg_options_theme_test
   PRIVATE klogg_ui Qt6::Test Qt6::Widgets)
@@ -109,23 +123,26 @@ add_test(NAME zzlogg_ui2.async_object_lifetime_smoke
           -P "${CMAKE_CURRENT_SOURCE_DIR}/asyncobjectlifetimesmoke.cmake")
 set_tests_properties(zzlogg_ui2.async_object_lifetime_smoke PROPERTIES TIMEOUT 20)
 
-add_test(NAME zzlogg_ui2.settings_path_contract
+add_test(NAME zzlogg_ui2.titlebar_lifetime_smoke
   COMMAND "${CMAKE_COMMAND}"
-          "-DCHECK_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/isolatedsettingscheck.cmake"
-          "-DVERIFY_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/isolatedsettingsverify.cmake"
-          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/settings-path-contract"
-          -P "${CMAKE_CURRENT_SOURCE_DIR}/settingspathcontracttest.cmake")
+          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/titlebar-lifetime-smoke"
+          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
+          "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/titlebarlifetimesmoke.cmake")
+set_tests_properties(zzlogg_ui2.titlebar_lifetime_smoke PROPERTIES TIMEOUT 20)
+
 if(WIN32)
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
     zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
-    zzlogg_ui2.async_object_lifetime_smoke
+    zzlogg_ui2.async_object_lifetime_smoke zzlogg_ui2.titlebar_lifetime_smoke
     PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
     zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
-    zzlogg_ui2.async_object_lifetime_smoke
+    zzlogg_ui2.async_object_lifetime_smoke zzlogg_ui2.titlebar_lifetime_smoke
     PROPERTY ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:zzlogg_ui2>")
 endif()
