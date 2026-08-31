@@ -115,8 +115,11 @@ target_compile_definitions(klogg_portable PUBLIC -DKLOGG_PORTABLE)
 if(WIN32)
 
   target_sources(klogg PRIVATE ${ProductVersionResourceFiles})
-  target_sources(klogg_portable PRIVATE ${ProductVersionResourceFiles})
-  target_sources(klogg_grep PRIVATE ${ProductVersionResourceFiles})
+  target_sources(klogg_portable PRIVATE ${PortableProductVersionResourceFiles})
+  target_sources(klogg_grep PRIVATE ${GrepProductVersionResourceFiles})
+  if(TARGET zzlogg_ui2)
+    target_sources(zzlogg_ui2 PRIVATE ${Ui2ProductVersionResourceFiles})
+  endif()
 
 elseif(APPLE)
   set_source_files_properties(${ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -223,6 +226,8 @@ if(WIN32 AND TARGET Qt6::qmake)
       COMMENT "Creating portable ${ZZLOGG_PRODUCT_NAME} folder"
       VERBATIM
     )
+    set_property(TARGET klogg_portable_folder PROPERTY
+      ZZLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_DIR}")
 
   else()
     message(WARNING "windeployqt was not found; portable package targets are unavailable")

@@ -4,15 +4,39 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+if(TARGET klogg_portable_folder)
+  set(ZZLOGG_PORTABLE_DIR_CONTRACT
+    "$<TARGET_GENEX_EVAL:klogg_portable_folder,$<TARGET_PROPERTY:klogg_portable_folder,ZZLOGG_PORTABLE_DIR>>")
+else()
+  set(ZZLOGG_PORTABLE_DIR_CONTRACT
+    "${CMAKE_BINARY_DIR}/portable/$<CONFIG>/${ZZLOGG_PRODUCT_NAME}-portable")
+endif()
+
 add_test(NAME zzlogg_ui2.output_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DMAIN_APP=$<TARGET_FILE:klogg>"
     "-DPORTABLE_APP=$<TARGET_FILE:klogg_portable>"
     "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
     "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
-    "-DPORTABLE_DIR=${CMAKE_BINARY_DIR}/portable/$<CONFIG>/ZzLogg-portable"
+    "-DPORTABLE_DIR=${ZZLOGG_PORTABLE_DIR_CONTRACT}"
+    "-DEXECUTABLE_SUFFIX=$<TARGET_FILE_SUFFIX:klogg>"
     "-DGREP_EXCLUDED_FROM_ALL=$<TARGET_PROPERTY:klogg_grep,EXCLUDE_FROM_ALL>"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/outputcontracttest.cmake")
+
+if(WIN32)
+  find_program(ZZLOGG_POWERSHELL_EXECUTABLE NAMES powershell pwsh REQUIRED)
+  add_test(NAME zzlogg_ui2.version_resource_contract
+    COMMAND "${CMAKE_COMMAND}"
+      "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
+      "-DCONFIG=$<CONFIG>"
+      "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
+      "-DCONTRACT_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/versionresourcecontracttest.ps1"
+      "-DMAIN_APP=$<TARGET_FILE:klogg>"
+      "-DPORTABLE_APP=$<TARGET_FILE:klogg_portable>"
+      "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
+      "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/versionresourcecontracttest.cmake")
+endif()
 
 add_executable(zzlogg_icon_asset_test
   iconassettest.cpp "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc")

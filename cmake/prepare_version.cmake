@@ -77,6 +77,8 @@ generate_product_version(
   "${ZZLOGG_PRODUCT_NAME}.exe"
   ICON
   "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  FILE_DESCRIPTION
+  "${ZZLOGG_PRODUCT_DESCRIPTION}"
   VERSION_MAJOR
   ${PROJECT_VERSION_MAJOR}
   VERSION_MINOR
@@ -91,11 +93,96 @@ generate_product_version(
   ${COPYRIGHT}
 )
 
+generate_product_version(
+  PortableProductVersionResourceFiles
+  OUTPUT_DIRECTORY
+  "${CMAKE_BINARY_DIR}/generated/klogg_portable"
+  NAME
+  "${ZZLOGG_PRODUCT_NAME}"
+  ORIGINAL_FILENAME
+  "${ZZLOGG_PRODUCT_NAME}_portable.exe"
+  ICON
+  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  FILE_DESCRIPTION
+  "${ZZLOGG_PRODUCT_DESCRIPTION}"
+  VERSION_MAJOR
+  ${PROJECT_VERSION_MAJOR}
+  VERSION_MINOR
+  ${PROJECT_VERSION_MINOR}
+  VERSION_PATCH
+  ${PROJECT_VERSION_PATCH}
+  VERSION_REVISION
+  ${PROJECT_VERSION_TWEAK}
+  COMPANY_NAME
+  "${ZZLOGG_VENDOR}"
+  COMPANY_COPYRIGHT
+  ${COPYRIGHT}
+)
+
+generate_product_version(
+  GrepProductVersionResourceFiles
+  OUTPUT_DIRECTORY
+  "${CMAKE_BINARY_DIR}/generated/klogg_grep"
+  NAME
+  "${ZZLOGG_PRODUCT_NAME}"
+  ORIGINAL_FILENAME
+  "${ZZLOGG_PRODUCT_NAME}_grep.exe"
+  ICON
+  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  FILE_DESCRIPTION
+  "${ZZLOGG_PRODUCT_DESCRIPTION}"
+  VERSION_MAJOR
+  ${PROJECT_VERSION_MAJOR}
+  VERSION_MINOR
+  ${PROJECT_VERSION_MINOR}
+  VERSION_PATCH
+  ${PROJECT_VERSION_PATCH}
+  VERSION_REVISION
+  ${PROJECT_VERSION_TWEAK}
+  COMPANY_NAME
+  "${ZZLOGG_VENDOR}"
+  COMPANY_COPYRIGHT
+  ${COPYRIGHT}
+)
+
+generate_product_version(
+  Ui2ProductVersionResourceFiles
+  OUTPUT_DIRECTORY
+  "${CMAKE_BINARY_DIR}/generated/zzlogg_ui2"
+  NAME
+  "${ZZLOGG_PRODUCT_NAME}"
+  ORIGINAL_FILENAME
+  "${ZZLOGG_PRODUCT_NAME}_ui2.exe"
+  ICON
+  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  FILE_DESCRIPTION
+  "${ZZLOGG_PRODUCT_DESCRIPTION}"
+  VERSION_MAJOR
+  ${PROJECT_VERSION_MAJOR}
+  VERSION_MINOR
+  ${PROJECT_VERSION_MINOR}
+  VERSION_PATCH
+  ${PROJECT_VERSION_PATCH}
+  VERSION_REVISION
+  ${PROJECT_VERSION_TWEAK}
+  COMPANY_NAME
+  "${ZZLOGG_VENDOR}"
+  COMPANY_COPYRIGHT
+  ${COPYRIGHT}
+)
+
+set(AllProductVersionResourceFiles
+  ${ProductVersionResourceFiles}
+  ${PortableProductVersionResourceFiles}
+  ${GrepProductVersionResourceFiles}
+  ${Ui2ProductVersionResourceFiles}
+)
+
 add_custom_target(
   generate_version ALL
   COMMAND ${CMAKE_COMMAND} -DBUILD_VERSION=${PROJECT_VERSION}.${PROJECT_VERSION_TWEAK} -P
           ${CMAKE_SOURCE_DIR}/cmake/generate_version_h.cmake
-  DEPENDS ${ProductVersionResourceFiles}
+  DEPENDS ${AllProductVersionResourceFiles}
   SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_version_h.cmake
           ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_info.h.in ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_resource.rc.in
 )

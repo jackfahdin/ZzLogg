@@ -52,6 +52,7 @@ function(generate_product_version outfiles)
       ORIGINAL_FILENAME
       INTERNAL_NAME
       FILE_DESCRIPTION
+      OUTPUT_DIRECTORY
   )
   set(multiValueArgs)
   cmake_parse_arguments(
@@ -119,8 +120,14 @@ function(generate_product_version outfiles)
     set(PRODUCT_FILE_DESCRIPTION "${PRODUCT_NAME}")
   endif()
 
-  set(_VersionInfoFile ${CMAKE_BINARY_DIR}/generated/version_info.h)
-  set(_VersionResourceFile ${CMAKE_BINARY_DIR}/generated/version_resource.rc)
+  if(PRODUCT_OUTPUT_DIRECTORY AND NOT "${PRODUCT_OUTPUT_DIRECTORY}" STREQUAL "")
+    set(_VersionOutputDirectory "${PRODUCT_OUTPUT_DIRECTORY}")
+  else()
+    set(_VersionOutputDirectory "${CMAKE_BINARY_DIR}/generated")
+  endif()
+  file(MAKE_DIRECTORY "${_VersionOutputDirectory}")
+  set(_VersionInfoFile "${_VersionOutputDirectory}/version_info.h")
+  set(_VersionResourceFile "${_VersionOutputDirectory}/version_resource.rc")
   configure_file(${GenerateProductVersionCurrentDir}/version_info.h.in ${_VersionInfoFile} @ONLY)
   configure_file(${GenerateProductVersionCurrentDir}/version_resource.rc.in ${_VersionResourceFile} COPYONLY)
   list(

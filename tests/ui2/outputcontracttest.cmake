@@ -4,17 +4,15 @@ get_filename_component(ui2_name "${UI2_APP}" NAME)
 get_filename_component(grep_name "${GREP_APP}" NAME)
 get_filename_component(portable_dir_name "${PORTABLE_DIR}" NAME)
 
-if(WIN32)
-  set(executable_suffix ".exe")
-else()
-  set(executable_suffix "")
+if(NOT DEFINED EXECUTABLE_SUFFIX)
+  message(FATAL_ERROR "EXECUTABLE_SUFFIX is required")
 endif()
 
 foreach(expected_name IN ITEMS
-    "ZzLogg${executable_suffix}"
-    "ZzLogg_portable${executable_suffix}"
-    "ZzLogg_ui2${executable_suffix}"
-    "ZzLogg_grep${executable_suffix}")
+    "ZzLogg${EXECUTABLE_SUFFIX}"
+    "ZzLogg_portable${EXECUTABLE_SUFFIX}"
+    "ZzLogg_ui2${EXECUTABLE_SUFFIX}"
+    "ZzLogg_grep${EXECUTABLE_SUFFIX}")
   list(APPEND expected_names "${expected_name}")
 endforeach()
 

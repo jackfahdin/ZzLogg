@@ -136,7 +136,7 @@ cmake --workflow --preset windows-qt6-portable
 The generated artifacts are placed in:
 
 ```text
-out/ui2-vs/portable/RelWithDebInfo/ZzLogg-portable/
+out/build/windows-qt6/portable/RelWithDebInfo/ZzLogg-portable/
 ```
 
 The folder contains `ZzLogg_portable.exe`, the required Qt plugins and runtime
