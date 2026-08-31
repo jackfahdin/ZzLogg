@@ -12,4 +12,6 @@ inline constexpr char SessionSettingsApplication[] = "@ZZLOGG_SESSION_SETTINGS_A
 inline constexpr char PortableConfigBaseName[] = "@ZZLOGG_PORTABLE_CONFIG_BASENAME@";
 inline constexpr char IconResource[] = "@ZZLOGG_ICON_RESOURCE@";
 inline constexpr char UpdateManifestUrl[] = "@ZZLOGG_UPDATE_MANIFEST_URL@";
+inline constexpr char CrashpadHandlerName[] = "@ZZLOGG_CRASHPAD_HANDLER_NAME@";
+inline constexpr char MinidumpDumpName[] = "@ZZLOGG_MINIDUMP_DUMP_NAME@";
 } // namespace zzlogg::brand

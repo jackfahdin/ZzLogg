@@ -306,7 +306,7 @@ if(KLOGG_USE_SENTRY)
     add_custom_command(
       TARGET klogg
       POST_BUILD
-      COMMAND cmake -E copy $<TARGET_FILE:crashpad_handler> $<TARGET_FILE_DIR:klogg>/klogg_crashpad_handler
+      COMMAND cmake -E copy $<TARGET_FILE:crashpad_handler> $<TARGET_FILE_DIR:klogg>/${ZZLOGG_CRASHPAD_HANDLER_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Copy crash_handler"
     )
@@ -314,7 +314,7 @@ if(KLOGG_USE_SENTRY)
     add_custom_command(
       TARGET klogg
       POST_BUILD
-      COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump $<TARGET_FILE_DIR:klogg>/klogg_minidump_dump
+      COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump $<TARGET_FILE_DIR:klogg>/${ZZLOGG_MINIDUMP_DUMP_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Copy stackwalk"
     )
@@ -322,7 +322,7 @@ if(KLOGG_USE_SENTRY)
     add_custom_command(
       TARGET klogg
       POST_BUILD
-      COMMAND cmake -E copy $<TARGET_FILE:crashpad_handler> $<TARGET_FILE_DIR:klogg>/klogg_crashpad_handler.exe
+      COMMAND cmake -E copy $<TARGET_FILE:crashpad_handler> $<TARGET_FILE_DIR:klogg>/${ZZLOGG_CRASHPAD_HANDLER_NAME}.exe
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMENT "Copy crash_handler"
     )
@@ -331,7 +331,7 @@ if(KLOGG_USE_SENTRY)
       add_custom_command(
         TARGET klogg
         POST_BUILD
-        COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump_x64.exe $<TARGET_FILE_DIR:klogg>/klogg_minidump_dump.exe
+        COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump_x64.exe $<TARGET_FILE_DIR:klogg>/${ZZLOGG_MINIDUMP_DUMP_NAME}.exe
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Copy stackwalk"
       )
@@ -339,7 +339,7 @@ if(KLOGG_USE_SENTRY)
       add_custom_command(
         TARGET klogg
         POST_BUILD
-        COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump_x86.exe $<TARGET_FILE_DIR:klogg>/klogg_minidump_dump.exe
+        COMMAND cmake -E copy ${SYMS_TOOLS}/minidump_dump_x86.exe $<TARGET_FILE_DIR:klogg>/${ZZLOGG_MINIDUMP_DUMP_NAME}.exe
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Copy stackwalk"
       )
@@ -347,11 +347,11 @@ if(KLOGG_USE_SENTRY)
   endif()
 
   if(APPLE)
-    install(PROGRAMS $<TARGET_FILE_DIR:klogg>/klogg_minidump_dump $<TARGET_FILE_DIR:klogg>/klogg_crashpad_handler
+    install(PROGRAMS $<TARGET_FILE_DIR:klogg>/${ZZLOGG_MINIDUMP_DUMP_NAME} $<TARGET_FILE_DIR:klogg>/${ZZLOGG_CRASHPAD_HANDLER_NAME}
             DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:klogg>/MacOS
     )
   elseif(NOT WIN32)
-    install(PROGRAMS $<TARGET_FILE_DIR:klogg>/klogg_minidump_dump $<TARGET_FILE_DIR:klogg>/klogg_crashpad_handler
+    install(PROGRAMS $<TARGET_FILE_DIR:klogg>/${ZZLOGG_MINIDUMP_DUMP_NAME} $<TARGET_FILE_DIR:klogg>/${ZZLOGG_CRASHPAD_HANDLER_NAME}
             DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
   endif()

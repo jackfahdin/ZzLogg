@@ -18,8 +18,10 @@
  */
 
 #include "crashhandler.h"
+#include "zzlogg_brand.h"
 
 #include <QByteArray>
+#include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -55,6 +57,15 @@
 #include "openfilehelper.h"
 
 namespace {
+
+QString crashHelperPath( const char* baseName )
+{
+    QString fileName = QString::fromLatin1( baseName );
+#ifdef Q_OS_WIN
+    fileName.append( QStringLiteral( ".exe" ) );
+#endif
+    return QDir( QCoreApplication::applicationDirPath() ).filePath( fileName );
+}
 
 constexpr const char* DSN
     = "https://aad3b270e5ba4ec2915eb5caf6e6d929@o453796.ingest.sentry.io/5442855";
@@ -180,11 +191,7 @@ bool checkCrashpadReports( const QString& databasePath )
     database->GetCompletedReports( &pendingReports );
     LOG_INFO << "Pending reports " << pendingReports.size();
 
-#ifdef Q_OS_WIN
-    const auto stackwalker = QCoreApplication::applicationDirPath() + "/klogg_minidump_dump.exe";
-#else
-    const auto stackwalker = QCoreApplication::applicationDirPath() + "/klogg_minidump_dump";
-#endif
+    const auto stackwalker = crashHelperPath( zzlogg::brand::MinidumpDumpName );
 
     for ( const auto& report : pendingReports ) {
         if ( report.uploaded ) {
@@ -233,11 +240,11 @@ CrashHandler::CrashHandler()
     sentry_options_set_debug( sentryOptions, 1 );
 
 #ifdef Q_OS_WIN
-    const auto handlerPath = QCoreApplication::applicationDirPath() + "/klogg_crashpad_handler.exe";
+    const auto handlerPath = crashHelperPath( zzlogg::brand::CrashpadHandlerName );
     sentry_options_set_database_pathw( sentryOptions, dumpPath.toStdWString().c_str() );
     sentry_options_set_handler_pathw( sentryOptions, handlerPath.toStdWString().c_str() );
 #else
-    const auto handlerPath = QCoreApplication::applicationDirPath() + "/klogg_crashpad_handler";
+    const auto handlerPath = crashHelperPath( zzlogg::brand::CrashpadHandlerName );
     sentry_options_set_database_path( sentryOptions, dumpPath.toStdString().c_str() );
     sentry_options_set_handler_path( sentryOptions, handlerPath.toStdString().c_str() );
 #endif

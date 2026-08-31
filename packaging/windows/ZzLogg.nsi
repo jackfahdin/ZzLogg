@@ -53,8 +53,8 @@ Section "ZzLogg" zzlogg
 
     SetOutPath $INSTDIR
     File release\ZzLogg.exe
-    File release\klogg_crashpad_handler.exe
-    File release\klogg_minidump_dump.exe
+    File release\ZzLogg_crashpad_handler.exe
+    File release\ZzLogg_minidump_dump.exe
     File release\tbb12.dll
 
     File COPYING
@@ -93,14 +93,16 @@ Section "Qt 6 Runtime libraries" qtlibs
     File release\Qt6Gui.dll
     File release\Qt6Network.dll
     File release\Qt6Widgets.dll
-    File release\Qt6Concurrent.dll
     File release\Qt6Xml.dll
     File release\Qt6Core5Compat.dll
+    File release\Qt6Svg.dll
 
     SetOutPath $INSTDIR\platforms
     File release\platforms\qwindows.dll
     SetOutPath $INSTDIR\styles
     File release\styles\qmodernwindowsstyle.dll
+    SetOutPath $INSTDIR\iconengines
+    File release\iconengines\qsvgicon.dll
 SectionEnd
 
 Section "MSVC Runtime libraries" vcruntime
@@ -139,8 +141,8 @@ SectionEnd
 Section "Uninstall"
     Delete "$INSTDIR\Uninstall.exe"
     Delete "$INSTDIR\ZzLogg.exe"
-    Delete "$INSTDIR\klogg_crashpad_handler.exe"
-    Delete "$INSTDIR\klogg_minidump_dump.exe"
+    Delete "$INSTDIR\ZzLogg_crashpad_handler.exe"
+    Delete "$INSTDIR\ZzLogg_minidump_dump.exe"
     Delete "$INSTDIR\README.md"
     Delete "$INSTDIR\COPYING"
     Delete "$INSTDIR\NOTICE"
@@ -150,11 +152,12 @@ Section "Uninstall"
     Delete "$INSTDIR\Qt6Core.dll"
     Delete "$INSTDIR\Qt6Gui.dll"
     Delete "$INSTDIR\Qt6Network.dll"
-    Delete "$INSTDIR\Qt6Concurrent.dll"
     Delete "$INSTDIR\Qt6Xml.dll"
     Delete "$INSTDIR\Qt6Core5Compat.dll"
+    Delete "$INSTDIR\Qt6Svg.dll"
     Delete "$INSTDIR\platforms\qwindows.dll"
     Delete "$INSTDIR\styles\qmodernwindowsstyle.dll"
+    Delete "$INSTDIR\iconengines\qsvgicon.dll"
     Delete "$INSTDIR\msvcp140.dll"
     Delete "$INSTDIR\msvcp140_1.dll"
     Delete "$INSTDIR\vcruntime140.dll"
@@ -166,6 +169,7 @@ Section "Uninstall"
     Delete "$INSTDIR\libssl-1_1.dll"
     RMDir "$INSTDIR\platforms"
     RMDir "$INSTDIR\styles"
+    RMDir "$INSTDIR\iconengines"
     RMDir "$INSTDIR"
 
     Delete "$APPDATA\ZzLogg\ZzLogg.ini"

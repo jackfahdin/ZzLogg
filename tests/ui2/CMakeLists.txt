@@ -36,6 +36,16 @@ if(WIN32)
       "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
       "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/versionresourcecontracttest.cmake")
+  add_test(NAME zzlogg_ui2.windows_installer_contract
+    COMMAND "${CMAKE_COMMAND}"
+      "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+      "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
+      "-DCONFIG=$<CONFIG>"
+      "-DPORTABLE_DIR=${ZZLOGG_PORTABLE_DIR_CONTRACT}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/windowsinstallercontracttest.cmake")
+  set_tests_properties(zzlogg_ui2.windows_installer_contract PROPERTIES
+    RUN_SERIAL TRUE
+    TIMEOUT 120)
 endif()
 
 add_executable(zzlogg_icon_asset_test

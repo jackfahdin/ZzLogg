@@ -1566,6 +1566,9 @@
        style="display:inline"
        id="g1772"
        transform="matrix(0.61453382,0,0,0.67043086,16.054904,15.409551)">
+      <path id="zzlogg-z"
+            d="M 12.2,10.8 H 24.6 V 13.7 L 17.1,21.7 H 24.8 V 24.8 H 11.8 V 22.0 L 19.4,13.9 H 12.2 Z"
+            fill="#275fa8" stroke="#eef6ff" stroke-width="0.5" stroke-linejoin="round"/>
       <ellipse
          style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.17112301;fill:url(#radialGradient4942);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;marker:none"
          id="path4475"
@@ -1628,9 +1631,6 @@
          cx="17.589281"
          cy="18.478292"
          r="8.3085051" />
-      <path id="zzlogg-z"
-            d="M 12.2,10.8 H 24.6 V 13.7 L 17.1,21.7 H 24.8 V 24.8 H 11.8 V 22.0 L 19.4,13.9 H 12.2 Z"
-            fill="#275fa8" stroke="#eef6ff" stroke-width="0.5" stroke-linejoin="round"/>
       <path
          style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.83422457;fill:url(#radialGradient4473);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;marker:none"
          d="m 18.156915,7.3966938 c -5.20759,0 -9.4245469,4.2169572 -9.4245469,9.4245472 0,1.503975 0.4203072,2.887773 1.0471719,4.149903 1.25238,0.461613 2.582757,0.775683 3.994767,0.775683 6.170955,0 11.099282,-4.861637 11.480106,-10.937129 C 23.523449,8.7641668 21.044374,7.3966938 18.156915,7.3966938 Z"

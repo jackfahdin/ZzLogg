@@ -228,10 +228,13 @@ void IconAssetTest::svgMasterHasApprovedStructure()
     QVERIFY( stackPosition > 0 );
     QVERIFY( stackPosition < glassPosition );
     QVERIFY( legacyHandlePosition > 0 );
+    QVERIFY( zPosition > glassPosition );
+    QVERIFY( zPosition < legacyHandlePosition );
     QVERIFY( legacyHandlePosition < handlePosition );
     QVERIFY( handlePosition > 0 );
     QVERIFY( handlePosition < lensPosition );
-    QVERIFY( zPosition > lensPosition );
+    QVERIFY( zPosition < handlePosition );
+    QVERIFY( zPosition < lensPosition );
     QVERIFY( zPosition < highlightPosition );
 }
 
