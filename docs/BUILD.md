@@ -136,16 +136,16 @@ cmake --workflow --preset windows-qt6-portable
 The generated artifacts are placed in:
 
 ```text
-out/build/windows-qt6/portable/RelWithDebInfo/klogg-portable/
+out/ui2-vs/portable/RelWithDebInfo/ZzLogg-portable/
 ```
 
-The folder contains `klogg_portable.exe`, the required Qt plugins and runtime
+The folder contains `ZzLogg_portable.exe`, the required Qt plugins and runtime
 libraries, the MSVC runtime, TBB libraries, and the project documentation and
 license files.
 
 The first UI2 phase does not provide a UI2 portable folder, zip archive, or
-installer. The portable workflow and its green output directory continue to
-refer only to the legacy `klogg_portable_folder` target.
+installer. The external green output directory is `ZzLogg-portable`; the
+internal compatibility target remains `klogg_portable_folder`.
 
 The Visual Studio generator initializes the MSVC build environment itself, so
 these presets do not require running `VsDevCmd.bat` first. Qt and Visual Studio

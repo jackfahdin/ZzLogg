@@ -72,11 +72,11 @@ include(win32_rc)
 generate_product_version(
   ProductVersionResourceFiles
   NAME
-  "${PROJECT_DESCRIPTION}"
+  "${ZZLOGG_PRODUCT_NAME}"
   ORIGINAL_FILENAME
-  ${PROJECT_NAME}
+  "${ZZLOGG_PRODUCT_NAME}.exe"
   ICON
-  "${ICON_FILE}"
+  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
   VERSION_MAJOR
   ${PROJECT_VERSION_MAJOR}
   VERSION_MINOR
@@ -86,7 +86,7 @@ generate_product_version(
   VERSION_REVISION
   ${PROJECT_VERSION_TWEAK}
   COMPANY_NAME
-  ${COMPANY}
+  "${ZZLOGG_VENDOR}"
   COMPANY_COPYRIGHT
   ${COPYRIGHT}
 )

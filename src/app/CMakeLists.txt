@@ -68,7 +68,10 @@ add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES}
 if(KLOGG_BUILD_UI2)
   add_executable(zzlogg_ui2 ${OS_BUNDLE} ${MAIN_SOURCES}
     ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main_ui2.cpp)
-  set_target_properties(zzlogg_ui2 PROPERTIES AUTOMOC ON AUTORCC ON)
+  set_target_properties(zzlogg_ui2 PROPERTIES
+    OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}_ui2"
+    AUTOMOC ON
+    AUTORCC ON)
   target_compile_features(zzlogg_ui2 PRIVATE cxx_std_20)
   target_link_libraries(zzlogg_ui2 PRIVATE
     ${MAIN_LIBS} klogg_ui zzlogg_ui2_runtime)
@@ -84,12 +87,18 @@ if(WIN32)
   add_dependencies(ci_build klogg_portable)
 endif()
 
-set_target_properties(klogg PROPERTIES AUTORCC ON)
-set_target_properties(klogg PROPERTIES AUTOMOC ON)
-set_target_properties(klogg_portable PROPERTIES AUTORCC ON)
-set_target_properties(klogg_portable PROPERTIES AUTOMOC ON)
-set_target_properties(klogg_grep PROPERTIES AUTORCC ON)
-set_target_properties(klogg_grep PROPERTIES AUTOMOC ON)
+set_target_properties(klogg PROPERTIES
+  OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}"
+  AUTORCC ON
+  AUTOMOC ON)
+set_target_properties(klogg_portable PROPERTIES
+  OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}_portable"
+  AUTORCC ON
+  AUTOMOC ON)
+set_target_properties(klogg_grep PROPERTIES
+  OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}_grep"
+  AUTORCC ON
+  AUTOMOC ON)
 
 if(KLOGG_USE_LTO)
   set_property(TARGET klogg PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -172,7 +181,7 @@ if(WIN32 AND TARGET Qt6::qmake)
 
   if(KLOGG_WINDEPLOYQT_EXECUTABLE)
     set(KLOGG_PORTABLE_ROOT "${CMAKE_BINARY_DIR}/portable/$<CONFIG>")
-    set(KLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_ROOT}/klogg-portable")
+    set(KLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_ROOT}/${ZZLOGG_PRODUCT_NAME}-portable")
     set(KLOGG_PORTABLE_DOCUMENTS
         "${README_FILE};${COPYING_FILE};${NOTICE_FILE};${DOCUMENTATION_FILE}"
     )
@@ -211,7 +220,7 @@ if(WIN32 AND TARGET Qt6::qmake)
         -P "${CMAKE_SOURCE_DIR}/cmake/DeployPortable.cmake"
       ${KLOGG_PORTABLE_RUNTIME_COMMANDS}
       DEPENDS ${KLOGG_PORTABLE_DEPENDENCIES}
-      COMMENT "Creating portable klogg folder"
+      COMMENT "Creating portable ${ZZLOGG_PRODUCT_NAME} folder"
       VERBATIM
     )
 

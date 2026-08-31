@@ -4,6 +4,16 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_test(NAME zzlogg_ui2.output_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DMAIN_APP=$<TARGET_FILE:klogg>"
+    "-DPORTABLE_APP=$<TARGET_FILE:klogg_portable>"
+    "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
+    "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
+    "-DPORTABLE_DIR=${CMAKE_BINARY_DIR}/portable/$<CONFIG>/ZzLogg-portable"
+    "-DGREP_EXCLUDED_FROM_ALL=$<TARGET_PROPERTY:klogg_grep,EXCLUDE_FROM_ALL>"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/outputcontracttest.cmake")
+
 add_executable(zzlogg_icon_asset_test
   iconassettest.cpp "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc")
 target_link_libraries(zzlogg_icon_asset_test PRIVATE
