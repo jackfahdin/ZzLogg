@@ -14,6 +14,7 @@ target_link_libraries(
   klogg_crash_handler
   PUBLIC project_options
          project_warnings
+         zzlogg_brand
          klogg_version
          klogg_utils
          tbb

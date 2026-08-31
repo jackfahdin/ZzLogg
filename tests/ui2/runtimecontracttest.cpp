@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include "persistentinfo.h"
 #include "zzloggfluentshell.h"
+#include "zzloggapplicationidentity.h"
 #include "zzlogguiruntime.h"
 #include <QDir>
 #include <QFileInfo>
@@ -24,6 +25,10 @@ private Q_SLOTS:
     void decoratesRealWindowsAndRoutesSemanticState()
     {
         auto& app = *qobject_cast<KloggApp*>( qApp );
+        QCOMPARE( app.applicationName(), QStringLiteral( "ZzLogg" ) );
+        QCOMPARE( app.applicationDisplayName(), QStringLiteral( "ZzLogg" ) );
+        QCOMPARE( app.organizationName(), QStringLiteral( "JackfahdinQt" ) );
+        QVERIFY( !app.windowIcon().isNull() );
         auto& configuration = Configuration::getSynced();
         configuration.setUiThemeMode( UiThemeMode::Dark );
         configuration.save();
@@ -65,6 +70,8 @@ private Q_SLOTS:
 
         MainWindow* const first = app.newWindow();
         MainWindow* const second = app.newWindow();
+        QVERIFY( !first->windowIcon().isNull() );
+        QCOMPARE( first->windowIcon().cacheKey(), app.windowIcon().cacheKey() );
         QVERIFY( first->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) ) );
         auto* const secondShell
             = second->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) );
@@ -118,7 +125,13 @@ int main( int argc, char* argv[] )
     const auto prepared = ZzWindowKit::ZzWindowKitBootstrap::prepare();
     if ( !prepared )
         return 2;
+    prepareZzLoggApplicationIdentity();
     KloggApp app( argc, argv );
+    QString iconError;
+    if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
+        qCritical().noquote() << iconError;
+        return 4;
+    }
     RuntimeContractTest test;
     return QTest::qExec( &test, argc, argv );
 }

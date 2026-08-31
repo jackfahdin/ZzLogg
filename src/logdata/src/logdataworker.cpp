@@ -47,6 +47,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QCoreApplication>
 #include <QSemaphore>
 #include <tuple>
 
@@ -734,7 +735,8 @@ void IndexOperation::doIndex( OffsetInFile initialPosition )
     if ( scopedAccessor.getMaxLength().get()
          == std::numeric_limits<LineLength::UnderlyingType>::max() ) {
         dispatchToMainThread( [] {
-            QMessageBox::critical( nullptr, "Klogg", "Can't index file: some lines are too long",
+            QMessageBox::critical( nullptr, QCoreApplication::applicationName(),
+                                   "Can't index file: some lines are too long",
                                    QMessageBox::Close );
         } );
 

@@ -62,6 +62,7 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     : QDialog( parent )
 {
     setupUi( this );
+    setWindowTitle( tr( "%1 preferences" ).arg( QApplication::applicationDisplayName() ) );
 
     const bool fluentUi = qApp->property( "zzlogg.fluentUi" ).toBool();
     styleBox->setVisible( !fluentUi );
@@ -606,9 +607,10 @@ void OptionsDialog::updateConfigFromDialog()
 
     if ( restartAppMessage ) {
         QMessageBox::warning(
-            this, "klogg",
+            this, QApplication::applicationDisplayName(),
             QApplication::translate( "OptionsDialog",
-                                     "Klogg needs to be restarted to apply some changes. " ) );
+                                     "%1 needs to be restarted to apply some changes. " )
+                .arg( QApplication::applicationDisplayName() ) );
     }
 
     Q_EMIT optionsChanged();

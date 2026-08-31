@@ -21,6 +21,7 @@
 #define KLOGG_ISSUE_REPORTER_H
 
 #include <QString>
+#include <QUrl>
 
 enum class IssueTemplate { Crash, Exception, Bug };
 
@@ -28,6 +29,7 @@ class IssueReporter {
   public:
     static void askUserAndReportIssue( IssueTemplate issueTemplate,
                                        const QString& information = {} );
+    static QUrl issueUrl( IssueTemplate issueTemplate, const QString& information = {} );
     static void reportIssue( IssueTemplate issueTemplate, const QString& information = {} );
 };
 

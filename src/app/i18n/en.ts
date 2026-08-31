@@ -2,6 +2,19 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en">
 <context>
+    <name>KloggApp</name>
+    <message>
+        <location filename="../kloggapp.h" line="313"/>
+        <source>&lt;p&gt;A new version of %1 (%2) is available for download&lt;/p&gt;&lt;a href=&quot;%3&quot;&gt;%3&lt;/a&gt;</source>
+        <translation>&lt;p&gt;A new version of %1 (%2) is available for download&lt;/p&gt;&lt;a href=&quot;%3&quot;&gt;%3&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../kloggapp.h" line="319"/>
+        <source>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</source>
+        <translation>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</translation>
+    </message>
+</context>
+<context>
     <name>AbstractLogView</name>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="583"/>
@@ -168,11 +181,6 @@
 </context>
 <context>
     <name>CrawlerWidget</name>
-    <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="425"/>
-        <source>klogg</source>
-        <translation>klogg</translation>
-    </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="426"/>
         <source>Search history:</source>
@@ -473,8 +481,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="196"/>
-        <source>klogg - scratchpad</source>
-        <translation>klogg - scratchpad</translation>
+        <source>%1 - scratchpad</source>
+        <translation>%1 - scratchpad</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="740"/>
@@ -505,8 +513,8 @@
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="966"/>
         <location filename="../../ui/src/mainwindow.cpp" line="970"/>
-        <source>Klogg - File download</source>
-        <translation>Klogg - File download</translation>
+        <source>%1 - File download</source>
+        <translation>%1 - File download</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="971"/>
@@ -515,8 +523,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="996"/>
-        <source>klogg - remove from recent</source>
-        <translation>klogg - remove from recent</translation>
+        <source>%1 - remove from recent</source>
+        <translation>%1 - remove from recent</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="997"/>
@@ -525,8 +533,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1018"/>
-        <source>klogg - remove from favorites</source>
-        <translation>klogg - remove from favorites</translation>
+        <source>%1 - remove from favorites</source>
+        <translation>%1 - remove from favorites</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1019"/>
@@ -535,8 +543,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1093"/>
-        <source>klogg - clear file</source>
-        <translation>klogg - clear file</translation>
+        <source>%1 - clear file</source>
+        <translation>%1 - clear file</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1094"/>
@@ -550,13 +558,13 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1205"/>
-        <source>About klogg</source>
-        <translation>About klogg</translation>
+        <source>About %1</source>
+        <translation>About %1</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1206"/>
-        <source>&lt;h2&gt;klogg %1&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %2 from %3&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;This is fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
-        <translation>&lt;h2&gt;klogg %1&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %2 from %3&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;This is fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</translation>
+        <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
+        <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1221"/>
@@ -565,8 +573,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1234"/>
-        <source>klogg documentation</source>
-        <translation>klogg documentation</translation>
+        <source>%1 documentation</source>
+        <translation>%1 documentation</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1328"/>
@@ -597,14 +605,6 @@
         <location filename="../../ui/src/mainwindow.cpp" line="1405"/>
         <source>The system does not have enough memory to hold the index for this file. The file will now be closed.</source>
         <translation>The system does not have enough memory to hold the index for this file. The file will now be closed.</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1641"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1680"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1705"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1828"/>
-        <source>klogg</source>
-        <translation>klogg</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1641"/>
@@ -668,26 +668,31 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2117"/>
-        <source>klogg -- switch to file</source>
-        <translation>klogg -- switch to file</translation>
+        <source>%1 -- switch to file</source>
+        <translation>%1 -- switch to file</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2269"/>
-        <source>klogg - generate crash dump</source>
-        <translation>klogg - generate crash dump</translation>
+        <source>%1 - generate crash dump</source>
+        <translation>%1 - generate crash dump</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2270"/>
-        <source>This will shutdown klogg and generate diagnostic crash dump. Continue?</source>
-        <translation>This will shutdown klogg and generate diagnostic crash dump. Continue?</translation>
+        <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
+        <translation>This will shut down %1 and generate a diagnostic crash dump. Continue?</translation>
     </message>
 </context>
 <context>
     <name>OptionsDialog</name>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="20"/>
-        <source>Klogg preferences</source>
-        <translation>Klogg preferences</translation>
+        <source>Preferences</source>
+        <translation>Preferences</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="65"/>
+        <source>%1 preferences</source>
+        <translation>%1 preferences</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="33"/>
@@ -1046,8 +1051,8 @@
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="574"/>
-        <source>Klogg needs to be restarted to apply some changes. </source>
-        <translation>Klogg needs to be restarted to apply some changes. </translation>
+        <source>%1 needs to be restarted to apply some changes. </source>
+        <translation>%1 needs to be restarted to apply some changes. </translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="687"/>
@@ -1652,8 +1657,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="30"/>
-        <source>Create new klogg window</source>
-        <translation>Create new klogg window</translation>
+        <source>Create new %1 window</source>
+        <translation>Create new %1 window</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="31"/>
@@ -1892,28 +1897,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="82"/>
-        <source>Report an issue on GitHub</source>
-        <translation>Report an issue on GitHub</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>
-        <source>Join Discord community...</source>
-        <translation>Join Discord community...</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="85"/>
-        <source>Join Klogg development community at Discord</source>
-        <translation>Join Klogg development community at Discord</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="86"/>
-        <source>Join Telegram community...</source>
-        <translation>Join Telegram community...</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="88"/>
-        <source>Join Klogg development community at Telegram</source>
-        <translation>Join Klogg development community at Telegram</translation>
+        <source>Report an issue on GitCode</source>
+        <translation>Report an issue on GitCode</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="89"/>
@@ -2031,8 +2016,8 @@
     <name>klogg::mainwindow::trayicon</name>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="26"/>
-        <source>klogg log viewer</source>
-        <translation>klogg log viewer</translation>
+        <source>%1 log viewer</source>
+        <translation>%1 log viewer</translation>
     </message>
 </context>
 </TS>

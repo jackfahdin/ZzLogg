@@ -27,6 +27,7 @@
 #include <tbb/version.h>
 
 #include "klogg_version.h"
+#include "zzlogg_brand.h"
 
 #include "issuereporter.h"
 
@@ -34,8 +35,8 @@ static constexpr auto DetailsFooter
     = "-------------------------\n"
       "Useful extra information\n"
       "-------------------------\n"
-      "> Klogg version %1 (built on %2 from commit %3) [built for %4]\n"
-      "> running on %5 (%6/%7) [%8], concurrency %9\n";
+      "> %1 version %2 (built on %3 from commit %4) [built for %5]\n"
+      "> running on %6 (%7/%8) [%9], concurrency %10\n";
 
 static constexpr auto LibraryVersionsFooter = "> Qt %1, tbb %2";
 
@@ -59,9 +60,9 @@ static constexpr auto BugTemplate = "#### What did you do?\n\n\n"
                                     "#### What did you see instead?\n\n\n";
 
 static constexpr auto ExceptionAskUserAction
-    = "Ooops! Something unexpected happend. Create issue on Github?";
+    = "Ooops! Something unexpected happened. Create issue on GitCode?";
 
-static constexpr auto AskUserAction = "Create issue on Github?";
+static constexpr auto AskUserAction = "Create issue on GitCode?";
 
 void IssueReporter::askUserAndReportIssue( IssueTemplate issueTemplate, const QString& information )
 {
@@ -69,15 +70,15 @@ void IssueReporter::askUserAndReportIssue( IssueTemplate issueTemplate, const QS
         = issueTemplate == IssueTemplate::Exception ? ExceptionAskUserAction : AskUserAction;
 
     if ( QMessageBox::Yes
-         == QMessageBox::question( nullptr, "Klogg", askAction, QMessageBox::Yes,
-                                   QMessageBox::No ) ) {
+         == QMessageBox::question(
+             nullptr, QString::fromLatin1( zzlogg::brand::ProductName ), askAction,
+             QMessageBox::Yes, QMessageBox::No ) ) {
         IssueReporter::reportIssue( issueTemplate, information );
     }
 }
 
-void IssueReporter::reportIssue( IssueTemplate issueTemplate, const QString& information )
+QUrl IssueReporter::issueUrl( IssueTemplate issueTemplate, const QString& information )
 {
-
     QString body = DetailsHeader;
     switch ( issueTemplate ) {
     case IssueTemplate::Bug:
@@ -104,6 +105,7 @@ void IssueReporter::reportIssue( IssueTemplate issueTemplate, const QString& inf
     const auto concurrency = QThreadPool::globalInstance()->maxThreadCount();
 
     body.append( QString( DetailsFooter )
+                     .arg( QString::fromLatin1( zzlogg::brand::ProductName ) )
                      .arg( version, buildDate, commit, builtAbi, os, kernelType, kernelVersion,
                            arch, std::to_string(concurrency).c_str() ) );
     body.append( QString( LibraryVersionsFooter ).arg( qVersion(), TBB_runtime_version() ) );
@@ -111,7 +113,13 @@ void IssueReporter::reportIssue( IssueTemplate issueTemplate, const QString& inf
     QUrlQuery query;
     query.addQueryItem( "body", body );
 
-    QUrl url( "https://github.com/variar/klogg/issues/new" );
+    QUrl url( QStringLiteral( "%1/issues/new" )
+                  .arg( QString::fromLatin1( zzlogg::brand::HomepageUrl ) ) );
     url.setQuery( query );
-    QDesktopServices::openUrl( url );
+    return url;
+}
+
+void IssueReporter::reportIssue( IssueTemplate issueTemplate, const QString& information )
+{
+    QDesktopServices::openUrl( issueUrl( issueTemplate, information ) );
 }

@@ -444,7 +444,8 @@ void CrawlerWidget::editSearchHistory()
 
     auto history = savedSearches_->recentSearches().join( QChar::LineFeed );
     bool ok;
-    QString newHistory = QInputDialog::getMultiLineText( this, tr( "klogg" ),
+    QString newHistory = QInputDialog::getMultiLineText( this,
+                                                         QApplication::applicationDisplayName(),
                                                          tr( "Search history:" ), history, &ok );
 
     if ( ok ) {

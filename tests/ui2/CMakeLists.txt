@@ -59,14 +59,16 @@ endif()
 
 add_executable(zzlogg_brand_contract_test brandcontracttest.cpp)
 target_link_libraries(zzlogg_brand_contract_test
-  PRIVATE klogg_settings Qt6::Test Qt6::Core)
+  PRIVATE klogg_settings klogg_versioncheck klogg_crash_handler
+          Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_brand_contract_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.brand_contract
          COMMAND zzlogg_brand_contract_test)
 if(WIN32)
   set_property(TEST zzlogg_ui2.brand_contract APPEND PROPERTY
     ENVIRONMENT_MODIFICATION
-    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
 add_executable(zzlogg_options_theme_test optionsthemetest.cpp)
@@ -101,7 +103,18 @@ if(WIN32)
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
 endif()
 
+qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+set_source_files_properties(
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h"
+  PROPERTIES SKIP_AUTOMOC ON)
 add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
+  ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES}
+  "${PROJECT_SOURCE_DIR}/src/app/zzloggapplicationidentity.cpp"
+  "${PROJECT_SOURCE_DIR}/src/app/zzloggapplicationidentity.h"
+  "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc"
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
@@ -111,6 +124,7 @@ target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 set_target_properties(zzlogg_runtime_contract_test PROPERTIES
   AUTOMOC ON
+  AUTORCC ON
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime-contract")
 add_test(NAME zzlogg_ui2.runtime_contract
          COMMAND zzlogg_runtime_contract_test)

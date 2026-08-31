@@ -80,6 +80,8 @@ class VersionChecker : public QObject {
     VersionChecker();
     ~VersionChecker() override = default;
 
+    static bool isUpdateCheckConfigured();
+
     // Starts an asynchronous check for a newer version if it is needed.
     // A newVersionFound signal is sent if one is found.
     // In case of error or if no new version is found, no signal is emitted.

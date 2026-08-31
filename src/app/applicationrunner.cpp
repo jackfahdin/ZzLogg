@@ -63,6 +63,8 @@
 
 #include "cli.h"
 #include "kloggapp.h"
+#include "zzloggapplicationidentity.h"
+#include "zzlogg_brand.h"
 
 namespace {
 
@@ -509,6 +511,8 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     mi_process_init();
 #endif
 
+    prepareZzLoggApplicationIdentity();
+
     const Ui2SmokeRequest ui2Smoke = prepareUi2SmokeRequest( options );
     if ( ui2Smoke.requested ) {
         QString setupError = ui2Smoke.error;
@@ -528,7 +532,19 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
 #if QT_VERSION >= QT_VERSION_CHECK( 6, 0, 0 )
     if ( ui2Smoke.requested ) {
         setApplicationAttributes( true, 0 );
+        QString iconError;
         appStorage.emplace( argc, argv );
+        if ( !applyZzLoggApplicationIcon( *appStorage, &iconError ) ) {
+            const QByteArray diagnostic
+                = QStringLiteral( "%1: resource %2\n" )
+                      .arg( iconError,
+                            QString::fromLatin1( zzlogg::brand::IconResource ) )
+                      .toLocal8Bit();
+            std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ),
+                         stderr );
+            std::fflush( stderr );
+            return EXIT_FAILURE;
+        }
         config = &Configuration::getSynced();
     }
     else
@@ -536,7 +552,19 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     {
         config = &Configuration::getSynced();
         setApplicationAttributes( config->enableQtHighDpi(), config->scaleFactorRounding() );
+        QString iconError;
         appStorage.emplace( argc, argv );
+        if ( !applyZzLoggApplicationIcon( *appStorage, &iconError ) ) {
+            const QByteArray diagnostic
+                = QStringLiteral( "%1: resource %2\n" )
+                      .arg( iconError,
+                            QString::fromLatin1( zzlogg::brand::IconResource ) )
+                      .toLocal8Bit();
+            std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ),
+                         stderr );
+            std::fflush( stderr );
+            return EXIT_FAILURE;
+        }
     }
     auto& app = *appStorage;
     if ( ui2Smoke.requested ) {
@@ -557,7 +585,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     auto maxConcurrency
         = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );
 
-    LOG_INFO << "Klogg instance"
+    LOG_INFO << "ZzLogg instance"
              << ", mimalloc v" << mi_version()
              << ", default concurrency " << maxConcurrency;
 
@@ -586,7 +614,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     QString runtimeError;
 
     if ( !parameters.multi_instance && app.isSecondary() ) {
-        LOG_INFO << "Found another klogg, pid " << app.primaryPid();
+        LOG_INFO << "Found another ZzLogg, pid " << app.primaryPid();
         app.sendFilesToPrimaryInstance( parameters.filenames );
     }
     else {

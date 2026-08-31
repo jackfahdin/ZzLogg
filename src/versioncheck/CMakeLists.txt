@@ -10,6 +10,7 @@ target_link_libraries(
   klogg_versioncheck
   PUBLIC project_options
          project_warnings
+         zzlogg_brand
          klogg_settings
          klogg_utils
          Qt${QT_VERSION_MAJOR}::Network

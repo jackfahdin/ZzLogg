@@ -23,11 +23,11 @@ const char* menu::encodingTitle = QT_TR_NOOP( "E&ncoding" );
 const char* toolbar::toolbarTitle = QT_TR_NOOP( "&Toolbar" );
 
 // trayicon
-const char* trayicon::trayiconTip = QT_TR_NOOP( "klogg log viewer" );
+const char* trayicon::trayiconTip = QT_TR_NOOP( "%1 log viewer" );
 
 // action
 const char* action::newWindowText = QT_TR_NOOP( "&New window" );
-const char* action::newWindowStatusTip = QT_TR_NOOP( "Create new klogg window" );
+const char* action::newWindowStatusTip = QT_TR_NOOP( "Create new %1 window" );
 const char* action::openText = QT_TR_NOOP( "&Open..." );
 const char* action::openStatusTip = QT_TR_NOOP( "Open a file" );
 const char* action::recentFilesCleanupText = QT_TR_NOOP("Clear List");
@@ -79,13 +79,7 @@ const char* action::aboutStatusTip = QT_TR_NOOP( "Show the About box" );
 const char* action::aboutQtText = QT_TR_NOOP( "About &Qt" );
 const char* action::aboutQtStatusTip = QT_TR_NOOP( "Show the Qt library's About box" );
 const char* action::reportIssueText = QT_TR_NOOP( "Report issue..." );
-const char* action::reportIssueStatusTip = QT_TR_NOOP( "Report an issue on GitHub" );
-const char* action::joinDiscordText = QT_TR_NOOP( "Join Discord community..." );
-const char* action::joinDiscordStatusTip
-    = QT_TR_NOOP( "Join Klogg development community at Discord" );
-const char* action::joinTelegramText = QT_TR_NOOP( "Join Telegram community..." );
-const char* action::joinTelegramStatusTip
-    = QT_TR_NOOP( "Join Klogg development community at Telegram" );
+const char* action::reportIssueStatusTip = QT_TR_NOOP( "Report an issue on GitCode" );
 const char* action::generateDumpText = QT_TR_NOOP( "Generate crash dump" );
 const char* action::generateDumpStatusTip = QT_TR_NOOP( "Generate diagnostic crash dump" );
 const char* action::showScratchPadText = QT_TR_NOOP( "Scratchpad" );

@@ -1,6 +1,13 @@
 #include "zzlogg_brand.h"
+#include "issuereporter.h"
+#include "persistentinfo.h"
+#include "versionchecker.h"
 
+#include <QUrl>
+#include <QUrlQuery>
 #include <QtTest>
+
+const bool PersistentInfo::ForcePortable = false;
 
 class BrandContractTest final : public QObject {
     Q_OBJECT
@@ -20,6 +27,18 @@ void BrandContractTest::exposesApprovedIdentity()
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ApplicationIdentifier ),
               QStringLiteral( "com.gitcode.jackfahdinqt.zzlogg" ) );
     QVERIFY( QString::fromLatin1( zzlogg::brand::UpdateManifestUrl ).isEmpty() );
+
+    QVERIFY( !VersionChecker::isUpdateCheckConfigured() );
+
+    const QUrl issueUrl = IssueReporter::issueUrl( IssueTemplate::Bug );
+    QCOMPARE( issueUrl.scheme(), QStringLiteral( "https" ) );
+    QCOMPARE( issueUrl.host(), QStringLiteral( "gitcode.com" ) );
+    QCOMPARE( issueUrl.path(), QStringLiteral( "/JackfahdinQt/ZzLogg/issues/new" ) );
+    const QString issueBody
+        = QUrlQuery( issueUrl ).queryItemValue( QStringLiteral( "body" ) );
+    QVERIFY( issueBody.contains( QStringLiteral( "> ZzLogg version " ) ) );
+    QVERIFY( issueBody.contains(
+        QStringLiteral( "> running on %1" ).arg( QSysInfo::prettyProductName() ) ) );
 }
 
 QTEST_APPLESS_MAIN( BrandContractTest )

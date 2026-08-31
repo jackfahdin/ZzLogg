@@ -41,6 +41,7 @@
 #include "log.h"
 
 #include "klogg_version.h"
+#include "zzlogg_brand.h"
 
 namespace {
 
@@ -52,8 +53,6 @@ static constexpr QLatin1String OsSuffix = QLatin1String( "-osx", 4 );
 static constexpr QLatin1String OsSuffix = QLatin1String( "-linux", 6 );
 #endif
 
-static constexpr QLatin1String VERSION_URL
-    = QLatin1String( "https://raw.githubusercontent.com/variar/klogg/master/latest.json", 65 );
 static constexpr std::time_t CHECK_INTERVAL_S = 3600 * 24 * 7; /* 7 days */
 
 bool isVersionNewer( const QString& current_version, const QString& new_version )
@@ -102,9 +101,19 @@ VersionChecker::VersionChecker()
     manager_->setRedirectPolicy( QNetworkRequest::NoLessSafeRedirectPolicy );
 }
 
+bool VersionChecker::isUpdateCheckConfigured()
+{
+    return !QString::fromLatin1( zzlogg::brand::UpdateManifestUrl ).isEmpty();
+}
+
 void VersionChecker::startCheck()
 {
     LOG_DEBUG << "VersionChecker::startCheck()";
+
+    if ( !isUpdateCheckConfigured() ) {
+        LOG_DEBUG << "ZzLogg update check is disabled: no manifest URL configured";
+        return;
+    }
 
     const auto& deadlineConfig = VersionCheckerConfig::getSynced();
     const auto& appConfig = Configuration::get();
@@ -115,10 +124,12 @@ void VersionChecker::startCheck()
             connect( manager_, &QNetworkAccessManager::finished, this,
                      &VersionChecker::downloadFinished );
 
-            LOG_DEBUG << "Requesting new version info from " << VERSION_URL;
+            const auto manifestUrl
+                = QString::fromLatin1( zzlogg::brand::UpdateManifestUrl );
+            LOG_DEBUG << "Requesting new version info from " << manifestUrl;
 
             QNetworkRequest request;
-            request.setUrl( QUrl( VERSION_URL ) );
+            request.setUrl( QUrl( manifestUrl ) );
             manager_->get( request );
         }
         else {

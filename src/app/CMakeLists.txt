@@ -15,6 +15,7 @@ add_custom_command(
 set(TS_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/i18n/en.ts
   ${CMAKE_CURRENT_SOURCE_DIR}/i18n/zh_CN.ts
+  ${CMAKE_CURRENT_SOURCE_DIR}/i18n/zh_TW.ts
 )
 
 find_package(Qt${QT_VERSION_MAJOR}LinguistTools REQUIRED)
@@ -45,6 +46,8 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/kloggapp.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.cpp
     ${DOCUMENTATION_RESOURCE}
     ${ICON_FILE}
 )

@@ -2,6 +2,19 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>KloggApp</name>
+    <message>
+        <location filename="../kloggapp.h" line="313"/>
+        <source>&lt;p&gt;A new version of %1 (%2) is available for download&lt;/p&gt;&lt;a href=&quot;%3&quot;&gt;%3&lt;/a&gt;</source>
+        <translation>&lt;p&gt;%1 的新版本（%2）可供下载&lt;/p&gt;&lt;a href=&quot;%3&quot;&gt;%3&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <location filename="../kloggapp.h" line="319"/>
+        <source>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</source>
+        <translation>&lt;p&gt;重要变更：&lt;/p&gt;&lt;ul&gt;</translation>
+    </message>
+</context>
+<context>
     <name>AbstractLogView</name>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="583"/>
@@ -168,11 +181,6 @@
 </context>
 <context>
     <name>CrawlerWidget</name>
-    <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="425"/>
-        <source>klogg</source>
-        <translation>klogg</translation>
-    </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="426"/>
         <source>Search history:</source>
@@ -473,18 +481,18 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2117"/>
-        <source>klogg -- switch to file</source>
-        <translation>klogg -- 切换到已打开的文件</translation>
+        <source>%1 -- switch to file</source>
+        <translation>%1 -- 切换到已打开的文件</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2269"/>
-        <source>klogg - generate crash dump</source>
-        <translation>klogg - 生成崩溃记录</translation>
+        <source>%1 - generate crash dump</source>
+        <translation>%1 - 生成崩溃记录</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2270"/>
-        <source>This will shutdown klogg and generate diagnostic crash dump. Continue?</source>
-        <translation>关闭klogg并产生诊断性的崩溃信息。是否继续？</translation>
+        <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
+        <translation>这将关闭 %1 并生成诊断崩溃转储。是否继续？</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="871"/>
@@ -493,8 +501,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="196"/>
-        <source>klogg - scratchpad</source>
-        <translation type="unfinished">klogg - 暂存器</translation>
+        <source>%1 - scratchpad</source>
+        <translation>%1 - 暂存器</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="740"/>
@@ -525,8 +533,8 @@
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="966"/>
         <location filename="../../ui/src/mainwindow.cpp" line="970"/>
-        <source>Klogg - File download</source>
-        <translation>klogg -- 文件下载</translation>
+        <source>%1 - File download</source>
+        <translation>%1 - 文件下载</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="971"/>
@@ -535,8 +543,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="996"/>
-        <source>klogg - remove from recent</source>
-        <translation>klogg - 从最近文件中移除</translation>
+        <source>%1 - remove from recent</source>
+        <translation>%1 - 从最近文件中移除</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="997"/>
@@ -545,8 +553,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1018"/>
-        <source>klogg - remove from favorites</source>
-        <translation>klogg - 从收藏中移除</translation>
+        <source>%1 - remove from favorites</source>
+        <translation>%1 - 从收藏中移除</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1019"/>
@@ -555,8 +563,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1093"/>
-        <source>klogg - clear file</source>
-        <translation>klogg - 清除文件内容</translation>
+        <source>%1 - clear file</source>
+        <translation>%1 - 清除文件内容</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1094"/>
@@ -570,13 +578,13 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1205"/>
-        <source>About klogg</source>
-        <translation>关于klogg</translation>
+        <source>About %1</source>
+        <translation>关于 %1</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1206"/>
-        <source>&lt;h2&gt;klogg %1&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %2 from %3&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;This is fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
-        <translation type="unfinished">&lt;h2&gt;klogg %1&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %2 from %3&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;This is fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</translation>
+        <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
+        <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;一款快速、先进的日志查看器。&lt;/p&gt;&lt;p&gt;构建于 %3，提交 %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;基于 klogg：&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg 是 glogg 的分支&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;使用来自 &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; 项目的图标&lt;/p&gt;&lt;p&gt;版权所有 &amp;copy; 2020 Nicolas Bonnefon、Anton Filimonov 及其他贡献者&lt;/p&gt;&lt;p&gt;您可以根据 GPL（第 3 版或更高版本）的条款修改和重新分发本程序。&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1221"/>
@@ -585,8 +593,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1234"/>
-        <source>klogg documentation</source>
-        <translation>klogg文档</translation>
+        <source>%1 documentation</source>
+        <translation>%1 文档</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1695"/>
@@ -602,14 +610,6 @@
         <location filename="../../ui/src/mainwindow.cpp" line="1828"/>
         <source>%1 - %2%3</source>
         <translation>%1 - %2%3</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1641"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1680"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1705"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1828"/>
-        <source>klogg</source>
-        <translation>klogg</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1328"/>
@@ -686,8 +686,13 @@
     <name>OptionsDialog</name>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="20"/>
-        <source>Klogg preferences</source>
-        <translation>Klogg首选项</translation>
+        <source>Preferences</source>
+        <translation>首选项</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="65"/>
+        <source>%1 preferences</source>
+        <translation>%1 首选项</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="33"/>
@@ -1046,8 +1051,8 @@
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="574"/>
-        <source>Klogg needs to be restarted to apply some changes. </source>
-        <translation type="unfinished">Klogg 需要关闭后重新打开才能应用这些更改. </translation>
+        <source>%1 needs to be restarted to apply some changes. </source>
+        <translation>%1 需要重启以应用部分更改。</translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="687"/>
@@ -1652,8 +1657,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="30"/>
-        <source>Create new klogg window</source>
-        <translation>创建新klogg窗口</translation>
+        <source>Create new %1 window</source>
+        <translation>创建新的 %1 窗口</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="31"/>
@@ -1892,28 +1897,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="82"/>
-        <source>Report an issue on GitHub</source>
-        <translation>在GitHub上报告一个问题</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>
-        <source>Join Discord community...</source>
-        <translation>加入Discord社区...</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="85"/>
-        <source>Join Klogg development community at Discord</source>
-        <translation>加入Klogg开发者Discord社区</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="86"/>
-        <source>Join Telegram community...</source>
-        <translation>加入Telegram社区...</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="88"/>
-        <source>Join Klogg development community at Telegram</source>
-        <translation>加入Klogg开发者Telegram社区</translation>
+        <source>Report an issue on GitCode</source>
+        <translation>在 GitCode 上报告问题</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="89"/>
@@ -2031,8 +2016,8 @@
     <name>klogg::mainwindow::trayicon</name>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="26"/>
-        <source>klogg log viewer</source>
-        <translation>Klogg 日志阅读器</translation>
+        <source>%1 log viewer</source>
+        <translation>%1 日志查看器</translation>
     </message>
 </context>
 </TS>

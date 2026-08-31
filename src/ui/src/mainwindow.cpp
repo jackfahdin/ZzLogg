@@ -105,6 +105,7 @@
 #include "shortcuts.h"
 #include "styles.h"
 #include "tabbedcrawlerwidget.h"
+#include "zzlogg_brand.h"
 
 namespace {
 
@@ -114,6 +115,11 @@ void signalCrawlerToFollowFile( CrawlerWidget* crawler_widget )
 }
 
 static constexpr auto ClipboardMaxTry = 5;
+
+QString productName()
+{
+    return QString::fromLatin1( zzlogg::brand::ProductName );
+}
 
 } // namespace
 
@@ -140,11 +146,7 @@ MainWindow::MainWindow( WindowSession session )
     setGeometry( geometry.x() + 20, geometry.y() + 40, geometry.width() - 140,
                  geometry.height() - 140 );
 
-    mainIcon_.addFile( ":/images/hicolor/16x16/klogg.png" );
-    // mainIcon_.addFile( ":/images/hicolor/24x24/klogg.png" );
-    mainIcon_.addFile( ":/images/hicolor/32x32/klogg.png" );
-    mainIcon_.addFile( ":/images/hicolor/48x48/klogg.png" );
-
+    mainIcon_ = QApplication::windowIcon();
     setWindowIcon( mainIcon_ );
     readSettings();
 
@@ -192,7 +194,7 @@ MainWindow::MainWindow( WindowSession session )
     mainTabWidget_.setTabsClosable( true );
 
     scratchPad_.setWindowIcon( mainIcon_ );
-    scratchPad_.setWindowTitle( tr( "klogg - scratchpad" ) );
+    scratchPad_.setWindowTitle( tr( "%1 - scratchpad" ).arg( productName() ) );
 
     connect( &mainTabWidget_, &TabbedCrawlerWidget::tabCloseRequested, this,
              [ this ]( int index ) { this->closeTab( index, ActionInitiator::User ); } );
@@ -313,7 +315,8 @@ void MainWindow::reTranslateUI()
         return QApplication::translate( "klogg::mainwindow::action", text );
     };
     newWindowAction->setText( transAction( action::newWindowText ) );
-    newWindowAction->setStatusTip( transAction( action::newWindowStatusTip ) );
+    newWindowAction->setStatusTip(
+        transAction( action::newWindowStatusTip ).arg( productName() ) );
 
     openAction->setText( transAction( action::openText ) );
     openAction->setStatusTip( transAction( action::openStatusTip ) );
@@ -389,12 +392,6 @@ void MainWindow::reTranslateUI()
     reportIssueAction->setText( transAction( action::reportIssueText ) );
     reportIssueAction->setStatusTip( transAction( action::reportIssueStatusTip ) );
 
-    joinDiscordAction->setText( transAction( action::joinDiscordText ) );
-    joinDiscordAction->setStatusTip( transAction( action::joinDiscordStatusTip ) );
-
-    joinTelegramAction->setText( transAction( action::joinTelegramText ) );
-    joinTelegramAction->setStatusTip( transAction( action::joinTelegramStatusTip ) );
-
     generateDumpAction->setText( transAction( action::generateDumpText ) );
     generateDumpAction->setStatusTip( transAction( action::generateDumpStatusTip ) );
 
@@ -417,7 +414,8 @@ void MainWindow::reTranslateUI()
 
     // trayIcon
     trayIcon_->setToolTip( QApplication::translate( "klogg::mainwindow::trayicon",
-                                                    klogg::mainwindow::trayicon::trayiconTip ) );
+                                                    klogg::mainwindow::trayicon::trayiconTip )
+                               .arg( productName() ) );
 }
 
 int MainWindow::installLanguage( QString lang )
@@ -463,7 +461,7 @@ void MainWindow::createActions()
     using namespace klogg::mainwindow;
 
     newWindowAction = new QAction( tr( action::newWindowText ), this );
-    newWindowAction->setStatusTip( tr( action::newWindowStatusTip ) );
+    newWindowAction->setStatusTip( tr( action::newWindowStatusTip ).arg( productName() ) );
     connect( newWindowAction, &QAction::triggered, [ = ] { Q_EMIT newWindow(); } );
     newWindowAction->setVisible( config.allowMultipleWindows() );
 
@@ -609,20 +607,6 @@ void MainWindow::createActions()
     reportIssueAction->setStatusTip( tr( action::reportIssueStatusTip ) );
     connect( reportIssueAction, &QAction::triggered, this,
              []( auto ) { IssueReporter::reportIssue( IssueTemplate::Bug ); } );
-
-    joinDiscordAction = new QAction( tr( action::joinDiscordText ), this );
-    joinDiscordAction->setStatusTip( tr( action::joinDiscordStatusTip ) );
-    connect( joinDiscordAction, &QAction::triggered, this, []( auto ) {
-        QUrl url( "https://discord.gg/DruNyQftzB" );
-        QDesktopServices::openUrl( url );
-    } );
-
-    joinTelegramAction = new QAction( tr( action::joinTelegramText ), this );
-    joinTelegramAction->setStatusTip( tr( action::joinTelegramStatusTip ) );
-    connect( joinTelegramAction, &QAction::triggered, this, []( auto ) {
-        QUrl url( "https://t.me/joinchat/JeIBxstIfp4xZTk6" );
-        QDesktopServices::openUrl( url );
-    } );
 
     generateDumpAction = new QAction( tr( action::generateDumpText ), this );
     generateDumpAction->setStatusTip( tr( action::generateDumpStatusTip ) );
@@ -823,8 +807,6 @@ void MainWindow::createMenus()
     helpMenu->addAction( showDocumentationAction );
     helpMenu->addSeparator();
     helpMenu->addAction( reportIssueAction );
-    helpMenu->addAction( joinDiscordAction );
-    helpMenu->addAction( joinTelegramAction );
     helpMenu->addSeparator();
     helpMenu->addAction( generateDumpAction );
     helpMenu->addSeparator();
@@ -898,7 +880,7 @@ void MainWindow::createTrayIcon()
     } );
 
     trayIcon_->setIcon( mainIcon_ );
-    trayIcon_->setToolTip( tr( klogg::mainwindow::trayicon::trayiconTip ) );
+    trayIcon_->setToolTip( tr( klogg::mainwindow::trayicon::trayiconTip ).arg( productName() ) );
     trayIcon_->setContextMenu( trayMenu );
 
     connect( trayIcon_, &QSystemTrayIcon::activated,
@@ -980,11 +962,12 @@ void MainWindow::openRemoteFile( const QUrl& url )
             loadFile( tempFile->fileName() );
         }
         else {
-            QMessageBox::critical( this, tr( "Klogg - File download" ), downloader.lastError() );
+            QMessageBox::critical( this, tr( "%1 - File download" ).arg( productName() ),
+                                   downloader.lastError() );
         }
     }
     else {
-        QMessageBox::critical( this, tr( "Klogg - File download" ),
+        QMessageBox::critical( this, tr( "%1 - File download" ).arg( productName() ),
                                tr( "Failed to create temp file" ) );
     }
 }
@@ -1010,7 +993,7 @@ void MainWindow::openFileFromRecent( QAction* action )
     }
     else {
         const auto userAction = QMessageBox::question(
-            this, tr( "klogg - remove from recent" ),
+            this, tr( "%1 - remove from recent" ).arg( productName() ),
             tr( "Could not read file %1. Remove it from recent files?" ).arg( filename ),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No );
 
@@ -1032,7 +1015,7 @@ void MainWindow::openFileFromFavorites( QAction* action )
     }
     else {
         const auto userAction = QMessageBox::question(
-            this, tr( "klogg - remove from favorites" ),
+            this, tr( "%1 - remove from favorites" ).arg( productName() ),
             tr( "Could not read file %1. Remove it from favorites?" ).arg( filename ),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No );
 
@@ -1104,7 +1087,7 @@ void MainWindow::clearLog()
 {
     const auto current_file = session_.getFilename( currentCrawlerWidget() );
     if ( QMessageBox::warning(
-             this, tr( "klogg - clear file" ),
+             this, tr( "%1 - clear file" ).arg( productName() ),
              tr( "Clear file %1? File content will be removed from disk, this is irreversible" )
                  .arg( current_file ) )
          == QMessageBox::Yes ) {
@@ -1216,18 +1199,21 @@ void MainWindow::options()
 void MainWindow::about()
 {
     QMessageBox::about(
-        this, tr( "About klogg" ),
-        tr( "<h2>klogg %1</h2>"
+        this, tr( "About %1" ).arg( productName() ),
+        tr( "<h2>%1 %2</h2>"
             "<p>A fast, advanced log explorer.</p>"
-            "<p>Built %2 from %3</p>"
-            "<p><a href=\"https://github.com/variar/klogg\">https://github.com/variar/klogg</a></p>"
-            "<p>This is fork of glogg</p>"
+            "<p>Built %3 from %4</p>"
+            "<p><a href=\"%5\">%5</a></p>"
+            "<p>Based on klogg: <a href=\"https://github.com/variar/klogg\">"
+            "https://github.com/variar/klogg</a></p>"
+            "<p>klogg is a fork of glogg</p>"
             "<p><a href=\"http://glogg.bonnefon.org/\">http://glogg.bonnefon.org/</a></p>"
             "<p>Using icons from <a href=\"https://icons8.com\">icons8.com</a> project</p>"
             "<p>Copyright &copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors</p>"
             "<p>You may modify and redistribute the program under the terms of the GPL (version 3 "
             "or later).</p>" )
-            .arg( kloggVersion(), kloggBuildDate(), kloggCommit() ) );
+            .arg( productName(), kloggVersion(), kloggBuildDate(), kloggCommit(),
+                  QString::fromLatin1( zzlogg::brand::HomepageUrl ) ) );
 }
 
 void MainWindow::aboutQt()
@@ -1245,7 +1231,7 @@ void MainWindow::documentation()
         tb->setHtml( text );
         tb->setWindowFlags( Qt::Window );
         tb->setAttribute( Qt::WA_DeleteOnClose );
-        tb->setWindowTitle( tr( "klogg documentation" ) );
+        tb->setWindowTitle( tr( "%1 documentation" ).arg( productName() ) );
         tb->resize( this->width() / 2, this->height() );
         tb->show();
     }
@@ -1647,7 +1633,7 @@ bool MainWindow::extractAndLoadFile( const QString& fileName )
 
     if ( !config.extractArchivesAlways() ) {
         const auto userChoice
-            = QMessageBox::question( this, tr( "klogg" ), tr( "Extract archive to temp folder?" ) );
+            = QMessageBox::question( this, productName(), tr( "Extract archive to temp folder?" ) );
         if ( userChoice == QMessageBox::No ) {
             return false;
         }
@@ -1686,7 +1672,7 @@ bool MainWindow::extractAndLoadFile( const QString& fileName )
         }
         else {
             QMessageBox::warning(
-                this, tr( "klogg" ),
+                this, productName(),
                 tr( "Failed to decompress %1" ).arg( QDir::toNativeSeparators( fileName ) ) );
         }
     }
@@ -1711,7 +1697,7 @@ bool MainWindow::extractAndLoadFile( const QString& fileName )
         }
         else {
             QMessageBox::warning(
-                this, tr( "klogg" ),
+                this, productName(),
                 tr( "Failed to extract %1" ).arg( QDir::toNativeSeparators( fileName ) ) );
         }
     }
@@ -1834,8 +1820,8 @@ void MainWindow::updateTitleBar( const QString& file_name )
         indexPart = QString( " #%1" ).arg( session_.windowIndex() + 1 );
     }
 
-    setWindowTitle( tr( "%1 - %2%3" ).arg( shownName, tr( "klogg" ), indexPart ) + tr( " (build " )
-                    + kloggVersion() + ")" );
+    setWindowTitle( tr( "%1 - %2%3" ).arg( shownName, productName(), indexPart )
+                    + tr( " (build " ) + kloggVersion() + ")" );
     Q_EMIT activeDocumentNameChanged( file_name.isEmpty() ? QString{} : strippedName( file_name ) );
 }
 
@@ -2105,7 +2091,7 @@ void MainWindow::selectOpenedFile()
                     []( const auto& f ) { return f.nativeFullPath(); } );
 
     auto selectFileDialog = std::make_unique<QDialog>( this );
-    selectFileDialog->setWindowTitle( tr( "klogg -- switch to file" ) );
+    selectFileDialog->setWindowTitle( tr( "%1 -- switch to file" ).arg( productName() ) );
     selectFileDialog->setMinimumWidth( 800 );
     selectFileDialog->setMinimumHeight( 600 );
 
@@ -2257,8 +2243,9 @@ void MainWindow::logScreenInfo( QScreen* screen )
 void MainWindow::generateDump()
 {
     const auto userAction = QMessageBox::warning(
-        this, tr( "klogg - generate crash dump" ),
-        tr( "This will shutdown klogg and generate diagnostic crash dump. Continue?" ),
+        this, tr( "%1 - generate crash dump" ).arg( productName() ),
+        tr( "This will shut down %1 and generate a diagnostic crash dump. Continue?" )
+            .arg( productName() ),
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No );
 
     if ( userAction == QMessageBox::Yes ) {

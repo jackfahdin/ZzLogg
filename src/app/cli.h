@@ -31,6 +31,7 @@
 
 #include "klogg_version.h"
 #include "log.h"
+#include "zzlogg_brand.h"
 
 struct CliParameters {
     bool new_session = false;
@@ -52,14 +53,17 @@ struct CliParameters {
     CliParameters( QCoreApplication& app, bool console = false )
     {
         QCommandLineParser parser;
-        parser.setApplicationDescription( "Klogg log viewer" );
+        parser.setApplicationDescription(
+            QString::fromLatin1( zzlogg::brand::ProductDescription ) );
         const auto helpOption = parser.addHelpOption();
         const auto versionOption = parser.addVersionOption();
 
         const QCommandLineOption multiInstanceOption(
             QStringList() << "m"
                           << "multi",
-            "allow multiple instance of klogg to run simultaneously (use together with -s)" );
+            QStringLiteral( "allow multiple instances of %1 to run simultaneously (use together "
+                            "with -s)" )
+                .arg( QString::fromLatin1( zzlogg::brand::ProductName ) ) );
 
         const QCommandLineOption loadSessionOption(
             QStringList() << "s"
@@ -160,7 +164,7 @@ struct CliParameters {
 
     static void print_version()
     {
-        std::cout << "klogg " << kloggVersion().data() << "\n";
+        std::cout << zzlogg::brand::ProductName << " " << kloggVersion().data() << "\n";
         std::cout << "Built " << kloggBuildDate().data() << " from " << kloggCommit().data() << "("
                   << kloggGitVersion().data() << ")\n";
 
