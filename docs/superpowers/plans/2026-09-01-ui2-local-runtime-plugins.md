@@ -16,11 +16,12 @@
 - `tests/ui2/CMakeLists.txt`：注册仅 Windows 运行的本地运行时合约测试。
 - `cmake/ZzPureTools.cmake`：为 UI2 目标复制 Qt SVG 插件。
 
-### 任务 1：建立会失败的本地运行时合约
+### 任务 1：建立本地运行时合约并补齐 Qt SVG 插件
 
 **文件：**
 - 创建：`tests/ui2/localruntimecontracttest.cmake`
 - 修改：`tests/ui2/CMakeLists.txt`
+- 修改：`cmake/ZzPureTools.cmake`
 
 - [ ] **步骤 1：编写失败的测试**
 
@@ -46,13 +47,7 @@ ctest --test-dir out/ui2-vs -C RelWithDebInfo -R zzlogg_ui2.windows_local_runtim
 
 预期：FAIL，明确报告 `iconengines/qsvgicon.dll` 缺失。
 
-### 任务 2：补齐普通构建的 Qt SVG 插件
-
-**文件：**
-- 修改：`cmake/ZzPureTools.cmake`
-- 测试：`tests/ui2/localruntimecontracttest.cmake`
-
-- [ ] **步骤 1：编写最小实现**
+- [ ] **步骤 3：编写最小实现**
 
 在 `klogg_copy_ui2_runtime_dlls()` 的 Windows 构建后命令中创建 `iconengines` 和 `imageformats`，并复制：
 
@@ -61,7 +56,7 @@ $<TARGET_FILE:Qt6::QSvgIconPlugin>
 $<TARGET_FILE:Qt6::QSvgPlugin>
 ```
 
-- [ ] **步骤 2：构建 UI2 并验证绿灯**
+- [ ] **步骤 4：构建 UI2 并验证绿灯**
 
 运行：
 
@@ -72,14 +67,7 @@ ctest --test-dir out/ui2-vs -C RelWithDebInfo -R zzlogg_ui2.windows_local_runtim
 
 预期：测试通过，真实应用在没有 `QT_PLUGIN_PATH` 的情况下完成冒烟运行。
 
-### 任务 3：双配置回归、提交与线性集成
-
-**文件：**
-- 验证：`cmake/ZzPureTools.cmake`
-- 验证：`tests/ui2/CMakeLists.txt`
-- 验证：`tests/ui2/localruntimecontracttest.cmake`
-
-- [ ] **步骤 1：构建并测试 Debug**
+- [ ] **步骤 5：构建并测试 Debug**
 
 ```powershell
 cmake --build --preset windows-vs2026-ui2-debug
@@ -88,7 +76,7 @@ ctest --test-dir out/ui2-vs -C Debug --output-on-failure
 
 预期：完整构建退出码 0，全部测试通过，输出目录包含带 `d` 后缀的 SVG 插件。
 
-- [ ] **步骤 2：构建并测试 RelWithDebInfo**
+- [ ] **步骤 6：构建并测试 RelWithDebInfo**
 
 ```powershell
 cmake --build --preset windows-vs2026-ui2-relwithdebinfo
@@ -97,14 +85,16 @@ ctest --test-dir out/ui2-vs -C RelWithDebInfo --output-on-failure
 
 预期：完整构建退出码 0，全部测试通过，输出目录包含无 `d` 后缀的 SVG 插件。
 
-- [ ] **步骤 3：提交实现**
+- [ ] **步骤 7：提交实现**
 
 ```powershell
 git add cmake/ZzPureTools.cmake tests/ui2/CMakeLists.txt tests/ui2/localruntimecontracttest.cmake docs/superpowers
 git commit -m "fix: 补齐 UI2 本地 Qt 插件"
 ```
 
-- [ ] **步骤 4：纯快进合并到主线并复验**
+## 完成分支
+
+实现任务通过任务审查和整分支审查后，纯快进合并到主线并复验：
 
 在主工作区运行：
 
