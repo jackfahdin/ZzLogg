@@ -50,14 +50,13 @@
 
 #include "log.h"
 #include "uuid.h"
+#include "zzlogg_brand.h"
 
 #include "persistentinfo.h"
 
 constexpr uint8_t AppSettingsVersion = 1;
 constexpr uint8_t SessionSettingsVersion = 2;
 
-constexpr const char ApplicationSessionFile[] = "klogg";
-constexpr const char SessionSettingsFile[] = "klogg_session";
 constexpr const char PortableExtension[] = ".conf";
 
 namespace {
@@ -69,7 +68,8 @@ QString makeSessionSettingsPath( const QString& appConfigPath )
 {
     return QFileInfo( appConfigPath )
         .absoluteDir()
-        .filePath( QString( SessionSettingsFile ) + PortableExtension );
+        .filePath( QString::fromLatin1( zzlogg::brand::SessionSettingsApplication )
+                   + PortableExtension );
 }
 } // namespace
 
@@ -85,7 +85,8 @@ QString kloggPortableConfigPath()
         executablePath = QString::fromUtf8( path.data(), dirnameLength );
     }
 
-    return executablePath + QDir::separator() + ApplicationSessionFile + PortableExtension;
+    return executablePath + QDir::separator()
+           + QString::fromLatin1( zzlogg::brand::PortableConfigBaseName ) + PortableExtension;
 }
 
 bool setPersistentSettingsOverrideForProcess( QSettings::Format format, const QString& path )
@@ -146,10 +147,14 @@ void PersistentInfo::PrepareOsSettings()
         format = *settingsFormatOverride;
     }
 
-    appSettings_ = std::make_unique<QSettings>( format, QSettings::UserScope, "klogg",
-                                                ApplicationSessionFile );
-    sessionSettings_
-        = std::make_unique<QSettings>( format, QSettings::UserScope, "klogg", SessionSettingsFile );
+    appSettings_ = std::make_unique<QSettings>(
+        format, QSettings::UserScope,
+        QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
+        QString::fromLatin1( zzlogg::brand::SettingsApplication ) );
+    sessionSettings_ = std::make_unique<QSettings>(
+        format, QSettings::UserScope,
+        QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
+        QString::fromLatin1( zzlogg::brand::SessionSettingsApplication ) );
 
 #ifndef Q_OS_MAC
     const auto sessionSettingsPath = makeSessionSettingsPath( appSettings_->fileName() );

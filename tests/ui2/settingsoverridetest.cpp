@@ -28,9 +28,9 @@ void SettingsOverrideTest::usesForcedIniFormatAndPath()
     auto& appSettings = PersistentInfo::getSettings( app_settings{} );
     auto& sessionSettings = PersistentInfo::getSettings( session_settings{} );
     const QString expectedAppPath
-        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "klogg/klogg.ini" ) );
+        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "ZzLogg/ZzLogg.ini" ) );
     const QString expectedSessionPath
-        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "klogg/klogg_session.ini" ) );
+        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "ZzLogg/ZzLogg_session.ini" ) );
 
     QCOMPARE( appSettings.format(), QSettings::IniFormat );
     QCOMPARE( sessionSettings.format(), QSettings::IniFormat );

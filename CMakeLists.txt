@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
+include(cmake/ZzLoggBrand.cmake)
+
 # CMake 4 removed compatibility with policy versions older than 3.5. Some
 # bundled third-party projects still declare an older minimum, so provide a
 # compatibility floor while they are being built as part of klogg.
@@ -10,17 +12,18 @@ endif()
 project(
   klogg
   VERSION 26.07.0
-  DESCRIPTION "klogg log viewer"
+  DESCRIPTION "${ZZLOGG_PRODUCT_DESCRIPTION}"
+  HOMEPAGE_URL "${ZZLOGG_HOMEPAGE_URL}"
   LANGUAGES C CXX ASM
 )
 
-set(PROJECT_HOMEPAGE_URL "https://github.com/variar/klogg")
+zzlogg_configure_brand()
 
 string(TIMESTAMP PRODUCT_CURRENT_YEAR "%Y")
-set(COMPANY "Anton Filimonov")
+set(COMPANY "${ZZLOGG_VENDOR}")
 set(COPYRIGHT "Copyright (c) ${PRODUCT_CURRENT_YEAR} Nicolas Bonnefon, Anton Filimonov and other contributors.")
-set(IDENTIFIER "com.github.variar.klogg")
-set(PROJECT_DESCRIPTION "${PROJECT_NAME} log viewer")
+set(IDENTIFIER "${ZZLOGG_IDENTIFIER}")
+set(PROJECT_DESCRIPTION "${ZZLOGG_PRODUCT_DESCRIPTION}")
 
 option(KLOGG_BUILD_TESTS "Build tests" ON)
 option(KLOGG_BUILD_UI2 "Build the experimental ZzPureTools UI" OFF)

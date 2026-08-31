@@ -6,7 +6,7 @@ file(REMOVE_RECURSE "${TEST_ROOT}")
 file(MAKE_DIRECTORY "${TEST_ROOT}/runtime" "${TEST_ROOT}/working")
 get_filename_component(app_name "${APP}" NAME)
 file(COPY_FILE "${APP}" "${TEST_ROOT}/runtime/${app_name}")
-file(WRITE "${TEST_ROOT}/runtime/klogg.conf" "[General]\nversion=1\n")
+file(WRITE "${TEST_ROOT}/runtime/ZzLogg.conf" "[General]\nversion=1\n")
 
 if(WIN32)
   set(path_separator ";")
@@ -38,7 +38,7 @@ execute_process(
   ERROR_VARIABLE guard_stderr
   TIMEOUT 15)
 
-set(expected_path "${TEST_ROOT}/runtime/klogg.conf")
+set(expected_path "${TEST_ROOT}/runtime/ZzLogg.conf")
 if(guard_result EQUAL 0)
   message(FATAL_ERROR
     "UI2 portable guard accepted a PATH launch; expected rejection of ${expected_path}")

@@ -30,6 +30,18 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
+add_executable(zzlogg_brand_contract_test brandcontracttest.cpp)
+target_link_libraries(zzlogg_brand_contract_test
+  PRIVATE klogg_settings Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_brand_contract_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.brand_contract
+         COMMAND zzlogg_brand_contract_test)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.brand_contract APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()
+
 add_executable(zzlogg_options_theme_test optionsthemetest.cpp)
 target_link_libraries(zzlogg_options_theme_test
   PRIVATE klogg_ui Qt6::Test Qt6::Widgets)

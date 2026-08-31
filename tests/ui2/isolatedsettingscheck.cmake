@@ -1,6 +1,6 @@
 function(assert_ui2_isolated_settings settings_root)
-  set(app_settings "${settings_root}/klogg/klogg.ini")
-  set(session_settings "${settings_root}/klogg/klogg_session.ini")
+  set(app_settings "${settings_root}/ZzLogg/ZzLogg.ini")
+  set(session_settings "${settings_root}/ZzLogg/ZzLogg_session.ini")
   if(NOT EXISTS "${app_settings}")
     message(FATAL_ERROR
       "UI2 smoke did not write exact app settings path ${app_settings}")
