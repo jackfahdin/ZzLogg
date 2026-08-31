@@ -239,6 +239,18 @@ add_subdirectory(website)
 
 enable_testing()
 
+find_program(ZZLOGG_GIT_EXECUTABLE NAMES git)
+if(NOT ZZLOGG_GIT_EXECUTABLE)
+  message(FATAL_ERROR "Git executable is required for dependency layout verification")
+endif()
+add_test(
+  NAME zzlogg_ui2.dependency_layout
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    "-DGIT_EXECUTABLE=${ZZLOGG_GIT_EXECUTABLE}"
+    -P "${PROJECT_SOURCE_DIR}/cmake/VerifyDependencyLayout.cmake"
+)
+
 add_test(
   NAME zzlogg_ui2.brand_external_files
   COMMAND ${CMAKE_COMMAND}
