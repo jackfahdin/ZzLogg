@@ -10,6 +10,9 @@ endif()
 if(NOT DEFINED PORTABLE_DIR)
   message(FATAL_ERROR "PORTABLE_DIR is required")
 endif()
+if(NOT DEFINED POWERSHELL OR NOT EXISTS "${POWERSHELL}")
+  message(FATAL_ERROR "POWERSHELL is required")
+endif()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" --build "${BUILD_DIRECTORY}" --config "${CONFIG}"
@@ -73,19 +76,137 @@ set(required_staging_lines
   [=[xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release]=]
   [=[xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release]=]
   [=[xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release]=])
+set(last_staging_position ${portable_remove_position})
 foreach(required_staging_line IN LISTS required_staging_lines)
   string(FIND "${action_content}" "${required_staging_line}" staging_line_position)
   if(staging_line_position EQUAL -1)
     message(FATAL_ERROR
       "Windows staging omits required installer addition: ${required_staging_line}")
   endif()
+  if(staging_line_position GREATER last_staging_position)
+    set(last_staging_position ${staging_line_position})
+  endif()
 endforeach()
+
+set(manifest_generator
+  "${SOURCE_ROOT}/packaging/windows/GenerateNsisUninstallManifest.ps1")
+if(NOT EXISTS "${manifest_generator}")
+  message(FATAL_ERROR "NSIS uninstall manifest generator is missing: ${manifest_generator}")
+endif()
+
+set(manifest_test_root
+  "${BUILD_DIRECTORY}/tests/ui2/windows-installer-manifest-contract/${CONFIG}")
+set(manifest_staging "${manifest_test_root}/release")
+file(REMOVE_RECURSE "${manifest_test_root}")
+file(MAKE_DIRECTORY "${manifest_staging}")
+file(COPY "${PORTABLE_DIR}/" DESTINATION "${manifest_staging}")
+file(REMOVE "${manifest_staging}/ZzLogg_portable.exe")
+file(MAKE_DIRECTORY "${manifest_staging}/plugins/nested")
+file(WRITE "${manifest_staging}/ZzLogg.exe" "main")
+file(WRITE "${manifest_staging}/ZzLogg_crashpad_handler.exe" "handler")
+file(WRITE "${manifest_staging}/ZzLogg_minidump_dump.exe" "dump")
+file(WRITE "${manifest_staging}/documentation.html" "docs")
+file(WRITE "${manifest_staging}/libcrypto-1_1-x64.dll" "crypto")
+file(WRITE "${manifest_staging}/libssl-1_1-x64.dll" "ssl")
+file(WRITE "${manifest_staging}/plugins/cost$plugin.dll" "dollar")
+file(WRITE "${manifest_staging}/plugins/nested/sample.dll" "nested")
+
+execute_process(
+  COMMAND "${POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
+          -File "${manifest_generator}"
+          -StagingDirectory "${manifest_staging}"
+  RESULT_VARIABLE manifest_result
+  OUTPUT_VARIABLE manifest_output
+  ERROR_VARIABLE manifest_error)
+if(NOT manifest_result EQUAL 0)
+  message(FATAL_ERROR
+    "NSIS uninstall manifest generation failed (${manifest_result}):\n"
+    "${manifest_output}\n${manifest_error}")
+endif()
+
+set(uninstall_manifest "${manifest_staging}/.zzlogg-uninstall.nsh")
+if(NOT EXISTS "${uninstall_manifest}")
+  message(FATAL_ERROR "NSIS uninstall manifest was not generated")
+endif()
+file(READ "${uninstall_manifest}" manifest_content)
+string(REPLACE "\r\n" "\n" manifest_content "${manifest_content}")
+
+file(GLOB_RECURSE staged_files RELATIVE "${manifest_staging}" "${manifest_staging}/*")
+set(staged_directories)
+foreach(staged_file IN LISTS staged_files)
+  if(staged_file STREQUAL ".zzlogg-uninstall.nsh")
+    continue()
+  endif()
+  string(REPLACE "/" "\\" nsis_file "${staged_file}")
+  string(REPLACE "$" "$$" nsis_file "${nsis_file}")
+  set(expected_delete [=[Delete "$INSTDIR\]=])
+  string(APPEND expected_delete "${nsis_file}\"")
+  string(FIND "${manifest_content}" "${expected_delete}" delete_position)
+  if(delete_position EQUAL -1)
+    message(FATAL_ERROR
+      "Generated uninstall manifest omits staged file: ${staged_file}")
+  endif()
+  get_filename_component(staged_directory "${staged_file}" DIRECTORY)
+  while(NOT staged_directory STREQUAL "")
+    list(APPEND staged_directories "${staged_directory}")
+    get_filename_component(staged_directory "${staged_directory}" DIRECTORY)
+  endwhile()
+endforeach()
+list(REMOVE_DUPLICATES staged_directories)
+foreach(staged_directory IN LISTS staged_directories)
+  string(REPLACE "/" "\\" nsis_directory "${staged_directory}")
+  string(REPLACE "$" "$$" nsis_directory "${nsis_directory}")
+  set(expected_rmdir [=[RMDir "$INSTDIR\]=])
+  string(APPEND expected_rmdir "${nsis_directory}\"")
+  string(FIND "${manifest_content}" "${expected_rmdir}" rmdir_position)
+  if(rmdir_position EQUAL -1)
+    message(FATAL_ERROR
+      "Generated uninstall manifest omits staged directory: ${staged_directory}")
+  endif()
+endforeach()
+
+set(required_manifest_literals
+  [=[Delete "$INSTDIR\plugins\cost$$plugin.dll"]=]
+  [=[Delete "$INSTDIR\Uninstall.exe"]=]
+  [=[Delete "$INSTDIR\.zzlogg-install-root"]=]
+  [=[RMDir "$INSTDIR\plugins\nested"]=]
+  [=[RMDir "$INSTDIR\plugins"]=]
+  [=[RMDir "$INSTDIR"]=])
+foreach(required_manifest_literal IN LISTS required_manifest_literals)
+  string(FIND "${manifest_content}" "${required_manifest_literal}" manifest_literal_position)
+  if(manifest_literal_position EQUAL -1)
+    message(FATAL_ERROR
+      "Generated uninstall manifest is missing: ${required_manifest_literal}")
+  endif()
+endforeach()
+string(FIND "${manifest_content}" [=[RMDir "$INSTDIR\plugins\nested"]=]
+  nested_directory_position)
+string(FIND "${manifest_content}" [=[RMDir "$INSTDIR\plugins"]=]
+  parent_directory_position)
+if(nested_directory_position GREATER parent_directory_position)
+  message(FATAL_ERROR "Generated uninstall directories are not deepest-first")
+endif()
+string(FIND "${manifest_content}" "RMDir /r" recursive_manifest_position)
+if(NOT recursive_manifest_position EQUAL -1)
+  message(FATAL_ERROR "Generated uninstall manifest contains recursive deletion")
+endif()
+
+set(manifest_action_line
+  [=[powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisUninstallManifest.ps1 -StagingDirectory release]=])
+string(FIND "${action_content}" "${manifest_action_line}" manifest_action_position)
+string(FIND "${action_content}" "- name: Win installer" installer_step_position)
+if(manifest_action_position EQUAL -1 OR installer_step_position EQUAL -1
+   OR manifest_action_position LESS last_staging_position
+   OR manifest_action_position GREATER installer_step_position)
+  message(FATAL_ERROR
+    "Windows action must generate the uninstall manifest after staging and before makensis")
+endif()
 
 set(nsis_path "${SOURCE_ROOT}/packaging/windows/ZzLogg.nsi")
 file(READ "${nsis_path}" nsis_content)
 string(REPLACE "\r\n" "\n" nsis_content "${nsis_content}")
 
-set(recursive_file_line [=[File /r "release\*.*"]=])
+set(recursive_file_line [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
 string(REGEX MATCHALL "\n[ \t]+File[ \t][^\n]*" nsis_file_lines "${nsis_content}")
 list(LENGTH nsis_file_lines nsis_file_line_count)
 if(NOT nsis_file_line_count EQUAL 1)
@@ -112,14 +233,7 @@ set(required_uninstall_literals
   [=[FileOpen $0 "$INSTDIR\.zzlogg-install-root" w]=]
   [=[FileWrite $0 "ZzLogg ${VERSION}$\r$\n"]=]
   [=[FileClose $0]=]
-  [=[IfFileExists "$INSTDIR\.zzlogg-install-root" 0 unsafe_install_dir]=]
-  [=[IfFileExists "$INSTDIR\ZzLogg.exe" 0 unsafe_install_dir]=]
-  [=[StrCmp "$INSTDIR" "$PROGRAMFILES" unsafe_install_dir]=]
-  [=[StrCmp "$INSTDIR" "$PROGRAMFILES64" unsafe_install_dir]=]
-  [=[SetOutPath "$TEMP"]=]
-  [=[RMDir /r "$INSTDIR"]=]
-  [=[unsafe_install_dir:]=]
-  [=[Abort]=])
+  [=[!include "release\.zzlogg-uninstall.nsh"]=])
 foreach(required_uninstall_literal IN LISTS required_uninstall_literals)
   string(FIND "${nsis_content}" "${required_uninstall_literal}" uninstall_position)
   if(uninstall_position EQUAL -1)
@@ -128,5 +242,10 @@ foreach(required_uninstall_literal IN LISTS required_uninstall_literals)
   endif()
 endforeach()
 
+string(FIND "${nsis_content}" "RMDir /r" recursive_delete_position)
+if(NOT recursive_delete_position EQUAL -1)
+  message(FATAL_ERROR "NSIS must never recursively delete the installation directory")
+endif()
+
 message(STATUS
-  "NSIS recursively consumes the complete portable-based staging tree and removes it safely")
+  "NSIS installs the complete staging tree and uninstalls only installer-owned paths")

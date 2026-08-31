@@ -197,7 +197,7 @@ require_entry_literal(
 require_entry_literal(
   "packaging/windows/ZzLogg.nsi" "custom NSIS include depends on the compiler working directory" [=[!include "${__FILEDIR__}\FileAssociation.nsh"]=])
 require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the complete staged tree" [=[File /r "release\*.*"]=])
+  "packaging/windows/ZzLogg.nsi" "installer does not consume the complete staged tree" [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
 require_entry_literal(
   "src/app/CMakeLists.txt" "build does not publish the centralized crashpad helper name" [=[${ZZLOGG_CRASHPAD_HANDLER_NAME}]=])
 require_entry_literal(

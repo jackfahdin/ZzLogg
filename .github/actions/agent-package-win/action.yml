@@ -55,6 +55,8 @@ runs:
         )
         xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release\
         xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release\
+        powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisUninstallManifest.ps1 -StagingDirectory release
+        if errorlevel 1 exit /b %errorlevel%
 
     - name: Win installer
       uses: joncloud/makensis-action@v3.3

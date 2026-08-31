@@ -42,6 +42,7 @@ if(WIN32)
       "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
       "-DCONFIG=$<CONFIG>"
       "-DPORTABLE_DIR=${ZZLOGG_PORTABLE_DIR_CONTRACT}"
+      "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/windowsinstallercontracttest.cmake")
   set_tests_properties(zzlogg_ui2.windows_installer_contract PROPERTIES
     RUN_SERIAL TRUE

@@ -52,7 +52,7 @@ Section "ZzLogg application and runtime" zzlogg
     SectionIn RO
 
     SetOutPath "$INSTDIR"
-    File /r "release\*.*"
+    File /r /x .zzlogg-uninstall.nsh "release\*.*"
     FileOpen $0 "$INSTDIR\.zzlogg-install-root" w
     FileWrite $0 "ZzLogg ${VERSION}$\r$\n"
     FileClose $0
@@ -97,22 +97,7 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Uninstall"
-    IfFileExists "$INSTDIR\.zzlogg-install-root" 0 unsafe_install_dir
-    IfFileExists "$INSTDIR\ZzLogg.exe" 0 unsafe_install_dir
-    StrCmp "$INSTDIR" "$PROGRAMFILES" unsafe_install_dir
-    StrCmp "$INSTDIR" "$PROGRAMFILES64" unsafe_install_dir
-    StrCmp "$INSTDIR" "$WINDIR" unsafe_install_dir
-    StrCmp "$INSTDIR" "$SYSDIR" unsafe_install_dir
-
-    SetOutPath "$TEMP"
-    RMDir /r "$INSTDIR"
-    Goto installed_files_removed
-
-unsafe_install_dir:
-    MessageBox MB_ICONSTOP|MB_OK "Refusing to recursively remove an unverified installation directory: $INSTDIR"
-    Abort
-
-installed_files_removed:
+    !include "release\.zzlogg-uninstall.nsh"
 
     Delete "$APPDATA\ZzLogg\ZzLogg.ini"
     Delete "$APPDATA\ZzLogg\ZzLogg_session.ini"
