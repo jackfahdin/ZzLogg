@@ -43,6 +43,7 @@ out/
 
 # Local machine paths and personal CMake preset overrides
 CMakeUserPresets.json
+/.superpowers/
 
 compile_commands.json
 
