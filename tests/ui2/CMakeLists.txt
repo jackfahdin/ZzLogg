@@ -190,6 +190,17 @@ add_test(NAME zzlogg_ui2.application_smoke
 set_tests_properties(zzlogg_ui2.application_smoke PROPERTIES
   TIMEOUT 35)
 
+if(WIN32)
+  add_test(NAME zzlogg_ui2.windows_local_runtime_contract
+    COMMAND "${CMAKE_COMMAND}"
+            "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+            "-DCONFIG=$<CONFIG>"
+            "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/local-runtime-contract"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/localruntimecontracttest.cmake")
+  set_tests_properties(zzlogg_ui2.windows_local_runtime_contract PROPERTIES
+    TIMEOUT 20)
+endif()
+
 add_test(NAME zzlogg_ui2.session_restore_smoke
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
