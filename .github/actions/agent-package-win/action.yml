@@ -59,7 +59,7 @@ runs:
       uses: joncloud/makensis-action@v3.3
       with:
         script-file: packaging/windows/ZzLogg.nsi
-        arguments: "-DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%"
+        arguments: "/NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%"
     
     - name: Win package
       shell: cmd

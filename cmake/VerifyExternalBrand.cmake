@@ -190,6 +190,8 @@ require_entry_literal(
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging does not check the OpenSSL SSL source" "if not exist \"%SSL_DIR%\\libssl-1_1-x64.dll\" (")
 require_entry_literal(
+  ".github/actions/agent-package-win/action.yml" "makensis does not preserve the repository-root working directory" "arguments: \"/NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%\"")
+require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(
   "docs/BUILD.md" "standard Qt 6 dependency list omits Core5Compat" "Qt 6 Core, Core5Compat, Gui, Widgets, Concurrent, Network, Xml, and Tools modules")
