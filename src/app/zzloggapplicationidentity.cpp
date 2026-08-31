@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QUrl>
 
 #include "zzlogg_brand.h"
 
@@ -15,7 +16,9 @@ void prepareZzLoggApplicationIdentity()
         QString::fromLatin1( zzlogg::brand::ProductName ) );
     QCoreApplication::setOrganizationName(
         QString::fromLatin1( zzlogg::brand::Vendor ) );
-    QCoreApplication::setOrganizationDomain( QStringLiteral( "gitcode.com" ) );
+    const QUrl homepageUrl(
+        QString::fromLatin1( zzlogg::brand::HomepageUrl ) );
+    QCoreApplication::setOrganizationDomain( homepageUrl.host() );
 }
 
 bool applyZzLoggApplicationIcon( QApplication& app, QString* error )
@@ -23,7 +26,8 @@ bool applyZzLoggApplicationIcon( QApplication& app, QString* error )
     const QIcon icon( QString::fromLatin1( zzlogg::brand::IconResource ) );
     if ( icon.isNull() ) {
         if ( error ) {
-            *error = QStringLiteral( "ZzLogg application icon could not be loaded" );
+            *error = QStringLiteral( "%1 application icon could not be loaded" )
+                         .arg( QString::fromLatin1( zzlogg::brand::ProductName ) );
         }
         return false;
     }

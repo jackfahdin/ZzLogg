@@ -585,7 +585,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     auto maxConcurrency
         = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );
 
-    LOG_INFO << "ZzLogg instance"
+    LOG_INFO << zzlogg::brand::ProductName << " instance"
              << ", mimalloc v" << mi_version()
              << ", default concurrency " << maxConcurrency;
 
@@ -614,7 +614,8 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     QString runtimeError;
 
     if ( !parameters.multi_instance && app.isSecondary() ) {
-        LOG_INFO << "Found another ZzLogg, pid " << app.primaryPid();
+        LOG_INFO << "Found another " << zzlogg::brand::ProductName << ", pid "
+                 << app.primaryPid();
         app.sendFilesToPrimaryInstance( parameters.filenames );
     }
     else {

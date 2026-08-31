@@ -4,6 +4,7 @@
 #include "persistentinfo.h"
 #include "zzloggfluentshell.h"
 #include "zzloggapplicationidentity.h"
+#include "zzlogg_brand.h"
 #include "zzlogguiruntime.h"
 #include <QDir>
 #include <QFileInfo>
@@ -11,6 +12,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QUrl>
 #include <QtTest>
 #include <ZzFluentUI/ZzFluentStyle.h>
 #include <ZzFluentUI/ZzThemeMode.h>
@@ -28,6 +30,11 @@ private Q_SLOTS:
         QCOMPARE( app.applicationName(), QStringLiteral( "ZzLogg" ) );
         QCOMPARE( app.applicationDisplayName(), QStringLiteral( "ZzLogg" ) );
         QCOMPARE( app.organizationName(), QStringLiteral( "JackfahdinQt" ) );
+        const QUrl homepageUrl(
+            QString::fromLatin1( zzlogg::brand::HomepageUrl ) );
+        QVERIFY( homepageUrl.isValid() );
+        QVERIFY( !homepageUrl.host().isEmpty() );
+        QCOMPARE( app.organizationDomain(), homepageUrl.host() );
         QVERIFY( !app.windowIcon().isNull() );
         auto& configuration = Configuration::getSynced();
         configuration.setUiThemeMode( UiThemeMode::Dark );

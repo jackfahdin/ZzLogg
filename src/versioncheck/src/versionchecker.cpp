@@ -94,12 +94,7 @@ void VersionCheckerConfig::saveToStorage( QSettings& settings ) const
     settings.setValue( "VersionChecker/nextDeadline", static_cast<long long>( next_deadline_ ) );
 }
 
-VersionChecker::VersionChecker()
-    : QObject()
-    , manager_( new QNetworkAccessManager( this ) )
-{
-    manager_->setRedirectPolicy( QNetworkRequest::NoLessSafeRedirectPolicy );
-}
+VersionChecker::VersionChecker() = default;
 
 bool VersionChecker::isUpdateCheckConfigured()
 {
@@ -111,7 +106,8 @@ void VersionChecker::startCheck()
     LOG_DEBUG << "VersionChecker::startCheck()";
 
     if ( !isUpdateCheckConfigured() ) {
-        LOG_DEBUG << "ZzLogg update check is disabled: no manifest URL configured";
+        LOG_DEBUG << zzlogg::brand::ProductName
+                  << " update check is disabled: no manifest URL configured";
         return;
     }
 
@@ -121,8 +117,12 @@ void VersionChecker::startCheck()
     if ( appConfig.versionCheckingEnabled() ) {
         // Check the deadline has been reached
         if ( deadlineConfig.nextDeadline() < std::time( nullptr ) ) {
-            connect( manager_, &QNetworkAccessManager::finished, this,
-                     &VersionChecker::downloadFinished );
+            if ( manager_ == nullptr ) {
+                manager_ = new QNetworkAccessManager( this );
+                manager_->setRedirectPolicy( QNetworkRequest::NoLessSafeRedirectPolicy );
+                connect( manager_, &QNetworkAccessManager::finished, this,
+                         &VersionChecker::downloadFinished );
+            }
 
             const auto manifestUrl
                 = QString::fromLatin1( zzlogg::brand::UpdateManifestUrl );

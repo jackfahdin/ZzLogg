@@ -3,6 +3,7 @@
 #include "persistentinfo.h"
 #include "versionchecker.h"
 
+#include <QNetworkAccessManager>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QtTest>
@@ -14,6 +15,7 @@ class BrandContractTest final : public QObject {
 
   private slots:
     void exposesApprovedIdentity();
+    void disabledUpdateCheckCreatesNoNetworkManager();
 };
 
 void BrandContractTest::exposesApprovedIdentity()
@@ -41,6 +43,16 @@ void BrandContractTest::exposesApprovedIdentity()
         QStringLiteral( "> running on %1" ).arg( QSysInfo::prettyProductName() ) ) );
 }
 
-QTEST_APPLESS_MAIN( BrandContractTest )
+void BrandContractTest::disabledUpdateCheckCreatesNoNetworkManager()
+{
+    VersionChecker checker;
+    checker.startCheck();
+
+    QVERIFY( checker.findChildren<QNetworkAccessManager*>(
+                         QString(), Qt::FindDirectChildrenOnly )
+                 .isEmpty() );
+}
+
+QTEST_GUILESS_MAIN( BrandContractTest )
 
 #include "brandcontracttest.moc"
