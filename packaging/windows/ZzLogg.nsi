@@ -10,7 +10,7 @@
 !endif
 
 !include "MUI2.nsh"
-!include "FileAssociation.nsh"
+!include "${__FILEDIR__}\FileAssociation.nsh"
 
 OutFile "ZzLogg-${VERSION}-${PLATFORM}-Qt6-setup.exe"
 XpStyle on

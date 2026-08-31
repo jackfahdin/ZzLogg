@@ -40,6 +40,20 @@ runs:
         xcopy /y "%KLOGG_BUILD_ROOT%\output\klogg_crashpad_handler.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\output\klogg_minidump_dump.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release\
+        if not defined SSL_DIR (
+          echo SSL_DIR is not set
+          exit /b 1
+        )
+        if not exist "%SSL_DIR%\libcrypto-1_1-x64.dll" (
+          echo Missing %SSL_DIR%\libcrypto-1_1-x64.dll
+          exit /b 1
+        )
+        if not exist "%SSL_DIR%\libssl-1_1-x64.dll" (
+          echo Missing %SSL_DIR%\libssl-1_1-x64.dll
+          exit /b 1
+        )
+        xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release\
+        xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release\
 
     - name: Win installer
       uses: joncloud/makensis-action@v3.3

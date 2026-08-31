@@ -25,7 +25,7 @@ The standard ZzLogg application requires:
 - CMake 3.12 or later for direct command-line builds, or CMake 3.25 or later
   for the checked-in presets and workflows;
 - a C++17 compiler;
-- Qt 6 Core, Gui, Widgets, Concurrent, Network, Xml, and Tools modules.
+- Qt 6 Core, Core5Compat, Gui, Widgets, Concurrent, Network, Xml, and Tools modules.
 
 The optional UI2 application requires CMake 3.23 or later, a C++20 compiler,
 Qt 6.8 or later (including the matching private development files), and Qt
