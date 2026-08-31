@@ -46,22 +46,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          #- os: oraclelinux
-          #  os_version: 7
-          #  arch: x64
-          #  check_command: yum install -y --setopt tsflags=test /usr/local/klogg*.rpm
-          #  cpack_gen: RPM
-          #  artifacts_id: oracle7
-          #  package_suffix: rpm
-          #  check_container: oraclelinux:7
-          #  container_root: docker/oracle7
-          #  container: variar/klogg_oracle7
-          #  cmake_opts: -DKLOGG_USE_SENTRY=OFF -DKLOGG_USE_LTO=OFF -DKLOGG_USE_HYPERSCAN=OFF
-
           - os: oraclelinux
             os_version: 8
             arch: x64
-            check_command: yum install -y --setopt tsflags=test /usr/local/klogg*.rpm
+            check_command: yum install -y --setopt tsflags=test /usr/local/ZzLogg*.rpm
             cpack_gen: RPM
             artifacts_id: oracle
             package_suffix: rpm
@@ -73,7 +61,7 @@ jobs:
           - os: ubuntu_focal
             os_version: 20.04
             arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/klogg*.deb
+            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
             cpack_gen: DEB
             artifacts_id: focal
             package_suffix: deb
@@ -85,7 +73,7 @@ jobs:
           - os: ubuntu_jammy
             os_version: 22.04
             arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/klogg*.deb
+            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
             cpack_gen: DEB
             artifacts_id: jammy
             package_suffix: deb
@@ -97,7 +85,7 @@ jobs:
           - os: ubuntu_noble
             os_version: 24.04
             arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/klogg*.deb
+            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
             cpack_gen: DEB
             artifacts_id: noble
             package_suffix: deb
@@ -105,16 +93,6 @@ jobs:
             container_root: docker/ubuntu24.04
             container: variar/klogg_ubuntu24.04
             cmake_opts:
-
-          - os: ubuntu_appimage
-            os_version: 20.04
-            arch: x64
-            artifacts_id: appimage
-            package_suffix: AppImage
-            container_root: docker/ubuntu20.04
-            container: variar/klogg_ubuntu20.04
-            cmake_opts:
-
 
     runs-on: ubuntu-22.04
     steps:
@@ -218,14 +196,6 @@ jobs:
             ssl_arch: -x64
             cmake_opts:
             artifacts_id: windows-x64-qt6
-
-          - os: windows
-            os_version: 2022
-            qt_version: 5.15.2
-            qt_arch: win32_msvc2019
-            arch: x86
-            cmake_opts:
-            artifacts_id: windows-x86-qt5
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:

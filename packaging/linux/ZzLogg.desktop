@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=klogg
+Name=ZzLogg
 GenericName=Log file viewer
-Exec=klogg %F
-Icon=klogg
+Exec=ZzLogg %F
+Icon=ZzLogg
 Type=Application
 Comment=A smart interactive log explorer.
 Terminal=false
@@ -11,9 +11,9 @@ MimeType=text/plain;
 Actions=Session;NewInstance;
 
 [Desktop Action Session]
-Exec=klogg --load-session %F
+Exec=ZzLogg --load-session %F
 Name=Open With Previous Session
 
 [Desktop Action NewInstance]
-Exec=klogg --multi %F
-Name=Open In A New klogg Window
+Exec=ZzLogg --multi %F
+Name=Open In A New ZzLogg Window

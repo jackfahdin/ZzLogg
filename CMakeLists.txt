@@ -78,13 +78,11 @@ if(WIN32)
   set(ICON_NAME ZzLogg.ico)
 elseif(APPLE)
   set(ICON_NAME ZzLogg.icns)
+else()
+  set(ICON_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/app/images/hicolor/scalable/ZzLogg.svg)
 endif()
 
-if(NOT
-   ${ICON_NAME}
-   STREQUAL
-   ""
-)
+if(DEFINED ICON_NAME AND NOT ICON_NAME STREQUAL "")
   set(ICON_FILE ${CMAKE_CURRENT_SOURCE_DIR}/Resources/${ICON_NAME})
 endif()
 
@@ -109,6 +107,7 @@ include(ucm)
 include(prepare_version)
 include(FindPkgConfig)
 include(GNUInstallDirs)
+set(CMAKE_INSTALL_DOCDIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/${ZZLOGG_PRODUCT_NAME}")
 
 if(MSVC)
   if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
@@ -240,6 +239,13 @@ add_subdirectory(website)
 
 enable_testing()
 
+add_test(
+  NAME zzlogg_ui2.brand_external_files
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${PROJECT_SOURCE_DIR}/cmake/VerifyExternalBrand.cmake"
+)
+
 if(TARGET zzlogg_icon_generator)
   add_test(NAME zzlogg.icon_generator.atomicity
     COMMAND "${CMAKE_COMMAND}"
@@ -268,8 +274,10 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 set(CPACK_SOURCE_IGNORE_FILES "build_root;.git")
 
 set(CPACK_OUTPUT_FILE_PREFIX "packages")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION})
-set(CPACK_PACKAGE_VENDOR ${COMPANY})
+set(CPACK_PACKAGE_NAME "${ZZLOGG_PRODUCT_NAME}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${ZZLOGG_PRODUCT_DESCRIPTION}")
+set(CPACK_PACKAGE_VENDOR "${ZZLOGG_VENDOR}")
+set(CPACK_PACKAGE_HOMEPAGE_URL "${ZZLOGG_HOMEPAGE_URL}")
 set(CPACK_PACKAGE_CONTACT "anton.filimonov@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/description.txt")
 set(CPACK_RESOURCE_FILE_LICENSE "${COPYING_FILE}")
@@ -277,16 +285,15 @@ set(CPACK_PACKAGE_VERSION
     "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${PROJECT_VERSION_TWEAK}"
 )
 set(CPACK_PACKAGE_ICON "${ICON_FILE}")
+set(CPACK_STRIP_FILES "bin/ZzLogg")
 
 if(UNIX)
   include(InstallRequiredSystemLibraries)
 
-  set(CPACK_STRIP_FILES "bin/klogg")
-
   if(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
     set(CPACK_DMG_FORMAT "UDBZ")
-    set(CPACK_DMG_VOLUME_NAME "${PROJECT_NAME}")
+    set(CPACK_DMG_VOLUME_NAME "${ZZLOGG_PRODUCT_NAME}")
     set(CPACK_SYSTEM_NAME "OSX")
     set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/osx/dmg_background.tif")
     set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/packaging/osx/dmg_setup.scpt")
@@ -303,14 +310,14 @@ if(UNIX)
       DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/klogg.desktop DESTINATION share/applications)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/ZzLogg.desktop DESTINATION share/applications)
 
     set(CPACK_GENERATOR DEB)
 
     #deb
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
-    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://github.com/variar/klogg")
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${ZZLOGG_HOMEPAGE_URL}")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Anton Filimonov <${CPACK_PACKAGE_CONTACT}>")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS YES)
 
@@ -318,7 +325,7 @@ if(UNIX)
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
     set(CPACK_RPM_PACKAGE_LICENSE "GPLv3")
     set(CPACK_RPM_PACKAGE_AUTOREQ YES)
-    set(CPACK_RPM_PACKAGE_URL "http://github.com/variar/klogg")
+    set(CPACK_RPM_PACKAGE_URL "${ZZLOGG_HOMEPAGE_URL}")
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         /usr/share/applications
         /usr/share/icons
@@ -327,18 +334,28 @@ if(UNIX)
         /usr/share/icons/hicolor/16x16/apps
         /usr/share/icons/hicolor/32x32
         /usr/share/icons/hicolor/32x32/apps
+        /usr/share/icons/hicolor/48x48
+        /usr/share/icons/hicolor/48x48/apps
+        /usr/share/icons/hicolor/64x64
+        /usr/share/icons/hicolor/64x64/apps
+        /usr/share/icons/hicolor/128x128
+        /usr/share/icons/hicolor/128x128/apps
+        /usr/share/icons/hicolor/256x256
+        /usr/share/icons/hicolor/256x256/apps
+        /usr/share/icons/hicolor/512x512
+        /usr/share/icons/hicolor/512x512/apps
         /usr/share/icons/hicolor/scalable
         /usr/share/icons/hicolor/scalable/apps
     )
   endif()
-  include(CPack)
 endif()
+include(CPack)
 
 # for IDE grouping
 add_custom_target(
   installation
-  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/klogg.nsi
-          ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/klogg.desktop
+  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/ZzLogg.nsi
+          ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/ZzLogg.desktop
           ${CMAKE_CURRENT_SOURCE_DIR}/cmake/MacOSXBundleInfo.plist.in
 )
 
