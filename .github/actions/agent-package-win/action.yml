@@ -36,6 +36,7 @@ runs:
         cmake --build %KLOGG_BUILD_ROOT% --target klogg_portable_folder
         if exist release rmdir /s /q release
         xcopy /e /i /y "%KLOGG_BUILD_ROOT%\portable\RelWithDebInfo\ZzLogg-portable" release
+        del /q release\ZzLogg_portable.exe
         xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe" release\

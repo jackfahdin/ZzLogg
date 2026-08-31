@@ -197,13 +197,7 @@ require_entry_literal(
 require_entry_literal(
   "packaging/windows/ZzLogg.nsi" "custom NSIS include depends on the compiler working directory" [=[!include "${__FILEDIR__}\FileAssociation.nsh"]=])
 require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the staged OpenSSL crypto DLL" "File release\\libcrypto-1_1-x64.dll")
-require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the staged OpenSSL SSL DLL" "File release\\libssl-1_1-x64.dll")
-require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the branded crashpad helper" "File release\\ZzLogg_crashpad_handler.exe")
-require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the branded minidump helper" "File release\\ZzLogg_minidump_dump.exe")
+  "packaging/windows/ZzLogg.nsi" "installer does not consume the complete staged tree" [=[File /r "release\*.*"]=])
 require_entry_literal(
   "src/app/CMakeLists.txt" "build does not publish the centralized crashpad helper name" [=[${ZZLOGG_CRASHPAD_HANDLER_NAME}]=])
 require_entry_literal(
@@ -228,6 +222,8 @@ require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the branded crashpad helper" "xcopy /y \"%KLOGG_BUILD_ROOT%\\output\\ZzLogg_crashpad_handler.exe\" release\\")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the branded minidump helper" "xcopy /y \"%KLOGG_BUILD_ROOT%\\output\\ZzLogg_minidump_dump.exe\" release\\")
+require_entry_literal(
+  ".github/actions/agent-package-win/action.yml" "Windows installer staging retains the portable executable" "del /q release\\ZzLogg_portable.exe")
 require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(

@@ -48,20 +48,14 @@ the COPYING and NOTICE files.$\r$\n$\r$\n$_CLICK"
 
 !insertmacro MUI_LANGUAGE "English"
 
-Section "ZzLogg" zzlogg
+Section "ZzLogg application and runtime" zzlogg
     SectionIn RO
 
-    SetOutPath $INSTDIR
-    File release\ZzLogg.exe
-    File release\ZzLogg_crashpad_handler.exe
-    File release\ZzLogg_minidump_dump.exe
-    File release\tbb12.dll
-
-    File COPYING
-    File NOTICE
-    File README.md
-    File docs\DOCUMENTATION.md
-    File release\documentation.html
+    SetOutPath "$INSTDIR"
+    File /r "release\*.*"
+    FileOpen $0 "$INSTDIR\.zzlogg-install-root" w
+    FileWrite $0 "ZzLogg ${VERSION}$\r$\n"
+    FileClose $0
 
     SetShellVarContext current
     CreateShortCut "$SENDTO\ZzLogg.lnk" "$INSTDIR\ZzLogg.exe" "" "$INSTDIR\ZzLogg.exe" 0
@@ -87,40 +81,6 @@ Section "ZzLogg" zzlogg
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 SectionEnd
 
-Section "Qt 6 Runtime libraries" qtlibs
-    SetOutPath $INSTDIR
-    File release\Qt6Core.dll
-    File release\Qt6Gui.dll
-    File release\Qt6Network.dll
-    File release\Qt6Widgets.dll
-    File release\Qt6Xml.dll
-    File release\Qt6Core5Compat.dll
-    File release\Qt6Svg.dll
-
-    SetOutPath $INSTDIR\platforms
-    File release\platforms\qwindows.dll
-    SetOutPath $INSTDIR\styles
-    File release\styles\qmodernwindowsstyle.dll
-    SetOutPath $INSTDIR\iconengines
-    File release\iconengines\qsvgicon.dll
-SectionEnd
-
-Section "MSVC Runtime libraries" vcruntime
-    SetOutPath $INSTDIR
-    File release\msvcp140.dll
-    File release\msvcp140_1.dll
-    File release\vcruntime140.dll
-
-!if ${PLATFORM} == "x64"
-    File release\vcruntime140_1.dll
-    File release\libcrypto-1_1-x64.dll
-    File release\libssl-1_1-x64.dll
-!else
-    File release\libcrypto-1_1.dll
-    File release\libssl-1_1.dll
-!endif
-SectionEnd
-
 Section "Create Start menu shortcut" shortcut
     SetShellVarContext all
     CreateShortCut "$SMPROGRAMS\ZzLogg.lnk" "$INSTDIR\ZzLogg.exe" "" "$INSTDIR\ZzLogg.exe" 0
@@ -131,46 +91,28 @@ Section /o "Associate with .log files" associate
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-    !insertmacro MUI_DESCRIPTION_TEXT ${zzlogg} "The core files required to use ZzLogg."
-    !insertmacro MUI_DESCRIPTION_TEXT ${qtlibs} "Qt 6 libraries required by ZzLogg."
-    !insertmacro MUI_DESCRIPTION_TEXT ${vcruntime} "Microsoft Visual C++ runtime libraries required by ZzLogg."
+    !insertmacro MUI_DESCRIPTION_TEXT ${zzlogg} "ZzLogg and all required runtime files."
     !insertmacro MUI_DESCRIPTION_TEXT ${shortcut} "Create a shortcut in the Start menu for ZzLogg."
     !insertmacro MUI_DESCRIPTION_TEXT ${associate} "Make ZzLogg the default viewer for .log files."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Uninstall"
-    Delete "$INSTDIR\Uninstall.exe"
-    Delete "$INSTDIR\ZzLogg.exe"
-    Delete "$INSTDIR\ZzLogg_crashpad_handler.exe"
-    Delete "$INSTDIR\ZzLogg_minidump_dump.exe"
-    Delete "$INSTDIR\README.md"
-    Delete "$INSTDIR\COPYING"
-    Delete "$INSTDIR\NOTICE"
-    Delete "$INSTDIR\DOCUMENTATION.md"
-    Delete "$INSTDIR\documentation.html"
-    Delete "$INSTDIR\Qt6Widgets.dll"
-    Delete "$INSTDIR\Qt6Core.dll"
-    Delete "$INSTDIR\Qt6Gui.dll"
-    Delete "$INSTDIR\Qt6Network.dll"
-    Delete "$INSTDIR\Qt6Xml.dll"
-    Delete "$INSTDIR\Qt6Core5Compat.dll"
-    Delete "$INSTDIR\Qt6Svg.dll"
-    Delete "$INSTDIR\platforms\qwindows.dll"
-    Delete "$INSTDIR\styles\qmodernwindowsstyle.dll"
-    Delete "$INSTDIR\iconengines\qsvgicon.dll"
-    Delete "$INSTDIR\msvcp140.dll"
-    Delete "$INSTDIR\msvcp140_1.dll"
-    Delete "$INSTDIR\vcruntime140.dll"
-    Delete "$INSTDIR\vcruntime140_1.dll"
-    Delete "$INSTDIR\tbb12.dll"
-    Delete "$INSTDIR\libcrypto-1_1-x64.dll"
-    Delete "$INSTDIR\libssl-1_1-x64.dll"
-    Delete "$INSTDIR\libcrypto-1_1.dll"
-    Delete "$INSTDIR\libssl-1_1.dll"
-    RMDir "$INSTDIR\platforms"
-    RMDir "$INSTDIR\styles"
-    RMDir "$INSTDIR\iconengines"
-    RMDir "$INSTDIR"
+    IfFileExists "$INSTDIR\.zzlogg-install-root" 0 unsafe_install_dir
+    IfFileExists "$INSTDIR\ZzLogg.exe" 0 unsafe_install_dir
+    StrCmp "$INSTDIR" "$PROGRAMFILES" unsafe_install_dir
+    StrCmp "$INSTDIR" "$PROGRAMFILES64" unsafe_install_dir
+    StrCmp "$INSTDIR" "$WINDIR" unsafe_install_dir
+    StrCmp "$INSTDIR" "$SYSDIR" unsafe_install_dir
+
+    SetOutPath "$TEMP"
+    RMDir /r "$INSTDIR"
+    Goto installed_files_removed
+
+unsafe_install_dir:
+    MessageBox MB_ICONSTOP|MB_OK "Refusing to recursively remove an unverified installation directory: $INSTDIR"
+    Abort
+
+installed_files_removed:
 
     Delete "$APPDATA\ZzLogg\ZzLogg.ini"
     Delete "$APPDATA\ZzLogg\ZzLogg_session.ini"
