@@ -18,6 +18,11 @@ before configuration:
 git submodule update --init --recursive
 ```
 
+ZzPureTools is the only remaining Git submodule. backward-cpp v1.6 is tracked
+directly under `3rdparty/vendor/backward-cpp`, so that dependency is available
+offline after the ZzLogg source tree itself has been cloned or archived. This
+does not make Qt, Boost, OpenSSL, or every CPM/CI dependency offline.
+
 ## Requirements
 
 The standard ZzLogg application requires:

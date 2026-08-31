@@ -36,6 +36,10 @@ git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
 cd ZzLogg
 ```
 
+ZzPureTools remains a pinned submodule. backward-cpp v1.6 is vendored directly
+in this repository and does not require separate submodule initialization or a
+configure-time download.
+
 The project requires a C++17 compiler, CMake, and Qt 6. The optional UI2 target
 requires C++20, CMake 3.23 or later, and Qt 6.8 or later. A typical Ninja build
 uses the checked-in presets:

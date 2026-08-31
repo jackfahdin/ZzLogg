@@ -78,6 +78,15 @@ add_subdirectory(vendor/robin-hood-hashing)
 
 if(KLOGG_BUILD_TESTS)
   # backward-cpp
+  set(backward_cpp_source_dir
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/backward-cpp")
+  foreach(backward_cpp_file IN ITEMS
+      CMakeLists.txt BackwardConfig.cmake backward.cpp backward.hpp LICENSE.txt)
+    if(NOT EXISTS "${backward_cpp_source_dir}/${backward_cpp_file}")
+      message(FATAL_ERROR
+        "Vendored backward-cpp is incomplete: missing ${backward_cpp_file}")
+    endif()
+  endforeach()
   add_subdirectory(vendor/backward-cpp)
 
   # Catch2
