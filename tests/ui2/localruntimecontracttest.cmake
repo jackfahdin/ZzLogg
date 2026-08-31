@@ -32,6 +32,7 @@ execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env
           --unset=QT_PLUGIN_PATH
           --unset=QT_QPA_PLATFORM_PLUGIN_PATH
+          --unset=QT_QPA_PLATFORM
           "APPDATA=${TEST_ROOT}/Roaming"
           "LOCALAPPDATA=${TEST_ROOT}/Local"
           "PATH=${runtime_dir}"
