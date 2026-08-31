@@ -15,6 +15,12 @@ target_compile_definitions(zzlogg_icon_asset_test PRIVATE
   ZZLOGG_ICNS_PATH="${PROJECT_SOURCE_DIR}/Resources/ZzLogg.icns")
 add_test(NAME zzlogg_ui2.icon_assets
   COMMAND zzlogg_icon_asset_test -platform offscreen)
+
+add_test(NAME zzlogg_ui2.linux_icon_install_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/linux-icon-install-contract"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxiconinstallcontracttest.cmake")
 if(WIN32)
   set_property(TEST zzlogg_ui2.icon_assets PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")

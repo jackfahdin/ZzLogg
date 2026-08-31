@@ -48,6 +48,7 @@ class IconAssetTest final : public QObject {
     void icoContainsRequiredPngFrames();
     void icnsContainsRequiredPngChunks();
     void qrcIconLoadsThroughBrandResource();
+    void qrcLegacyIconAliasesRemainLoadable();
 };
 
 void IconAssetTest::svgMasterHasApprovedStructure()
@@ -65,6 +66,7 @@ void IconAssetTest::svgMasterHasApprovedStructure()
     bool handleInGlass = false;
     bool zInGlass = false;
     QString logLinesOpacity;
+    QString handleStrokeLinecap;
     QString zPath;
     QString zFill;
     QString zStroke;
@@ -75,6 +77,7 @@ void IconAssetTest::svgMasterHasApprovedStructure()
     int stackPosition = -1;
     int glassPosition = -1;
     int handlePosition = -1;
+    int legacyHandlePosition = -1;
     int lensPosition = -1;
     int zPosition = -1;
     int highlightPosition = -1;
@@ -107,11 +110,15 @@ void IconAssetTest::svgMasterHasApprovedStructure()
         if ( id == QStringLiteral( "zzlogg-handle" ) ) {
             handlePosition = elementPosition;
             handleInGlass = ancestorIds.contains( QStringLiteral( "layer3" ) );
+            handleStrokeLinecap =
+                attributes.value( QStringLiteral( "stroke-linecap" ) ).toString();
         } else if ( id == QStringLiteral( "zzlogg-log-lines" ) ) {
             logLinesInStack = ancestorIds.contains( QStringLiteral( "layer1" ) );
             logLinesOpacity = attributes.value( QStringLiteral( "opacity" ) ).toString();
         } else if ( id == QStringLiteral( "path4452" ) ) {
             lensPosition = elementPosition;
+        } else if ( id == QStringLiteral( "path4438" ) ) {
+            legacyHandlePosition = elementPosition;
         } else if ( id == QStringLiteral( "zzlogg-z" ) ) {
             zPosition = elementPosition;
             zPath = attributes.value( QStringLiteral( "d" ) ).toString();
@@ -158,6 +165,7 @@ void IconAssetTest::svgMasterHasApprovedStructure()
     QVERIFY( handleInGlass );
     QVERIFY( zInGlass );
     QCOMPARE( logLinesOpacity, QStringLiteral( "0.92" ) );
+    QCOMPARE( handleStrokeLinecap, QStringLiteral( "round" ) );
     QCOMPARE( zPath,
               QStringLiteral( "M 12.2,10.8 H 24.6 V 13.7 L 17.1,21.7 H 24.8 V 24.8 H 11.8 V 22.0 L 19.4,13.9 H 12.2 Z" ) );
     QCOMPARE( zFill, QStringLiteral( "#275fa8" ) );
@@ -219,6 +227,8 @@ void IconAssetTest::svgMasterHasApprovedStructure()
     QCOMPARE( handlePaths, expectedHandlePaths );
     QVERIFY( stackPosition > 0 );
     QVERIFY( stackPosition < glassPosition );
+    QVERIFY( legacyHandlePosition > 0 );
+    QVERIFY( legacyHandlePosition < handlePosition );
     QVERIFY( handlePosition > 0 );
     QVERIFY( handlePosition < lensPosition );
     QVERIFY( zPosition > lensPosition );
@@ -317,6 +327,17 @@ void IconAssetTest::qrcIconLoadsThroughBrandResource()
     const QPixmap pixmap = icon.pixmap( QSize( 48, 48 ) );
     QCOMPARE( pixmap.size(), QSize( 48, 48 ) );
     QVERIFY( pixmap.hasAlphaChannel() );
+}
+
+void IconAssetTest::qrcLegacyIconAliasesRemainLoadable()
+{
+    for ( int size : { 16, 32, 48 } ) {
+        const QString resource =
+            QStringLiteral( ":/images/hicolor/%1x%1/klogg.png" ).arg( size );
+        const QIcon icon( resource );
+        QVERIFY2( !icon.isNull(), qPrintable( QStringLiteral( "Cannot load %1" ).arg( resource ) ) );
+        QCOMPARE( icon.pixmap( QSize( size, size ) ).size(), QSize( size, size ) );
+    }
 }
 
 QTEST_MAIN( IconAssetTest )

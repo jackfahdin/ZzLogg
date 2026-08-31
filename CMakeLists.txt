@@ -181,6 +181,7 @@ enable_sanitizers(project_options)
 
 # allow for static analysis options
 include(StaticAnalyzers)
+include(ZzLoggIconInstall)
 
 ucm_print_flags()
 
@@ -238,6 +239,15 @@ add_subdirectory(src)
 add_subdirectory(website)
 
 enable_testing()
+
+if(TARGET zzlogg_icon_generator)
+  add_test(NAME zzlogg.icon_generator.atomicity
+    COMMAND "${CMAKE_COMMAND}"
+      "-DGENERATOR=$<TARGET_FILE:zzlogg_icon_generator>"
+      "-DSOURCE=${PROJECT_SOURCE_DIR}/src/app/images/hicolor/scalable/ZzLogg.svg"
+      "-DTEST_ROOT=${CMAKE_BINARY_DIR}/icon-generator-atomicity-contract"
+      -P "${PROJECT_SOURCE_DIR}/tools/icon_generator/icon-generator-atomicity-test.cmake")
+endif()
 add_test(
   NAME klogg_smoke
   COMMAND ${CMAKE_COMMAND} -E sha256sum $<TARGET_FILE:klogg>
@@ -282,21 +292,7 @@ if(UNIX)
     set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/packaging/osx/dmg_setup.scpt")
 
   else()
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/app/images/hicolor/16x16/klogg.png
-            DESTINATION share/icons/hicolor/16x16/apps
-    )
-
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/app/images/hicolor/32x32/klogg.png
-            DESTINATION share/icons/hicolor/32x32/apps
-    )
-
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/app/images/hicolor/48x48/klogg.png
-            DESTINATION share/icons/hicolor/48x48/apps
-    )
-
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/app/images/hicolor/scalable/klogg.svg
-            DESTINATION share/icons/hicolor/scalable/apps
-    )
+    zzlogg_install_legacy_linux_icons("${CMAKE_CURRENT_SOURCE_DIR}")
 
     install(
       FILES ${COPYING_FILE}

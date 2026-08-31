@@ -230,6 +230,10 @@ bool commitOutputs( const QList<OutputFile>& outputs, QString& error )
         originals.append( original );
     }
 
+    bool injectReadFailure = false;
+    const int injectedReadFailureIndex = qEnvironmentVariableIntValue(
+        "ZZLOGG_ICON_GENERATOR_TEST_FAIL_STAGED_READ_AT", &injectReadFailure );
+
     for ( int index = 0; index < outputs.size(); ++index ) {
         QFile staged( outputs.at( index ).stagedPath );
         if ( !staged.open( QIODevice::ReadOnly ) ) {
@@ -243,8 +247,27 @@ bool commitOutputs( const QList<OutputFile>& outputs, QString& error )
             return false;
         }
 
+        QByteArray stagedBytes = staged.readAll();
+        const bool readFailureInjected = injectReadFailure && index == injectedReadFailureIndex;
+        if ( readFailureInjected ) {
+            stagedBytes.truncate( stagedBytes.size() / 2 );
+        }
+        if ( staged.error() != QFileDevice::NoError || readFailureInjected ) {
+            error = readFailureInjected
+                        ? QStringLiteral( "Injected staged read failure for %1" )
+                              .arg( outputs.at( index ).stagedPath )
+                        : QStringLiteral( "Cannot read staged output %1: %2" )
+                              .arg( outputs.at( index ).stagedPath, staged.errorString() );
+            QString rollbackError;
+            restoreOutputs( outputs, originals, index, rollbackError );
+            if ( !rollbackError.isEmpty() ) {
+                error += QStringLiteral( "; rollback failed: %1" ).arg( rollbackError );
+            }
+            return false;
+        }
+
         QString commitError;
-        if ( !saveFileAtomically( outputs.at( index ).targetPath, staged.readAll(), commitError ) ) {
+        if ( !saveFileAtomically( outputs.at( index ).targetPath, stagedBytes, commitError ) ) {
             error = commitError;
             QString rollbackError;
             restoreOutputs( outputs, originals, index, rollbackError );

@@ -8,6 +8,9 @@
     <file alias="zzlogg/icons/16x16/ZzLogg.png">images/hicolor/16x16/ZzLogg.png</file>
     <file alias="zzlogg/icons/32x32/ZzLogg.png">images/hicolor/32x32/ZzLogg.png</file>
     <file alias="zzlogg/icons/48x48/ZzLogg.png">images/hicolor/48x48/ZzLogg.png</file>
+    <file alias="images/hicolor/16x16/klogg.png">images/hicolor/16x16/ZzLogg.png</file>
+    <file alias="images/hicolor/32x32/klogg.png">images/hicolor/32x32/ZzLogg.png</file>
+    <file alias="images/hicolor/48x48/klogg.png">images/hicolor/48x48/ZzLogg.png</file>
     <file>images/icons8-add-file-16.png</file>
     <file>images/icons8-cancel-16.png</file>
     <file>images/icons8-close-window-16.png</file>
