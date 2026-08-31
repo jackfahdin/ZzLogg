@@ -4,9 +4,10 @@
     <file>images/arrowdown.png</file>
     <file>images/arrowup.png</file>
     <file>images/darkclosebutton.png</file>
-    <file>images/hicolor/16x16/klogg.png</file>
-    <file>images/hicolor/32x32/klogg.png</file>
-    <file>images/hicolor/48x48/klogg.png</file>
+    <file alias="zzlogg/icons/ZzLogg.svg">images/hicolor/scalable/ZzLogg.svg</file>
+    <file alias="zzlogg/icons/16x16/ZzLogg.png">images/hicolor/16x16/ZzLogg.png</file>
+    <file alias="zzlogg/icons/32x32/ZzLogg.png">images/hicolor/32x32/ZzLogg.png</file>
+    <file alias="zzlogg/icons/48x48/ZzLogg.png">images/hicolor/48x48/ZzLogg.png</file>
     <file>images/icons8-add-file-16.png</file>
     <file>images/icons8-cancel-16.png</file>
     <file>images/icons8-close-window-16.png</file>

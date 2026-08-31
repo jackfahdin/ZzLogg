@@ -28,6 +28,7 @@ set(PROJECT_DESCRIPTION "${ZZLOGG_PRODUCT_DESCRIPTION}")
 option(KLOGG_BUILD_TESTS "Build tests" ON)
 option(KLOGG_BUILD_UI2 "Build the experimental ZzPureTools UI" OFF)
 option(KLOGG_BUILD_UI2_TESTS "Build tests for the experimental UI" ${KLOGG_BUILD_UI2})
+option(ZZLOGG_BUILD_ICON_TOOL "Build the ZzLogg icon asset generator" OFF)
 if(KLOGG_BUILD_UI2_TESTS AND NOT KLOGG_BUILD_UI2)
   message(FATAL_ERROR "KLOGG_BUILD_UI2_TESTS requires KLOGG_BUILD_UI2=ON")
 endif()
@@ -74,9 +75,9 @@ set(DOCUMENTATION_HTML ${CMAKE_BINARY_DIR}/generated/documentation.html)
 set(DOCUMENTATION_RESOURCE ${CMAKE_BINARY_DIR}/generated/documentation.qrc)
 
 if(WIN32)
-  set(ICON_NAME klogg.ico)
+  set(ICON_NAME ZzLogg.ico)
 elseif(APPLE)
-  set(ICON_NAME klogg.icns)
+  set(ICON_NAME ZzLogg.icns)
 endif()
 
 if(NOT
@@ -203,6 +204,10 @@ find_package(
              Xml
   REQUIRED
 )
+
+if(ZZLOGG_BUILD_ICON_TOOL)
+  add_subdirectory(tools)
+endif()
 
 set(QT_VERSION_MAJOR 6)
 set(KLOGG_QT_VERSION ${Qt6Core_VERSION})

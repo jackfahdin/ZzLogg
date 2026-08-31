@@ -7,7 +7,7 @@
    id="svg2327"
    sodipodi:version="0.32"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
-   sodipodi:docname="klogg.svg"
+   sodipodi:docname="ZzLogg.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape"
    version="1.1"
    inkscape:export-filename="/home/nicko/logcrawler_icons/logcrawler-test1.png"
@@ -1220,6 +1220,7 @@
        x="13.41385"
        y="3.2852035"
        ry="0.29531395" />
+    <g style="display:none">
     <rect
        style="display:inline;opacity:1;fill:#7f7f7f;fill-opacity:1;stroke:none;stroke-width:0.29482114;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect4857-27"
@@ -1532,6 +1533,14 @@
        x="31.767508"
        y="34.183987"
        ry="0.14019704" />
+    </g>
+    <g id="zzlogg-log-lines" opacity="0.92">
+      <rect x="9.5625" y="7.125" width="17.53125" height="1.78125" rx="0.28125" fill="#3b82f6"/>
+      <rect x="7.6875" y="10.96875" width="7.03125" height="1.6875" rx="0.28125" fill="#ef4444"/>
+      <rect x="9.5625" y="14.8125" width="5.34375" height="1.6875" rx="0.28125" fill="#f59e0b"/>
+      <rect x="9.5625" y="18.75" width="5.34375" height="1.6875" rx="0.28125" fill="#22c55e"/>
+      <rect x="9.5625" y="22.59375" width="4.96875" height="1.6875" rx="0.28125" fill="#8b5cf6"/>
+    </g>
   </g>
   <g
      inkscape:groupmode="layer"
@@ -1582,6 +1591,11 @@
          id="path4438"
          sodipodi:nodetypes="ccccc"
          inkscape:connector-curvature="0" />
+      <g id="zzlogg-handle" stroke-linecap="round">
+        <path d="M 29.1,30.2 43.5,41.6" fill="none" stroke="#9a5b16" stroke-width="5.2" opacity="0.78"/>
+        <path d="M 29.1,30.2 43.5,41.6" fill="none" stroke="#f2a735" stroke-width="3.7" opacity="0.82"/>
+        <path d="M 29.7,29.7 42.6,40.1" fill="none" stroke="#ffe0a3" stroke-width="0.95" opacity="0.62"/>
+      </g>
       <circle
          style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:none;stroke:url(#linearGradient4944);stroke-width:0.8027336;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none"
          id="path4450"
@@ -1614,6 +1628,9 @@
          cx="17.589281"
          cy="18.478292"
          r="8.3085051" />
+      <path id="zzlogg-z"
+            d="M 12.2,10.8 H 24.6 V 13.7 L 17.1,21.7 H 24.8 V 24.8 H 11.8 V 22.0 L 19.4,13.9 H 12.2 Z"
+            fill="#275fa8" stroke="#eef6ff" stroke-width="0.5" stroke-linejoin="round"/>
       <path
          style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:0.83422457;fill:url(#radialGradient4473);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;marker:none"
          d="m 18.156915,7.3966938 c -5.20759,0 -9.4245469,4.2169572 -9.4245469,9.4245472 0,1.503975 0.4203072,2.887773 1.0471719,4.149903 1.25238,0.461613 2.582757,0.775683 3.994767,0.775683 6.170955,0 11.099282,-4.861637 11.480106,-10.937129 C 23.523449,8.7641668 21.044374,7.3966938 18.156915,7.3966938 Z"

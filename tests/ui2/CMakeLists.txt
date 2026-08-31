@@ -2,6 +2,27 @@ if(CMAKE_VERSION VERSION_LESS 3.23)
   message(FATAL_ERROR "KLOGG_BUILD_UI2_TESTS requires CMake 3.23 or newer")
 endif()
 
+find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
+
+add_executable(zzlogg_icon_asset_test
+  iconassettest.cpp "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc")
+target_link_libraries(zzlogg_icon_asset_test PRIVATE
+  zzlogg_brand Qt6::Test Qt6::Gui Qt6::Svg)
+set_target_properties(zzlogg_icon_asset_test PROPERTIES AUTOMOC ON AUTORCC ON)
+target_compile_definitions(zzlogg_icon_asset_test PRIVATE
+  ZZLOGG_HICOLOR_ROOT="${PROJECT_SOURCE_DIR}/src/app/images/hicolor"
+  ZZLOGG_ICO_PATH="${PROJECT_SOURCE_DIR}/Resources/ZzLogg.ico"
+  ZZLOGG_ICNS_PATH="${PROJECT_SOURCE_DIR}/Resources/ZzLogg.icns")
+add_test(NAME zzlogg_ui2.icon_assets
+  COMMAND zzlogg_icon_asset_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.icon_assets PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.icon_assets APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()
+
 add_executable(zzlogg_theme_configuration_test themeconfigurationtest.cpp)
 target_link_libraries(zzlogg_theme_configuration_test
   PRIVATE klogg_settings Qt6::Test Qt6::Widgets)
