@@ -11,6 +11,14 @@
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace {
 
 bool writeBytes( const QString& path, const QByteArray& contents )
@@ -118,10 +126,12 @@ private Q_SLOTS:
     void recursiveCrashCopyUsesInjectedOperation();
     void lockConflictFailsBeforeWritingPendingState();
     void commitFailureCleansManifestAndTransactionFiles();
+    void commitFailureWithCommittedTargetRequiresRecovery();
     void preexistingCompatibleManifestStillCleansCreatedDirectories();
     void cleanupFailureMakesRollbackIncomplete();
     void normalizedPendingDrivesLockTargetAndRecovery();
     void equivalentLegacyPathsRecoverPending();
+    void casingOnlyPathsRecoverPendingAccordingToPlatform();
     void rejectsRelativeLegacyPathBeforeCreatingLockDirectory();
     void createsLockParentForValidMigration();
     void reportsLockParentCreationFailureSpecifically();
@@ -138,6 +148,7 @@ private Q_SLOTS:
     void recoverUsesMigrationLock();
     void recoverReadsSourcePendingDespiteProgramLocatorPriority();
     void recoverRejectsMismatchedPendingBeforeMutation();
+    void recoverRejectsPendingTogetherWithLastMigration();
     void recoverDoesNotInferOutcomeFromSameActiveLocation_data();
     void recoverDoesNotInferOutcomeFromSameActiveLocation();
     void recoverCompletePendingCommitsIdempotently();
@@ -396,6 +407,110 @@ void StorageMigratorTest::commitFailureCleansManifestAndTransactionFiles()
               QStringLiteral( "rolledBack" ) );
 }
 
+void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
+{
+#ifndef Q_OS_WIN
+    QSKIP( "the deterministic delete/restore double-fault fixture uses Windows share modes" );
+#else
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    const QByteArray config{ "[General]\na=1\n" };
+    const QByteArray session{ "[General]\nb=2\n" };
+    QVERIFY( writeBytes( fixture.request.legacyConfigFile, config ) );
+    QVERIFY( writeBytes( fixture.request.legacySessionFile, session ) );
+    const QByteArray previousTarget( 32 * 1024 * 1024, 'x' );
+    QVERIFY( writeBytes( fixture.target.locatorPath, previousTarget ) );
+
+    std::atomic<HANDLE> sourceHandle{ INVALID_HANDLE_VALUE };
+    std::atomic_bool executeFinished{ false };
+    std::atomic_bool sawCommittedTarget{ false };
+    std::atomic_bool lockedCommittedTarget{ false };
+    std::thread faultThread;
+    const StorageCopyOperation copy = [ & ]( const QString& source, const QString& target,
+                                             QString* error ) {
+        if ( sourceHandle.load() == INVALID_HANDLE_VALUE ) {
+            const HANDLE handle
+                = CreateFileW( reinterpret_cast<LPCWSTR>( fixture.source.locatorPath.utf16() ),
+                               GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr );
+            if ( handle == INVALID_HANDLE_VALUE ) {
+                if ( error != nullptr ) {
+                    *error = QStringLiteral( "failed to lock source locator fixture" );
+                }
+                return false;
+            }
+            sourceHandle.store( handle );
+            faultThread = std::thread( [ & ] {
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2 );
+                while ( !executeFinished.load() && std::chrono::steady_clock::now() < deadline ) {
+                    const QByteArray locator = readBytes( fixture.target.locatorPath );
+                    if ( locator.contains( "LastMigration" ) && locator.contains( "committed" )
+                         && locator.contains( fixture.request.transactionId.toUtf8() ) ) {
+                        sawCommittedTarget.store( true );
+                        const HANDLE targetHandle = CreateFileW(
+                            reinterpret_cast<LPCWSTR>( fixture.target.locatorPath.utf16() ),
+                            GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr );
+                        if ( targetHandle != INVALID_HANDLE_VALUE ) {
+                            lockedCommittedTarget.store( true );
+                            std::this_thread::sleep_for( std::chrono::milliseconds( 25 ) );
+                            const HANDLE heldSource = sourceHandle.exchange( INVALID_HANDLE_VALUE );
+                            if ( heldSource != INVALID_HANDLE_VALUE ) {
+                                CloseHandle( heldSource );
+                            }
+                            while ( !executeFinished.load() ) {
+                                std::this_thread::yield();
+                            }
+                            CloseHandle( targetHandle );
+                            return;
+                        }
+                    }
+                    std::this_thread::yield();
+                }
+                const HANDLE heldSource = sourceHandle.exchange( INVALID_HANDLE_VALUE );
+                if ( heldSource != INVALID_HANDLE_VALUE ) {
+                    CloseHandle( heldSource );
+                }
+            } );
+        }
+        return atomicCopy( source, target, error );
+    };
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store, copy }.execute( fixture.request );
+    executeFinished.store( true );
+    if ( faultThread.joinable() ) {
+        faultThread.join();
+    }
+    const HANDLE heldSource = sourceHandle.exchange( INVALID_HANDLE_VALUE );
+    if ( heldSource != INVALID_HANDLE_VALUE ) {
+        CloseHandle( heldSource );
+    }
+
+    QVERIFY( sawCommittedTarget.load() );
+    QVERIFY( lockedCommittedTarget.load() );
+    QVERIFY( !result.success );
+    QVERIFY( !result.rolledBack );
+    QVERIFY( result.error.contains(
+        QStringLiteral( "target locator remains committed; recovery required" ) ) );
+    QVERIFY( result.error.contains( fixture.target.locatorPath ) );
+    QSettings sourceLocator{ fixture.source.locatorPath, QSettings::IniFormat };
+    QCOMPARE( sourceLocator.value( QStringLiteral( "Pending/transactionId" ) ).toString(),
+              fixture.request.transactionId );
+    QSettings targetLocator{ fixture.target.locatorPath, QSettings::IniFormat };
+    QCOMPARE( targetLocator.value( QStringLiteral( "LastMigration/transactionId" ) ).toString(),
+              fixture.request.transactionId );
+    QCOMPARE( targetLocator.value( QStringLiteral( "LastMigration/outcome" ) ).toString(),
+              QStringLiteral( "committed" ) );
+    const StorageContext targetContext{ fixture.target };
+    QCOMPARE( readBytes( targetContext.configFilePath() ), config );
+    QCOMPARE( readBytes( targetContext.sessionFilePath() ), session );
+    QVERIFY( StorageValidator::hasCompatibleManifest( fixture.targetRoot ) );
+#endif
+}
+
 void StorageMigratorTest::preexistingCompatibleManifestStillCleansCreatedDirectories()
 {
     QTemporaryDir temporaryDirectory;
@@ -499,6 +614,39 @@ void StorageMigratorTest::equivalentLegacyPathsRecoverPending()
     QVERIFY( !result.success );
     QVERIFY2( result.rolledBack, qPrintable( result.error ) );
     verifySourceIsActiveWithoutPending( fixture );
+}
+
+void StorageMigratorTest::casingOnlyPathsRecoverPendingAccordingToPlatform()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    QString error;
+    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
+    StorageMigrationRequest casingOnly = fixture.request;
+    casingOnly.source.locatorPath = casingOnly.source.locatorPath.toUpper();
+    casingOnly.target.locatorPath = casingOnly.target.locatorPath.toUpper();
+    casingOnly.source.dataRoot = casingOnly.source.dataRoot.toUpper();
+    casingOnly.target.dataRoot = casingOnly.target.dataRoot.toUpper();
+    casingOnly.legacyConfigFile = casingOnly.legacyConfigFile.toUpper();
+    casingOnly.legacySessionFile = casingOnly.legacySessionFile.toUpper();
+    casingOnly.legacyCrashDirectory = casingOnly.legacyCrashDirectory.toUpper();
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.recoverPending( casingOnly );
+
+#ifdef Q_OS_WIN
+    QVERIFY( !result.success );
+    QVERIFY2( result.rolledBack, qPrintable( result.error ) );
+    verifySourceIsActiveWithoutPending( fixture );
+#else
+    QVERIFY( !result.success );
+    QVERIFY( !result.rolledBack );
+    const auto resolution = fixture.store.resolve();
+    QVERIFY( resolution.state.has_value() );
+    QVERIFY( resolution.state->pending.has_value() );
+#endif
 }
 
 void StorageMigratorTest::rejectsRelativeLegacyPathBeforeCreatingLockDirectory()
@@ -873,6 +1021,35 @@ void StorageMigratorTest::recoverRejectsMismatchedPendingBeforeMutation()
     const auto resolution = fixture.store.resolve();
     QVERIFY( resolution.state.has_value() );
     QVERIFY( resolution.state->pending.has_value() );
+}
+
+void StorageMigratorTest::recoverRejectsPendingTogetherWithLastMigration()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    QString error;
+    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
+    {
+        QSettings settings{ fixture.source.locatorPath, QSettings::IniFormat };
+        settings.setValue( QStringLiteral( "LastMigration/transactionId" ),
+                           fixture.request.transactionId );
+        settings.setValue( QStringLiteral( "LastMigration/outcome" ),
+                           QStringLiteral( "rolledBack" ) );
+        settings.sync();
+        QCOMPARE( settings.status(), QSettings::NoError );
+    }
+    const QByteArray ambiguous = readBytes( fixture.source.locatorPath );
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.recoverPending( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY( !result.rolledBack );
+    QVERIFY( result.error.contains( QStringLiteral( "Pending" ) ) );
+    QVERIFY( result.error.contains( QStringLiteral( "LastMigration" ) ) );
+    QCOMPARE( readBytes( fixture.source.locatorPath ), ambiguous );
 }
 
 void StorageMigratorTest::recoverDoesNotInferOutcomeFromSameActiveLocation_data()

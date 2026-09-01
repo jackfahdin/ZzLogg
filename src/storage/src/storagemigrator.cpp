@@ -10,6 +10,7 @@
 #include <QSaveFile>
 #include <QSettings>
 
+#include <algorithm>
 #include <utility>
 
 namespace {
@@ -37,22 +38,6 @@ QString normalized( const QString& path )
     return QDir::cleanPath( QDir::fromNativeSeparators( path ) );
 }
 
-bool sameLocation( const StorageLocation& left, const StorageLocation& right )
-{
-    return left.mode == right.mode && normalized( left.dataRoot ) == normalized( right.dataRoot )
-           && normalized( left.locatorPath ) == normalized( right.locatorPath )
-           && left.commandLineOverride == right.commandLineOverride;
-}
-
-bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationRequest& right )
-{
-    return left.transactionId == right.transactionId && sameLocation( left.source, right.source )
-           && sameLocation( left.target, right.target )
-           && left.legacyConfigFile == right.legacyConfigFile
-           && left.legacySessionFile == right.legacySessionFile
-           && left.legacyCrashDirectory == right.legacyCrashDirectory;
-}
-
 bool pathExistsOrIsSymlink( const QString& path )
 {
     const QFileInfo info{ path };
@@ -71,6 +56,22 @@ Qt::CaseSensitivity pathCaseSensitivity()
 bool samePath( const QString& left, const QString& right )
 {
     return normalized( left ).compare( normalized( right ), pathCaseSensitivity() ) == 0;
+}
+
+bool sameLocation( const StorageLocation& left, const StorageLocation& right )
+{
+    return left.mode == right.mode && samePath( left.dataRoot, right.dataRoot )
+           && samePath( left.locatorPath, right.locatorPath )
+           && left.commandLineOverride == right.commandLineOverride;
+}
+
+bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationRequest& right )
+{
+    return left.transactionId == right.transactionId && sameLocation( left.source, right.source )
+           && sameLocation( left.target, right.target )
+           && samePath( left.legacyConfigFile, right.legacyConfigFile )
+           && samePath( left.legacySessionFile, right.legacySessionFile )
+           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory );
 }
 
 bool sameOrChildPath( const QString& path, const QString& parent )
@@ -102,7 +103,7 @@ bool canonicalLocation( const StorageLocation& input, const StorageLocatorStore&
         return false;
     }
     const QString expectedLocator = normalized( expectedLocatorPath( input.mode, store ) );
-    if ( !input.locatorPath.isEmpty() && normalized( input.locatorPath ) != expectedLocator ) {
+    if ( !input.locatorPath.isEmpty() && !samePath( input.locatorPath, expectedLocator ) ) {
         if ( error != nullptr ) {
             *error = QStringLiteral( "storage migration location uses the wrong locator: %1" )
                          .arg( input.locatorPath );
@@ -276,6 +277,13 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
     state.found = true;
     state.active = active;
     const QStringList groups = settings.childGroups();
+    if ( groups.contains( QStringLiteral( "Pending" ) )
+         && groups.contains( QStringLiteral( "LastMigration" ) ) ) {
+        state.error
+            = QStringLiteral( "storage locator cannot contain both Pending and LastMigration: %1" )
+                  .arg( path );
+        return state;
+    }
     if ( groups.contains( QStringLiteral( "Pending" ) ) ) {
         const QStringList keys{ QStringLiteral( "Pending/transactionId" ),
                                 QStringLiteral( "Pending/sourceMode" ),
@@ -304,7 +312,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                               &sourceMode )
              || !modeFromString(
                  settings.value( QStringLiteral( "Pending/targetMode" ) ).toString(), &targetMode )
-             || sourceLocator != path ) {
+             || !samePath( sourceLocator, path ) ) {
             state.error
                 = QStringLiteral( "storage locator has invalid Pending locations: %1" ).arg( path );
             return state;
@@ -352,10 +360,24 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
     return state;
 }
 
+bool targetRemainsCommitted( const StorageMigrationRequest& request,
+                             const StorageLocatorStore& store )
+{
+    const DirectLocatorState targetState = readDirectLocator( request.target.locatorPath, store );
+    return targetState.found && targetState.valid && !targetState.pending.has_value()
+           && targetState.lastTransactionId == request.transactionId
+           && targetState.lastOutcome == QStringLiteral( "committed" )
+           && sameLocation( targetState.active, request.target );
+}
+
 void appendUnique( QStringList& paths, const QString& path )
 {
     const QString cleanPath = normalized( path );
-    if ( !paths.contains( cleanPath ) ) {
+    const bool alreadyPresent
+        = std::any_of( paths.cbegin(), paths.cend(), [ &cleanPath ]( const QString& existing ) {
+              return samePath( existing, cleanPath );
+          } );
+    if ( !alreadyPresent ) {
         paths.append( cleanPath );
     }
 }
@@ -770,9 +792,14 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     }
 
     if ( !locatorStore_.commitPending( canonical, &error ) ) {
-        return rollbackFailure(
-            locatorStore_, canonical, targetContext, created,
-            QStringLiteral( "failed to commit pending storage migration: %1" ).arg( error ) );
+        const QString commitError
+            = QStringLiteral( "failed to commit pending storage migration: %1" ).arg( error );
+        if ( targetRemainsCommitted( canonical, locatorStore_ ) ) {
+            return { false, false,
+                     QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
+                         .arg( commitError, canonical.target.locatorPath ) };
+        }
+        return rollbackFailure( locatorStore_, canonical, targetContext, created, commitError );
     }
     return { true, false, {} };
 }
@@ -848,6 +875,11 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
         }
         const QString commitError
             = QStringLiteral( "failed to recover pending storage migration: %1" ).arg( error );
+        if ( targetRemainsCommitted( canonical, locatorStore_ ) ) {
+            return { false, false,
+                     QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
+                         .arg( commitError, canonical.target.locatorPath ) };
+        }
         QString rollbackError;
         if ( locatorStore_.rollbackPending( canonical, &rollbackError ) ) {
             return { false, true, commitError };

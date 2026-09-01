@@ -73,6 +73,7 @@ private Q_SLOTS:
     void rejectsIncompletePendingGroup();
     void rejectsPendingWhoseSourceDiffersFromActive();
     void rejectsIncompleteLastMigrationGroup();
+    void rejectsPendingTogetherWithLastMigration();
     void roundTripsCompleteProgramRelativePending();
 };
 
@@ -587,6 +588,41 @@ void StorageLocatorTest::rejectsIncompleteLastMigrationGroup()
 
     QCOMPARE( resolution.source, StorageResolutionSource::ProgramLocator );
     QVERIFY( !resolution.state.has_value() );
+    QVERIFY( resolution.error.contains( QStringLiteral( "LastMigration" ) ) );
+}
+
+void StorageLocatorTest::rejectsPendingTogetherWithLastMigration()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
+                                     temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
+    const StorageLocation source{ StorageMode::UserDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "source-root" ) ),
+                                  store.userLocatorPath(), false };
+    const StorageLocation target{ StorageMode::ProgramDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "target-root" ) ),
+                                  store.programLocatorPath(), false };
+    const StorageMigrationRequest request{
+        QStringLiteral( "ambiguous-transaction" ), source, target, {}, {}, {}
+    };
+    QString error;
+    QVERIFY2( store.writeActive( source, &error ), qPrintable( error ) );
+    QVERIFY2( store.writePending( request, &error ), qPrintable( error ) );
+    {
+        QSettings settings{ store.userLocatorPath(), QSettings::IniFormat };
+        settings.setValue( QStringLiteral( "LastMigration/transactionId" ), request.transactionId );
+        settings.setValue( QStringLiteral( "LastMigration/outcome" ),
+                           QStringLiteral( "committed" ) );
+        settings.sync();
+        QCOMPARE( settings.status(), QSettings::NoError );
+    }
+
+    const auto resolution = store.resolve();
+
+    QCOMPARE( resolution.source, StorageResolutionSource::UserLocator );
+    QVERIFY( !resolution.state.has_value() );
+    QVERIFY( resolution.error.contains( QStringLiteral( "Pending" ) ) );
     QVERIFY( resolution.error.contains( QStringLiteral( "LastMigration" ) ) );
 }
 
