@@ -49,6 +49,8 @@ struct CliParameters {
     int window_height = 0;
 
     QString pattern;
+    QString data_dir;
+    QString help_text;
 
     CliParameters( QCoreApplication& app, bool console = false )
     {
@@ -92,7 +94,13 @@ struct CliParameters {
                           << "debug",
             "output more debug (increase number for more verbosity)", "debug_level", "0" );
 
+        const QCommandLineOption dataDirOption(
+            QStringLiteral( "data-dir" ),
+            QStringLiteral( "use an absolute data directory for this process" ),
+            QStringLiteral( "path" ) );
+
         parser.addOption( debugOption );
+        parser.addOption( dataDirOption );
 
         if ( !console ) {
             const QCommandLineOption windowWidthOption( "window-width", "new window width",
@@ -112,6 +120,8 @@ struct CliParameters {
         }
 
         parser.process( app );
+        data_dir = parser.value( dataDirOption );
+        help_text = parser.helpText();
 
         if ( parser.isSet( helpOption ) ) {
             parser.showHelp( EXIT_SUCCESS );
@@ -122,7 +132,7 @@ struct CliParameters {
             exit( EXIT_SUCCESS );
         }
 
-        if (parser.value( debugOption ).toInt() > 0) {
+        if ( parser.value( debugOption ).toInt() > 0 ) {
             enable_logging = true;
         }
 

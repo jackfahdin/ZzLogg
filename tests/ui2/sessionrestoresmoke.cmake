@@ -8,6 +8,8 @@ get_filename_component(app_name "${APP}" NAME)
 set(smoke_app "${TEST_CONFIG_DIR}/runtime/${app_name}")
 file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/runtime")
 file(COPY_FILE "${APP}" "${smoke_app}" ONLY_IF_DIFFERENT)
+file(WRITE "${TEST_CONFIG_DIR}/runtime/ZzLogg.conf" "")
+set(data_root "${TEST_CONFIG_DIR}/storage")
 if(WIN32)
   file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/Roaming" "${TEST_CONFIG_DIR}/Local")
   set(config_env
@@ -28,23 +30,21 @@ endif()
 execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env ${config_env}
           ZZLOGG_UI2_SMOKE_MODE=seed-session ZZLOGG_UI2_SMOKE_MS=3000
-          "${smoke_app}" --multi --new-session
+          "${smoke_app}" --multi --new-session --data-dir "${data_root}"
   RESULT_VARIABLE seed_result TIMEOUT 15)
 if(NOT seed_result EQUAL 0)
   message(FATAL_ERROR "UI2 session seed failed: ${seed_result}")
 endif()
-if(WIN32)
-  set(settings_root "${TEST_CONFIG_DIR}/Roaming")
-else()
-  set(settings_root "${TEST_CONFIG_DIR}/config")
-endif()
-include("${CMAKE_CURRENT_LIST_DIR}/isolatedsettingscheck.cmake")
-assert_ui2_isolated_settings("${settings_root}")
+foreach(storage_entry storage-manifest.ini config session logs crashes)
+  if(NOT EXISTS "${data_root}/${storage_entry}")
+    message(FATAL_ERROR "UI2 session smoke storage entry missing: ${data_root}/${storage_entry}")
+  endif()
+endforeach()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env ${config_env}
           ZZLOGG_UI2_SMOKE_MODE=verify-restored ZZLOGG_UI2_SMOKE_MS=3000
-          "${smoke_app}" --multi --load-session
+          "${smoke_app}" --multi --load-session --data-dir "${data_root}"
   RESULT_VARIABLE restore_result TIMEOUT 15)
 if(NOT restore_result EQUAL 0)
   message(FATAL_ERROR "UI2 session restore failed: ${restore_result}")

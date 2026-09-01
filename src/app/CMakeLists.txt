@@ -46,16 +46,24 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/kloggapp.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.cpp
     ${DOCUMENTATION_RESOURCE}
     ${ICON_FILE}
 )
 
-set(KLOGG_GREP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/klogg_grep.cpp)
+set(KLOGG_GREP_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/klogg_grep.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.cpp)
 
 set(MAIN_LIBS
     klogg_logdata
+    klogg_storage
     klogg_crash_handler
     roaring
     kdsingleapp

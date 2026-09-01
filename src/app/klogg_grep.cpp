@@ -20,15 +20,20 @@
 #include <mimalloc.h>
 
 #include "configuration.h"
+#include "dispatch_to.h"
 #include "logdata.h"
 #include "logfiltereddata.h"
-#include "dispatch_to.h"
 #include "logger.h"
 #include "persistentinfo.h"
 
 #include "cli.h"
+#include "storagebootstrap.h"
+#include "zzloggapplicationidentity.h"
 
-const bool PersistentInfo::ForcePortable = true;
+#include <QDir>
+#include <QStandardPaths>
+
+const bool PersistentInfo::ForcePortable = false;
 
 int main( int argc, char* argv[] )
 {
@@ -38,12 +43,33 @@ int main( int argc, char* argv[] )
     qRegisterMetaType<LinesCount>( "LinesCount" );
     qRegisterMetaType<LineNumber>( "LineNumber" );
 
+    prepareZzLoggApplicationIdentity();
     QCoreApplication app( argc, argv );
     CliParameters parameters( app, true );
 
+    if ( parameters.pattern.isEmpty() || parameters.filenames.empty() ) {
+        std::cerr << parameters.help_text.toStdString();
+        return EXIT_FAILURE;
+    }
+
+    const QString userDataDirectory
+        = QStandardPaths::writableLocation( QStandardPaths::AppDataLocation );
+    const auto storageResult = bootstrapStorage(
+        QCoreApplication::applicationDirPath(),
+        QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ), userDataDirectory,
+        QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,
+        {} );
+    if ( storageResult.status != StorageBootstrapStatus::Ready ) {
+        if ( !storageResult.error.isEmpty() ) {
+            std::cerr << storageResult.error.toStdString() << "\n";
+        }
+        return storageResult.status == StorageBootstrapStatus::Cancelled ? EXIT_SUCCESS
+                                                                         : EXIT_FAILURE;
+    }
+
     logging::enableLogging( true, static_cast<logging::LogLevel>( parameters.log_level ) );
 
-    auto configuration = Configuration::getSynced();
+    Configuration::getSynced();
 
     LogData logData;
     auto filteredData = logData.getNewFilteredData();

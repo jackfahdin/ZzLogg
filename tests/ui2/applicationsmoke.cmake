@@ -9,6 +9,8 @@ file(MAKE_DIRECTORY "${TEST_RUNTIME_DIR}" "${TEST_CONFIG_DIR}")
 get_filename_component(app_name "${APP}" NAME)
 set(smoke_app "${TEST_RUNTIME_DIR}/${app_name}")
 file(COPY_FILE "${APP}" "${smoke_app}" ONLY_IF_DIFFERENT)
+file(WRITE "${TEST_RUNTIME_DIR}/ZzLogg.conf" "")
+set(data_root "${TEST_CONFIG_DIR}/storage")
 
 if(WIN32)
   file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/Roaming" "${TEST_CONFIG_DIR}/Local")
@@ -29,16 +31,15 @@ endif()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" -E env ${config_env} ZZLOGG_UI2_SMOKE_MS=1800
-          "${smoke_app}" --multi --new-session "${FIRST_LOG}" "${SECOND_LOG}"
+          "${smoke_app}" --multi --new-session --data-dir "${data_root}"
+          "${FIRST_LOG}" "${SECOND_LOG}"
   RESULT_VARIABLE smoke_result TIMEOUT 30)
 if(NOT smoke_result EQUAL 0)
   message(FATAL_ERROR "UI2 application smoke failed: ${smoke_result}")
 endif()
 
-if(WIN32)
-  set(settings_root "${TEST_CONFIG_DIR}/Roaming")
-else()
-  set(settings_root "${TEST_CONFIG_DIR}/config")
-endif()
-include("${CMAKE_CURRENT_LIST_DIR}/isolatedsettingscheck.cmake")
-assert_ui2_isolated_settings("${settings_root}")
+foreach(storage_entry storage-manifest.ini config session logs crashes)
+  if(NOT EXISTS "${data_root}/${storage_entry}")
+    message(FATAL_ERROR "UI2 application smoke storage entry missing: ${data_root}/${storage_entry}")
+  endif()
+endforeach()

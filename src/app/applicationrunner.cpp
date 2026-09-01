@@ -38,16 +38,16 @@
 
 #include "tbb/global_control.h"
 
-#include <QMessageBox>
 #include <QAction>
 #include <QComboBox>
-#include <QElapsedTimer>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QMenu>
+#include <QMessageBox>
 #include <QObject>
 #include <QPointer>
-#include <QSettings>
+#include <QStandardPaths>
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolButton>
@@ -58,13 +58,15 @@
 #include "configuration.h"
 #include "logger.h"
 #include "mainwindow.h"
-#include "persistentinfo.h"
+#include "storagebootstrapdialog.h"
+#include "storagelocator.h"
 #include "styles.h"
 
 #include "cli.h"
 #include "kloggapp.h"
-#include "zzloggapplicationidentity.h"
+#include "storagebootstrap.h"
 #include "zzlogg_brand.h"
+#include "zzloggapplicationidentity.h"
 
 namespace {
 
@@ -92,37 +94,13 @@ Ui2SmokeRequest prepareUi2SmokeRequest( const KloggApplicationOptions& options )
     }
 
     bool validDeadline = false;
-    request.deadlineMs
-        = qEnvironmentVariableIntValue( "ZZLOGG_UI2_SMOKE_MS", &validDeadline );
+    request.deadlineMs = qEnvironmentVariableIntValue( "ZZLOGG_UI2_SMOKE_MS", &validDeadline );
     request.requested = validDeadline && request.deadlineMs > 0;
     if ( !request.requested ) {
         return request;
     }
 
     request.mode = qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MODE" );
-#ifdef Q_OS_WIN
-    const QString settingsRoot = qEnvironmentVariable( "APPDATA" );
-    const QString settingsRootVariable = QStringLiteral( "APPDATA" );
-#else
-    const QString settingsRoot = qEnvironmentVariable( "XDG_CONFIG_HOME" );
-    const QString settingsRootVariable = QStringLiteral( "XDG_CONFIG_HOME" );
-#endif
-    if ( settingsRoot.isEmpty() ) {
-        request.error = QStringLiteral( "UI2 smoke settings root is missing: %1 is empty" )
-                            .arg( settingsRootVariable );
-        return request;
-    }
-
-    const auto normalizedSettingsRoot = QDir::fromNativeSeparators( settingsRoot );
-    if ( !setPersistentSettingsOverrideForProcess( QSettings::IniFormat,
-                                                   normalizedSettingsRoot ) ) {
-        request.error = QStringLiteral(
-                            "UI2 smoke settings override was rejected because PersistentInfo "
-                            "was already initialized or another process override was installed; "
-                            "format=IniFormat; path=%1" )
-                            .arg( normalizedSettingsRoot );
-        return request;
-    }
     return request;
 }
 
@@ -130,6 +108,14 @@ void reportUi2SmokeSetupFailure( const QString& error )
 {
     const QByteArray diagnostic
         = QStringLiteral( "UI2 smoke setup failure: %1\n" ).arg( error ).toLocal8Bit();
+    std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
+    std::fflush( stderr );
+}
+
+void reportStorageBootstrapFailure( const QString& error )
+{
+    const QByteArray diagnostic
+        = QStringLiteral( "ZzLogg storage bootstrap failure: %1\n" ).arg( error ).toLocal8Bit();
     std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
     std::fflush( stderr );
 }
@@ -206,8 +192,7 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
     switch ( state->stage ) {
     case Ui2SmokeStage::PrepareWindows: {
         if ( !state->app->property( "zzlogg.fluentUi" ).toBool() ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "Fluent UI runtime fell back" ) );
+            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "Fluent UI runtime fell back" ) );
             return;
         }
 
@@ -263,11 +248,10 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             return;
         }
 
-        state->documentTabs = state->firstWindow->findChild<QTabWidget*>(
-            QStringLiteral( "documentTabs" ) );
+        state->documentTabs
+            = state->firstWindow->findChild<QTabWidget*>( QStringLiteral( "documentTabs" ) );
         if ( state->documentTabs == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "documentTabs is missing" ) );
+            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "documentTabs is missing" ) );
             return;
         }
         state->waitingFor = QStringLiteral( "two document tabs" );
@@ -295,8 +279,7 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
                 QStringLiteral( "window or documentTabs disappeared before first title" ) );
             return;
         }
-        if ( !hasExpectedDocumentTitle( *state->firstWindow,
-                                        QStringLiteral( "ui2-first.log" ) ) ) {
+        if ( !hasExpectedDocumentTitle( *state->firstWindow, QStringLiteral( "ui2-first.log" ) ) ) {
             return;
         }
         state->documentTabs->setCurrentIndex( 1 );
@@ -316,20 +299,17 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         }
         QWidget* const crawler = state->documentTabs->currentWidget();
         if ( crawler == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "current crawler is missing" ) );
+            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "current crawler is missing" ) );
             return;
         }
-        state->searchEdit
-            = crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
+        state->searchEdit = crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
         state->searchButton
             = crawler->findChild<QToolButton*>( QStringLiteral( "mainSearchButton" ) );
         state->filteredResultsTabs
             = crawler->findChild<QTabWidget*>( QStringLiteral( "filteredResultsTabs" ) );
         if ( state->searchEdit == nullptr || state->searchButton == nullptr
              || state->filteredResultsTabs == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "search controls are missing" ) );
+            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "search controls are missing" ) );
             return;
         }
         state->searchEdit->setEditText( QStringLiteral( "ERROR" ) );
@@ -358,8 +338,9 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
     }
     case Ui2SmokeStage::WaitForSearch: {
         if ( state->firstTitleBar == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "first title bar disappeared while waiting for search" ) );
+            finishUi2Smoke(
+                *state, EXIT_FAILURE,
+                QStringLiteral( "first title bar disappeared while waiting for search" ) );
             return;
         }
         if ( state->secondTitleBar == nullptr ) {
@@ -369,13 +350,15 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             return;
         }
         if ( state->searchEdit == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "mainSearchEdit disappeared while waiting for search" ) );
+            finishUi2Smoke(
+                *state, EXIT_FAILURE,
+                QStringLiteral( "mainSearchEdit disappeared while waiting for search" ) );
             return;
         }
         if ( state->searchButton == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "mainSearchButton disappeared while waiting for search" ) );
+            finishUi2Smoke(
+                *state, EXIT_FAILURE,
+                QStringLiteral( "mainSearchButton disappeared while waiting for search" ) );
             return;
         }
         if ( state->filteredResultsTabs == nullptr ) {
@@ -393,11 +376,10 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
                             QStringLiteral( "search result contract was not preserved" ) );
             return;
         }
-        auto* const themeMenu = state->firstTitleBar->findChild<QMenu*>(
-            QStringLiteral( "zzTitleBarThemeMenu" ) );
+        auto* const themeMenu
+            = state->firstTitleBar->findChild<QMenu*>( QStringLiteral( "zzTitleBarThemeMenu" ) );
         if ( themeMenu == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "theme menu is missing" ) );
+            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "theme menu is missing" ) );
             return;
         }
         QAction* darkAction = nullptr;
@@ -433,8 +415,7 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         }
         const QVariant firstTheme = state->firstTitleBar->property( "themeMode" );
         const QVariant secondTheme = state->secondTitleBar->property( "themeMode" );
-        if ( Configuration::get().uiThemeMode() != UiThemeMode::Dark
-             || firstTheme != secondTheme
+        if ( Configuration::get().uiThemeMode() != UiThemeMode::Dark || firstTheme != secondTheme
              || firstTheme.toInt() != static_cast<int>( UiThemeMode::Dark ) ) {
             return;
         }
@@ -454,8 +435,7 @@ void startUi2SmokeProbe( KloggApp& app, int deadlineMs, QString mode )
     state->timer = new QTimer( &app );
     state->timer->setInterval( 50 );
     state->elapsed.start();
-    QObject::connect( state->timer, &QTimer::timeout, &app,
-                      [ state ] { pollUi2Smoke( state ); } );
+    QObject::connect( state->timer, &QTimer::timeout, &app, [ state ] { pollUi2Smoke( state ); } );
     state->timer->start();
 }
 
@@ -512,73 +492,77 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
 #endif
 
     prepareZzLoggApplicationIdentity();
+    setApplicationAttributes( true, 0 );
+    KloggApp app{ argc, argv };
+    CliParameters parameters{ app };
+
+    if ( !parameters.multi_instance && app.isSecondary() ) {
+        app.sendFilesToPrimaryInstance( parameters.filenames );
+        return app.exec();
+    }
 
     const Ui2SmokeRequest ui2Smoke = prepareUi2SmokeRequest( options );
-    if ( ui2Smoke.requested ) {
-        QString setupError = ui2Smoke.error;
-        const QString portableConfigPath = kloggPortableConfigPath();
-        if ( setupError.isEmpty() && QFileInfo::exists( portableConfigPath ) ) {
-            setupError = QStringLiteral( "portable configuration is not allowed: %1" )
-                             .arg( portableConfigPath );
+    if ( ui2Smoke.requested && !ui2Smoke.error.isEmpty() ) {
+        reportUi2SmokeSetupFailure( ui2Smoke.error );
+        return EXIT_FAILURE;
+    }
+
+    QString iconError;
+    if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
+        const QByteArray diagnostic
+            = QStringLiteral( "%1: resource %2\n" )
+                  .arg( iconError, QString::fromLatin1( zzlogg::brand::IconResource ) )
+                  .toLocal8Bit();
+        std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
+        std::fflush( stderr );
+        return EXIT_FAILURE;
+    }
+
+    const QString applicationDirectory = QCoreApplication::applicationDirPath();
+    const QString appConfigDirectory
+        = QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation );
+    const QString userDataDirectory
+        = QStandardPaths::writableLocation( QStandardPaths::AppDataLocation );
+    const auto storageResult = bootstrapStorage(
+        applicationDirectory, appConfigDirectory, userDataDirectory,
+        QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,
+        []( const StorageBootstrapPrompt& prompt ) -> std::optional<StorageLocation> {
+            StorageBootstrapDialog dialog;
+            dialog.configurePaths( prompt.applicationDirectory, prompt.userDataDirectory );
+            return dialog.exec() == QDialog::Accepted ? dialog.selectedLocation() : std::nullopt;
+        } );
+    if ( storageResult.status != StorageBootstrapStatus::Ready ) {
+        if ( storageResult.status == StorageBootstrapStatus::Error ) {
+            reportStorageBootstrapFailure( storageResult.error );
         }
-        if ( !setupError.isEmpty() ) {
-            reportUi2SmokeSetupFailure( setupError );
+        return storageResult.status == StorageBootstrapStatus::Cancelled ? EXIT_SUCCESS
+                                                                         : EXIT_FAILURE;
+    }
+
+    const auto& config = Configuration::getSynced();
+    const StorageLocation& currentLocation = StorageContext::current().location();
+    if ( !currentLocation.commandLineOverride && !currentLocation.locatorPath.isEmpty() ) {
+        QString locatorError;
+        const StorageLocatorStore locatorStore{ applicationDirectory, appConfigDirectory };
+        if ( !locatorStore.writeActive( currentLocation, &locatorError ) ) {
+            reportStorageBootstrapFailure(
+                QStringLiteral( "failed to verify storage locator %1 for %2: %3" )
+                    .arg( currentLocation.locatorPath, currentLocation.dataRoot, locatorError ) );
             return EXIT_FAILURE;
         }
     }
 
-    std::optional<KloggApp> appStorage;
-    const Configuration* config = nullptr;
-#if QT_VERSION >= QT_VERSION_CHECK( 6, 0, 0 )
-    if ( ui2Smoke.requested ) {
-        setApplicationAttributes( true, 0 );
-        QString iconError;
-        appStorage.emplace( argc, argv );
-        if ( !applyZzLoggApplicationIcon( *appStorage, &iconError ) ) {
-            const QByteArray diagnostic
-                = QStringLiteral( "%1: resource %2\n" )
-                      .arg( iconError,
-                            QString::fromLatin1( zzlogg::brand::IconResource ) )
-                      .toLocal8Bit();
-            std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ),
-                         stderr );
-            std::fflush( stderr );
-            return EXIT_FAILURE;
-        }
-        config = &Configuration::getSynced();
-    }
-    else
-#endif
-    {
-        config = &Configuration::getSynced();
-        setApplicationAttributes( config->enableQtHighDpi(), config->scaleFactorRounding() );
-        QString iconError;
-        appStorage.emplace( argc, argv );
-        if ( !applyZzLoggApplicationIcon( *appStorage, &iconError ) ) {
-            const QByteArray diagnostic
-                = QStringLiteral( "%1: resource %2\n" )
-                      .arg( iconError,
-                            QString::fromLatin1( zzlogg::brand::IconResource ) )
-                      .toLocal8Bit();
-            std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ),
-                         stderr );
-            std::fflush( stderr );
-            return EXIT_FAILURE;
-        }
-    }
-    auto& app = *appStorage;
     if ( ui2Smoke.requested ) {
         auto& smokeConfiguration = Configuration::get();
         smokeConfiguration.setUiThemeMode( UiThemeMode::System );
         smokeConfiguration.save();
     }
-    MainWindow::installLanguage( config->language() );
-    CliParameters parameters( app );
+    MainWindow::installLanguage( config.language() );
 
     const auto logLevel
-        = static_cast<logging::LogLevel>( std::max( parameters.log_level, config->loggingLevel() ) );
-    logging::enableLogging( parameters.enable_logging || config->enableLogging(), logLevel );
-    logging::enableFileLogging( parameters.log_to_file || config->enableLogging(), logLevel );
+        = static_cast<logging::LogLevel>( std::max( parameters.log_level, config.loggingLevel() ) );
+    logging::enableLogging( parameters.enable_logging || config.enableLogging(), logLevel );
+    logging::enableFileLogging( parameters.log_to_file || config.enableLogging(), logLevel );
 
     app.initCrashHandler();
 
@@ -586,8 +570,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );
 
     LOG_INFO << zzlogg::brand::ProductName << " instance"
-             << ", mimalloc v" << mi_version()
-             << ", default concurrency " << maxConcurrency;
+             << ", mimalloc v" << mi_version() << ", default concurrency " << maxConcurrency;
 
     roaring_memory_t roaring_memory_allocators;
     roaring_memory_allocators.malloc = mi_malloc;
@@ -613,50 +596,43 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     std::unique_ptr<QObject> uiRuntime;
     QString runtimeError;
 
-    if ( !parameters.multi_instance && app.isSecondary() ) {
-        LOG_INFO << "Found another " << zzlogg::brand::ProductName << ", pid "
-                 << app.primaryPid();
-        app.sendFilesToPrimaryInstance( parameters.filenames );
+    if ( options.createUiRuntime ) {
+        uiRuntime = options.createUiRuntime( app, &runtimeError );
+    }
+    if ( !uiRuntime ) {
+        StyleManager::applyStyle( config.style() );
+    }
+
+    auto startNewSession = true;
+    MainWindow* mw = nullptr;
+    if ( parameters.load_session
+         || ( parameters.filenames.empty() && !parameters.new_session
+              && config.loadLastSession() ) ) {
+        mw = app.reloadSession();
+        startNewSession = false;
     }
     else {
-        if ( options.createUiRuntime ) {
-            uiRuntime = options.createUiRuntime( app, &runtimeError );
-        }
-        if ( !uiRuntime ) {
-            StyleManager::applyStyle( config->style() );
-        }
+        mw = app.newWindow();
+        mw->reloadGeometry();
+        mw->show();
+    }
 
-        auto startNewSession = true;
-        MainWindow* mw = nullptr;
-        if ( parameters.load_session
-             || ( parameters.filenames.empty() && !parameters.new_session
-                  && config->loadLastSession() ) ) {
-            mw = app.reloadSession();
-            startNewSession = false;
-        }
-        else {
-            mw = app.newWindow();
-            mw->reloadGeometry();
-            mw->show();
-        }
+    if ( parameters.window_width > 0 && parameters.window_height > 0 ) {
+        mw->resize( parameters.window_width, parameters.window_height );
+    }
 
-        if ( parameters.window_width > 0 && parameters.window_height > 0 ) {
-            mw->resize( parameters.window_width, parameters.window_height );
-        }
+    for ( const auto& filename : parameters.filenames ) {
+        mw->loadInitialFile( filename, parameters.follow_file );
+    }
 
-        for ( const auto& filename : parameters.filenames ) {
-            mw->loadInitialFile( filename, parameters.follow_file );
-        }
+    if ( startNewSession ) {
+        app.clearInactiveSessions();
+    }
 
-        if ( startNewSession ) {
-            app.clearInactiveSessions();
-        }
+    app.startBackgroundTasks();
 
-        app.startBackgroundTasks();
-
-        if ( ui2Smoke.requested ) {
-            startUi2SmokeProbe( app, ui2Smoke.deadlineMs, ui2Smoke.mode );
-        }
+    if ( ui2Smoke.requested ) {
+        startUi2SmokeProbe( app, ui2Smoke.deadlineMs, ui2Smoke.mode );
     }
 
     auto warning = options.startupWarning;

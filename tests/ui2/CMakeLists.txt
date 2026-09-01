@@ -39,6 +39,17 @@ set_target_properties(zzlogg_storage_migrator_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.storage_migrator
          COMMAND zzlogg_storage_migrator_test)
 
+add_executable(zzlogg_storage_bootstrap_test
+  storagebootstraptest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/storagebootstrap.cpp")
+target_include_directories(zzlogg_storage_bootstrap_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app")
+target_link_libraries(zzlogg_storage_bootstrap_test PRIVATE
+  klogg_storage Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_storage_bootstrap_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.storage_bootstrap
+         COMMAND zzlogg_storage_bootstrap_test)
+
 add_executable(zzlogg_storage_location_ui_test storagelocationuitest.cpp)
 target_link_libraries(zzlogg_storage_location_ui_test PRIVATE
   klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
@@ -272,14 +283,6 @@ add_test(NAME zzlogg_ui2.session_restore_smoke
           -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
 set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
 
-add_test(NAME zzlogg_ui2.portable_guard_smoke
-  COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
-          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/portable-guard-smoke"
-          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
-          -P "${CMAKE_CURRENT_SOURCE_DIR}/portableguardsmoke.cmake")
-set_tests_properties(zzlogg_ui2.portable_guard_smoke PROPERTIES TIMEOUT 20)
-
 add_test(NAME zzlogg_ui2.smoke_setup_diagnostics
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
@@ -308,13 +311,13 @@ set_tests_properties(zzlogg_ui2.titlebar_lifetime_smoke PROPERTIES TIMEOUT 20)
 if(WIN32)
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
-    zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
+    zzlogg_ui2.smoke_setup_diagnostics
     zzlogg_ui2.async_object_lifetime_smoke zzlogg_ui2.titlebar_lifetime_smoke
     PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
   set_property(TEST
     zzlogg_ui2.application_smoke zzlogg_ui2.session_restore_smoke
-    zzlogg_ui2.portable_guard_smoke zzlogg_ui2.smoke_setup_diagnostics
+    zzlogg_ui2.smoke_setup_diagnostics
     zzlogg_ui2.async_object_lifetime_smoke zzlogg_ui2.titlebar_lifetime_smoke
     PROPERTY ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:zzlogg_ui2>")
