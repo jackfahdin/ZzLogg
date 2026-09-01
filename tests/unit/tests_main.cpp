@@ -21,17 +21,23 @@
 #include <catch2/catch.hpp>
 
 #include <QApplication>
+#include <QTemporaryDir>
 
 #include <logger.h>
 
 #include "configuration.h"
-#include <persistentinfo.h>
-
-const bool PersistentInfo::ForcePortable = true;
+#include "storagecontext.h"
 
 int main( int argc, char* argv[] )
 {
     QApplication a( argc, argv );
+    QTemporaryDir settingsRoot;
+    if ( !settingsRoot.isValid()
+         || !StorageContext::install(
+             { StorageMode::CustomDirectory, settingsRoot.path(),
+               settingsRoot.filePath( QStringLiteral( "storage.ini" ) ), true } ) ) {
+        return 1;
+    }
 
     logging::enableLogging();
 

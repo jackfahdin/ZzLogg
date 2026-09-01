@@ -5,32 +5,31 @@
 #include <QTemporaryDir>
 
 #include "persistentinfo.h"
-
-const bool PersistentInfo::ForcePortable = false;
+#include "storagecontext.h"
 
 class SettingsOverrideTest : public QObject {
     Q_OBJECT
 
   private slots:
-    void usesForcedIniFormatAndPath();
+    void usesInstalledStorageContext();
 };
 
-void SettingsOverrideTest::usesForcedIniFormatAndPath()
+void SettingsOverrideTest::usesInstalledStorageContext()
 {
     QTemporaryDir settingsRoot;
     QVERIFY( settingsRoot.isValid() );
-    QVERIFY2( !QFileInfo::exists( kloggPortableConfigPath() ),
-              "settings override contract must run without an adjacent portable config" );
-
-    QVERIFY( setPersistentSettingsOverrideForProcess( QSettings::IniFormat,
-                                                       settingsRoot.path() ) );
+    const StorageLocation location{ StorageMode::CustomDirectory, settingsRoot.path(),
+                                    settingsRoot.filePath( QStringLiteral( "locator.ini" ) ),
+                                    true };
+    QVERIFY( StorageContext::install( location ) );
+    QVERIFY( StorageContext::current().ensureDirectories() );
 
     auto& appSettings = PersistentInfo::getSettings( app_settings{} );
     auto& sessionSettings = PersistentInfo::getSettings( session_settings{} );
     const QString expectedAppPath
-        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "ZzLogg/ZzLogg.ini" ) );
+        = settingsRoot.filePath( QStringLiteral( "config/ZzLogg.ini" ) );
     const QString expectedSessionPath
-        = QDir( settingsRoot.path() ).filePath( QStringLiteral( "ZzLogg/ZzLogg_session.ini" ) );
+        = settingsRoot.filePath( QStringLiteral( "session/ZzLogg_session.ini" ) );
 
     QCOMPARE( appSettings.format(), QSettings::IniFormat );
     QCOMPARE( sessionSettings.format(), QSettings::IniFormat );
@@ -48,12 +47,6 @@ void SettingsOverrideTest::usesForcedIniFormatAndPath()
     QCOMPARE( sessionSettings.status(), QSettings::NoError );
     QVERIFY( QFileInfo::exists( expectedAppPath ) );
     QVERIFY( QFileInfo::exists( expectedSessionPath ) );
-
-    QTemporaryDir rejectedRoot;
-    QVERIFY( rejectedRoot.isValid() );
-    QVERIFY( !setPersistentSettingsOverrideForProcess( QSettings::IniFormat,
-                                                        rejectedRoot.path() ) );
-    QCOMPARE( QDir::cleanPath( appSettings.fileName() ), QDir::cleanPath( expectedAppPath ) );
 }
 
 QTEST_APPLESS_MAIN( SettingsOverrideTest )

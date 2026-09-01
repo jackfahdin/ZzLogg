@@ -2,6 +2,7 @@
 #include "kloggapp.h"
 #include "mainwindow.h"
 #include "persistentinfo.h"
+#include "storagecontext.h"
 #include "zzloggfluentshell.h"
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
@@ -18,8 +19,6 @@
 #include <ZzFluentUI/ZzThemeMode.h>
 #include <ZzFluentUI/ZzThemeSnapshot.h>
 #include <ZzWindowKit/ZzWindowKitBootstrap.h>
-
-const bool PersistentInfo::ForcePortable = false;
 
 class RuntimeContractTest final : public QObject {
     Q_OBJECT
@@ -128,12 +127,16 @@ int main( int argc, char* argv[] )
     qputenv( "XDG_CONFIG_HOME", xdgConfig.toLocal8Bit() );
     qputenv( "ZZLOGG_TEST_SETTINGS_ROOT", settingsRoot.path().toLocal8Bit() );
     QStandardPaths::setTestModeEnabled( true );
-    QSettings::setPath( QSettings::IniFormat, QSettings::UserScope, settingsRoot.path() );
     const auto prepared = ZzWindowKit::ZzWindowKitBootstrap::prepare();
     if ( !prepared )
         return 2;
     prepareZzLoggApplicationIdentity();
     KloggApp app( argc, argv );
+    if ( !StorageContext::install(
+             { StorageMode::CustomDirectory, settingsRoot.path(),
+               settingsRoot.filePath( QStringLiteral( "storage.ini" ) ), true } ) ) {
+        return 5;
+    }
     QString iconError;
     if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
         qCritical().noquote() << iconError;

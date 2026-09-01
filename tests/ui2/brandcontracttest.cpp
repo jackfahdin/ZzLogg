@@ -1,14 +1,11 @@
 #include "zzlogg_brand.h"
 #include "issuereporter.h"
-#include "persistentinfo.h"
 #include "versionchecker.h"
 
 #include <QNetworkAccessManager>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QtTest>
-
-const bool PersistentInfo::ForcePortable = false;
 
 class BrandContractTest final : public QObject {
     Q_OBJECT

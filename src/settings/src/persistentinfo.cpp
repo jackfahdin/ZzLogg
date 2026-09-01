@@ -39,140 +39,31 @@
 // Implements PersistentInfo, a singleton class which store/retrieve objects
 // to persistent storage.
 
-#include <QCoreApplication>
-#include <QDir>
-#include <QFileInfo>
-
-#include <mutex>
-#include <optional>
-
-#include <whereami.h>
+#include <stdexcept>
 
 #include "log.h"
+#include "storagecontext.h"
 #include "uuid.h"
-#include "zzlogg_brand.h"
 
 #include "persistentinfo.h"
 
 constexpr uint8_t AppSettingsVersion = 1;
 constexpr uint8_t SessionSettingsVersion = 2;
 
-constexpr const char PortableExtension[] = ".conf";
-
-namespace {
-std::mutex settingsOverrideMutex;
-std::optional<QSettings::Format> settingsFormatOverride;
-bool persistentInfoInitialized = false;
-
-QString makeSessionSettingsPath( const QString& appConfigPath )
-{
-    return QFileInfo( appConfigPath )
-        .absoluteDir()
-        .filePath( QString::fromLatin1( zzlogg::brand::SessionSettingsApplication )
-                   + PortableExtension );
-}
-} // namespace
-
-QString kloggPortableConfigPath()
-{
-    QString executablePath;
-
-    int dirnameLength = 0;
-    const auto executablePathLength = wai_getExecutablePath( NULL, 0, &dirnameLength );
-    if ( executablePathLength > 0 ) {
-        auto path = std::vector<char>( static_cast<size_t>( executablePathLength ), '\0' );
-        wai_getExecutablePath( &path[ 0 ], executablePathLength, &dirnameLength );
-        executablePath = QString::fromUtf8( path.data(), dirnameLength );
-    }
-
-    return executablePath + QDir::separator()
-           + QString::fromLatin1( zzlogg::brand::PortableConfigBaseName ) + PortableExtension;
-}
-
-bool setPersistentSettingsOverrideForProcess( QSettings::Format format, const QString& path )
-{
-    const std::lock_guard<std::mutex> lock( settingsOverrideMutex );
-    if ( persistentInfoInitialized || settingsFormatOverride ) {
-        return false;
-    }
-
-    QSettings::setPath( format, QSettings::UserScope, path );
-    settingsFormatOverride = format;
-    return true;
-}
-
 PersistentInfo::PersistentInfo()
 {
-    {
-        const std::lock_guard<std::mutex> lock( settingsOverrideMutex );
-        persistentInfoInitialized = true;
+    const auto& storage = StorageContext::current();
+    QString error;
+    if ( !storage.ensureDirectories( &error ) ) {
+        throw std::runtime_error( error.toStdString() );
     }
 
-    const auto portableConfigPath = kloggPortableConfigPath();
-
-    LOG_INFO << "Portable config path " << portableConfigPath;
-
-    const auto usePortableConfiguration = ForcePortable || QFileInfo::exists( portableConfigPath );
-
-    if ( usePortableConfiguration ) {
-        PreparePortableSettings( portableConfigPath );
-    }
-    else {
-        PrepareOsSettings();
-    }
+    appSettings_
+        = std::make_unique<QSettings>( storage.configFilePath(), QSettings::IniFormat );
+    sessionSettings_
+        = std::make_unique<QSettings>( storage.sessionFilePath(), QSettings::IniFormat );
 
     UpdateSettings();
-}
-
-void PersistentInfo::PreparePortableSettings( const QString& portableConfigPath )
-{
-    const auto sessionSettingsPath = makeSessionSettingsPath( portableConfigPath );
-
-    if ( !QFileInfo::exists( sessionSettingsPath ) && QFileInfo::exists( portableConfigPath ) ) {
-        QFile::copy( portableConfigPath, sessionSettingsPath );
-    }
-
-    appSettings_ = std::make_unique<QSettings>( portableConfigPath, QSettings::IniFormat );
-    sessionSettings_ = std::make_unique<QSettings>( sessionSettingsPath, QSettings::IniFormat );
-}
-
-void PersistentInfo::PrepareOsSettings()
-{
-#ifdef Q_OS_WIN
-    auto format = QSettings::IniFormat;
-#else
-    auto format = QSettings::NativeFormat;
-#endif
-    if ( settingsFormatOverride ) {
-        format = *settingsFormatOverride;
-    }
-
-    appSettings_ = std::make_unique<QSettings>(
-        format, QSettings::UserScope,
-        QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
-        QString::fromLatin1( zzlogg::brand::SettingsApplication ) );
-    sessionSettings_ = std::make_unique<QSettings>(
-        format, QSettings::UserScope,
-        QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
-        QString::fromLatin1( zzlogg::brand::SessionSettingsApplication ) );
-
-#ifndef Q_OS_MAC
-    const auto sessionSettingsPath = makeSessionSettingsPath( appSettings_->fileName() );
-
-    if ( sessionSettings_->allKeys().isEmpty() ) {
-        if ( QFile::exists( sessionSettingsPath ) ) {
-            QSettings oldSessionSettings{ sessionSettingsPath, QSettings::IniFormat };
-            for ( const auto& key : oldSessionSettings.allKeys() ) {
-                sessionSettings_->setValue( key, oldSessionSettings.value( key ) );
-            }
-        }
-        else {
-            for ( const auto& key : appSettings_->allKeys() ) {
-                sessionSettings_->setValue( key, appSettings_->value( key ) );
-            }
-        }
-    }
-#endif
 }
 
 void PersistentInfo::UpdateSettings()

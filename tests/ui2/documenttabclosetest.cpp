@@ -5,10 +5,8 @@
 #include <QTemporaryDir>
 
 #include "configuration.h"
-#include "persistentinfo.h"
+#include "storagecontext.h"
 #include "tabbedcrawlerwidget.h"
-
-const bool PersistentInfo::ForcePortable = false;
 
 class TestCrawler final : public QWidget {
     Q_OBJECT
@@ -30,8 +28,9 @@ class DocumentTabCloseTest final : public QObject {
 void DocumentTabCloseTest::initTestCase()
 {
     QVERIFY( settingsRoot_.isValid() );
-    QVERIFY( setPersistentSettingsOverrideForProcess( QSettings::IniFormat,
-                                                       settingsRoot_.path() ) );
+    QVERIFY( StorageContext::install(
+        { StorageMode::CustomDirectory, settingsRoot_.path(),
+          settingsRoot_.filePath( QStringLiteral( "storage.ini" ) ), true } ) );
     Configuration::getSynced();
 }
 

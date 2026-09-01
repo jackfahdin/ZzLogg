@@ -8,11 +8,9 @@
 
 #include "configuration.h"
 #include "optionsdialog.h"
-#include "persistentinfo.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
-
-const bool PersistentInfo::ForcePortable = false;
+#include "storagecontext.h"
 
 class OptionsThemeTest final : public QObject {
     Q_OBJECT
@@ -103,10 +101,9 @@ int main( int argc, char* argv[] )
     if ( !settingsDir.isValid() ) {
         return 1;
     }
-    QSettings::setPath( QSettings::IniFormat, QSettings::UserScope, settingsDir.path() );
-    QSettings isolatedSettings( QSettings::IniFormat, QSettings::UserScope,
-                                QStringLiteral( "klogg" ), QStringLiteral( "klogg" ) );
-    if ( !isolatedSettings.fileName().startsWith( settingsDir.path() ) ) {
+    if ( !StorageContext::install(
+             { StorageMode::CustomDirectory, settingsDir.path(),
+               settingsDir.filePath( QStringLiteral( "storage.ini" ) ), true } ) ) {
         return 1;
     }
     Configuration::getSynced();

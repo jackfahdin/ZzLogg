@@ -4,10 +4,7 @@
 #include <ZzWindowKit/ZzWindowKitBootstrap.h>
 
 #include "applicationrunner.h"
-#include "persistentinfo.h"
 #include "zzlogguiruntime.h"
-
-const bool PersistentInfo::ForcePortable = false;
 
 int main( int argc, char* argv[] )
 {

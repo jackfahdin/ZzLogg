@@ -22,16 +22,15 @@
 
 #include <QApplication>
 #include <QMetaType>
+#include <QTemporaryDir>
 #include <QtConcurrent>
 
 #include <configuration.h>
 #include <linetypes.h>
 #include <highlighterset.h>
-#include <persistentinfo.h>
+#include <storagecontext.h>
 
 #include <logger.h>
-
-const bool PersistentInfo::ForcePortable = true;
 
 class TestRunner : public QObject {
     Q_OBJECT
@@ -70,6 +69,13 @@ class TestRunner : public QObject {
 int main( int argc, char* argv[] )
 {
     QApplication a( argc, argv );
+    QTemporaryDir settingsRoot;
+    if ( !settingsRoot.isValid()
+         || !StorageContext::install(
+             { StorageMode::CustomDirectory, settingsRoot.path(),
+               settingsRoot.filePath( QStringLiteral( "storage.ini" ) ), true } ) ) {
+        return 1;
+    }
 
     logging::enableLogging();
 

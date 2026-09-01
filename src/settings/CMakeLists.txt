@@ -17,6 +17,7 @@ target_link_libraries(
   PUBLIC project_options
          project_warnings
          zzlogg_brand
+         klogg_storage
          klogg_utils
          Qt${QT_VERSION_MAJOR}::Core
          Qt${QT_VERSION_MAJOR}::Gui

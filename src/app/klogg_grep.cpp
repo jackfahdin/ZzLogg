@@ -24,7 +24,6 @@
 #include "logdata.h"
 #include "logfiltereddata.h"
 #include "logger.h"
-#include "persistentinfo.h"
 
 #include "cli.h"
 #include "storagebootstrap.h"
@@ -32,8 +31,6 @@
 
 #include <QDir>
 #include <QStandardPaths>
-
-const bool PersistentInfo::ForcePortable = false;
 
 int main( int argc, char* argv[] )
 {

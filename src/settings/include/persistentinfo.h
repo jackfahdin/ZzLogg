@@ -51,22 +51,14 @@ struct app_settings {
 struct session_settings {
 };
 
-QString kloggPortableConfigPath();
-bool setPersistentSettingsOverrideForProcess( QSettings::Format format, const QString& path );
-
 class PersistentInfo {
   public:
     static QSettings& getSettings( app_settings );
     static QSettings& getSettings( session_settings );
 
   private:
-    static const bool ForcePortable;
-
     explicit PersistentInfo();
     static PersistentInfo& getInstance();
-
-    void PreparePortableSettings( const QString& portableConfigPath );
-    void PrepareOsSettings();
 
     void UpdateSettings();
 

@@ -7,7 +7,6 @@ file(MAKE_DIRECTORY "${TEST_ROOT}/runtime" "${TEST_ROOT}/config")
 get_filename_component(app_name "${APP}" NAME)
 set(smoke_app "${TEST_ROOT}/runtime/${app_name}")
 file(COPY_FILE "${APP}" "${smoke_app}")
-file(WRITE "${TEST_ROOT}/runtime/ZzLogg.conf" "")
 include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
 zzlogg_capture_host_storage_state(host_state_before)
 
