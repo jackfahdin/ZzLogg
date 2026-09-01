@@ -239,13 +239,20 @@ bool StorageLocationPage::validateProgramLocatorDirectory( QString* error ) cons
     const QString probePath = QDir{ applicationDirectory_ }.filePath(
         QStringLiteral( ".zzlogg-locator-probe-%1" )
             .arg( QUuid::createUuid().toString( QUuid::WithoutBraces ) ) );
-    bool probeWritten = false;
+    const QByteArray probeBytes{ "zzlogg-locator-atomic-write-check" };
+    bool probeCommitted = false;
+    bool probeWrittenAndReadable = false;
     {
         QSaveFile probe{ probePath };
-        const QByteArray probeBytes{ "zzlogg-locator-atomic-write-check" };
         if ( probe.open( QIODevice::WriteOnly ) && probe.write( probeBytes ) == probeBytes.size()
              && probe.commit() ) {
-            probeWritten = true;
+            probeCommitted = true;
+            QFile readback{ probePath };
+            if ( readback.open( QIODevice::ReadOnly ) ) {
+                const QByteArray readBytes = readback.readAll();
+                probeWrittenAndReadable
+                    = readback.error() == QFileDevice::NoError && readBytes == probeBytes;
+            }
         }
         else {
             probe.cancelWriting();
@@ -260,8 +267,12 @@ bool StorageLocationPage::validateProgramLocatorDirectory( QString* error ) cons
         *error = tr( "无法清理存储定位文件写入探针：%1" ).arg( probePath );
         return false;
     }
-    if ( !probeWritten ) {
+    if ( !probeCommitted ) {
         *error = tr( "无法在程序目录旁原子写入存储定位文件：%1" ).arg( applicationDirectory_ );
+        return false;
+    }
+    if ( !probeWrittenAndReadable ) {
+        *error = tr( "写入后无法完整读回存储定位文件探针：%1" ).arg( probePath );
         return false;
     }
     return true;

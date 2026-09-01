@@ -2,7 +2,9 @@
 #include "storagelocationpage.h"
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -24,6 +26,28 @@ T* child( QWidget& widget, const char* objectName )
     auto* result = widget.findChild<T*>( QString::fromLatin1( objectName ) );
     Q_ASSERT( result != nullptr );
     return result;
+}
+
+void assertNoStorageFiles( const QString& root )
+{
+    const QStringList forbiddenNames{ QStringLiteral( "ZzLogg.storage.ini" ),
+                                      QStringLiteral( "storage-manifest.ini" ),
+                                      QStringLiteral( "ZzLogg.ini" ),
+                                      QStringLiteral( "ZzLogg_session.ini" ) };
+    for ( const QString& fileName : forbiddenNames ) {
+        QVERIFY2( !QFile::exists( QDir{ root }.filePath( fileName ) ),
+                  qPrintable( QDir{ root }.filePath( fileName ) ) );
+    }
+
+    QDirIterator entries{ root, QDir::Files | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot,
+                          QDirIterator::Subdirectories };
+    while ( entries.hasNext() ) {
+        const QString entryPath = entries.next();
+        const QString fileName = QFileInfo{ entryPath }.fileName();
+        QVERIFY2( !QDir::match( QStringLiteral( ".zzlogg-write-test-*" ), fileName )
+                      && !QDir::match( QStringLiteral( ".zzlogg-locator-probe-*" ), fileName ),
+                  qPrintable( entryPath ) );
+    }
 }
 
 } // namespace
@@ -62,8 +86,12 @@ void StorageLocationUiTest::displaysAndRoundTripsEveryStorageMode()
     QCOMPARE( page.location().dataRoot, normalized( applicationDirectory + "/data" ) );
     QCOMPARE( child<QLineEdit>( page, "storagePathPreview" )->text(),
               normalized( applicationDirectory + "/data" ) );
+    QVERIFY2( page.isSelectionValid(), qPrintable( page.validationError() ) );
     QCOMPARE( QDir{ applicationDirectory }.entryList( { ".zzlogg-locator-probe-*" }, QDir::Files ),
               QStringList{} );
+    assertNoStorageFiles( applicationDirectory );
+    assertNoStorageFiles( QDir{ applicationDirectory }.filePath( "data" ) );
+    assertNoStorageFiles( userDataDirectory );
 
     page.setLocation( { StorageMode::UserDirectory, userDataDirectory, {}, false } );
     QCOMPARE( child<QRadioButton>( page, "userStorageRadio" )->isChecked(), true );
@@ -153,10 +181,9 @@ void StorageLocationUiTest::dialogReturnsSelectionOnlyAfterAcceptedAndCancelCrea
     child<QPushButton>( cancelled, "storageCancelButton" )->click();
     QCOMPARE( cancelled.result(), QDialog::Rejected );
     QVERIFY( !cancelled.selectedLocation().has_value() );
-    QVERIFY( !QFile::exists( QDir{ applicationDirectory }.filePath( "ZzLogg.storage.ini" ) ) );
-    QVERIFY( !QFile::exists( QDir{ applicationDirectory }.filePath( "storage-manifest.ini" ) ) );
-    QCOMPARE( QDir{ applicationDirectory }.entryList( { ".zzlogg-*" }, QDir::Files ),
-              QStringList{} );
+    assertNoStorageFiles( applicationDirectory );
+    assertNoStorageFiles( QDir{ applicationDirectory }.filePath( "data" ) );
+    assertNoStorageFiles( userDataDirectory );
 
     StorageBootstrapDialog accepted;
     accepted.configurePaths( applicationDirectory, userDataDirectory );
