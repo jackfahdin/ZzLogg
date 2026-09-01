@@ -1,6 +1,8 @@
 #include "storagecontext.h"
 
 #include <QDir>
+#include <QMutex>
+#include <QMutexLocker>
 
 #include <utility>
 
@@ -8,7 +10,16 @@ namespace {
 
 QString normalizedPath( const QString& path )
 {
+    if ( path.isEmpty() ) {
+        return {};
+    }
     return QDir::cleanPath( QDir::fromNativeSeparators( path ) );
+}
+
+QMutex& contextMutex()
+{
+    static QMutex mutex;
+    return mutex;
 }
 
 StorageContext*& installedContext()
@@ -39,7 +50,8 @@ StorageContext::StorageContext( StorageLocation location )
 
 bool StorageContext::install( StorageLocation location, QString* error )
 {
-    if ( isInstalled() ) {
+    const QMutexLocker locker{ &contextMutex() };
+    if ( installedContext() != nullptr ) {
         if ( error != nullptr ) {
             *error = QStringLiteral( "storage context already installed" );
         }
@@ -51,12 +63,14 @@ bool StorageContext::install( StorageLocation location, QString* error )
 
 bool StorageContext::isInstalled()
 {
+    const QMutexLocker locker{ &contextMutex() };
     return installedContext() != nullptr;
 }
 
 const StorageContext& StorageContext::current()
 {
-    Q_ASSERT( isInstalled() );
+    const QMutexLocker locker{ &contextMutex() };
+    Q_ASSERT( installedContext() != nullptr );
     return *installedContext();
 }
 
