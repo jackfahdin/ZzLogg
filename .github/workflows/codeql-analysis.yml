@@ -17,6 +17,9 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-24.04
+    env:
+      CC: gcc-13
+      CXX: g++-13
 
     strategy:
       fail-fast: false
@@ -52,12 +55,14 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-    - uses: ./.github/actions/agent-setup
-
-    - name: Prepare compiler env
+    - name: Install and verify compiler floor
       run: |
-        echo "CC=gcc-13" >> $GITHUB_ENV
-        echo "CXX=g++-13" >> $GITHUB_ENV
+        sudo apt-get update
+        sudo apt-get install --yes gcc-13 g++-13
+        cmake "-DCOMPILER_VERSION=$(gcc-13 -dumpfullversion)" \
+          -P tests/ui2/compilerversioncontracttest.cmake
+
+    - uses: ./.github/actions/agent-setup
 
     - name: configure
       run: |

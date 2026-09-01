@@ -45,12 +45,17 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       QT_VERSION: 6.8.3
+      CC: gcc-13
+      CXX: g++-13
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux build and runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build patchelf ragel libgl1-mesa-dev \
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 ninja-build patchelf ragel rpm libgl1-mesa-dev \
             libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-cursor-dev \
             libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev \
             libxcb-render-util0-dev libxcb-shape0-dev libxcb-xinerama0-dev libxcb-xkb-dev
@@ -69,6 +74,8 @@ jobs:
         run: |
           cmake --version
           cmake -P tests/ui2/cmakeversioncontracttest.cmake
+          cmake "-DCOMPILER_VERSION=$(gcc-13 -dumpfullversion)" \
+            -P tests/ui2/compilerversioncontracttest.cmake
       - name: Configure
         run: >-
           cmake -S . -B build-linux -G Ninja
@@ -91,6 +98,18 @@ jobs:
           test -x "${{ github.workspace }}/stage/bin/ZzLogg"
           ldd "${{ github.workspace }}/stage/bin/ZzLogg" | tee ldd.txt
           ! grep -q "not found" ldd.txt
+      - name: Build Linux DEB and RPM packages
+        run: |
+          cpack --config build-linux/CPackConfig.cmake -G DEB -B packages
+          cpack --config build-linux/CPackConfig.cmake -G RPM -B packages
+          test -n "$(find packages -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$(find packages -maxdepth 1 -name '*.rpm' -print -quit)"
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-linux
+          path: packages/*
+          if-no-files-found: error
 
   Mac:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"

@@ -107,6 +107,16 @@ add_test(NAME zzlogg_ui2.ci_toolchain_contract
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/citoolchaincontracttest.cmake")
 
+add_test(NAME zzlogg_ui2.ci_compiler_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cicompilercontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.linux_packaging_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxpackagingcontracttest.cmake")
+
 add_test(NAME zzlogg_ui2.staged_install_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
