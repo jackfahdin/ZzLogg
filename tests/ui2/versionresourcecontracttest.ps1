@@ -1,15 +1,11 @@
 param(
   [Parameter(Mandatory = $true)] [string]$MainApp,
-  [Parameter(Mandatory = $true)] [string]$PortableApp,
-  [Parameter(Mandatory = $true)] [string]$GrepApp,
-  [Parameter(Mandatory = $true)] [string]$Ui2App
+  [Parameter(Mandatory = $true)] [string]$GrepApp
 )
 
 $expectedOriginalFilenames = @{
   $MainApp = 'ZzLogg.exe'
-  $PortableApp = 'ZzLogg_portable.exe'
   $GrepApp = 'ZzLogg_grep.exe'
-  $Ui2App = 'ZzLogg_ui2.exe'
 }
 
 foreach ($app in $expectedOriginalFilenames.Keys) {

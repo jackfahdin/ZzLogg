@@ -120,36 +120,36 @@ the application and runtime files referenced by the script. The macOS bundle,
 distribution metadata, and DMG layout are maintained in the source tree, but
 must be built and checked on a macOS host.
 
-## Windows portable folder
+## Windows runtime folder
 
 After configuring a Windows build with `windeployqt` available, create the
-self-contained portable directory with:
+self-contained runtime directory with:
 
 ```powershell
-cmake --build --preset windows-vs2026-relwithdebinfo --target klogg_portable_folder
+cmake --build --preset windows-vs2026-ui-relwithdebinfo --target zzlogg_runtime_folder
 ```
 
 The external directory is
-`<build-directory>/portable/RelWithDebInfo/ZzLogg-portable/` and contains
-`ZzLogg_portable.exe`, Qt plugins and libraries, the MSVC runtime, TBB, and the
-project documentation and license files. The internal CMake target remains
-`klogg_portable_folder` for build-script compatibility; this is an internal
-identifier, not the external product or directory name. UI2 does not currently
-have a portable-folder or installer target.
+`<build-directory>/runtime/RelWithDebInfo/ZzLogg-runtime/` and contains the
+single `ZzLogg.exe` GUI plus its Qt, ZzPureTools, MSVC runtime, and TBB
+dependencies. Windows packaging copies this same tree into both the installer
+staging directory and the distribution whose archive name ends in `-portable`;
+portable is a distribution form, not a second executable or CMake target.
 
 ## Compatibility option names
 
-The `KLOGG_*` CMake options and several internal target names are retained so
-existing developer presets and automation continue to work. In particular:
+The formal UI test option is `KLOGG_BUILD_UI_TESTS`. The old
+`KLOGG_BUILD_UI2_TESTS` option maps to it for one compatibility release and
+emits a deprecation warning. The old `*-ui2` preset names remain executable
+compatibility aliases for the corresponding formal `*-ui` presets.
 
-- `KLOGG_BUILD_UI2` enables the optional UI2 application;
-- `KLOGG_BUILD_UI2_TESTS` enables its focused tests;
+- `KLOGG_BUILD_UI_TESTS=ON` enables the focused UI tests;
 - `KLOGG_USE_HYPERSCAN=OFF` selects the Qt regular-expression backend;
 - `KLOGG_USE_SENTRY=ON` enables crash-reporting support;
-- `klogg_portable_folder` is the compatibility target described above.
+- `zzlogg_runtime_folder` creates the Windows self-contained runtime tree.
 
-These internal names do not change the public ZzLogg executable, package,
-desktop entry, or portable-directory names.
+These options do not change the public ZzLogg executable, package, or desktop
+entry names.
 
 ## Verification boundaries
 

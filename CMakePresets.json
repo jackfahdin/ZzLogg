@@ -24,11 +24,10 @@
       "generator": "Ninja"
     },
     {
-      "name": "ui2-base",
+      "name": "ui-tests-base",
       "hidden": true,
       "cacheVariables": {
-        "KLOGG_BUILD_UI2": true,
-        "KLOGG_BUILD_UI2_TESTS": true,
+        "KLOGG_BUILD_UI_TESTS": true,
         "KLOGG_BUILD_TESTS": false,
         "KLOGG_OSX_DEPLOYMENT_TARGET": "13.3"
       }
@@ -63,9 +62,16 @@
       }
     },
     {
+      "name": "ninja-ui-debug",
+      "displayName": "Ninja UI Debug",
+      "inherits": ["ninja-debug", "ui-tests-base"],
+      "binaryDir": "${sourceDir}/out/ui-ninja"
+    },
+    {
       "name": "ninja-ui2-debug",
-      "displayName": "Ninja UI2 Debug",
-      "inherits": ["ninja-debug", "ui2-base"],
+      "displayName": "Deprecated: Ninja UI2 Debug compatibility alias",
+      "description": "Compatibility alias for ninja-ui-debug; use ninja-ui-debug instead",
+      "inherits": "ninja-ui-debug",
       "binaryDir": "${sourceDir}/out/ui2-ninja"
     },
     {
@@ -85,9 +91,16 @@
       }
     },
     {
+      "name": "windows-vs2026-ui",
+      "displayName": "Visual Studio 2026 UI x64",
+      "inherits": ["windows-vs2026", "ui-tests-base"],
+      "binaryDir": "${sourceDir}/out/ui-vs"
+    },
+    {
       "name": "windows-vs2026-ui2",
-      "displayName": "Visual Studio 2026 UI2 x64",
-      "inherits": ["windows-vs2026", "ui2-base"],
+      "displayName": "Deprecated: Visual Studio 2026 UI2 compatibility alias",
+      "description": "Compatibility alias for windows-vs2026-ui; use windows-vs2026-ui instead",
+      "inherits": "windows-vs2026-ui",
       "binaryDir": "${sourceDir}/out/ui2-vs"
     }
   ],
@@ -105,7 +118,14 @@
       "configurePreset": "ninja-release"
     },
     {
+      "name": "ninja-ui-debug",
+      "configurePreset": "ninja-ui-debug"
+    },
+    {
       "name": "ninja-ui2-debug",
+      "displayName": "Deprecated: Ninja UI2 Debug compatibility alias",
+      "description": "Compatibility alias for ninja-ui-debug; use ninja-ui-debug instead",
+      "inherits": "ninja-ui-debug",
       "configurePreset": "ninja-ui2-debug"
     },
     {
@@ -124,12 +144,28 @@
       "configuration": "Release"
     },
     {
+      "name": "windows-vs2026-ui-debug",
+      "configurePreset": "windows-vs2026-ui",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-ui-relwithdebinfo",
+      "configurePreset": "windows-vs2026-ui",
+      "configuration": "RelWithDebInfo"
+    },
+    {
       "name": "windows-vs2026-ui2-debug",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 Debug compatibility alias",
+      "description": "Compatibility alias for windows-vs2026-ui-debug",
+      "inherits": "windows-vs2026-ui-debug",
       "configurePreset": "windows-vs2026-ui2",
       "configuration": "Debug"
     },
     {
       "name": "windows-vs2026-ui2-relwithdebinfo",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 RelWithDebInfo compatibility alias",
+      "description": "Compatibility alias for windows-vs2026-ui-relwithdebinfo",
+      "inherits": "windows-vs2026-ui-relwithdebinfo",
       "configurePreset": "windows-vs2026-ui2",
       "configuration": "RelWithDebInfo"
     }
@@ -157,7 +193,22 @@
       }
     },
     {
+      "name": "ninja-ui-debug",
+      "configurePreset": "ninja-ui-debug",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "ninja-ui2-debug",
+      "displayName": "Deprecated: Ninja UI2 Debug compatibility alias",
+      "description": "Compatibility alias for ninja-ui-debug; use ninja-ui-debug instead",
+      "inherits": "ninja-ui-debug",
       "configurePreset": "ninja-ui2-debug",
       "filter": {
         "include": {
@@ -193,7 +244,36 @@
       }
     },
     {
+      "name": "windows-vs2026-ui-debug",
+      "configurePreset": "windows-vs2026-ui",
+      "configuration": "Debug",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-ui-relwithdebinfo",
+      "configurePreset": "windows-vs2026-ui",
+      "configuration": "RelWithDebInfo",
+      "filter": {
+        "include": {
+          "name": "^zzlogg_ui2\\."
+        }
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "windows-vs2026-ui2-debug",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 Debug compatibility alias",
+      "description": "Compatibility alias for windows-vs2026-ui-debug",
+      "inherits": "windows-vs2026-ui-debug",
       "configurePreset": "windows-vs2026-ui2",
       "configuration": "Debug",
       "filter": {
@@ -207,6 +287,9 @@
     },
     {
       "name": "windows-vs2026-ui2-relwithdebinfo",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 RelWithDebInfo compatibility alias",
+      "description": "Compatibility alias for windows-vs2026-ui-relwithdebinfo",
+      "inherits": "windows-vs2026-ui-relwithdebinfo",
       "configurePreset": "windows-vs2026-ui2",
       "configuration": "RelWithDebInfo",
       "filter": {
@@ -245,7 +328,17 @@
       ]
     },
     {
+      "name": "ninja-ui-debug",
+      "steps": [
+        { "type": "configure", "name": "ninja-ui-debug" },
+        { "type": "build", "name": "ninja-ui-debug" },
+        { "type": "test", "name": "ninja-ui-debug" }
+      ]
+    },
+    {
       "name": "ninja-ui2-debug",
+      "displayName": "Deprecated: Ninja UI2 Debug compatibility workflow",
+      "description": "Compatibility workflow for ninja-ui-debug",
       "steps": [
         { "type": "configure", "name": "ninja-ui2-debug" },
         { "type": "build", "name": "ninja-ui2-debug" },
@@ -253,7 +346,25 @@
       ]
     },
     {
+      "name": "windows-vs2026-ui-debug",
+      "steps": [
+        { "type": "configure", "name": "windows-vs2026-ui" },
+        { "type": "build", "name": "windows-vs2026-ui-debug" },
+        { "type": "test", "name": "windows-vs2026-ui-debug" }
+      ]
+    },
+    {
+      "name": "windows-vs2026-ui-relwithdebinfo",
+      "steps": [
+        { "type": "configure", "name": "windows-vs2026-ui" },
+        { "type": "build", "name": "windows-vs2026-ui-relwithdebinfo" },
+        { "type": "test", "name": "windows-vs2026-ui-relwithdebinfo" }
+      ]
+    },
+    {
       "name": "windows-vs2026-ui2-debug",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 Debug compatibility workflow",
+      "description": "Compatibility workflow for windows-vs2026-ui-debug",
       "steps": [
         { "type": "configure", "name": "windows-vs2026-ui2" },
         { "type": "build", "name": "windows-vs2026-ui2-debug" },
@@ -262,6 +373,8 @@
     },
     {
       "name": "windows-vs2026-ui2-relwithdebinfo",
+      "displayName": "Deprecated: Visual Studio 2026 UI2 RelWithDebInfo compatibility workflow",
+      "description": "Compatibility workflow for windows-vs2026-ui-relwithdebinfo",
       "steps": [
         { "type": "configure", "name": "windows-vs2026-ui2" },
         { "type": "build", "name": "windows-vs2026-ui2-relwithdebinfo" },

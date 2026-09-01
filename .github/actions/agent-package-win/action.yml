@@ -23,7 +23,6 @@ runs:
     #  shell: cmd
     #  run: |
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg.exe
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg_portable.exe
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbb12.dll
@@ -33,11 +32,9 @@ runs:
     - name: Stage Windows package files
       shell: cmd
       run: |
-        cmake --build %KLOGG_BUILD_ROOT% --target klogg_portable_folder
+        cmake --build %KLOGG_BUILD_ROOT% --target zzlogg_runtime_folder
         if exist release rmdir /s /q release
-        xcopy /e /i /y "%KLOGG_BUILD_ROOT%\portable\RelWithDebInfo\ZzLogg-portable" release
-        del /q release\ZzLogg_portable.exe
-        xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg.exe" release\
+        xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" release
         xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release\
@@ -68,7 +65,7 @@ runs:
       shell: cmd
       run: |
         md %KLOGG_BUILD_ROOT%\packages
-        xcopy /e /i /y "%KLOGG_BUILD_ROOT%\portable\RelWithDebInfo\ZzLogg-portable" "%KLOGG_BUILD_ROOT%\packages\ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-portable"
+        xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" "%KLOGG_BUILD_ROOT%\packages\ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-portable"
         xcopy "ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-setup.exe" "%KLOGG_BUILD_ROOT%\packages" /y
 
     #- name: Win codesign installer

@@ -1,5 +1,5 @@
 if(CMAKE_VERSION VERSION_LESS 3.23)
-  message(FATAL_ERROR "KLOGG_BUILD_UI2_TESTS requires CMake 3.23 or newer")
+  message(FATAL_ERROR "KLOGG_BUILD_UI_TESTS requires CMake 3.23 or newer")
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
@@ -77,24 +77,38 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
-if(TARGET klogg_portable_folder)
-  set(ZZLOGG_PORTABLE_DIR_CONTRACT
-    "$<TARGET_GENEX_EVAL:klogg_portable_folder,$<TARGET_PROPERTY:klogg_portable_folder,ZZLOGG_PORTABLE_DIR>>")
+if(TARGET zzlogg_runtime_folder)
+  set(ZZLOGG_RUNTIME_DIR_CONTRACT
+    "$<TARGET_GENEX_EVAL:zzlogg_runtime_folder,$<TARGET_PROPERTY:zzlogg_runtime_folder,ZZLOGG_RUNTIME_DIR>>")
 else()
-  set(ZZLOGG_PORTABLE_DIR_CONTRACT
-    "${CMAKE_BINARY_DIR}/portable/$<CONFIG>/${ZZLOGG_PRODUCT_NAME}-portable")
+  set(ZZLOGG_RUNTIME_DIR_CONTRACT
+    "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>/${ZZLOGG_PRODUCT_NAME}-runtime")
 endif()
 
 add_test(NAME zzlogg_ui2.output_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DMAIN_APP=$<TARGET_FILE:klogg>"
-    "-DPORTABLE_APP=$<TARGET_FILE:klogg_portable>"
-    "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
-    "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
-    "-DPORTABLE_DIR=${ZZLOGG_PORTABLE_DIR_CONTRACT}"
+    "-DRUNTIME_DIR=${ZZLOGG_RUNTIME_DIR_CONTRACT}"
     "-DEXECUTABLE_SUFFIX=$<TARGET_FILE_SUFFIX:klogg>"
+    "-DTARGET_PORTABLE_EXISTS=$<TARGET_EXISTS:klogg_portable>"
+    "-DTARGET_UI2_EXISTS=$<TARGET_EXISTS:zzlogg_ui2>"
     "-DGREP_EXCLUDED_FROM_ALL=$<TARGET_PROPERTY:klogg_grep,EXCLUDE_FROM_ALL>"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/outputcontracttest.cmake")
+
+if(TARGET zzlogg_runtime_folder)
+  add_test(NAME zzlogg_ui2.runtime_folder_setup
+    COMMAND "${CMAKE_COMMAND}"
+      "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
+      "-DCONFIG=$<CONFIG>"
+      "-DRUNTIME_DIR=${ZZLOGG_RUNTIME_DIR_CONTRACT}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/runtimefoldersetup.cmake")
+  set_tests_properties(zzlogg_ui2.runtime_folder_setup PROPERTIES
+    FIXTURES_SETUP zzlogg_runtime_folder
+    RUN_SERIAL TRUE
+    TIMEOUT 120)
+  set_tests_properties(zzlogg_ui2.output_contract PROPERTIES
+    FIXTURES_REQUIRED zzlogg_runtime_folder)
+endif()
 
 if(WIN32)
   find_program(ZZLOGG_POWERSHELL_EXECUTABLE NAMES powershell pwsh REQUIRED)
@@ -105,16 +119,14 @@ if(WIN32)
       "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
       "-DCONTRACT_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/versionresourcecontracttest.ps1"
       "-DMAIN_APP=$<TARGET_FILE:klogg>"
-      "-DPORTABLE_APP=$<TARGET_FILE:klogg_portable>"
       "-DGREP_APP=$<TARGET_FILE:klogg_grep>"
-      "-DUI2_APP=$<TARGET_FILE:zzlogg_ui2>"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/versionresourcecontracttest.cmake")
   add_test(NAME zzlogg_ui2.windows_installer_contract
     COMMAND "${CMAKE_COMMAND}"
       "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
       "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
       "-DCONFIG=$<CONFIG>"
-      "-DPORTABLE_DIR=${ZZLOGG_PORTABLE_DIR_CONTRACT}"
+      "-DRUNTIME_DIR=${ZZLOGG_RUNTIME_DIR_CONTRACT}"
       "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/windowsinstallercontracttest.cmake")
   set_tests_properties(zzlogg_ui2.windows_installer_contract PROPERTIES
@@ -317,7 +329,7 @@ endif()
 
 add_test(NAME zzlogg_ui2.application_smoke
   COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_RUNTIME_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-runtime"
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-config"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
@@ -330,7 +342,7 @@ set_tests_properties(zzlogg_ui2.application_smoke PROPERTIES
 if(WIN32)
   add_test(NAME zzlogg_ui2.windows_local_runtime_contract
     COMMAND "${CMAKE_COMMAND}"
-            "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+            "-DAPP=$<TARGET_FILE:klogg>"
             "-DCONFIG=$<CONFIG>"
             "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/local-runtime-contract"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/localruntimecontracttest.cmake")
@@ -340,7 +352,7 @@ endif()
 
 add_test(NAME zzlogg_ui2.session_restore_smoke
   COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/session-smoke-config"
           "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
@@ -348,7 +360,7 @@ set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
 
 add_test(NAME zzlogg_ui2.smoke_setup_diagnostics
   COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/smoke-setup-diagnostics"
           "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/smokesetupdiagnosticstest.cmake")
@@ -356,7 +368,7 @@ set_tests_properties(zzlogg_ui2.smoke_setup_diagnostics PROPERTIES TIMEOUT 15)
 
 add_test(NAME zzlogg_ui2.async_object_lifetime_smoke
   COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/async-object-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
@@ -366,7 +378,7 @@ set_tests_properties(zzlogg_ui2.async_object_lifetime_smoke PROPERTIES TIMEOUT 2
 
 add_test(NAME zzlogg_ui2.titlebar_lifetime_smoke
   COMMAND "${CMAKE_COMMAND}"
-          "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
+          "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/titlebar-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
@@ -386,5 +398,5 @@ if(WIN32)
     zzlogg_ui2.smoke_setup_diagnostics
     zzlogg_ui2.async_object_lifetime_smoke zzlogg_ui2.titlebar_lifetime_smoke
     PROPERTY ENVIRONMENT_MODIFICATION
-    "PATH=path_list_prepend:$<TARGET_FILE_DIR:zzlogg_ui2>")
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:klogg>")
 endif()

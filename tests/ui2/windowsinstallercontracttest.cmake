@@ -7,8 +7,8 @@ endif()
 if(NOT DEFINED CONFIG)
   message(FATAL_ERROR "CONFIG is required")
 endif()
-if(NOT DEFINED PORTABLE_DIR)
-  message(FATAL_ERROR "PORTABLE_DIR is required")
+if(NOT DEFINED RUNTIME_DIR)
+  message(FATAL_ERROR "RUNTIME_DIR is required")
 endif()
 if(NOT DEFINED POWERSHELL OR NOT EXISTS "${POWERSHELL}")
   message(FATAL_ERROR "POWERSHELL is required")
@@ -16,14 +16,14 @@ endif()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" --build "${BUILD_DIRECTORY}" --config "${CONFIG}"
-          --target klogg_portable_folder
-  RESULT_VARIABLE portable_build_result
-  OUTPUT_VARIABLE portable_build_output
-  ERROR_VARIABLE portable_build_error)
-if(NOT portable_build_result EQUAL 0)
+          --target zzlogg_runtime_folder
+  RESULT_VARIABLE runtime_build_result
+  OUTPUT_VARIABLE runtime_build_output
+  ERROR_VARIABLE runtime_build_error)
+if(NOT runtime_build_result EQUAL 0)
   message(FATAL_ERROR
-    "Failed to build portable folder (${portable_build_result}):\n"
-    "${portable_build_output}\n${portable_build_error}")
+    "Failed to build runtime folder (${runtime_build_result}):\n"
+    "${runtime_build_output}\n${runtime_build_error}")
 endif()
 
 if(CONFIG STREQUAL "Debug")
@@ -32,51 +32,63 @@ else()
   set(qt_debug_suffix "")
 endif()
 
-set(portable_sentinels
+set(runtime_sentinels
   "icuuc.dll"
+  "ZzCore.dll"
+  "ZzWindowKit.dll"
+  "tbb12.dll"
   "platforms/qwindows${qt_debug_suffix}.dll"
   "iconengines/qsvgicon${qt_debug_suffix}.dll"
   "imageformats/qsvg${qt_debug_suffix}.dll")
-foreach(portable_sentinel IN LISTS portable_sentinels)
-  if(NOT EXISTS "${PORTABLE_DIR}/${portable_sentinel}")
+foreach(runtime_sentinel IN LISTS runtime_sentinels)
+  if(NOT EXISTS "${RUNTIME_DIR}/${runtime_sentinel}")
     message(FATAL_ERROR
-      "Portable deployment is missing expected dependency-closure sentinel: ${portable_sentinel}")
+      "Runtime deployment is missing expected dependency-closure sentinel: ${runtime_sentinel}")
   endif()
 endforeach()
-if(NOT EXISTS "${PORTABLE_DIR}/ZzLogg_portable.exe")
-  message(FATAL_ERROR "Portable deployment is missing ZzLogg_portable.exe")
+if(NOT EXISTS "${RUNTIME_DIR}/ZzLogg.exe")
+  message(FATAL_ERROR "Runtime deployment is missing ZzLogg.exe")
 endif()
+foreach(forbidden_executable IN ITEMS ZzLogg_portable.exe ZzLogg_ui2.exe)
+  if(EXISTS "${RUNTIME_DIR}/${forbidden_executable}")
+    message(FATAL_ERROR "Runtime deployment contains legacy GUI: ${forbidden_executable}")
+  endif()
+endforeach()
 
-file(GLOB_RECURSE portable_files RELATIVE "${PORTABLE_DIR}" "${PORTABLE_DIR}/*")
-list(LENGTH portable_files portable_file_count)
-if(portable_file_count LESS 20)
+file(GLOB_RECURSE runtime_files RELATIVE "${RUNTIME_DIR}" "${RUNTIME_DIR}/*")
+list(LENGTH runtime_files runtime_file_count)
+if(runtime_file_count LESS 20)
   message(FATAL_ERROR
-    "Portable deployment is unexpectedly small: ${portable_file_count} files")
+    "Runtime deployment is unexpectedly small: ${runtime_file_count} files")
 endif()
 
 set(action_path "${SOURCE_ROOT}/.github/actions/agent-package-win/action.yml")
 file(READ "${action_path}" action_content)
 string(REPLACE "\r\n" "\n" action_content "${action_content}")
 
-set(portable_stage_line
-  [=[xcopy /e /i /y "%KLOGG_BUILD_ROOT%\portable\RelWithDebInfo\ZzLogg-portable" release]=])
-set(portable_remove_line [=[del /q release\ZzLogg_portable.exe]=])
-string(FIND "${action_content}" "${portable_stage_line}" portable_stage_position)
-string(FIND "${action_content}" "${portable_remove_line}" portable_remove_position)
-if(portable_stage_position EQUAL -1 OR portable_remove_position EQUAL -1
-   OR portable_remove_position LESS portable_stage_position)
-  message(FATAL_ERROR
-    "Windows staging must copy the portable tree, then remove ZzLogg_portable.exe")
+set(runtime_stage_line
+  [=[xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" release]=])
+string(FIND "${action_content}" "${runtime_stage_line}" runtime_stage_position)
+if(runtime_stage_position EQUAL -1)
+  message(FATAL_ERROR "Windows staging must copy the unified runtime tree")
 endif()
+foreach(forbidden_staging_line IN ITEMS
+    [=[del /q release\ZzLogg_portable.exe]=]
+    [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg.exe" release]=])
+  string(FIND "${action_content}" "${forbidden_staging_line}" forbidden_staging_position)
+  if(NOT forbidden_staging_position EQUAL -1)
+    message(FATAL_ERROR
+      "Windows staging retains a legacy multi-executable step: ${forbidden_staging_line}")
+  endif()
+endforeach()
 
 set(required_staging_lines
-  [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg.exe" release]=]
   [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe" release]=]
   [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe" release]=]
   [=[xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release]=]
   [=[xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release]=]
   [=[xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release]=])
-set(last_staging_position ${portable_remove_position})
+set(last_staging_position ${runtime_stage_position})
 foreach(required_staging_line IN LISTS required_staging_lines)
   string(FIND "${action_content}" "${required_staging_line}" staging_line_position)
   if(staging_line_position EQUAL -1)
@@ -99,8 +111,7 @@ set(manifest_test_root
 set(manifest_staging "${manifest_test_root}/release")
 file(REMOVE_RECURSE "${manifest_test_root}")
 file(MAKE_DIRECTORY "${manifest_staging}")
-file(COPY "${PORTABLE_DIR}/" DESTINATION "${manifest_staging}")
-file(REMOVE "${manifest_staging}/ZzLogg_portable.exe")
+file(COPY "${RUNTIME_DIR}/" DESTINATION "${manifest_staging}")
 file(MAKE_DIRECTORY "${manifest_staging}/plugins/nested")
 file(WRITE "${manifest_staging}/ZzLogg.exe" "main")
 file(WRITE "${manifest_staging}/ZzLogg_crashpad_handler.exe" "handler")

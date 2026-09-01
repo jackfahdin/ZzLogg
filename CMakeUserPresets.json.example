@@ -9,17 +9,8 @@
       "cacheVariables": {
         "CMAKE_GENERATOR_INSTANCE": "C:/Path/To/Microsoft Visual Studio/18/Community",
         "CMAKE_PREFIX_PATH": "C:/Qt/6.x/msvc2022_64",
+        "KLOGG_BUILD_UI_TESTS": true,
         "KLOGG_USE_HYPERSCAN": false
-      }
-    },
-    {
-      "name": "windows-qt6-ui2",
-      "displayName": "Windows Qt 6 UI2",
-      "inherits": "windows-qt6",
-      "binaryDir": "${sourceDir}/out/ui2-win",
-      "cacheVariables": {
-        "KLOGG_BUILD_UI2": true,
-        "KLOGG_BUILD_UI2_TESTS": true
       }
     }
   ],
@@ -40,20 +31,10 @@
       "configuration": "Release"
     },
     {
-      "name": "windows-qt6-portable",
+      "name": "windows-qt6-runtime",
       "configurePreset": "windows-qt6",
       "configuration": "RelWithDebInfo",
-      "targets": ["klogg_portable_folder"]
-    },
-    {
-      "name": "windows-qt6-ui2-debug",
-      "configurePreset": "windows-qt6-ui2",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-qt6-ui2-relwithdebinfo",
-      "configurePreset": "windows-qt6-ui2",
-      "configuration": "RelWithDebInfo"
+      "targets": ["zzlogg_runtime_folder"]
     }
   ],
   "testPresets": [
@@ -73,20 +54,6 @@
       "name": "windows-qt6-release",
       "configurePreset": "windows-qt6",
       "configuration": "Release",
-      "output": { "outputOnFailure": true }
-    },
-    {
-      "name": "windows-qt6-ui2-debug",
-      "configurePreset": "windows-qt6-ui2",
-      "configuration": "Debug",
-      "filter": { "include": { "name": "^zzlogg_ui2\\." } },
-      "output": { "outputOnFailure": true }
-    },
-    {
-      "name": "windows-qt6-ui2-relwithdebinfo",
-      "configurePreset": "windows-qt6-ui2",
-      "configuration": "RelWithDebInfo",
-      "filter": { "include": { "name": "^zzlogg_ui2\\." } },
       "output": { "outputOnFailure": true }
     }
   ],
@@ -108,26 +75,10 @@
       ]
     },
     {
-      "name": "windows-qt6-portable",
+      "name": "windows-qt6-runtime",
       "steps": [
         { "type": "configure", "name": "windows-qt6" },
-        { "type": "build", "name": "windows-qt6-portable" }
-      ]
-    },
-    {
-      "name": "windows-qt6-ui2-debug",
-      "steps": [
-        { "type": "configure", "name": "windows-qt6-ui2" },
-        { "type": "build", "name": "windows-qt6-ui2-debug" },
-        { "type": "test", "name": "windows-qt6-ui2-debug" }
-      ]
-    },
-    {
-      "name": "windows-qt6-ui2-relwithdebinfo",
-      "steps": [
-        { "type": "configure", "name": "windows-qt6-ui2" },
-        { "type": "build", "name": "windows-qt6-ui2-relwithdebinfo" },
-        { "type": "test", "name": "windows-qt6-ui2-relwithdebinfo" }
+        { "type": "build", "name": "windows-qt6-runtime" }
       ]
     }
   ]

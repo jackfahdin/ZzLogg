@@ -72,36 +72,14 @@ set(MAIN_LIBS
 
 add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES}
   ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-add_executable(klogg_portable ${OS_BUNDLE} ${MAIN_SOURCES}
-  ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-if(KLOGG_BUILD_UI2)
-  add_executable(zzlogg_ui2 ${OS_BUNDLE} ${MAIN_SOURCES}
-    ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main_ui2.cpp)
-  set_target_properties(zzlogg_ui2 PROPERTIES
-    OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}_ui2"
-    AUTOMOC ON
-    AUTORCC ON)
-  target_compile_features(zzlogg_ui2 PRIVATE cxx_std_20)
-  target_link_libraries(zzlogg_ui2 PRIVATE
-    ${MAIN_LIBS} klogg_ui zzlogg_ui2_runtime)
-  klogg_copy_ui2_runtime_dlls(zzlogg_ui2)
-endif()
 # Keep the experimental command-line frontend available for explicit builds,
 # but do not include it in the default build until its runtime issues are fixed.
 add_executable(klogg_grep EXCLUDE_FROM_ALL ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})
 
 add_dependencies(ci_build klogg)
 
-if(WIN32)
-  add_dependencies(ci_build klogg_portable)
-endif()
-
 set_target_properties(klogg PROPERTIES
   OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}"
-  AUTORCC ON
-  AUTOMOC ON)
-set_target_properties(klogg_portable PROPERTIES
-  OUTPUT_NAME "${ZZLOGG_PRODUCT_NAME}_portable"
   AUTORCC ON
   AUTOMOC ON)
 set_target_properties(klogg_grep PROPERTIES
@@ -111,24 +89,18 @@ set_target_properties(klogg_grep PROPERTIES
 
 if(KLOGG_USE_LTO)
   set_property(TARGET klogg PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-  set_property(TARGET klogg_portable PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
   set_property(TARGET klogg_grep PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-target_link_libraries(klogg PUBLIC ${MAIN_LIBS} klogg_ui)
-target_link_libraries(klogg_portable PUBLIC ${MAIN_LIBS} klogg_ui)
+target_compile_features(klogg PRIVATE cxx_std_20)
+target_link_libraries(klogg PUBLIC ${MAIN_LIBS} klogg_ui zzlogg_ui2_runtime)
+klogg_copy_ui2_runtime_dlls(klogg)
 target_link_libraries(klogg_grep PUBLIC ${MAIN_LIBS})
-
-target_compile_definitions(klogg_portable PUBLIC -DKLOGG_PORTABLE)
 
 if(WIN32)
 
   target_sources(klogg PRIVATE ${ProductVersionResourceFiles})
-  target_sources(klogg_portable PRIVATE ${PortableProductVersionResourceFiles})
   target_sources(klogg_grep PRIVATE ${GrepProductVersionResourceFiles})
-  if(TARGET zzlogg_ui2)
-    target_sources(zzlogg_ui2 PRIVATE ${Ui2ProductVersionResourceFiles})
-  endif()
 
 elseif(APPLE)
   set_source_files_properties(${ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -192,54 +164,53 @@ if(WIN32 AND TARGET Qt6::qmake)
   find_program(KLOGG_WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${KLOGG_QT_BIN_DIR}")
 
   if(KLOGG_WINDEPLOYQT_EXECUTABLE)
-    set(KLOGG_PORTABLE_ROOT "${CMAKE_BINARY_DIR}/portable/$<CONFIG>")
-    set(KLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_ROOT}/${ZZLOGG_PRODUCT_NAME}-portable")
-    set(KLOGG_PORTABLE_DOCUMENTS
-        "${README_FILE};${COPYING_FILE};${NOTICE_FILE};${DOCUMENTATION_FILE}"
-    )
+    set(KLOGG_RUNTIME_ROOT "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>")
+    set(KLOGG_RUNTIME_DIR "${KLOGG_RUNTIME_ROOT}/${ZZLOGG_PRODUCT_NAME}-runtime")
 
-    set(KLOGG_PORTABLE_DEPENDENCIES klogg_portable)
-    set(KLOGG_PORTABLE_RUNTIME_COMMANDS)
+    set(KLOGG_RUNTIME_DEPENDENCIES klogg)
+    set(KLOGG_RUNTIME_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:klogg> "${KLOGG_RUNTIME_DIR}")
 
     foreach(runtime_target tbb tbbmalloc tbbmalloc_proxy)
       if(TARGET ${runtime_target})
-        list(APPEND KLOGG_PORTABLE_DEPENDENCIES ${runtime_target})
-        list(APPEND KLOGG_PORTABLE_RUNTIME_COMMANDS
+        list(APPEND KLOGG_RUNTIME_DEPENDENCIES ${runtime_target})
+        list(APPEND KLOGG_RUNTIME_COMMANDS
              COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                     $<TARGET_FILE:${runtime_target}> "${KLOGG_PORTABLE_DIR}"
+                     $<TARGET_FILE:${runtime_target}> "${KLOGG_RUNTIME_DIR}"
         )
       endif()
     endforeach()
 
     foreach(runtime_file IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
       if(EXISTS "${runtime_file}")
-        list(APPEND KLOGG_PORTABLE_RUNTIME_COMMANDS
+        list(APPEND KLOGG_RUNTIME_COMMANDS
              COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                     "${runtime_file}" "${KLOGG_PORTABLE_DIR}"
+                     "${runtime_file}" "${KLOGG_RUNTIME_DIR}"
         )
       endif()
     endforeach()
 
     add_custom_target(
-      klogg_portable_folder
+      zzlogg_runtime_folder
       COMMAND
         ${CMAKE_COMMAND}
-        "-DAPP_EXECUTABLE=$<TARGET_FILE:klogg_portable>"
-        "-DDEPLOY_DIR=${KLOGG_PORTABLE_DIR}"
+        "-DAPP_EXECUTABLE=$<TARGET_FILE:klogg>"
+        "-DDEPLOY_DIR=${KLOGG_RUNTIME_DIR}"
         "-DWINDEPLOYQT=${KLOGG_WINDEPLOYQT_EXECUTABLE}"
         "-DCONFIG=$<CONFIG>"
-        "-DPORTABLE_DOCUMENTS=${KLOGG_PORTABLE_DOCUMENTS}"
         -P "${CMAKE_SOURCE_DIR}/cmake/DeployPortable.cmake"
-      ${KLOGG_PORTABLE_RUNTIME_COMMANDS}
-      DEPENDS ${KLOGG_PORTABLE_DEPENDENCIES}
-      COMMENT "Creating portable ${ZZLOGG_PRODUCT_NAME} folder"
+      ${KLOGG_RUNTIME_COMMANDS}
+      DEPENDS ${KLOGG_RUNTIME_DEPENDENCIES}
+      COMMENT "Creating ${ZZLOGG_PRODUCT_NAME} runtime folder"
+      COMMAND_EXPAND_LISTS
       VERBATIM
     )
-    set_property(TARGET klogg_portable_folder PROPERTY
-      ZZLOGG_PORTABLE_DIR "${KLOGG_PORTABLE_DIR}")
+    set_property(TARGET zzlogg_runtime_folder PROPERTY
+      ZZLOGG_RUNTIME_DIR "${KLOGG_RUNTIME_DIR}")
 
   else()
-    message(WARNING "windeployqt was not found; portable package targets are unavailable")
+    message(WARNING "windeployqt was not found; runtime folder target is unavailable")
   endif()
 endif()
 
@@ -255,13 +226,6 @@ if(KLOGG_USE_SENTRY)
         COMMENT "Generating symbols for $<TARGET_FILE:klogg>"
       )
 
-      add_custom_command(
-        TARGET klogg_portable
-        POST_BUILD
-        COMMAND ${DSYMUTIL} --out=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/klogg_portable.dSym $<TARGET_FILE:klogg_portable>
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Generating symbols for $<TARGET_FILE:klogg_portable>"
-      )
     else()
       find_program(OBJCOPY objcopy)
       add_custom_command(
@@ -287,29 +251,6 @@ if(KLOGG_USE_SENTRY)
         COMMENT "Linking symbols for $<TARGET_FILE:klogg>"
       )
 
-      add_custom_command(
-        TARGET klogg_portable
-        POST_BUILD
-        COMMAND ${OBJCOPY} --only-keep-debug $<TARGET_FILE:klogg_portable>
-                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/klogg_portable.debug
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Generating symbols for $<TARGET_FILE:klogg>"
-      )
-      add_custom_command(
-        TARGET klogg_portable
-        POST_BUILD
-        COMMAND ${OBJCOPY} --strip-debug --strip-unneeded $<TARGET_FILE:klogg_portable>
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Stripping $<TARGET_FILE:klogg_portable>"
-      )
-      add_custom_command(
-        TARGET klogg_portable
-        POST_BUILD
-        COMMAND ${OBJCOPY} --add-gnu-debuglink=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/klogg_portable.debug
-                $<TARGET_FILE:klogg_portable>
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Linking symbols for $<TARGET_FILE:klogg_portable>"
-      )
     endif()
 
     add_custom_command(

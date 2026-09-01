@@ -223,7 +223,7 @@ require_entry_literal(
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the branded minidump helper" "xcopy /y \"%KLOGG_BUILD_ROOT%\\output\\ZzLogg_minidump_dump.exe\" release\\")
 require_entry_literal(
-  ".github/actions/agent-package-win/action.yml" "Windows installer staging retains the portable executable" "del /q release\\ZzLogg_portable.exe")
+  ".github/actions/agent-package-win/action.yml" "Windows staging omits the unified runtime folder" "xcopy /e /i /y \"%KLOGG_BUILD_ROOT%\\runtime\\RelWithDebInfo\\ZzLogg-runtime\" release")
 require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(
@@ -246,7 +246,7 @@ set(required_entry_literals
   "packaging/windows/ZzLogg.nsi|Delete \"$APPDATA\\ZzLogg\\ZzLogg_session.ini\""
   "packaging/windows/ZzLogg.nsi|SetShellVarContext current\n    Delete \"$SENDTO\\ZzLogg.lnk\"\n    SetShellVarContext all\n    Delete \"$SMPROGRAMS\\ZzLogg.lnk\""
   "docs/DOCUMENTATION.md|do not configure an update manifest URL"
-  ".github/actions/agent-package-win/action.yml|klogg_portable_folder"
+  ".github/actions/agent-package-win/action.yml|zzlogg_runtime_folder"
   ".github/actions/agent-package-win/action.yml|packaging/windows/ZzLogg.nsi"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"
   ".github/actions/agent-package-mac/action.yml|output/ZzLogg.app"

@@ -4,9 +4,7 @@ foreach(required_variable IN ITEMS
     POWERSHELL
     CONTRACT_SCRIPT
     MAIN_APP
-    PORTABLE_APP
-    GREP_APP
-    UI2_APP)
+    GREP_APP)
   if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
     message(FATAL_ERROR "${required_variable} is required")
   endif()
@@ -14,7 +12,7 @@ endforeach()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}" --build "${BUILD_DIRECTORY}" --config "${CONFIG}"
-          --target klogg klogg_portable klogg_grep zzlogg_ui2
+          --target klogg klogg_grep
   RESULT_VARIABLE build_result
   OUTPUT_VARIABLE build_output
   ERROR_VARIABLE build_error)
@@ -26,9 +24,7 @@ execute_process(
   COMMAND "${POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
           -File "${CONTRACT_SCRIPT}"
           -MainApp "${MAIN_APP}"
-          -PortableApp "${PORTABLE_APP}"
           -GrepApp "${GREP_APP}"
-          -Ui2App "${UI2_APP}"
   RESULT_VARIABLE contract_result
   OUTPUT_VARIABLE contract_output
   ERROR_VARIABLE contract_error)
