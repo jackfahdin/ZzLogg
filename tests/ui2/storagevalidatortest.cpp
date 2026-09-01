@@ -103,6 +103,8 @@ void StorageValidatorTest::rejectsUnmanagedNonEmptyDirectory()
     QVERIFY( !result.valid );
     QVERIFY( !result.managedDirectory );
     QVERIFY( result.error.contains( QDir::cleanPath( root ) ) );
+    QCOMPARE( QDir{ root }.entryList( { QStringLiteral( ".zzlogg-write-test-*" ) }, QDir::Files ),
+              QStringList{} );
 }
 
 void StorageValidatorTest::acceptsCompatibleManifestWhenAllowed()

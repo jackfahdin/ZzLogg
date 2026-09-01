@@ -126,14 +126,12 @@ QString pathForActiveLocation( const StorageLocation& location, const LocatorPat
 bool normalizedLocatorPath( const QString& requested, const StorageLocation& location,
                             const LocatorPaths& paths, QString* path, QString* error )
 {
-    const QString result = requested.isEmpty() ? pathForActiveLocation( location, paths )
-                                                : normalizedPath( requested );
-    if ( result != paths.program && result != paths.user ) {
-        setError( error, QStringLiteral( "storage locator path is not a supported locator: %1" ).arg( result ) );
-        return false;
-    }
-    if ( location.mode == StorageMode::ProgramDirectory && result != paths.program ) {
-        setError( error, QStringLiteral( "program storage must use the adjacent program locator" ) );
+    const QString expected = pathForActiveLocation( location, paths );
+    const QString result = requested.isEmpty() ? expected : normalizedPath( requested );
+    if ( result != expected ) {
+        setError( error, location.mode == StorageMode::ProgramDirectory
+                             ? QStringLiteral( "program storage must use the adjacent program locator" )
+                             : QStringLiteral( "user and custom storage must use the user locator" ) );
         return false;
     }
     *path = result;
@@ -272,7 +270,23 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
     }
 
     StorageLocatorState state{ formatVersion, active, std::nullopt, verified };
-    if ( settings.contains( QStringLiteral( "Pending/transactionId" ) ) ) {
+    if ( settings.childGroups().contains( QStringLiteral( "Pending" ) ) ) {
+        const QStringList pendingKeys{ QStringLiteral( "Pending/transactionId" ),
+                                       QStringLiteral( "Pending/sourceMode" ),
+                                       QStringLiteral( "Pending/sourceRoot" ),
+                                       QStringLiteral( "Pending/sourceLocator" ),
+                                       QStringLiteral( "Pending/targetMode" ),
+                                       QStringLiteral( "Pending/targetRoot" ),
+                                       QStringLiteral( "Pending/targetLocator" ),
+                                       QStringLiteral( "Pending/legacyConfigFile" ),
+                                       QStringLiteral( "Pending/legacySessionFile" ),
+                                       QStringLiteral( "Pending/legacyCrashDirectory" ) };
+        for ( const QString& key : pendingKeys ) {
+            if ( !settings.contains( key ) ) {
+                return { true, std::nullopt,
+                         QStringLiteral( "storage locator Pending is missing %1: %2" ).arg( key, path ) };
+            }
+        }
         const QString transactionId = settings.value( QStringLiteral( "Pending/transactionId" ) ).toString();
         const QString sourceLocator = normalizedPath(
             settings.value( QStringLiteral( "Pending/sourceLocator" ) ).toString() );
@@ -292,6 +306,11 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                                  QStringLiteral( "Pending/targetRoot" ), targetLocator, paths, &target,
                                  &parseError ) ) {
             return { true, std::nullopt, parseError + QStringLiteral( ": %1" ).arg( path ) };
+        }
+        if ( !sameLocation( source, active ) ) {
+            return { true, std::nullopt,
+                     QStringLiteral( "storage locator Pending source does not match active storage: %1" )
+                         .arg( path ) };
         }
         state.pending = StorageMigrationRequest{
             transactionId, source, target,
@@ -397,7 +416,14 @@ StorageResolution StorageLocatorStore::resolve( const QString& commandLineDataRo
 bool StorageLocatorStore::writeActive( const StorageLocation& location, QString* error ) const
 {
     const LocatorPaths paths{ applicationDirectory_, programLocatorPath(), userLocatorPath() };
-    const QString targetPath = pathForActiveLocation( location, paths );
+    if ( location.commandLineOverride ) {
+        setError( error, QStringLiteral( "command-line storage locations cannot be persisted" ) );
+        return false;
+    }
+    QString targetPath;
+    if ( !normalizedLocatorPath( location.locatorPath, location, paths, &targetPath, error ) ) {
+        return false;
+    }
     StorageLocation active;
     if ( !normalizedLocation( location, targetPath, paths, &active, error ) ) {
         return false;

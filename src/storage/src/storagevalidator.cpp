@@ -25,10 +25,31 @@ void setError( QString* error, const QString& message )
     }
 }
 
-void removeProbeFiles( const QString& writeProbe, const QString& saveProbe )
+bool removeProbeFile( const QString& probePath, QString* error )
 {
-    QFile::remove( writeProbe );
-    QFile::remove( saveProbe );
+    if ( !QFile::exists( probePath ) ) {
+        return true;
+    }
+    if ( QFile::remove( probePath ) && !QFile::exists( probePath ) ) {
+        return true;
+    }
+    setError( error, QStringLiteral( "failed to remove storage probe file: %1" ).arg( probePath ) );
+    return false;
+}
+
+bool removeProbeFiles( const QString& writeProbe, const QString& saveProbe, QString* error )
+{
+    QString writeError;
+    QString saveError;
+    const bool writeRemoved = removeProbeFile( writeProbe, &writeError );
+    const bool saveRemoved = removeProbeFile( saveProbe, &saveError );
+    if ( !writeRemoved ) {
+        setError( error, writeError );
+    }
+    else if ( !saveRemoved ) {
+        setError( error, saveError );
+    }
+    return writeRemoved && saveRemoved;
 }
 
 StorageValidationResult invalid( const QString& root, const QString& error )
@@ -95,7 +116,10 @@ StorageValidationResult StorageValidator::validate( const QString& root,
         probeSucceeded = true;
     } while ( false );
 
-    removeProbeFiles( writeProbe, saveProbe );
+    QString cleanupError;
+    if ( !removeProbeFiles( writeProbe, saveProbe, &cleanupError ) ) {
+        return invalid( normalizedRoot, cleanupError );
+    }
     if ( !probeSucceeded ) {
         return invalid( normalizedRoot, probeError );
     }
