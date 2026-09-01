@@ -4,10 +4,12 @@
 #include "storagelocator.h"
 #include "storagemigrator.h"
 #include "storagevalidator.h"
+#include "zzlogg_brand.h"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSettings>
 #include <QUuid>
 
 #include <utility>
@@ -64,13 +66,21 @@ StorageBootstrapResult installResolvedLocator( const StorageResolution& resoluti
 
 StorageLocation legacySourceLocation( const LegacyStorage& legacy, const StorageLocatorStore& store,
                                       const QString& applicationDirectory,
-                                      const QString& appConfigDirectory )
+                                      const QString& userSettingsDirectory )
 {
     if ( legacy.mode == StorageMode::ProgramDirectory ) {
         return { StorageMode::ProgramDirectory, applicationDirectory, store.programLocatorPath(),
                  false };
     }
-    return { StorageMode::UserDirectory, appConfigDirectory, store.userLocatorPath(), false };
+    return { StorageMode::UserDirectory, userSettingsDirectory, store.userLocatorPath(), false };
+}
+
+QString legacyUserSettingsDirectory()
+{
+    const QSettings legacySettings{ QSettings::IniFormat, QSettings::UserScope,
+                                    QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
+                                    QString::fromLatin1( zzlogg::brand::SettingsApplication ) };
+    return QFileInfo{ legacySettings.fileName() }.absolutePath();
 }
 
 StorageLocation legacyTargetLocation( const LegacyStorage& legacy, const StorageLocatorStore& store,
@@ -154,11 +164,17 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         return resolveExisting( store, std::move( resolution ) );
     }
 
-    const auto legacy = LegacyStorageDetector::detect( applicationDirectory, appConfigDirectory,
+    if ( !selectionProvider ) {
+        StorageLocation location{ StorageMode::UserDirectory, userDataDirectory, {}, false };
+        return installLocation( std::move( location ), false, true );
+    }
+
+    const QString userSettingsDirectory = legacyUserSettingsDirectory();
+    const auto legacy = LegacyStorageDetector::detect( applicationDirectory, userSettingsDirectory,
                                                        oldCrashDirectory );
     if ( legacy.has_value() ) {
         const StorageLocation source
-            = legacySourceLocation( *legacy, store, applicationDirectory, appConfigDirectory );
+            = legacySourceLocation( *legacy, store, applicationDirectory, userSettingsDirectory );
         StorageLocation target
             = legacyTargetLocation( *legacy, store, applicationDirectory, userDataDirectory );
         const auto validation = StorageValidator::validate( target.dataRoot, false );
@@ -182,11 +198,6 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
                     .arg( source.dataRoot, target.dataRoot, migrated.error ) );
         }
         return resolveExisting( store, store.resolve() );
-    }
-
-    if ( !selectionProvider ) {
-        StorageLocation location{ StorageMode::UserDirectory, userDataDirectory, {}, false };
-        return installLocation( std::move( location ), false, true );
     }
 
     const std::optional<StorageLocation> selected

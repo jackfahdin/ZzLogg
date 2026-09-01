@@ -10,6 +10,8 @@ file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/runtime")
 file(COPY_FILE "${APP}" "${smoke_app}" ONLY_IF_DIFFERENT)
 file(WRITE "${TEST_CONFIG_DIR}/runtime/ZzLogg.conf" "")
 set(data_root "${TEST_CONFIG_DIR}/storage")
+include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
+zzlogg_capture_host_storage_state(host_state_before)
 if(WIN32)
   file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/Roaming" "${TEST_CONFIG_DIR}/Local")
   set(config_env
@@ -32,6 +34,9 @@ execute_process(
           ZZLOGG_UI2_SMOKE_MODE=seed-session ZZLOGG_UI2_SMOKE_MS=3000
           "${smoke_app}" --multi --new-session --data-dir "${data_root}"
   RESULT_VARIABLE seed_result TIMEOUT 15)
+zzlogg_assert_host_storage_unchanged("${host_state_before}")
+zzlogg_assert_no_locator_or_probe(
+  "${TEST_CONFIG_DIR}/runtime" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT seed_result EQUAL 0)
   message(FATAL_ERROR "UI2 session seed failed: ${seed_result}")
 endif()
@@ -46,6 +51,9 @@ execute_process(
           ZZLOGG_UI2_SMOKE_MODE=verify-restored ZZLOGG_UI2_SMOKE_MS=3000
           "${smoke_app}" --multi --load-session --data-dir "${data_root}"
   RESULT_VARIABLE restore_result TIMEOUT 15)
+zzlogg_assert_host_storage_unchanged("${host_state_before}")
+zzlogg_assert_no_locator_or_probe(
+  "${TEST_CONFIG_DIR}/runtime" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT restore_result EQUAL 0)
   message(FATAL_ERROR "UI2 session restore failed: ${restore_result}")
 endif()

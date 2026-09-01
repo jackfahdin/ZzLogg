@@ -3,11 +3,13 @@
 #include "storagecontext.h"
 #include "storagelocator.h"
 #include "storagevalidator.h"
+#include "zzlogg_brand.h"
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QProcess>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QUuid>
 
@@ -17,6 +19,8 @@ struct Fixture {
     QString root;
     QString applicationDirectory;
     QString appConfigDirectory;
+    QString legacySettingsBase;
+    QString legacyUserSettingsDirectory;
     QString userDataDirectory;
     QString oldCrashDirectory;
     StorageLocatorStore store;
@@ -25,6 +29,13 @@ struct Fixture {
         : root( QDir::cleanPath( std::move( testRoot ) ) )
         , applicationDirectory( QDir{ root }.filePath( QStringLiteral( "app" ) ) )
         , appConfigDirectory( QDir{ root }.filePath( QStringLiteral( "settings" ) ) )
+        , legacySettingsBase( QDir{ root }.filePath( QStringLiteral( "legacy-settings-base" ) ) )
+        , legacyUserSettingsDirectory(
+              QFileInfo{ QSettings{ QSettings::IniFormat, QSettings::UserScope,
+                                    QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
+                                    QString::fromLatin1( zzlogg::brand::SettingsApplication ) }
+                             .fileName() }
+                  .absolutePath() )
         , userDataDirectory( QDir{ root }.filePath( QStringLiteral( "user-data" ) ) )
         , oldCrashDirectory( QDir{ root }.filePath( QStringLiteral( "old-crashes" ) ) )
         , store( applicationDirectory, appConfigDirectory )
@@ -68,6 +79,9 @@ StorageBootstrapResult run( const Fixture& fixture, const QString& cli,
 
 int runScenario( const QString& name, const QString& root )
 {
+    const QString legacySettingsBase
+        = QDir{ root }.filePath( QStringLiteral( "legacy-settings-base" ) );
+    QSettings::setPath( QSettings::IniFormat, QSettings::UserScope, legacySettingsBase );
     Fixture fixture{ root };
     int providerCalls = 0;
     const auto neverSelect
@@ -240,6 +254,84 @@ int runScenario( const QString& name, const QString& root )
                                   QStringLiteral( "legacy source was deleted" ) )
                        && expect( resolution.state.has_value() && !resolution.state->verified,
                                   QStringLiteral( "migration target unexpectedly verified" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "user-legacy-settings-path" ) ) {
+        const QString expectedLegacyDirectory
+            = QDir{ fixture.legacySettingsBase }.filePath( QStringLiteral( "ZzLogg" ) );
+        if ( QDir::cleanPath( fixture.legacyUserSettingsDirectory )
+             != QDir::cleanPath( expectedLegacyDirectory ) ) {
+            qCritical().noquote() << "unexpected QSettings legacy directory:"
+                                  << fixture.legacyUserSettingsDirectory;
+            return EXIT_FAILURE;
+        }
+        const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg.ini" ) );
+        const QString legacySession = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg_session.ini" ) );
+        if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nsource=qsettings\n" ) )
+             || !writeFile( legacySession ) ) {
+            return EXIT_FAILURE;
+        }
+
+        const auto result = run( fixture, {}, neverSelect );
+        const StorageContext targetContext{ { StorageMode::UserDirectory, fixture.userDataDirectory,
+                                              fixture.store.userLocatorPath(), false } };
+        QFile copied{ targetContext.configFilePath() };
+        const bool copiedUserLegacy
+            = copied.open( QIODevice::ReadOnly ) && copied.readAll().contains( "source=qsettings" );
+        const auto resolution = fixture.store.resolve();
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( providerCalls == 0,
+                                  QStringLiteral( "QSettings user legacy invoked provider" ) )
+                       && expect( StorageContext::current().dataRoot()
+                                      == QDir::cleanPath( fixture.userDataDirectory ),
+                                  QStringLiteral( "QSettings user legacy target was wrong" ) )
+                       && expect( copiedUserLegacy,
+                                  QStringLiteral( "QSettings user legacy was not copied" ) )
+                       && expect( QFileInfo::exists( legacyConfig ),
+                                  QStringLiteral( "QSettings user legacy source was deleted" ) )
+                       && expect( QFileInfo::exists( fixture.store.userLocatorPath() )
+                                      && QFileInfo::exists( targetContext.manifestFilePath() ),
+                                  QStringLiteral( "QSettings user migration state missing" ) )
+                       && expect( resolution.state.has_value() && !resolution.state->verified,
+                                  QStringLiteral( "QSettings migration unexpectedly verified" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "empty-provider-ignores-legacy" ) ) {
+        const QString portableConfig
+            = QDir{ fixture.applicationDirectory }.filePath( QStringLiteral( "ZzLogg.conf" ) );
+        const QString userConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg.ini" ) );
+        const QByteArray portableBytes{ "[legacy]\nsource=portable-must-stay\n" };
+        const QByteArray userBytes{ "[legacy]\nsource=user-must-stay\n" };
+        if ( !writeFile( portableConfig, portableBytes ) || !writeFile( userConfig, userBytes ) ) {
+            return EXIT_FAILURE;
+        }
+
+        const auto result = run( fixture, {}, {} );
+        QFile portableAfter{ portableConfig };
+        QFile userAfter{ userConfig };
+        const bool legacyUnchanged
+            = portableAfter.open( QIODevice::ReadOnly ) && portableAfter.readAll() == portableBytes
+              && userAfter.open( QIODevice::ReadOnly ) && userAfter.readAll() == userBytes;
+        const StorageContext defaultContext{
+            { StorageMode::UserDirectory, fixture.userDataDirectory, {}, false }
+        };
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( StorageContext::current().dataRoot()
+                                      == QDir::cleanPath( fixture.userDataDirectory ),
+                                  QStringLiteral( "empty provider migrated legacy root" ) )
+                       && expect( legacyUnchanged,
+                                  QStringLiteral( "empty provider changed legacy bytes" ) )
+                       && expect( !QFileInfo::exists( fixture.store.programLocatorPath() )
+                                      && !QFileInfo::exists( fixture.store.userLocatorPath() ),
+                                  QStringLiteral( "empty provider persisted a legacy locator" ) )
+                       && expect( QFileInfo::exists( defaultContext.manifestFilePath() )
+                                      && !QFileInfo::exists( defaultContext.configFilePath() ),
+                                  QStringLiteral( "empty provider copied legacy data" ) )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
@@ -416,6 +508,8 @@ int main( int argc, char* argv[] )
         QStringLiteral( "cancelled" ),
         QStringLiteral( "empty-provider" ),
         QStringLiteral( "legacy-priority" ),
+        QStringLiteral( "user-legacy-settings-path" ),
+        QStringLiteral( "empty-provider-ignores-legacy" ),
         QStringLiteral( "provider-write-failure" ),
         QStringLiteral( "pending-recovery" ),
         QStringLiteral( "pending-rollback-retry" ),

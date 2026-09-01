@@ -10,6 +10,8 @@ set(smoke_app "${TEST_ROOT}/runtime/${app_name}")
 file(COPY_FILE "${APP}" "${smoke_app}")
 file(WRITE "${TEST_ROOT}/runtime/ZzLogg.conf" "")
 set(data_root "${TEST_ROOT}/storage")
+include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
+zzlogg_capture_host_storage_state(host_state_before)
 
 if(WIN32)
   file(MAKE_DIRECTORY "${TEST_ROOT}/config/Roaming" "${TEST_ROOT}/config/Local")
@@ -38,6 +40,9 @@ execute_process(
   OUTPUT_VARIABLE lifetime_stdout
   ERROR_VARIABLE lifetime_stderr
   TIMEOUT 15)
+zzlogg_assert_host_storage_unchanged("${host_state_before}")
+zzlogg_assert_no_locator_or_probe(
+  "${TEST_ROOT}/runtime" "${TEST_ROOT}/config" "${data_root}")
 if(lifetime_result EQUAL 0)
   message(FATAL_ERROR "UI2 smoke accepted a closed second window during search")
 endif()

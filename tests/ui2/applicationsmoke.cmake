@@ -11,6 +11,8 @@ set(smoke_app "${TEST_RUNTIME_DIR}/${app_name}")
 file(COPY_FILE "${APP}" "${smoke_app}" ONLY_IF_DIFFERENT)
 file(WRITE "${TEST_RUNTIME_DIR}/ZzLogg.conf" "")
 set(data_root "${TEST_CONFIG_DIR}/storage")
+include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
+zzlogg_capture_host_storage_state(host_state_before)
 
 if(WIN32)
   file(MAKE_DIRECTORY "${TEST_CONFIG_DIR}/Roaming" "${TEST_CONFIG_DIR}/Local")
@@ -34,6 +36,8 @@ execute_process(
           "${smoke_app}" --multi --new-session --data-dir "${data_root}"
           "${FIRST_LOG}" "${SECOND_LOG}"
   RESULT_VARIABLE smoke_result TIMEOUT 30)
+zzlogg_assert_host_storage_unchanged("${host_state_before}")
+zzlogg_assert_no_locator_or_probe("${TEST_RUNTIME_DIR}" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT smoke_result EQUAL 0)
   message(FATAL_ERROR "UI2 application smoke failed: ${smoke_result}")
 endif()

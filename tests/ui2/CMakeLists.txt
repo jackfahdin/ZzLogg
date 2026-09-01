@@ -45,7 +45,7 @@ add_executable(zzlogg_storage_bootstrap_test
 target_include_directories(zzlogg_storage_bootstrap_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 target_link_libraries(zzlogg_storage_bootstrap_test PRIVATE
-  klogg_storage Qt6::Test Qt6::Core)
+  klogg_storage zzlogg_brand Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_storage_bootstrap_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.storage_bootstrap
          COMMAND zzlogg_storage_bootstrap_test)
@@ -261,6 +261,7 @@ add_test(NAME zzlogg_ui2.application_smoke
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-config"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationsmoke.cmake")
 set_tests_properties(zzlogg_ui2.application_smoke PROPERTIES
   TIMEOUT 35)
@@ -280,6 +281,7 @@ add_test(NAME zzlogg_ui2.session_restore_smoke
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/session-smoke-config"
+          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
 set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
 
@@ -287,6 +289,7 @@ add_test(NAME zzlogg_ui2.smoke_setup_diagnostics
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:zzlogg_ui2>"
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/smoke-setup-diagnostics"
+          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/smokesetupdiagnosticstest.cmake")
 set_tests_properties(zzlogg_ui2.smoke_setup_diagnostics PROPERTIES TIMEOUT 15)
 
@@ -296,6 +299,7 @@ add_test(NAME zzlogg_ui2.async_object_lifetime_smoke
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/async-object-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/asyncobjectlifetimesmoke.cmake")
 set_tests_properties(zzlogg_ui2.async_object_lifetime_smoke PROPERTIES TIMEOUT 20)
 
@@ -305,6 +309,7 @@ add_test(NAME zzlogg_ui2.titlebar_lifetime_smoke
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/titlebar-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/titlebarlifetimesmoke.cmake")
 set_tests_properties(zzlogg_ui2.titlebar_lifetime_smoke PROPERTIES TIMEOUT 20)
 
