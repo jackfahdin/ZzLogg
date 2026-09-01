@@ -46,6 +46,8 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/decompressor.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/fontutils.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/colorlabelsmanager.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagelocationpage.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagebootstrapdialog.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/highlighteredit.ui
   ${CMAKE_CURRENT_SOURCE_DIR}/include/highlightersetedit.ui
   ${CMAKE_CURRENT_SOURCE_DIR}/include/highlightersdialog.ui
@@ -92,10 +94,21 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/downloader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/decompressor.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/colorlabelsmanager.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storagelocationpage.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storagebootstrapdialog.cpp
 )
 
 set_target_properties(klogg_ui PROPERTIES AUTOUIC ON)
 set_target_properties(klogg_ui PROPERTIES AUTOMOC ON)
+
+qt6_wrap_cpp(KLOGG_STORAGE_LOCATION_UI_MOC_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagelocationpage.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagebootstrapdialog.h)
+set_source_files_properties(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagelocationpage.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagebootstrapdialog.h
+  PROPERTIES SKIP_AUTOMOC ON)
+target_sources(klogg_ui PRIVATE ${KLOGG_STORAGE_LOCATION_UI_MOC_SOURCES})
 
 set_property(
   TARGET klogg_ui
@@ -115,6 +128,7 @@ target_link_libraries(
          klogg_logdata
          klogg_versioncheck
          klogg_karchive
+         klogg_storage
          Qt${QT_VERSION_MAJOR}::Widgets
          Qt${QT_VERSION_MAJOR}::Xml
 )
