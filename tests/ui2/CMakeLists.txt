@@ -25,6 +25,20 @@ set_target_properties(zzlogg_storage_locator_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.storage_locator
          COMMAND zzlogg_storage_locator_test)
 
+add_executable(zzlogg_legacy_storage_test legacystoragetest.cpp)
+target_link_libraries(zzlogg_legacy_storage_test PRIVATE
+  klogg_storage Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_legacy_storage_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.legacy_storage
+         COMMAND zzlogg_legacy_storage_test)
+
+add_executable(zzlogg_storage_migrator_test storagemigratortest.cpp)
+target_link_libraries(zzlogg_storage_migrator_test PRIVATE
+  klogg_storage Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_storage_migrator_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.storage_migrator
+         COMMAND zzlogg_storage_migrator_test)
+
 if(TARGET klogg_portable_folder)
   set(ZZLOGG_PORTABLE_DIR_CONTRACT
     "$<TARGET_GENEX_EVAL:klogg_portable_folder,$<TARGET_PROPERTY:klogg_portable_folder,ZZLOGG_PORTABLE_DIR>>")

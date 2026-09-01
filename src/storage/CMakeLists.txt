@@ -3,9 +3,13 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/storagecontext.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/storagevalidator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/storagelocator.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/legacystorage.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storagemigrator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/storagecontext.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/storagevalidator.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/storagelocator.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/legacystorage.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/storagemigrator.h
 )
 
 target_include_directories(klogg_storage PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
