@@ -126,6 +126,7 @@ private Q_SLOTS:
     void recursiveCrashCopyUsesInjectedOperation();
     void lockConflictFailsBeforeWritingPendingState();
     void commitFailureCleansManifestAndTransactionFiles();
+    void commitFailureWithCommittedTargetRequiresRecovery_data();
     void commitFailureWithCommittedTargetRequiresRecovery();
     void preexistingCompatibleManifestStillCleansCreatedDirectories();
     void cleanupFailureMakesRollbackIncomplete();
@@ -382,14 +383,15 @@ void StorageMigratorTest::commitFailureCleansManifestAndTransactionFiles()
                              QStringLiteral( "nested/dump.dmp" ) ),
                          QByteArray{ "dump" } ) );
     bool blockerCreated = false;
-    const StorageCopyOperation copy
-        = [ &fixture, &blockerCreated ]( const QString& source, const QString& target,
-                                         QString* error ) {
-              if ( !blockerCreated ) {
-                  blockerCreated = QDir{}.mkpath( fixture.store.programLocatorPath() );
-              }
-              return atomicCopy( source, target, error );
-          };
+    const StorageCopyOperation copy = [ &fixture, &blockerCreated ]( const QString& source,
+                                                                     const QString& target,
+                                                                     QString* error ) {
+        if ( !blockerCreated ) {
+            blockerCreated
+                = writeBytes( fixture.applicationDirectory, QByteArray{ "blocks locator parent" } );
+        }
+        return atomicCopy( source, target, error );
+    };
 
     const StorageMigrationResult result
         = StorageMigrator{ fixture.store, copy }.execute( fixture.request );
@@ -407,8 +409,22 @@ void StorageMigratorTest::commitFailureCleansManifestAndTransactionFiles()
               QStringLiteral( "rolledBack" ) );
 }
 
+void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery_data()
+{
+    QTest::addColumn<QString>( "verifiedValue" );
+    QTest::addColumn<bool>( "expectInvalid" );
+    QTest::addColumn<bool>( "expectGenericRollback" );
+    QTest::newRow( "verified-false" ) << QStringLiteral( "false" ) << false << false;
+    QTest::newRow( "verified-missing" ) << QString{} << true << false;
+    QTest::newRow( "verified-invalid" ) << QStringLiteral( "sometimes" ) << true << false;
+    QTest::newRow( "verified-true" ) << QStringLiteral( "true" ) << false << true;
+}
+
 void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
 {
+    QFETCH( QString, verifiedValue );
+    QFETCH( bool, expectInvalid );
+    QFETCH( bool, expectGenericRollback );
 #ifndef Q_OS_WIN
     QSKIP( "the deterministic delete/restore double-fault fixture uses Windows share modes" );
 #else
@@ -420,12 +436,13 @@ void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
     const QByteArray session{ "[General]\nb=2\n" };
     QVERIFY( writeBytes( fixture.request.legacyConfigFile, config ) );
     QVERIFY( writeBytes( fixture.request.legacySessionFile, session ) );
-    const QByteArray previousTarget( 32 * 1024 * 1024, 'x' );
+    const QByteArray previousTarget( 128 * 1024 * 1024, 'x' );
     QVERIFY( writeBytes( fixture.target.locatorPath, previousTarget ) );
 
     std::atomic<HANDLE> sourceHandle{ INVALID_HANDLE_VALUE };
     std::atomic_bool executeFinished{ false };
     std::atomic_bool sawCommittedTarget{ false };
+    std::atomic_bool changedVerified{ false };
     std::atomic_bool lockedCommittedTarget{ false };
     std::thread faultThread;
     const StorageCopyOperation copy = [ & ]( const QString& source, const QString& target,
@@ -449,21 +466,35 @@ void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
                     if ( locator.contains( "LastMigration" ) && locator.contains( "committed" )
                          && locator.contains( fixture.request.transactionId.toUtf8() ) ) {
                         sawCommittedTarget.store( true );
+                        {
+                            QSettings settings{ fixture.target.locatorPath, QSettings::IniFormat };
+                            if ( verifiedValue.isEmpty() ) {
+                                settings.remove( QStringLiteral( "Storage/verified" ) );
+                            }
+                            else {
+                                settings.setValue( QStringLiteral( "Storage/verified" ),
+                                                   verifiedValue );
+                            }
+                            settings.sync();
+                            if ( settings.status() != QSettings::NoError ) {
+                                break;
+                            }
+                            changedVerified.store( true );
+                        }
                         const HANDLE targetHandle = CreateFileW(
                             reinterpret_cast<LPCWSTR>( fixture.target.locatorPath.utf16() ),
                             GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr );
                         if ( targetHandle != INVALID_HANDLE_VALUE ) {
                             lockedCommittedTarget.store( true );
-                            std::this_thread::sleep_for( std::chrono::milliseconds( 25 ) );
-                            const HANDLE heldSource = sourceHandle.exchange( INVALID_HANDLE_VALUE );
-                            if ( heldSource != INVALID_HANDLE_VALUE ) {
-                                CloseHandle( heldSource );
-                            }
                             while ( !executeFinished.load() ) {
                                 std::this_thread::yield();
                             }
                             CloseHandle( targetHandle );
+                            const HANDLE heldSource = sourceHandle.exchange( INVALID_HANDLE_VALUE );
+                            if ( heldSource != INVALID_HANDLE_VALUE ) {
+                                CloseHandle( heldSource );
+                            }
                             return;
                         }
                     }
@@ -490,24 +521,43 @@ void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
     }
 
     QVERIFY( sawCommittedTarget.load() );
+    QVERIFY( changedVerified.load() );
     QVERIFY( lockedCommittedTarget.load() );
     QVERIFY( !result.success );
-    QVERIFY( !result.rolledBack );
-    QVERIFY( result.error.contains(
-        QStringLiteral( "target locator remains committed; recovery required" ) ) );
-    QVERIFY( result.error.contains( fixture.target.locatorPath ) );
     QSettings sourceLocator{ fixture.source.locatorPath, QSettings::IniFormat };
-    QCOMPARE( sourceLocator.value( QStringLiteral( "Pending/transactionId" ) ).toString(),
-              fixture.request.transactionId );
     QSettings targetLocator{ fixture.target.locatorPath, QSettings::IniFormat };
     QCOMPARE( targetLocator.value( QStringLiteral( "LastMigration/transactionId" ) ).toString(),
               fixture.request.transactionId );
     QCOMPARE( targetLocator.value( QStringLiteral( "LastMigration/outcome" ) ).toString(),
               QStringLiteral( "committed" ) );
     const StorageContext targetContext{ fixture.target };
-    QCOMPARE( readBytes( targetContext.configFilePath() ), config );
-    QCOMPARE( readBytes( targetContext.sessionFilePath() ), session );
-    QVERIFY( StorageValidator::hasCompatibleManifest( fixture.targetRoot ) );
+    if ( expectGenericRollback ) {
+        QVERIFY( !result.rolledBack );
+        QVERIFY( result.error.contains( QStringLiteral( "rollback failed" ) ) );
+        QCOMPARE( sourceLocator.value( QStringLiteral( "Pending/transactionId" ) ).toString(),
+                  fixture.request.transactionId );
+        QVERIFY( !QFileInfo{ fixture.targetRoot }.exists() );
+        QVERIFY( !result.error.contains(
+            QStringLiteral( "target locator remains committed; recovery required" ) ) );
+    }
+    else {
+        QVERIFY( !result.rolledBack );
+        QCOMPARE( sourceLocator.value( QStringLiteral( "Pending/transactionId" ) ).toString(),
+                  fixture.request.transactionId );
+        QCOMPARE( readBytes( targetContext.configFilePath() ), config );
+        QCOMPARE( readBytes( targetContext.sessionFilePath() ), session );
+        QVERIFY( StorageValidator::hasCompatibleManifest( fixture.targetRoot ) );
+        QVERIFY( result.error.contains( QStringLiteral( "recovery required" ) ) );
+        QVERIFY( result.error.contains( fixture.target.locatorPath ) );
+        if ( expectInvalid ) {
+            QVERIFY( result.error.contains( QStringLiteral( "target locator invalid" ) ) );
+            QVERIFY( result.error.contains( QStringLiteral( "verified" ) ) );
+        }
+        else {
+            QVERIFY(
+                result.error.contains( QStringLiteral( "target locator remains committed" ) ) );
+        }
+    }
 #endif
 }
 

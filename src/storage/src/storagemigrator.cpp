@@ -23,6 +23,7 @@ struct CreatedTargets {
 struct DirectLocatorState {
     bool found = false;
     bool valid = false;
+    bool verified = false;
     StorageLocation active;
     std::optional<StorageMigrationRequest> pending;
     QString lastTransactionId;
@@ -261,6 +262,19 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
             = QStringLiteral( "storage locator has invalid storage metadata: %1" ).arg( path );
         return state;
     }
+    const QString serializedVerified
+        = settings.value( QStringLiteral( "Storage/verified" ) ).toString();
+    bool verified = false;
+    if ( !settings.contains( QStringLiteral( "Storage/verified" ) )
+         || ( serializedVerified != QStringLiteral( "true" )
+              && serializedVerified != QStringLiteral( "false" ) ) ) {
+        DirectLocatorState state;
+        state.found = true;
+        state.error
+            = QStringLiteral( "storage locator has an invalid verified value: %1" ).arg( path );
+        return state;
+    }
+    verified = serializedVerified == QStringLiteral( "true" );
     StorageLocation activeInput{ mode,
                                  settings.value( QStringLiteral( "Storage/dataRoot" ) ).toString(),
                                  path, false };
@@ -275,6 +289,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
 
     DirectLocatorState state;
     state.found = true;
+    state.verified = verified;
     state.active = active;
     const QStringList groups = settings.childGroups();
     if ( groups.contains( QStringLiteral( "Pending" ) )
@@ -361,13 +376,33 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
 }
 
 bool targetRemainsCommitted( const StorageMigrationRequest& request,
-                             const StorageLocatorStore& store )
+                             const DirectLocatorState& targetState )
 {
-    const DirectLocatorState targetState = readDirectLocator( request.target.locatorPath, store );
     return targetState.found && targetState.valid && !targetState.pending.has_value()
-           && targetState.lastTransactionId == request.transactionId
+           && !targetState.verified && targetState.lastTransactionId == request.transactionId
            && targetState.lastOutcome == QStringLiteral( "committed" )
            && sameLocation( targetState.active, request.target );
+}
+
+std::optional<StorageMigrationResult>
+commitFailureRequiringRecovery( const StorageMigrationRequest& request,
+                                const StorageLocatorStore& store, const QString& commitError )
+{
+    const DirectLocatorState targetState = readDirectLocator( request.target.locatorPath, store );
+    if ( targetState.found && !targetState.valid ) {
+        return StorageMigrationResult{ false, false,
+                                       QStringLiteral(
+                                           "%1; target locator invalid; recovery required: %2" )
+                                           .arg( commitError, targetState.error ) };
+    }
+    if ( targetRemainsCommitted( request, targetState ) ) {
+        return StorageMigrationResult{
+            false, false,
+            QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
+                .arg( commitError, request.target.locatorPath )
+        };
+    }
+    return std::nullopt;
 }
 
 void appendUnique( QStringList& paths, const QString& path )
@@ -794,10 +829,9 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     if ( !locatorStore_.commitPending( canonical, &error ) ) {
         const QString commitError
             = QStringLiteral( "failed to commit pending storage migration: %1" ).arg( error );
-        if ( targetRemainsCommitted( canonical, locatorStore_ ) ) {
-            return { false, false,
-                     QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
-                         .arg( commitError, canonical.target.locatorPath ) };
+        if ( const auto recovery
+             = commitFailureRequiringRecovery( canonical, locatorStore_, commitError ) ) {
+            return *recovery;
         }
         return rollbackFailure( locatorStore_, canonical, targetContext, created, commitError );
     }
@@ -875,10 +909,9 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
         }
         const QString commitError
             = QStringLiteral( "failed to recover pending storage migration: %1" ).arg( error );
-        if ( targetRemainsCommitted( canonical, locatorStore_ ) ) {
-            return { false, false,
-                     QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
-                         .arg( commitError, canonical.target.locatorPath ) };
+        if ( const auto recovery
+             = commitFailureRequiringRecovery( canonical, locatorStore_, commitError ) ) {
+            return *recovery;
         }
         QString rollbackError;
         if ( locatorStore_.rollbackPending( canonical, &rollbackError ) ) {
