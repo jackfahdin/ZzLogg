@@ -4,6 +4,13 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_storage_context_test storagecontexttest.cpp)
+target_link_libraries(zzlogg_storage_context_test PRIVATE
+  klogg_storage Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_storage_context_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.storage_context
+         COMMAND zzlogg_storage_context_test)
+
 if(TARGET klogg_portable_folder)
   set(ZZLOGG_PORTABLE_DIR_CONTRACT
     "$<TARGET_GENEX_EVAL:klogg_portable_folder,$<TARGET_PROPERTY:klogg_portable_folder,ZZLOGG_PORTABLE_DIR>>")
