@@ -1,5 +1,6 @@
 #include "storagemigrator.h"
 
+#include "legacystorage.h"
 #include "storagevalidator.h"
 
 #include <QDir>
@@ -119,6 +120,9 @@ class StorageMigratorTest final : public QObject {
 
 private Q_SLOTS:
     void migratesIniCrashTreeManifestAndLocatorWithoutChangingSource();
+    void migratesDetectedLegacySessionFallback_data();
+    void migratesDetectedLegacySessionFallback();
+    void recoversPendingWithDetectedSessionFallback();
     void missingLegacyIniCreatesReadableEmptyTarget_data();
     void missingLegacyIniCreatesReadableEmptyTarget();
     void emptyIniCreationFailureNamesSourceAndTarget();
@@ -155,6 +159,199 @@ private Q_SLOTS:
     void recoverCompletePendingCommitsIdempotently();
     void recoverIncompletePendingRollsBackIdempotently();
 };
+
+void StorageMigratorTest::migratesDetectedLegacySessionFallback_data()
+{
+    QTest::addColumn<bool>( "portable" );
+    QTest::addColumn<bool>( "createConfig" );
+    QTest::addColumn<bool>( "createPrimarySession" );
+    QTest::addColumn<QByteArray>( "primarySessionContents" );
+    QTest::addColumn<bool>( "createFallbackSession" );
+    QTest::addColumn<QString>( "expectedSessionName" );
+    QTest::addColumn<QByteArray>( "expectedSessionContents" );
+
+    const QByteArray config{ "[General]\nfrom=config\n" };
+    const QByteArray sessionIni{ "[General]\nfrom=session-ini\n" };
+    const QByteArray emptySessionIni{ "[General]\n" };
+    const QByteArray sessionConf{ "[General]\nfrom=session-conf\n" };
+
+    QTest::newRow( "portable-config-fallback" )
+        << true << true << false << QByteArray{} << false << QStringLiteral( "ZzLogg.conf" )
+        << config;
+    QTest::newRow( "portable-session-priority" )
+        << true << true << true << sessionConf << false
+        << QStringLiteral( "ZzLogg_session.conf" ) << sessionConf;
+    QTest::newRow( "user-config-fallback" )
+        << false << true << false << QByteArray{} << false << QStringLiteral( "ZzLogg.ini" )
+        << config;
+    QTest::newRow( "user-empty-ini-prefers-conf" )
+        << false << true << true << emptySessionIni << true
+        << QStringLiteral( "ZzLogg_session.conf" ) << sessionConf;
+    QTest::newRow( "user-conf-only" )
+        << false << false << false << QByteArray{} << true
+        << QStringLiteral( "ZzLogg_session.conf" ) << sessionConf;
+    QTest::newRow( "user-nonempty-ini-priority" )
+        << false << true << true << sessionIni << true
+        << QStringLiteral( "ZzLogg_session.ini" ) << sessionIni;
+}
+
+void StorageMigratorTest::migratesDetectedLegacySessionFallback()
+{
+    QFETCH( bool, portable );
+    QFETCH( bool, createConfig );
+    QFETCH( bool, createPrimarySession );
+    QFETCH( QByteArray, primarySessionContents );
+    QFETCH( bool, createFallbackSession );
+    QFETCH( QString, expectedSessionName );
+    QFETCH( QByteArray, expectedSessionContents );
+
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const QString applicationDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "application" ) );
+    const QString appConfigDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "app-config" ) );
+    const QString userSettingsDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "user-settings" ) );
+    const QString oldCrashDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "old-crashes" ) );
+    const QString legacyDirectory = portable ? applicationDirectory : userSettingsDirectory;
+    const QString configName
+        = portable ? QStringLiteral( "ZzLogg.conf" ) : QStringLiteral( "ZzLogg.ini" );
+    const QString primarySessionName = portable ? QStringLiteral( "ZzLogg_session.conf" )
+                                                : QStringLiteral( "ZzLogg_session.ini" );
+    const QString configPath = QDir{ legacyDirectory }.filePath( configName );
+    const QString primarySessionPath
+        = QDir{ legacyDirectory }.filePath( primarySessionName );
+    const QString fallbackSessionPath
+        = QDir{ userSettingsDirectory }.filePath( QStringLiteral( "ZzLogg_session.conf" ) );
+    const QByteArray configContents{ "[General]\nfrom=config\n" };
+    const QByteArray fallbackSessionContents{ "[General]\nfrom=session-conf\n" };
+
+    if ( createConfig ) {
+        QVERIFY( writeBytes( configPath, configContents ) );
+    }
+    if ( createPrimarySession ) {
+        QVERIFY( writeBytes( primarySessionPath, primarySessionContents ) );
+    }
+    if ( createFallbackSession ) {
+        QVERIFY( writeBytes( fallbackSessionPath, fallbackSessionContents ) );
+    }
+
+    const auto detected = LegacyStorageDetector::detect(
+        applicationDirectory, userSettingsDirectory, oldCrashDirectory );
+    QVERIFY( detected.has_value() );
+    const QString expectedSessionPath
+        = QDir{ legacyDirectory }.filePath( expectedSessionName );
+    QCOMPARE( QDir::cleanPath( detected->sessionFile ), QDir::cleanPath( expectedSessionPath ) );
+
+    StorageLocatorStore store{ applicationDirectory, appConfigDirectory };
+    const StorageLocation source{ detected->mode, legacyDirectory,
+                                  portable ? store.programLocatorPath()
+                                           : store.userLocatorPath(),
+                                  false };
+    const StorageLocation target{ portable ? StorageMode::UserDirectory
+                                            : StorageMode::ProgramDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "target" ) ),
+                                  portable ? store.userLocatorPath()
+                                           : store.programLocatorPath(),
+                                  false };
+    const StorageMigrationRequest request{ QStringLiteral( "legacy-session-fallback" ),
+                                           source,
+                                           target,
+                                           detected->configFile,
+                                           detected->sessionFile,
+                                           detected->crashDirectory };
+    QString error;
+    QVERIFY2( store.writeActive( source, &error ), qPrintable( error ) );
+
+    const StorageContext targetContext{ target };
+    QString copiedSessionSource;
+    QString persistedSessionSource;
+    const StorageCopyOperation copy
+        = [ & ]( const QString& copySource, const QString& copyTarget, QString* copyError ) {
+              if ( QDir::cleanPath( copyTarget )
+                   == QDir::cleanPath( targetContext.sessionFilePath() ) ) {
+                  copiedSessionSource = QDir::cleanPath( copySource );
+                  const auto pendingResolution = store.resolve();
+                  if ( !pendingResolution.state.has_value()
+                       || !pendingResolution.state->pending.has_value() ) {
+                      if ( copyError != nullptr ) {
+                          *copyError = QStringLiteral( "pending migration was not persisted" );
+                      }
+                      return false;
+                  }
+                  persistedSessionSource
+                      = QDir::cleanPath( pendingResolution.state->pending->legacySessionFile );
+              }
+              return atomicCopy( copySource, copyTarget, copyError );
+          };
+
+    const StorageMigrationResult result = StorageMigrator{ store, copy }.execute( request );
+
+    QVERIFY2( result.success, qPrintable( result.error ) );
+    QCOMPARE( readBytes( targetContext.sessionFilePath() ), expectedSessionContents );
+    QCOMPARE( copiedSessionSource, QDir::cleanPath( expectedSessionPath ) );
+    QCOMPARE( persistedSessionSource, QDir::cleanPath( expectedSessionPath ) );
+}
+
+void StorageMigratorTest::recoversPendingWithDetectedSessionFallback()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const QString applicationDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "application" ) );
+    const QString appConfigDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "app-config" ) );
+    const QString userSettingsDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "user-settings" ) );
+    const QString legacyConfig
+        = QDir{ userSettingsDirectory }.filePath( QStringLiteral( "ZzLogg.ini" ) );
+    const QByteArray configContents{ "[General]\nrestored=session-fallback\n" };
+    QVERIFY( writeBytes( legacyConfig, configContents ) );
+
+    const auto detected = LegacyStorageDetector::detect(
+        applicationDirectory, userSettingsDirectory,
+        temporaryDirectory.filePath( QStringLiteral( "old-crashes" ) ) );
+    QVERIFY( detected.has_value() );
+    QCOMPARE( QDir::cleanPath( detected->sessionFile ), QDir::cleanPath( legacyConfig ) );
+
+    StorageLocatorStore store{ applicationDirectory, appConfigDirectory };
+    const StorageLocation source{ StorageMode::UserDirectory, userSettingsDirectory,
+                                  store.userLocatorPath(), false };
+    const StorageLocation target{ StorageMode::ProgramDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "target" ) ),
+                                  store.programLocatorPath(), false };
+    const StorageMigrationRequest request{ QStringLiteral( "recover-session-fallback" ),
+                                           source,
+                                           target,
+                                           detected->configFile,
+                                           detected->sessionFile,
+                                           detected->crashDirectory };
+    QString error;
+    QVERIFY2( store.writeActive( source, &error ), qPrintable( error ) );
+    QVERIFY2( store.writePending( request, &error ), qPrintable( error ) );
+    const auto pendingResolution = store.resolve();
+    QVERIFY( pendingResolution.state.has_value() );
+    QVERIFY( pendingResolution.state->pending.has_value() );
+    const StorageMigrationRequest persisted = *pendingResolution.state->pending;
+    QCOMPARE( QDir::cleanPath( persisted.legacySessionFile ), QDir::cleanPath( legacyConfig ) );
+
+    const StorageContext targetContext{ target };
+    QVERIFY2( targetContext.ensureDirectories( &error ), qPrintable( error ) );
+    QVERIFY( atomicCopy( persisted.legacyConfigFile, targetContext.configFilePath(), &error ) );
+    QVERIFY( atomicCopy( persisted.legacySessionFile, targetContext.sessionFilePath(), &error ) );
+    QVERIFY2( StorageValidator::writeManifest( targetContext, &error ), qPrintable( error ) );
+
+    const StorageMigrationResult result = StorageMigrator{ store }.recoverPending( persisted );
+
+    QVERIFY2( result.success, qPrintable( result.error ) );
+    QCOMPARE( readBytes( targetContext.sessionFilePath() ), configContents );
+    const auto committed = store.resolve();
+    QVERIFY( committed.state.has_value() );
+    QVERIFY( !committed.state->pending.has_value() );
+    QCOMPARE( committed.state->active.dataRoot, QDir::cleanPath( target.dataRoot ) );
+}
 
 void StorageMigratorTest::migratesIniCrashTreeManifestAndLocatorWithoutChangingSource()
 {

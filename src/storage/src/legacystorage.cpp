@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QSettings>
 
 namespace {
 
@@ -11,6 +12,15 @@ QString normalized( const QString& path )
         return {};
     }
     return QDir::cleanPath( QDir::fromNativeSeparators( path ) );
+}
+
+bool hasSettingsKeys( const QString& path )
+{
+    if ( !QFileInfo{ path }.isFile() ) {
+        return false;
+    }
+    QSettings settings{ path, QSettings::IniFormat };
+    return !settings.allKeys().isEmpty();
 }
 
 } // namespace
@@ -23,9 +33,11 @@ std::optional<LegacyStorage> LegacyStorageDetector::detect( const QString& appli
     const QString portableConfig
         = normalized( application.filePath( QStringLiteral( "ZzLogg.conf" ) ) );
     if ( QFileInfo{ portableConfig }.isFile() ) {
+        const QString portableSession
+            = normalized( application.filePath( QStringLiteral( "ZzLogg_session.conf" ) ) );
         return LegacyStorage{
             StorageMode::ProgramDirectory, portableConfig,
-            normalized( application.filePath( QStringLiteral( "ZzLogg_session.conf" ) ) ),
+            QFileInfo{ portableSession }.isFile() ? portableSession : portableConfig,
             normalized( application.filePath( QStringLiteral( "klogg_dump" ) ) )
         };
     }
@@ -35,8 +47,18 @@ std::optional<LegacyStorage> LegacyStorageDetector::detect( const QString& appli
         = normalized( userSettings.filePath( QStringLiteral( "ZzLogg.ini" ) ) );
     const QString userSession
         = normalized( userSettings.filePath( QStringLiteral( "ZzLogg_session.ini" ) ) );
-    if ( QFileInfo{ userConfig }.isFile() || QFileInfo{ userSession }.isFile() ) {
-        return LegacyStorage{ StorageMode::UserDirectory, userConfig, userSession,
+    const QString userSessionConf
+        = normalized( userSettings.filePath( QStringLiteral( "ZzLogg_session.conf" ) ) );
+    const bool hasUserConfig = QFileInfo{ userConfig }.isFile();
+    const bool hasUserSession = QFileInfo{ userSession }.isFile();
+    const bool hasUserSessionConf = QFileInfo{ userSessionConf }.isFile();
+    if ( hasUserConfig || hasUserSession || hasUserSessionConf ) {
+        const QString sessionSource
+            = hasSettingsKeys( userSession )
+                  ? userSession
+                  : hasUserSessionConf ? userSessionConf
+                                       : hasUserConfig ? userConfig : userSession;
+        return LegacyStorage{ StorageMode::UserDirectory, userConfig, sessionSource,
                               normalized( oldCrashDirectory ) };
     }
 

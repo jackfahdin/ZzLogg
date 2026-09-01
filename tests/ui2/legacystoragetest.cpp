@@ -66,13 +66,17 @@ void LegacyStorageTest::portableConfigTakesPriorityOverUserFiles()
 void LegacyStorageTest::userConfigOrSessionAloneIsDetected_data()
 {
     QTest::addColumn<QString>( "existingName" );
-    QTest::newRow( "config-only" ) << QStringLiteral( "ZzLogg.ini" );
-    QTest::newRow( "session-only" ) << QStringLiteral( "ZzLogg_session.ini" );
+    QTest::addColumn<QString>( "expectedSessionName" );
+    QTest::newRow( "config-only" ) << QStringLiteral( "ZzLogg.ini" )
+                                         << QStringLiteral( "ZzLogg.ini" );
+    QTest::newRow( "session-only" ) << QStringLiteral( "ZzLogg_session.ini" )
+                                          << QStringLiteral( "ZzLogg_session.ini" );
 }
 
 void LegacyStorageTest::userConfigOrSessionAloneIsDetected()
 {
     QFETCH( QString, existingName );
+    QFETCH( QString, expectedSessionName );
     QTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     const QString applicationDirectory = temporaryDirectory.filePath( QStringLiteral( "app" ) );
@@ -88,7 +92,7 @@ void LegacyStorageTest::userConfigOrSessionAloneIsDetected()
     QCOMPARE( detected->mode, StorageMode::UserDirectory );
     QCOMPARE( detected->configFile, normalized( userDirectory + QStringLiteral( "/ZzLogg.ini" ) ) );
     QCOMPARE( detected->sessionFile,
-              normalized( userDirectory + QStringLiteral( "/ZzLogg_session.ini" ) ) );
+              normalized( QDir{ userDirectory }.filePath( expectedSessionName ) ) );
     QCOMPARE( detected->crashDirectory, normalized( oldCrashDirectory ) );
 }
 
