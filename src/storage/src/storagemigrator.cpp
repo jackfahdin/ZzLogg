@@ -72,7 +72,8 @@ bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationReq
            && sameLocation( left.target, right.target )
            && samePath( left.legacyConfigFile, right.legacyConfigFile )
            && samePath( left.legacySessionFile, right.legacySessionFile )
-           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory );
+           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory )
+           && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory );
 }
 
 bool sameOrChildPath( const QString& path, const QString& parent )
@@ -154,6 +155,17 @@ bool canonicalLegacyPath( const QString& input, const QString& label, QString* o
 bool validateNoSourceTargetConflicts( const StorageMigrationRequest& request, QString* error )
 {
     const StorageContext targetContext{ request.target };
+    if ( samePath( request.source.dataRoot, request.target.dataRoot ) ) {
+        return true;
+    }
+    if ( !request.sourceLogsDirectory.isEmpty()
+         && sameOrChildPath( targetContext.dataRoot(), request.sourceLogsDirectory ) ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "target storage conflicts with source logs path: %1" )
+                         .arg( request.sourceLogsDirectory );
+        }
+        return false;
+    }
     if ( !request.legacyCrashDirectory.isEmpty()
          && sameOrChildPath( targetContext.dataRoot(), request.legacyCrashDirectory ) ) {
         if ( error != nullptr ) {
@@ -203,17 +215,21 @@ bool canonicalRequest( const StorageMigrationRequest& input, const StorageLocato
     QString legacyConfigFile;
     QString legacySessionFile;
     QString legacyCrashDirectory;
+    QString sourceLogsDirectory;
     if ( !canonicalLegacyPath( input.legacyConfigFile, QStringLiteral( "legacy config file" ),
                                &legacyConfigFile, error )
          || !canonicalLegacyPath( input.legacySessionFile, QStringLiteral( "legacy session file" ),
                                   &legacySessionFile, error )
          || !canonicalLegacyPath( input.legacyCrashDirectory,
                                   QStringLiteral( "legacy crash directory" ), &legacyCrashDirectory,
-                                  error ) ) {
+                                  error )
+         || !canonicalLegacyPath( input.sourceLogsDirectory,
+                                  QStringLiteral( "source logs directory" ),
+                                  &sourceLogsDirectory, error ) ) {
         return false;
     }
     *output = { input.transactionId, source, target, legacyConfigFile, legacySessionFile,
-                legacyCrashDirectory };
+                legacyCrashDirectory, sourceLogsDirectory };
     return validateNoSourceTargetConflicts( *output, error );
 }
 
@@ -340,7 +356,8 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
               targetLocator, false },
             settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString()
+            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
+            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString()
         };
         StorageMigrationRequest pending;
         QString pendingError;
@@ -548,7 +565,8 @@ bool copyLegacyIni( const QString& source, const QString& target,
     return true;
 }
 
-bool ensureCrashDirectory( const QString& path, CreatedTargets* created, QString* error )
+bool ensureTreeDirectory( const QString& path, const QString& label, CreatedTargets* created,
+                          QString* error )
 {
     if ( QFileInfo{ path }.isDir() ) {
         return true;
@@ -558,20 +576,20 @@ bool ensureCrashDirectory( const QString& path, CreatedTargets* created, QString
         return true;
     }
     if ( error != nullptr ) {
-        *error = QStringLiteral( "failed to create crash target directory: %1" ).arg( path );
+        *error = QStringLiteral( "failed to create %1 target directory: %2" ).arg( label, path );
     }
     return false;
 }
 
-bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
-                    const StorageCopyOperation& copyOperation, CreatedTargets* created,
-                    QString* error )
+bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
+                        const QString& label, const StorageCopyOperation& copyOperation,
+                        CreatedTargets* created, QString* error )
 {
     const QFileInfo rootInfo{ sourceRoot };
     if ( rootInfo.isSymLink() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "refusing symbolic link in legacy crash tree: %1" )
-                         .arg( sourceRoot );
+            *error = QStringLiteral( "refusing symbolic link in %1 tree: %2" )
+                         .arg( label, sourceRoot );
         }
         return false;
     }
@@ -580,8 +598,8 @@ bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
     }
     if ( !rootInfo.isDir() ) {
         if ( error != nullptr ) {
-            *error
-                = QStringLiteral( "legacy crash source is not a directory: %1" ).arg( sourceRoot );
+            *error = QStringLiteral( "%1 source is not a directory: %2" )
+                         .arg( label, sourceRoot );
         }
         return false;
     }
@@ -596,8 +614,8 @@ bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
         const QString source = normalized( info.filePath() );
         if ( info.isSymLink() ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "refusing symbolic link in legacy crash tree: %1" )
-                             .arg( source );
+                *error = QStringLiteral( "refusing symbolic link in %1 tree: %2" )
+                             .arg( label, source );
             }
             return false;
         }
@@ -605,7 +623,7 @@ bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
         const QString relative = sourceDirectory.relativeFilePath( source );
         const QString target = normalized( QDir{ targetRoot }.filePath( relative ) );
         if ( info.isDir() ) {
-            if ( !ensureCrashDirectory( target, created, error ) ) {
+            if ( !ensureTreeDirectory( target, label, created, error ) ) {
                 return false;
             }
             continue;
@@ -613,19 +631,19 @@ bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
         if ( !info.isFile() ) {
             if ( error != nullptr ) {
                 *error
-                    = QStringLiteral( "unsupported entry in legacy crash tree: %1" ).arg( source );
+                    = QStringLiteral( "unsupported entry in %1 tree: %2" ).arg( label, source );
             }
             return false;
         }
-        if ( !ensureCrashDirectory( QFileInfo{ target }.absolutePath(), created, error ) ) {
+        if ( !ensureTreeDirectory( QFileInfo{ target }.absolutePath(), label, created, error ) ) {
             return false;
         }
         const bool existed = pathExistsOrIsSymlink( target );
         if ( existed ) {
             if ( error != nullptr ) {
                 *error = QStringLiteral(
-                             "refusing to overwrite existing legacy crash target from %1 to %2" )
-                             .arg( source, target );
+                             "refusing to overwrite existing %1 target from %2 to %3" )
+                             .arg( label, source, target );
             }
             return false;
         }
@@ -635,8 +653,8 @@ bool copyCrashTree( const QString& sourceRoot, const QString& targetRoot,
                 appendUnique( created->files, target );
             }
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed to copy legacy crash file from %1 to %2: %3" )
-                             .arg( source, target, detail );
+                *error = QStringLiteral( "failed to copy %1 file from %2 to %3: %4" )
+                             .arg( label, source, target, detail );
             }
             return false;
         }
@@ -789,6 +807,25 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
 
     const StorageContext targetContext{ canonical.target };
     CreatedTargets created;
+    if ( samePath( canonical.source.dataRoot, canonical.target.dataRoot ) ) {
+        QString configError;
+        QString sessionError;
+        if ( !StorageValidator::hasCompatibleManifest( targetContext.dataRoot() )
+             || !readableIni( targetContext.configFilePath(), &configError )
+             || !readableIni( targetContext.sessionFilePath(), &sessionError ) ) {
+            const QString detail = !configError.isEmpty() ? configError : sessionError;
+            return rollbackFailure(
+                locatorStore_, canonical, targetContext, created,
+                QStringLiteral( "same-root storage change requires complete managed data: %1" )
+                    .arg( detail ) );
+        }
+        if ( !locatorStore_.commitPending( canonical, &error ) ) {
+            return { false, false,
+                     QStringLiteral( "failed to commit same-root storage change: %1" )
+                         .arg( error ) };
+        }
+        return { true, false, {} };
+    }
     if ( !ensureTargetDirectories( targetContext, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
@@ -806,8 +843,14 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
                          copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
-    if ( !copyCrashTree( canonical.legacyCrashDirectory, targetContext.crashesDirectory(),
-                         copyOperation_, &created, &error ) ) {
+    if ( !copyDirectoryTree( canonical.sourceLogsDirectory, targetContext.logsDirectory(),
+                             QStringLiteral( "stored logs" ), copyOperation_, &created,
+                             &error ) ) {
+        return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
+    }
+    if ( !copyDirectoryTree( canonical.legacyCrashDirectory, targetContext.crashesDirectory(),
+                             QStringLiteral( "legacy crash" ), copyOperation_, &created,
+                             &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !readableIni( targetContext.configFilePath(), &error )

@@ -118,7 +118,8 @@ bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationReq
            && sameLocation( left.target, right.target )
            && samePath( left.legacyConfigFile, right.legacyConfigFile )
            && samePath( left.legacySessionFile, right.legacySessionFile )
-           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory );
+           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory )
+           && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory );
 }
 
 struct LocatorPaths {
@@ -247,6 +248,8 @@ bool writeState( const QString& path, const StorageLocatorState& state, const Lo
                                pending.legacySessionFile );
             settings.setValue( QStringLiteral( "Pending/legacyCrashDirectory" ),
                                pending.legacyCrashDirectory );
+            settings.setValue( QStringLiteral( "Pending/sourceLogsDirectory" ),
+                               pending.sourceLogsDirectory );
         }
         if ( lastMigration.has_value() ) {
             settings.setValue( QStringLiteral( "LastMigration/transactionId" ),
@@ -397,7 +400,8 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
             target,
             settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString()
+            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
+            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString()
         };
     }
     if ( groups.contains( QStringLiteral( "LastMigration" ) ) ) {
@@ -447,17 +451,21 @@ bool normalizedRequest( const StorageMigrationRequest& input, const LocatorPaths
     QString legacyConfigFile;
     QString legacySessionFile;
     QString legacyCrashDirectory;
+    QString sourceLogsDirectory;
     if ( !normalizedLegacyPath( input.legacyConfigFile, QStringLiteral( "legacy config file" ),
                                 &legacyConfigFile, error )
          || !normalizedLegacyPath( input.legacySessionFile, QStringLiteral( "legacy session file" ),
                                    &legacySessionFile, error )
          || !normalizedLegacyPath( input.legacyCrashDirectory,
                                    QStringLiteral( "legacy crash directory" ),
-                                   &legacyCrashDirectory, error ) ) {
+                                   &legacyCrashDirectory, error )
+         || !normalizedLegacyPath( input.sourceLogsDirectory,
+                                   QStringLiteral( "source logs directory" ),
+                                   &sourceLogsDirectory, error ) ) {
         return false;
     }
     *output = { input.transactionId, source, target, legacyConfigFile, legacySessionFile,
-                legacyCrashDirectory };
+                legacyCrashDirectory, sourceLogsDirectory };
     return true;
 }
 

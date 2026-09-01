@@ -120,6 +120,9 @@ class StorageMigratorTest final : public QObject {
 
 private Q_SLOTS:
     void migratesIniCrashTreeManifestAndLocatorWithoutChangingSource();
+    void migratesStoredLogsTransactionally();
+    void logCopyFailureRollsBackAndCleansTransactionFiles();
+    void sameRootModeChangeOnlySwitchesLocator();
     void migratesDetectedLegacySessionFallback_data();
     void migratesDetectedLegacySessionFallback();
     void recoversPendingWithDetectedSessionFallback();
@@ -400,6 +403,111 @@ void StorageMigratorTest::migratesIniCrashTreeManifestAndLocatorWithoutChangingS
     QVERIFY( QFile::exists( fixture.request.legacyConfigFile ) );
     QVERIFY( QFile::exists( fixture.request.legacySessionFile ) );
     QVERIFY( QFile::exists( legacyCrash ) );
+}
+
+void StorageMigratorTest::migratesStoredLogsTransactionally()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    fixture.request.sourceLogsDirectory
+        = QDir{ fixture.source.dataRoot }.filePath( QStringLiteral( "logs" ) );
+    QVERIFY( writeBytes( fixture.request.legacyConfigFile, QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( fixture.request.legacySessionFile, QByteArray{ "[General]\nb=2\n" } ) );
+    const QString sourceLog = QDir{ fixture.request.sourceLogsDirectory }.filePath(
+        QStringLiteral( "nested/ZzLogg_running.log" ) );
+    QVERIFY( writeBytes( sourceLog, QByteArray{ "complete-log" } ) );
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.execute( fixture.request );
+
+    QVERIFY2( result.success, qPrintable( result.error ) );
+    const QString targetLog = QDir{ StorageContext{ fixture.target }.logsDirectory() }.filePath(
+        QStringLiteral( "nested/ZzLogg_running.log" ) );
+    QCOMPARE( readBytes( targetLog ), QByteArray{ "complete-log" } );
+    QCOMPARE( readBytes( sourceLog ), QByteArray{ "complete-log" } );
+}
+
+void StorageMigratorTest::logCopyFailureRollsBackAndCleansTransactionFiles()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    fixture.request.sourceLogsDirectory
+        = QDir{ fixture.source.dataRoot }.filePath( QStringLiteral( "logs" ) );
+    QVERIFY( writeBytes( fixture.request.legacyConfigFile, QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( fixture.request.legacySessionFile, QByteArray{ "[General]\nb=2\n" } ) );
+    const QString firstSource
+        = QDir{ fixture.request.sourceLogsDirectory }.filePath( QStringLiteral( "a.log" ) );
+    const QString secondSource
+        = QDir{ fixture.request.sourceLogsDirectory }.filePath( QStringLiteral( "b.log" ) );
+    QVERIFY( writeBytes( firstSource, QByteArray{ "first" } ) );
+    QVERIFY( writeBytes( secondSource, QByteArray{ "second" } ) );
+    const StorageCopyOperation copy
+        = [ secondSource ]( const QString& source, const QString& target, QString* error ) {
+              if ( QDir::cleanPath( source ) == QDir::cleanPath( secondSource ) ) {
+                  if ( error != nullptr ) {
+                      *error = QStringLiteral( "injected log copy failure" );
+                  }
+                  return false;
+              }
+              return atomicCopy( source, target, error );
+          };
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store, copy }.execute( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY( result.rolledBack );
+    QVERIFY( result.error.contains( QStringLiteral( "log" ), Qt::CaseInsensitive ) );
+    const StorageContext target{ fixture.target };
+    QVERIFY( !QFile::exists( QDir{ target.logsDirectory() }.filePath( QStringLiteral( "a.log" ) ) ) );
+    QCOMPARE( readBytes( firstSource ), QByteArray{ "first" } );
+    QCOMPARE( readBytes( secondSource ), QByteArray{ "second" } );
+    verifySourceIsActiveWithoutPending( fixture );
+}
+
+void StorageMigratorTest::sameRootModeChangeOnlySwitchesLocator()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    fixture.target.dataRoot = fixture.source.dataRoot;
+    fixture.request.target = fixture.target;
+    const StorageContext sourceContext{ fixture.source };
+    QString error;
+    QVERIFY2( sourceContext.ensureDirectories( &error ), qPrintable( error ) );
+    QVERIFY( writeBytes( sourceContext.configFilePath(), QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( sourceContext.sessionFilePath(), QByteArray{ "[General]\nb=2\n" } ) );
+    const QString sourceLog
+        = QDir{ sourceContext.logsDirectory() }.filePath( QStringLiteral( "current.log" ) );
+    QVERIFY( writeBytes( sourceLog, QByteArray{ "same-root" } ) );
+    QVERIFY2( StorageValidator::writeManifest( sourceContext, &error ), qPrintable( error ) );
+    fixture.request.legacyConfigFile = sourceContext.configFilePath();
+    fixture.request.legacySessionFile = sourceContext.sessionFilePath();
+    fixture.request.sourceLogsDirectory = sourceContext.logsDirectory();
+    fixture.request.legacyCrashDirectory = sourceContext.crashesDirectory();
+    QVERIFY( fixture.initializeLocator() );
+    int copies = 0;
+    const StorageCopyOperation copy
+        = [ &copies ]( const QString&, const QString&, QString* ) {
+              ++copies;
+              return false;
+          };
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store, copy }.execute( fixture.request );
+
+    QVERIFY2( result.success, qPrintable( result.error ) );
+    QCOMPARE( copies, 0 );
+    QCOMPARE( readBytes( sourceLog ), QByteArray{ "same-root" } );
+    const auto resolution = fixture.store.resolve();
+    QVERIFY2( resolution.state.has_value(), qPrintable( resolution.error ) );
+    QCOMPARE( resolution.state->active.mode, StorageMode::ProgramDirectory );
+    QCOMPARE( QDir::cleanPath( resolution.state->active.dataRoot ),
+              QDir::cleanPath( fixture.source.dataRoot ) );
 }
 
 void StorageMigratorTest::missingLegacyIniCreatesReadableEmptyTarget_data()
@@ -1372,10 +1480,18 @@ void StorageMigratorTest::recoverIncompletePendingRollsBackIdempotently()
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
     QString error;
-    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
+    fixture.request.sourceLogsDirectory
+        = QDir{ fixture.source.dataRoot }.filePath( QStringLiteral( "logs" ) );
     const StorageContext targetContext{ fixture.target };
+    const QString sourceLog
+        = QDir{ fixture.request.sourceLogsDirectory }.filePath( QStringLiteral( "partial.log" ) );
+    QVERIFY( writeBytes( sourceLog, QByteArray{ "source-log" } ) );
+    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
     QVERIFY2( targetContext.ensureDirectories( &error ), qPrintable( error ) );
     QVERIFY( writeBytes( targetContext.configFilePath(), QByteArray{ "[General]\na=1\n" } ) );
+    const QString targetLog
+        = QDir{ targetContext.logsDirectory() }.filePath( QStringLiteral( "partial.log" ) );
+    QVERIFY( writeBytes( targetLog, QByteArray{ "partial-target" } ) );
     const StorageMigrator migrator{ fixture.store };
 
     const StorageMigrationResult first = migrator.recoverPending( fixture.request );
@@ -1385,6 +1501,10 @@ void StorageMigratorTest::recoverIncompletePendingRollsBackIdempotently()
     QVERIFY( first.rolledBack );
     QVERIFY( !second.success );
     QVERIFY( second.rolledBack );
+    // Crash recovery must not guess which target files predated the transaction.
+    QVERIFY( QFile::exists( targetContext.configFilePath() ) );
+    QVERIFY( QFile::exists( targetLog ) );
+    QCOMPARE( readBytes( sourceLog ), QByteArray{ "source-log" } );
     verifySourceIsActiveWithoutPending( fixture );
 }
 

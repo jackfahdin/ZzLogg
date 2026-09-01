@@ -21,6 +21,7 @@ struct StorageMigrationRequest {
     QString legacyConfigFile;
     QString legacySessionFile;
     QString legacyCrashDirectory;
+    QString sourceLogsDirectory;
 };
 
 struct StorageLocatorState {
