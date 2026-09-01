@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QLockFile>
+#include <QProcess>
 #include <QSaveFile>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -68,6 +69,42 @@ bool writeLocator( const QString& path, const QString& mode, const QString& data
     return writeBytes( path, contents );
 }
 
+bool createDirectorySymlink( const QString& target, const QString& link )
+{
+    if ( !QDir{}.mkpath( target ) || !QDir{}.mkpath( QFileInfo{ link }.absolutePath() ) ) {
+        return false;
+    }
+#ifdef Q_OS_WIN
+    constexpr DWORD allowUnprivilegedCreate = 0x2;
+    if ( CreateSymbolicLinkW( reinterpret_cast<LPCWSTR>( link.utf16() ),
+                              reinterpret_cast<LPCWSTR>( target.utf16() ),
+                              SYMBOLIC_LINK_FLAG_DIRECTORY | allowUnprivilegedCreate )
+         != FALSE ) {
+        return true;
+    }
+    QProcess junction;
+    junction.start(
+        QStringLiteral( "cmd.exe" ),
+        { QStringLiteral( "/d" ), QStringLiteral( "/c" ), QStringLiteral( "mklink" ),
+          QStringLiteral( "/J" ), QDir::toNativeSeparators( link ),
+          QDir::toNativeSeparators( target ) } );
+    if ( !junction.waitForFinished( 5000 ) ) {
+        junction.kill();
+        junction.waitForFinished();
+        return false;
+    }
+    return junction.exitStatus() == QProcess::NormalExit && junction.exitCode() == 0;
+#else
+    return QFile::link( target, link );
+#endif
+}
+
+bool isDirectoryLink( const QString& path )
+{
+    const QFileInfo info{ path };
+    return info.isSymLink() || info.isJunction();
+}
+
 struct MigrationFixture {
     explicit MigrationFixture( QTemporaryDir& temporaryDirectory )
         : applicationDirectory( temporaryDirectory.filePath( QStringLiteral( "app" ) ) )
@@ -123,6 +160,7 @@ private Q_SLOTS:
     void migratesStoredLogsTransactionally();
     void logCopyFailureRollsBackAndCleansTransactionFiles();
     void sameRootModeChangeOnlySwitchesLocator();
+    void sameRootModeChangeRejectsDirectorySymlink();
     void migratesDetectedLegacySessionFallback_data();
     void migratesDetectedLegacySessionFallback();
     void recoversPendingWithDetectedSessionFallback();
@@ -147,6 +185,8 @@ private Q_SLOTS:
     void preexistingDestinationIsNeverOverwritten();
     void rejectsPreexistingDestinationSymlink_data();
     void rejectsPreexistingDestinationSymlink();
+    void rejectsTargetDirectorySymlink_data();
+    void rejectsTargetDirectorySymlink();
     void rejectsTargetInsideLegacyCrashBeforePending_data();
     void rejectsTargetInsideLegacyCrashBeforePending();
     void rejectsLegacyIniAliasingTargetOutput_data();
@@ -508,6 +548,41 @@ void StorageMigratorTest::sameRootModeChangeOnlySwitchesLocator()
     QCOMPARE( resolution.state->active.mode, StorageMode::ProgramDirectory );
     QCOMPARE( QDir::cleanPath( resolution.state->active.dataRoot ),
               QDir::cleanPath( fixture.source.dataRoot ) );
+}
+
+void StorageMigratorTest::sameRootModeChangeRejectsDirectorySymlink()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    fixture.target.dataRoot = fixture.source.dataRoot;
+    fixture.request.target = fixture.target;
+    const StorageContext context{ fixture.source };
+    QString error;
+    QVERIFY2( context.ensureDirectories( &error ), qPrintable( error ) );
+    QVERIFY( writeBytes( context.configFilePath(), QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( context.sessionFilePath(), QByteArray{ "[General]\nb=2\n" } ) );
+    QVERIFY2( StorageValidator::writeManifest( context, &error ), qPrintable( error ) );
+    QVERIFY( QDir{ context.logsDirectory() }.removeRecursively() );
+    const QString outside = temporaryDirectory.filePath( QStringLiteral( "outside-logs" ) );
+    if ( !createDirectorySymlink( outside, context.logsDirectory() )
+         || !isDirectoryLink( context.logsDirectory() ) ) {
+        QSKIP( "platform does not permit creating a detectable directory symlink" );
+    }
+    fixture.request.legacyConfigFile = context.configFilePath();
+    fixture.request.legacySessionFile = context.sessionFilePath();
+    fixture.request.sourceLogsDirectory = context.logsDirectory();
+    fixture.request.legacyCrashDirectory = context.crashesDirectory();
+    QVERIFY( fixture.initializeLocator() );
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.execute( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY( result.rolledBack );
+    QVERIFY( result.error.contains( QStringLiteral( "symbolic link" ), Qt::CaseInsensitive ) );
+    QVERIFY( result.error.contains( QDir::cleanPath( context.logsDirectory() ) ) );
+    verifySourceIsActiveWithoutPending( fixture );
 }
 
 void StorageMigratorTest::missingLegacyIniCreatesReadableEmptyTarget_data()
@@ -1164,6 +1239,68 @@ void StorageMigratorTest::rejectsPreexistingDestinationSymlink()
     QVERIFY( result.rolledBack );
     QVERIFY( result.error.contains( destination ) );
     QVERIFY( QFileInfo{ destination }.isSymLink() );
+}
+
+void StorageMigratorTest::rejectsTargetDirectorySymlink_data()
+{
+    QTest::addColumn<QString>( "linkKind" );
+    QTest::newRow( "data-root" ) << QStringLiteral( "data-root" );
+    QTest::newRow( "logs-directory" ) << QStringLiteral( "logs" );
+    QTest::newRow( "existing-parent" ) << QStringLiteral( "parent" );
+}
+
+void StorageMigratorTest::rejectsTargetDirectorySymlink()
+{
+    QFETCH( QString, linkKind );
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    const QString outside = temporaryDirectory.filePath( QStringLiteral( "outside" ) );
+    QString link;
+    QString outsideWrite;
+    if ( linkKind == QStringLiteral( "parent" ) ) {
+        link = temporaryDirectory.filePath( QStringLiteral( "linked-parent" ) );
+        fixture.targetRoot = QDir{ link }.filePath( QStringLiteral( "target" ) );
+        fixture.target.dataRoot = fixture.targetRoot;
+        fixture.request.target = fixture.target;
+        outsideWrite = QDir{ outside }.filePath(
+            QStringLiteral( "target/config/ZzLogg.ini" ) );
+    }
+    else {
+        const StorageContext targetContext{ fixture.target };
+        if ( linkKind == QStringLiteral( "logs" ) ) {
+            QVERIFY( QDir{}.mkpath( fixture.targetRoot ) );
+            link = targetContext.logsDirectory();
+            outsideWrite = QDir{ outside }.filePath( QStringLiteral( "active.log" ) );
+        }
+        else {
+            link = fixture.targetRoot;
+            outsideWrite = QDir{ outside }.filePath(
+                QStringLiteral( "config/ZzLogg.ini" ) );
+        }
+    }
+    if ( !createDirectorySymlink( outside, link ) || !isDirectoryLink( link ) ) {
+        QSKIP( "platform does not permit creating a detectable directory symlink" );
+    }
+    QVERIFY( fixture.initializeLocator() );
+    QVERIFY( writeBytes( fixture.request.legacyConfigFile, QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( fixture.request.legacySessionFile, QByteArray{ "[General]\nb=2\n" } ) );
+    fixture.request.sourceLogsDirectory
+        = QDir{ fixture.source.dataRoot }.filePath( QStringLiteral( "logs" ) );
+    const QString sourceLog
+        = QDir{ fixture.request.sourceLogsDirectory }.filePath( QStringLiteral( "active.log" ) );
+    QVERIFY( writeBytes( sourceLog, QByteArray{ "active-log" } ) );
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.execute( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY( result.rolledBack );
+    QVERIFY( result.error.contains( QStringLiteral( "symbolic link" ), Qt::CaseInsensitive ) );
+    QVERIFY( result.error.contains( QDir::cleanPath( link ) ) );
+    QVERIFY( !QFileInfo{ outsideWrite }.exists() );
+    QCOMPARE( readBytes( sourceLog ), QByteArray{ "active-log" } );
+    verifySourceIsActiveWithoutPending( fixture );
 }
 
 void StorageMigratorTest::rejectsTargetInsideLegacyCrashBeforePending_data()

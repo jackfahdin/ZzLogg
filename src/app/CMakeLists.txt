@@ -46,6 +46,7 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/kloggapp.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationrestart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h

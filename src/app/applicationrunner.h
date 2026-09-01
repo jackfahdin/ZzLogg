@@ -17,4 +17,5 @@ struct KloggApplicationOptions final {
     QString startupWarning;
 };
 
+QString resolveRestartExecutablePath( const QString& argv0 );
 int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options = {} );

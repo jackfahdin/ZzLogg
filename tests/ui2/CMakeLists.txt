@@ -223,6 +223,15 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
+add_executable(zzlogg_application_restart_path_test applicationrestartpathtest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/applicationrestart.cpp")
+target_link_libraries(zzlogg_application_restart_path_test PRIVATE Qt6::Test Qt6::Core)
+target_include_directories(zzlogg_application_restart_path_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app")
+set_target_properties(zzlogg_application_restart_path_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.application_restart_path
+         COMMAND zzlogg_application_restart_path_test)
+
 qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")

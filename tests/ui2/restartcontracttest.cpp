@@ -58,6 +58,37 @@ private Q_SLOTS:
         QVERIFY( window.closeForApplicationExit() );
     }
 
+    void prepareRejectionKeepsEveryWindowOpenAndRegistered()
+    {
+        app_.setQuitOnLastWindowClosed( false );
+        app_.setProperty( "zzlogg.test.suppressRestartErrors", true );
+        MainWindow* first = app_.newWindow();
+        MainWindow* second = app_.newWindow();
+        first->show();
+        second->show();
+        QSignalSpy firstClosed{ first, &MainWindow::windowClosed };
+        QSignalSpy secondClosed{ second, &MainWindow::windowClosed };
+        first->setProperty( "zzlogg.test.rejectApplicationClose", true );
+
+        Q_EMIT second->restartRequested();
+
+        const QList<MainWindow*> registered = app_.mainWindows();
+        const bool bothVisible = first->isVisible() && second->isVisible();
+        const bool bothRegistered = registered.contains( first ) && registered.contains( second );
+        const int firstCloseCount = firstClosed.count();
+        const int secondCloseCount = secondClosed.count();
+        first->setProperty( "zzlogg.test.rejectApplicationClose", false );
+        const QList<MainWindow*> cleanupWindows = app_.mainWindows();
+        for ( MainWindow* window : cleanupWindows ) {
+            QVERIFY( window->closeForApplicationExit() );
+        }
+
+        QVERIFY( bothVisible );
+        QVERIFY( bothRegistered );
+        QCOMPARE( firstCloseCount, 0 );
+        QCOMPARE( secondCloseCount, 0 );
+    }
+
     void restartClosesWindowsSyncsSessionAndReturnsContractCode()
     {
         auto& config = Configuration::getSynced();

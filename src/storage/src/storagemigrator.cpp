@@ -89,6 +89,70 @@ bool sameOrChildPath( const QString& path, const QString& parent )
     return cleanPath.startsWith( cleanParent, pathCaseSensitivity() );
 }
 
+bool isFileSystemLink( const QFileInfo& info )
+{
+#ifdef Q_OS_WIN
+    return info.isSymLink() || info.isJunction();
+#else
+    return info.isSymLink();
+#endif
+}
+
+bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, QString* error )
+{
+    const QString absolutePath = normalized( QFileInfo{ path }.absoluteFilePath() );
+    const QString absoluteRoot = normalized( QFileInfo{ dataRoot }.absoluteFilePath() );
+    if ( !sameOrChildPath( absolutePath, absoluteRoot ) ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "migration target escapes data root: %1 (root: %2)" )
+                         .arg( absolutePath, absoluteRoot );
+        }
+        return false;
+    }
+
+    QString component = absolutePath;
+    while ( true ) {
+        const QFileInfo info{ component };
+        if ( isFileSystemLink( info ) ) {
+            if ( error != nullptr ) {
+                *error = QStringLiteral( "refusing symbolic link in migration target path: %1" )
+                             .arg( component );
+            }
+            return false;
+        }
+        const QString parentPath = normalized( info.dir().absolutePath() );
+        if ( samePath( component, parentPath ) ) {
+            break;
+        }
+        component = parentPath;
+    }
+
+    const QFileInfo rootInfo{ absoluteRoot };
+    if ( !rootInfo.exists() ) {
+        return true;
+    }
+    const QString canonicalRoot = normalized( rootInfo.canonicalFilePath() );
+    QString existing = absolutePath;
+    while ( !QFileInfo{ existing }.exists() ) {
+        const QString parentPath = normalized( QFileInfo{ existing }.dir().absolutePath() );
+        if ( samePath( existing, parentPath ) ) {
+            break;
+        }
+        existing = parentPath;
+    }
+    const QString canonicalExisting = normalized( QFileInfo{ existing }.canonicalFilePath() );
+    if ( canonicalRoot.isEmpty() || canonicalExisting.isEmpty()
+         || !sameOrChildPath( canonicalExisting, canonicalRoot ) ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral(
+                         "canonical migration target escapes data root through %1: %2" )
+                         .arg( existing, absolutePath );
+        }
+        return false;
+    }
+    return true;
+}
+
 QString expectedLocatorPath( StorageMode mode, const StorageLocatorStore& store )
 {
     return mode == StorageMode::ProgramDirectory ? store.programLocatorPath()
@@ -484,6 +548,9 @@ bool ensureTargetDirectories( const StorageContext& context, CreatedTargets* cre
                                    context.crashesDirectory() };
     QStringList absent;
     for ( const QString& directory : directories ) {
+        if ( !validateMigrationTargetPath( directory, context.dataRoot(), error ) ) {
+            return false;
+        }
         if ( !pathExistsOrIsSymlink( directory ) ) {
             absent.append( directory );
         }
@@ -495,7 +562,15 @@ bool ensureTargetDirectories( const StorageContext& context, CreatedTargets* cre
             appendUnique( created->directories, directory );
         }
     }
-    return ensured;
+    if ( !ensured ) {
+        return false;
+    }
+    for ( const QString& directory : directories ) {
+        if ( !validateMigrationTargetPath( directory, context.dataRoot(), error ) ) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool createEmptyIni( const QString& target, CreatedTargets* created, QString* error )
@@ -516,10 +591,13 @@ bool createEmptyIni( const QString& target, CreatedTargets* created, QString* er
     return true;
 }
 
-bool copyLegacyIni( const QString& source, const QString& target,
+bool copyLegacyIni( const QString& source, const QString& target, const QString& targetDataRoot,
                     const StorageCopyOperation& copyOperation, CreatedTargets* created,
                     QString* error )
 {
+    if ( !validateMigrationTargetPath( target, targetDataRoot, error ) ) {
+        return false;
+    }
     if ( pathExistsOrIsSymlink( target ) ) {
         if ( error != nullptr ) {
             *error
@@ -565,15 +643,18 @@ bool copyLegacyIni( const QString& source, const QString& target,
     return true;
 }
 
-bool ensureTreeDirectory( const QString& path, const QString& label, CreatedTargets* created,
-                          QString* error )
+bool ensureTreeDirectory( const QString& path, const QString& targetDataRoot,
+                          const QString& label, CreatedTargets* created, QString* error )
 {
+    if ( !validateMigrationTargetPath( path, targetDataRoot, error ) ) {
+        return false;
+    }
     if ( QFileInfo{ path }.isDir() ) {
         return true;
     }
     if ( QDir{}.mkpath( path ) ) {
         appendUnique( created->directories, path );
-        return true;
+        return validateMigrationTargetPath( path, targetDataRoot, error );
     }
     if ( error != nullptr ) {
         *error = QStringLiteral( "failed to create %1 target directory: %2" ).arg( label, path );
@@ -582,8 +663,9 @@ bool ensureTreeDirectory( const QString& path, const QString& label, CreatedTarg
 }
 
 bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
-                        const QString& label, const StorageCopyOperation& copyOperation,
-                        CreatedTargets* created, QString* error )
+                        const QString& targetDataRoot, const QString& label,
+                        const StorageCopyOperation& copyOperation, CreatedTargets* created,
+                        QString* error )
 {
     const QFileInfo rootInfo{ sourceRoot };
     if ( rootInfo.isSymLink() ) {
@@ -623,7 +705,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
         const QString relative = sourceDirectory.relativeFilePath( source );
         const QString target = normalized( QDir{ targetRoot }.filePath( relative ) );
         if ( info.isDir() ) {
-            if ( !ensureTreeDirectory( target, label, created, error ) ) {
+            if ( !ensureTreeDirectory( target, targetDataRoot, label, created, error ) ) {
                 return false;
             }
             continue;
@@ -635,7 +717,8 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
             }
             return false;
         }
-        if ( !ensureTreeDirectory( QFileInfo{ target }.absolutePath(), label, created, error ) ) {
+        if ( !ensureTreeDirectory( QFileInfo{ target }.absolutePath(), targetDataRoot, label,
+                                   created, error ) ) {
             return false;
         }
         const bool existed = pathExistsOrIsSymlink( target );
@@ -808,6 +891,16 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     const StorageContext targetContext{ canonical.target };
     CreatedTargets created;
     if ( samePath( canonical.source.dataRoot, canonical.target.dataRoot ) ) {
+        const QStringList targetPaths{
+            targetContext.dataRoot(),          targetContext.configDirectory(),
+            targetContext.sessionDirectory(), targetContext.logsDirectory(),
+            targetContext.crashesDirectory(), targetContext.manifestFilePath()
+        };
+        for ( const QString& path : targetPaths ) {
+            if ( !validateMigrationTargetPath( path, targetContext.dataRoot(), &error ) ) {
+                return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
+            }
+        }
         QString configError;
         QString sessionError;
         if ( !StorageValidator::hasCompatibleManifest( targetContext.dataRoot() )
@@ -835,22 +928,22 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
             QStringLiteral( "refusing to overwrite existing storage manifest: %1" )
                 .arg( targetContext.manifestFilePath() ) );
     }
-    if ( !copyLegacyIni( canonical.legacyConfigFile, targetContext.configFilePath(), copyOperation_,
-                         &created, &error ) ) {
+    if ( !copyLegacyIni( canonical.legacyConfigFile, targetContext.configFilePath(),
+                         targetContext.dataRoot(), copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !copyLegacyIni( canonical.legacySessionFile, targetContext.sessionFilePath(),
-                         copyOperation_, &created, &error ) ) {
+                         targetContext.dataRoot(), copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !copyDirectoryTree( canonical.sourceLogsDirectory, targetContext.logsDirectory(),
-                             QStringLiteral( "stored logs" ), copyOperation_, &created,
-                             &error ) ) {
+                             targetContext.dataRoot(), QStringLiteral( "stored logs" ),
+                             copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !copyDirectoryTree( canonical.legacyCrashDirectory, targetContext.crashesDirectory(),
-                             QStringLiteral( "legacy crash" ), copyOperation_, &created,
-                             &error ) ) {
+                             targetContext.dataRoot(), QStringLiteral( "legacy crash" ),
+                             copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !readableIni( targetContext.configFilePath(), &error )
@@ -858,6 +951,10 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
 
+    if ( !validateMigrationTargetPath( targetContext.manifestFilePath(), targetContext.dataRoot(),
+                                       &error ) ) {
+        return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
+    }
     const bool manifestExisted = pathExistsOrIsSymlink( targetContext.manifestFilePath() );
     if ( !StorageValidator::writeManifest( targetContext, &error ) ) {
         if ( !manifestExisted && pathExistsOrIsSymlink( targetContext.manifestFilePath() ) ) {

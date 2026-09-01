@@ -1,7 +1,5 @@
 #include <utility>
 
-#include <QDir>
-#include <QFileInfo>
 #include <QProcess>
 
 #include <cstdlib>
@@ -15,9 +13,8 @@
 
 int main( int argc, char* argv[] )
 {
-    const QString executablePath = QFileInfo{
-        QDir::fromNativeSeparators( QString::fromLocal8Bit( argv[ 0 ] ) )
-    }.absoluteFilePath();
+    const QString originalExecutable = QString::fromLocal8Bit( argv[ 0 ] );
+    const QString executablePath = resolveRestartExecutablePath( originalExecutable );
     QStringList arguments;
     for ( int index = 1; index < argc; ++index ) {
         arguments.append( QString::fromLocal8Bit( argv[ index ] ) );
@@ -37,12 +34,12 @@ int main( int argc, char* argv[] )
     if ( result != ZzLoggRestartExitCode ) {
         return result;
     }
-    if ( QProcess::startDetached( executablePath, arguments ) ) {
+    if ( !executablePath.isEmpty() && QProcess::startDetached( executablePath, arguments ) ) {
         return EXIT_SUCCESS;
     }
     const QByteArray diagnostic
         = QStringLiteral( "Failed to restart ZzLogg executable: %1\n" )
-              .arg( executablePath )
+              .arg( executablePath.isEmpty() ? originalExecutable : executablePath )
               .toLocal8Bit();
     std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
     std::fflush( stderr );

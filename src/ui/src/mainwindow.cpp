@@ -1533,6 +1533,9 @@ void MainWindow::loadFileNonInteractive( const QString& file_name )
 
 bool MainWindow::prepareForApplicationExit()
 {
+    if ( property( "zzlogg.test.rejectApplicationClose" ).toBool() ) {
+        return false;
+    }
     writeSettings();
     applicationExitPrepared_ = true;
     return true;
@@ -1547,7 +1550,7 @@ bool MainWindow::closeForApplicationExit()
 {
     const bool previousCloseFromTray = isCloseFromTray_;
     isCloseFromTray_ = true;
-    const bool closed = !property( "zzlogg.test.rejectApplicationClose" ).toBool() && close();
+    const bool closed = close();
     if ( !closed ) {
         isCloseFromTray_ = previousCloseFromTray;
     }
