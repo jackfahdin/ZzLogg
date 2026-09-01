@@ -153,6 +153,21 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
     return true;
 }
 
+bool validateMigrationTargetContext( const StorageContext& context, QString* error )
+{
+    const QStringList targetPaths{
+        context.dataRoot(),          context.configDirectory(), context.sessionDirectory(),
+        context.logsDirectory(),     context.crashesDirectory(), context.configFilePath(),
+        context.sessionFilePath(),   context.manifestFilePath()
+    };
+    for ( const QString& path : targetPaths ) {
+        if ( !validateMigrationTargetPath( path, context.dataRoot(), error ) ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 QString expectedLocatorPath( StorageMode mode, const StorageLocatorStore& store )
 {
     return mode == StorageMode::ProgramDirectory ? store.programLocatorPath()
@@ -891,15 +906,8 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     const StorageContext targetContext{ canonical.target };
     CreatedTargets created;
     if ( samePath( canonical.source.dataRoot, canonical.target.dataRoot ) ) {
-        const QStringList targetPaths{
-            targetContext.dataRoot(),          targetContext.configDirectory(),
-            targetContext.sessionDirectory(), targetContext.logsDirectory(),
-            targetContext.crashesDirectory(), targetContext.manifestFilePath()
-        };
-        for ( const QString& path : targetPaths ) {
-            if ( !validateMigrationTargetPath( path, targetContext.dataRoot(), &error ) ) {
-                return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
-            }
+        if ( !validateMigrationTargetContext( targetContext, &error ) ) {
+            return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
         }
         QString configError;
         QString sessionError;
@@ -1038,6 +1046,14 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
     }
 
     const StorageContext targetContext{ canonical.target };
+    if ( !validateMigrationTargetContext( targetContext, &error ) ) {
+        QString rollbackError;
+        if ( locatorStore_.rollbackPending( canonical, &rollbackError ) ) {
+            return { false, true, error };
+        }
+        return { false, false,
+                 QStringLiteral( "%1; rollback failed: %2" ).arg( error, rollbackError ) };
+    }
     QString configError;
     QString sessionError;
     const bool complete = StorageValidator::hasCompatibleManifest( targetContext.dataRoot() )

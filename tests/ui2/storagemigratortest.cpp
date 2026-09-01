@@ -199,6 +199,8 @@ private Q_SLOTS:
     void recoverRejectsPendingTogetherWithLastMigration();
     void recoverDoesNotInferOutcomeFromSameActiveLocation_data();
     void recoverDoesNotInferOutcomeFromSameActiveLocation();
+    void recoverSameRootPendingRejectsDirectoryLink();
+    void recoverCompleteCrossRootPendingRejectsDirectoryLink();
     void recoverCompletePendingCommitsIdempotently();
     void recoverIncompletePendingRollsBackIdempotently();
 };
@@ -1580,6 +1582,84 @@ void StorageMigratorTest::recoverDoesNotInferOutcomeFromSameActiveLocation()
     QVERIFY( !result.success );
     QVERIFY( !result.rolledBack );
     QVERIFY( result.error.contains( QStringLiteral( "transaction" ), Qt::CaseInsensitive ) );
+}
+
+void StorageMigratorTest::recoverSameRootPendingRejectsDirectoryLink()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    fixture.target.dataRoot = fixture.source.dataRoot;
+    fixture.request.target = fixture.target;
+    const StorageContext context{ fixture.source };
+    QString error;
+    QVERIFY2( context.ensureDirectories( &error ), qPrintable( error ) );
+    QVERIFY( writeBytes( context.configFilePath(), QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( context.sessionFilePath(), QByteArray{ "[General]\nb=2\n" } ) );
+    QVERIFY2( StorageValidator::writeManifest( context, &error ), qPrintable( error ) );
+    QVERIFY( QDir{ context.logsDirectory() }.removeRecursively() );
+    const QString outside = temporaryDirectory.filePath( QStringLiteral( "outside-same-root" ) );
+    if ( !createDirectorySymlink( outside, context.logsDirectory() )
+         || !isDirectoryLink( context.logsDirectory() ) ) {
+        QSKIP( "platform does not permit creating a detectable directory symlink" );
+    }
+    fixture.request.legacyConfigFile = context.configFilePath();
+    fixture.request.legacySessionFile = context.sessionFilePath();
+    fixture.request.sourceLogsDirectory = context.logsDirectory();
+    fixture.request.legacyCrashDirectory = context.crashesDirectory();
+    QVERIFY( fixture.initializeLocator() );
+    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.recoverPending( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY2( result.rolledBack, qPrintable( result.error ) );
+    QVERIFY( result.error.contains( QStringLiteral( "symbolic link" ), Qt::CaseInsensitive ) );
+    QVERIFY( result.error.contains( QDir::cleanPath( context.logsDirectory() ) ) );
+    QVERIFY( isDirectoryLink( context.logsDirectory() ) );
+    QVERIFY( QDir{ outside }.entryList( QDir::AllEntries | QDir::NoDotAndDotDot ).isEmpty() );
+    const auto resolution = fixture.store.resolve();
+    QVERIFY2( resolution.state.has_value(), qPrintable( resolution.error ) );
+    QCOMPARE( resolution.state->active.mode, fixture.source.mode );
+    QCOMPARE( QDir::cleanPath( resolution.state->active.dataRoot ),
+              QDir::cleanPath( fixture.source.dataRoot ) );
+    QVERIFY( !resolution.state->pending.has_value() );
+}
+
+void StorageMigratorTest::recoverCompleteCrossRootPendingRejectsDirectoryLink()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    QString error;
+    QVERIFY2( fixture.store.writePending( fixture.request, &error ), qPrintable( error ) );
+    const StorageContext targetContext{ fixture.target };
+    QVERIFY2( targetContext.ensureDirectories( &error ), qPrintable( error ) );
+    QVERIFY( writeBytes( targetContext.configFilePath(), QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( targetContext.sessionFilePath(), QByteArray{ "[General]\nb=2\n" } ) );
+    QVERIFY2( StorageValidator::writeManifest( targetContext, &error ), qPrintable( error ) );
+    QVERIFY( QDir{ targetContext.logsDirectory() }.removeRecursively() );
+    const QString outside = temporaryDirectory.filePath( QStringLiteral( "outside-cross-root" ) );
+    if ( !createDirectorySymlink( outside, targetContext.logsDirectory() )
+         || !isDirectoryLink( targetContext.logsDirectory() ) ) {
+        QSKIP( "platform does not permit creating a detectable directory symlink" );
+    }
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.recoverPending( fixture.request );
+
+    QVERIFY( !result.success );
+    QVERIFY2( result.rolledBack, qPrintable( result.error ) );
+    QVERIFY( result.error.contains( QStringLiteral( "symbolic link" ), Qt::CaseInsensitive ) );
+    QVERIFY( result.error.contains( QDir::cleanPath( targetContext.logsDirectory() ) ) );
+    QVERIFY( isDirectoryLink( targetContext.logsDirectory() ) );
+    QVERIFY( QDir{ outside }.entryList( QDir::AllEntries | QDir::NoDotAndDotDot ).isEmpty() );
+    QVERIFY( QFileInfo{ targetContext.configFilePath() }.isFile() );
+    QVERIFY( QFileInfo{ targetContext.sessionFilePath() }.isFile() );
+    QVERIFY( QFileInfo{ targetContext.manifestFilePath() }.isFile() );
+    verifySourceIsActiveWithoutPending( fixture );
 }
 
 void StorageMigratorTest::recoverCompletePendingCommitsIdempotently()
