@@ -4,7 +4,6 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
-#include <QFileInfo>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -43,10 +42,7 @@ void assertNoStorageFiles( const QString& root )
                           QDirIterator::Subdirectories };
     while ( entries.hasNext() ) {
         const QString entryPath = entries.next();
-        const QString fileName = QFileInfo{ entryPath }.fileName();
-        QVERIFY2( !QDir::match( QStringLiteral( ".zzlogg-write-test-*" ), fileName )
-                      && !QDir::match( QStringLiteral( ".zzlogg-locator-probe-*" ), fileName ),
-                  qPrintable( entryPath ) );
+        QVERIFY2( false, qPrintable( entryPath ) );
     }
 }
 
