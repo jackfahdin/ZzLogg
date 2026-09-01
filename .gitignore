@@ -40,6 +40,7 @@ build_root_qt6/
 test_data/
 build/
 out/
+/.worktrees/
 
 # Local machine paths and personal CMake preset overrides
 CMakeUserPresets.json
