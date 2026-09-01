@@ -296,9 +296,12 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "${ZZLOGG_HOMEPAGE_URL}")
 set(CPACK_PACKAGE_CONTACT "anton.filimonov@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/description.txt")
 set(CPACK_RESOURCE_FILE_LICENSE "${COPYING_FILE}")
-set(CPACK_PACKAGE_VERSION
-    "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${PROJECT_VERSION_TWEAK}"
-)
+if(BUILD_VERSION)
+  set(CPACK_PACKAGE_VERSION "${BUILD_VERSION}")
+else()
+  set(CPACK_PACKAGE_VERSION
+      "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.${PROJECT_VERSION_TWEAK}")
+endif()
 set(CPACK_PACKAGE_ICON "${ICON_FILE}")
 set(CPACK_STRIP_FILES "bin/ZzLogg")
 
@@ -314,6 +317,7 @@ if(UNIX)
     set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/packaging/osx/dmg_setup.scpt")
 
   else()
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/ZzLogg")
     zzlogg_install_legacy_linux_icons("${CMAKE_CURRENT_SOURCE_DIR}")
 
     install(
@@ -334,7 +338,9 @@ if(UNIX)
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${ZZLOGG_HOMEPAGE_URL}")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Anton Filimonov <${CPACK_PACKAGE_CONTACT}>")
-    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS YES)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS NO)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS
+        "libc6, libstdc++6, libgcc-s1, libgl1, libfontconfig1, libfreetype6, libglib2.0-0, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0")
 
     #RPM
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")

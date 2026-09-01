@@ -49,6 +49,7 @@ jobs:
       CXX: g++-13
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/klogg-version
       - name: Install Linux build and runtime dependencies
         run: |
           sudo apt-get update
@@ -85,7 +86,7 @@ jobs:
           -DKLOGG_USE_VECTORSCAN=OFF
           -DKLOGG_USE_HYPERSCAN=OFF
           -DKLOGG_OVERRIDE_MALLOC=OFF
-          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage
+          -DCMAKE_INSTALL_PREFIX=/opt/ZzLogg
       - name: Build
         run: cmake --build build-linux --target ci_build --parallel 2
       - name: Test
@@ -102,8 +103,59 @@ jobs:
         run: |
           cpack --config build-linux/CPackConfig.cmake -G DEB -B packages
           cpack --config build-linux/CPackConfig.cmake -G RPM -B packages
-          test -n "$(find packages -maxdepth 1 -name '*.deb' -print -quit)"
-          test -n "$(find packages -maxdepth 1 -name '*.rpm' -print -quit)"
+          deb="packages/ZzLogg-${KLOGG_VERSION}-Linux.deb"
+          rpm="packages/ZzLogg-${KLOGG_VERSION}-Linux.rpm"
+          test -f "$deb"
+          test -f "$rpm"
+          test "$(dpkg-deb -f "$deb" Version)" = "$KLOGG_VERSION"
+          test "$(rpm -qp --qf '%{VERSION}' "$rpm")" = "$KLOGG_VERSION"
+      - name: Validate DEB in clean Ubuntu
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/packages:/packages:ro" \
+            ubuntu:22.04 bash -euxo pipefail -c '
+              apt-get update
+              apt-get install -y /packages/ZzLogg-*.deb
+              unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH
+              app=/opt/ZzLogg/bin/ZzLogg
+              test -x "$app"
+              test -f /opt/ZzLogg/lib/libQt6Core.so.6
+              test -f /opt/ZzLogg/plugins/platforms/libqminimal.so
+              test -f /opt/ZzLogg/bin/qt.conf
+              ldd "$app" | tee /tmp/zzlogg-ldd.txt
+              ! grep -q "not found" /tmp/zzlogg-ldd.txt
+              grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
+              QT_DEBUG_PLUGINS=1 "$app" -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
+              pid=$!
+              sleep 3
+              kill -0 "$pid"
+              kill "$pid"
+              wait "$pid" || true
+              grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
+            '
+      - name: Validate RPM in clean Fedora
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/packages:/packages:ro" \
+            fedora:41 bash -euxo pipefail -c '
+              dnf install -y /packages/ZzLogg-*.rpm
+              unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH
+              app=/opt/ZzLogg/bin/ZzLogg
+              test -x "$app"
+              test -f /opt/ZzLogg/lib/libQt6Core.so.6
+              test -f /opt/ZzLogg/plugins/platforms/libqminimal.so
+              test -f /opt/ZzLogg/bin/qt.conf
+              ldd "$app" | tee /tmp/zzlogg-ldd.txt
+              ! grep -q "not found" /tmp/zzlogg-ldd.txt
+              grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
+              QT_DEBUG_PLUGINS=1 "$app" -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
+              pid=$!
+              sleep 3
+              kill -0 "$pid"
+              kill "$pid"
+              wait "$pid" || true
+              grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
+            '
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
         with:
