@@ -133,6 +133,21 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
+add_executable(zzlogg_document_tab_close_test documenttabclosetest.cpp)
+target_link_libraries(zzlogg_document_tab_close_test PRIVATE
+  klogg_ui Qt6::Test Qt6::Widgets)
+set_target_properties(zzlogg_document_tab_close_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.document_tab_close
+         COMMAND zzlogg_document_tab_close_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.document_tab_close PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.document_tab_close APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_executable(zzlogg_fluent_shell_test
   windowkittestmain.cpp fluentshelltest.cpp)
 target_link_libraries(zzlogg_fluent_shell_test PRIVATE

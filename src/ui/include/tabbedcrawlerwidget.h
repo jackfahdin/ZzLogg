@@ -85,6 +85,7 @@ class TabbedCrawlerWidget : public QTabWidget {
 
     void loadIcons();
     void updateIcon( int index );
+    void updateTabBarVisibility();
 
   private Q_SLOTS:
     void showContextMenu( int tab, QPoint globalPoint );

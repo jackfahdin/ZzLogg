@@ -100,7 +100,7 @@ TabbedCrawlerWidget::TabbedCrawlerWidget()
     myTabBar_.setStyleSheet( tabStyle.append( tabCloseButtonStyle ) );
 
     setTabBar( &myTabBar_ );
-    myTabBar_.hide();
+    updateTabBarVisibility();
 
     myTabBar_.setContextMenuPolicy( Qt::CustomContextMenu );
     connect( &myTabBar_, &CrawlerTabBar::showTabContextMenu, this,
@@ -143,17 +143,18 @@ void TabbedCrawlerWidget::addTabBarItem( int index, const QString& fileName )
     myTabBar_.setTabData( index, tabData );
 
     setCurrentIndex( index );
-
-    if ( count() > 1 )
-        myTabBar_.show();
+    updateTabBarVisibility();
 }
 
 void TabbedCrawlerWidget::removeCrawler( int index )
 {
     QTabWidget::removeTab( index );
+    updateTabBarVisibility();
+}
 
-    if ( count() <= 1 )
-        myTabBar_.hide();
+void TabbedCrawlerWidget::updateTabBarVisibility()
+{
+    myTabBar_.setVisible( count() > 0 );
 }
 
 void TabbedCrawlerWidget::mouseReleaseEvent( QMouseEvent* event )
