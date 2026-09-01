@@ -93,7 +93,35 @@ add_test(NAME zzlogg_ui2.output_contract
     "-DTARGET_PORTABLE_EXISTS=$<TARGET_EXISTS:klogg_portable>"
     "-DTARGET_UI2_EXISTS=$<TARGET_EXISTS:zzlogg_ui2>"
     "-DGREP_EXCLUDED_FROM_ALL=$<TARGET_PROPERTY:klogg_grep,EXCLUDE_FROM_ALL>"
+    "-DCHECK_RUNTIME_FOLDER=$<BOOL:$<TARGET_EXISTS:zzlogg_runtime_folder>>"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/outputcontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.output_platform_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DOUTPUT_CONTRACT=${CMAKE_CURRENT_SOURCE_DIR}/outputcontracttest.cmake"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/output-platform-contract"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/outputplatformcontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.ci_toolchain_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/citoolchaincontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.staged_install_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
+    "-DINSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/staged-install/$<CONFIG>"
+    "-DCONFIG=$<CONFIG>"
+    "-DWIN32_CONTRACT=${WIN32}"
+    "-DSHARED_LIBRARY_SUFFIX=${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/stagedinstallcontracttest.cmake")
+set_tests_properties(zzlogg_ui2.staged_install_contract PROPERTIES
+  RUN_SERIAL TRUE TIMEOUT 120)
+
+add_test(NAME zzlogg_ui2.linux_install_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DAPP_CMAKE=${PROJECT_SOURCE_DIR}/src/app/CMakeLists.txt"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxinstallcontracttest.cmake")
 
 if(TARGET zzlogg_runtime_folder)
   add_test(NAME zzlogg_ui2.runtime_folder_setup

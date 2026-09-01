@@ -42,83 +42,55 @@ jobs:
 
   Linux:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - os: oraclelinux
-            os_version: 8
-            arch: x64
-            check_command: yum install -y --setopt tsflags=test /usr/local/ZzLogg*.rpm
-            cpack_gen: RPM
-            artifacts_id: oracle
-            package_suffix: rpm
-            check_container: oraclelinux:8
-            container_root: docker/oracle8
-            container: variar/klogg_oracle8
-            cmake_opts: -DCMAKE_BUILD_WITH_INSTALL_RPATH=on -DKLOGG_USE_VECTORSCAN=OFF -DKLOGG_USE_HYPERSCAN=ON
-
-          - os: ubuntu_focal
-            os_version: 20.04
-            arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
-            cpack_gen: DEB
-            artifacts_id: focal
-            package_suffix: deb
-            check_container: ubuntu:20.04
-            container_root: docker/ubuntu20.04
-            container: variar/klogg_ubuntu20.04
-            cmake_opts:
-          
-          - os: ubuntu_jammy
-            os_version: 22.04
-            arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
-            cpack_gen: DEB
-            artifacts_id: jammy
-            package_suffix: deb
-            check_container: ubuntu:22.04
-            container_root: docker/ubuntu22.04
-            container: variar/klogg_ubuntu22.04
-            cmake_opts:
-
-          - os: ubuntu_noble
-            os_version: 24.04
-            arch: x64
-            check_command: apt-get update && apt install --dry-run /usr/local/ZzLogg*.deb
-            cpack_gen: DEB
-            artifacts_id: noble
-            package_suffix: deb
-            check_container: ubuntu:24.04
-            container_root: docker/ubuntu24.04
-            container: variar/klogg_ubuntu24.04
-            cmake_opts:
-
     runs-on: ubuntu-22.04
+    env:
+      QT_VERSION: 6.8.3
     steps:
-      - uses: actions/checkout@v3
-
-      #- uses: satackey/action-docker-layer-caching@v0.0.11
-      #  # Ignore the failure of a step and avoid terminating the job.
-      #  continue-on-error: true
-      
-      - name: Build container 
+      - uses: actions/checkout@v4
+      - name: Install Linux build and runtime dependencies
         run: |
-          cd ${{ matrix.config.container_root }}
-          docker build -t ${{ matrix.config.container }} .
-
-      - uses: ./.github/actions/klogg-version
-      - uses: ./.github/actions/prepare-workspace-env
-      - uses: ./.github/actions/docker-build
-      - uses: ./.github/actions/docker-run-tests
-      - uses: ./.github/actions/docker-package
-          
-# Final upload of all packages
-      - uses: actions/upload-artifact@v3
+          sudo apt-get update
+          sudo apt-get install -y ninja-build patchelf ragel libgl1-mesa-dev \
+            libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-cursor-dev \
+            libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev \
+            libxcb-render-util0-dev libxcb-shape0-dev libxcb-xinerama0-dev libxcb-xkb-dev
+      - uses: actions/setup-python@v6
         with:
-          name: packages-${{ matrix.config.artifacts_id }}
-          path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*'
-          if-no-files-found: error      
+          python-version: '3.12'
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          modules: qt5compat
+          install-deps: false
+      - name: Verify CMake toolchain floor
+        run: |
+          cmake --version
+          cmake -P tests/ui2/cmakeversioncontracttest.cmake
+      - name: Configure
+        run: >-
+          cmake -S . -B build-linux -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DKLOGG_BUILD_UI_TESTS=ON
+          -DKLOGG_USE_SENTRY=OFF
+          -DKLOGG_USE_VECTORSCAN=OFF
+          -DKLOGG_USE_HYPERSCAN=OFF
+          -DKLOGG_OVERRIDE_MALLOC=OFF
+          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/stage
+      - name: Build
+        run: cmake --build build-linux --target ci_build --parallel 2
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build-linux --output-on-failure
+      - name: Stage and verify runtime closure
+        run: |
+          cmake --install build-linux --prefix "${{ github.workspace }}/stage"
+          test -x "${{ github.workspace }}/stage/bin/ZzLogg"
+          ldd "${{ github.workspace }}/stage/bin/ZzLogg" | tee ldd.txt
+          ! grep -q "not found" ldd.txt
 
   Mac:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
@@ -128,15 +100,15 @@ jobs:
         config:
           - os: macos
             os_version: 13
-            qt_version: 6.7.3
+            qt_version: 6.8.3
             qt_arch: clang_64
             qt_modules: qt5compat
             arch: x64
             artifacts_id: macos-intel-qt6
-            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.0
+            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.3
           - os: macos
             os_version: 14
-            qt_version: 6.7.3
+            qt_version: 6.8.3
             qt_arch: clang_64
             qt_modules: qt5compat
             arch: arm64
@@ -189,9 +161,9 @@ jobs:
         config:
           - os: windows
             os_version: 2022
-            qt_version: 6.7.3
+            qt_version: 6.8.3
             qt_modules: qt5compat
-            qt_arch: win64_msvc2019_64
+            qt_arch: win64_msvc2022_64
             arch: x64
             ssl_arch: -x64
             cmake_opts:

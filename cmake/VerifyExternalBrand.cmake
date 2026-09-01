@@ -250,7 +250,7 @@ set(required_entry_literals
   ".github/actions/agent-package-win/action.yml|packaging/windows/ZzLogg.nsi"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"
   ".github/actions/agent-package-mac/action.yml|output/ZzLogg.app"
-  ".github/workflows/ci-build.yml|/usr/local/ZzLogg"
+  ".github/workflows/ci-build.yml|stage/bin/ZzLogg"
   "CMakeLists.txt|ZzLogg.desktop")
 
 foreach(requirement IN LISTS required_entry_literals)

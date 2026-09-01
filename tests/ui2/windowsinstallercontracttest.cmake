@@ -33,6 +33,17 @@ else()
 endif()
 
 set(runtime_sentinels
+  "COPYING"
+  "NOTICE"
+  "README.md"
+  "DOCUMENTATION.md"
+  "licenses/ZzPureTools/LICENSE"
+  "licenses/ZzPureTools/THIRD_PARTY_NOTICES.md"
+  "licenses/ZzPureTools/release-evidence.json"
+  "licenses/ZzPureTools/ZzLog/LICENSE"
+  "licenses/ZzPureTools/ZzLog/spdlog/LICENSE.txt"
+  "licenses/ZzPureTools/ZzLog/fmt/LICENSE.txt"
+  "licenses/ZzPureTools/qwindowkit/LICENSE"
   "icuuc.dll"
   "ZzCore.dll"
   "ZzWindowKit.dll"

@@ -24,10 +24,10 @@ jobs:
         config:
           - os: linux
             arch: x64
-            qt_version: 6.7.3
+            qt_version: 6.8.3
             qt_arch: linux_gcc_64
             qt_modules: qt5compat
-            languages: ['cpp']
+            language: cpp
 
     steps:
     - name: Checkout repository

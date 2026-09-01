@@ -128,6 +128,28 @@ install(
   BUNDLE DESTINATION .
 )
 
+set(KLOGG_ZZ_RUNTIME_TARGETS
+  ZzCore
+  ZzWindowKit
+  ZzFluentFoundation
+  ZzFluentUI
+  ZzLog)
+foreach(zz_runtime_target IN LISTS KLOGG_ZZ_RUNTIME_TARGETS)
+  if(NOT TARGET ${zz_runtime_target})
+    message(FATAL_ERROR "Required ZzLogg runtime target is unavailable: ${zz_runtime_target}")
+  endif()
+endforeach()
+install(TARGETS ${KLOGG_ZZ_RUNTIME_TARGETS}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+if(UNIX AND NOT APPLE)
+  set_target_properties(klogg PROPERTIES
+    INSTALL_RPATH "\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+  set_target_properties(${KLOGG_ZZ_RUNTIME_TARGETS} PROPERTIES
+    INSTALL_RPATH "\$ORIGIN")
+endif()
+
 if(WIN32)
   if(TARGET tbb)
     add_custom_command(
@@ -166,6 +188,11 @@ if(WIN32 AND TARGET Qt6::qmake)
   if(KLOGG_WINDEPLOYQT_EXECUTABLE)
     set(KLOGG_RUNTIME_ROOT "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>")
     set(KLOGG_RUNTIME_DIR "${KLOGG_RUNTIME_ROOT}/${ZZLOGG_PRODUCT_NAME}-runtime")
+    set(KLOGG_RUNTIME_DOCUMENTS
+      "${COPYING_FILE}"
+      "${NOTICE_FILE}"
+      "${README_FILE}"
+      "${DOCUMENTATION_FILE}")
 
     set(KLOGG_RUNTIME_DEPENDENCIES klogg)
     set(KLOGG_RUNTIME_COMMANDS
@@ -199,7 +226,13 @@ if(WIN32 AND TARGET Qt6::qmake)
         "-DDEPLOY_DIR=${KLOGG_RUNTIME_DIR}"
         "-DWINDEPLOYQT=${KLOGG_WINDEPLOYQT_EXECUTABLE}"
         "-DCONFIG=$<CONFIG>"
+        "-DPORTABLE_DOCUMENTS_PIPE=$<JOIN:${KLOGG_RUNTIME_DOCUMENTS},|>"
         -P "${CMAKE_SOURCE_DIR}/cmake/DeployPortable.cmake"
+      COMMAND
+        ${CMAKE_COMMAND}
+        "-DSOURCE_ROOT=${CMAKE_SOURCE_DIR}"
+        "-DDEPLOY_DIR=${KLOGG_RUNTIME_DIR}"
+        -P "${CMAKE_SOURCE_DIR}/cmake/StageRuntimeLicenses.cmake"
       ${KLOGG_RUNTIME_COMMANDS}
       DEPENDS ${KLOGG_RUNTIME_DEPENDENCIES}
       COMMENT "Creating ${ZZLOGG_PRODUCT_NAME} runtime folder"
