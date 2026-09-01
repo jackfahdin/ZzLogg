@@ -19,6 +19,7 @@
 
 #include "logger.h"
 #include "log.h"
+#include "storagecontext.h"
 
 #include <atomic>
 #include <iostream>
@@ -30,6 +31,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 
 namespace logging {
@@ -53,11 +55,17 @@ class Logger {
         if ( !needLogging( type ) ) {
             return;
         }
-        
+
         const auto formattedMessage = qFormatLogMessage( type, context, msg );
         const auto messageToPrint = formattedMessage.toUtf8();
 
         ScopedLock lock( mutex_ );
+        if ( !logFile_ ) {
+            if ( isConsoleLogEnabled_ ) {
+                std::cout << messageToPrint.constData() << std::endl;
+            }
+            return;
+        }
         QTextStream ts( logFile_.get() );
         ts << messageToPrint << '\n';
 
@@ -103,13 +111,22 @@ class Logger {
 
         if ( isEnabled && !logFile_ ) {
             auto logFileName
-                = QString( "klogg_%1_%2.log" )
+                = QString( "ZzLogg_%1_%2.log" )
                       .arg( QDateTime::currentDateTime().toString( "yyyy-MM-dd_HH-mm-ss" ) )
                       .arg( QCoreApplication::applicationPid() );
 
-            logFile_ = std::make_unique<QFile>( QDir::temp().filePath( logFileName ) );
-            if ( !logFile_->open( QIODevice::WriteOnly | QIODevice::Append ) ) {
-                logFile_.reset();
+            const auto logsDirectory = StorageContext::current().logsDirectory();
+            QDir{}.mkpath( logsDirectory );
+            auto logFile = std::make_unique<QFile>(
+                QFileInfo{ QDir{ logsDirectory }.filePath( logFileName ) }.absoluteFilePath() );
+            if ( !logFile->open( QIODevice::WriteOnly | QIODevice::Append ) ) {
+                const auto path = logFile->fileName().toLocal8Bit();
+                const auto error = logFile->errorString().toLocal8Bit();
+                std::cerr << "Unable to open log file '" << path.constData()
+                          << "': " << error.constData() << std::endl;
+            }
+            else {
+                logFile_ = std::move( logFile );
             }
         }
         else if ( !isEnabled && logFile_ ) {
@@ -117,6 +134,12 @@ class Logger {
         }
 
         setMessageHandler();
+    }
+
+    QString currentLogFilePath() const
+    {
+        std::shared_lock lock( mutex_ );
+        return logFile_ ? QFileInfo{ logFile_->fileName() }.absoluteFilePath() : QString{};
     }
 
     bool isAnyEnabled() const
@@ -189,6 +212,11 @@ void enableLogging( bool isEnabled, LogLevel logLevel )
 void enableFileLogging( bool isEnabled, LogLevel logLevel )
 {
     Logger::instance().enableFileLogging( isEnabled, static_cast<uint8_t>( logLevel ) );
+}
+
+QString currentLogFilePath()
+{
+    return Logger::instance().currentLogFilePath();
 }
 
 void kloggFileMessageHandler( QtMsgType type, const QMessageLogContext& context,

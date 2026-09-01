@@ -20,6 +20,10 @@
 #ifndef KLOGG_CRASHHANDLER
 #define KLOGG_CRASHHANDLER
 
+#include <QString>
+
+QString crashDatabasePath();
+
 #ifdef KLOGG_USE_SENTRY
 
 #include <memory>

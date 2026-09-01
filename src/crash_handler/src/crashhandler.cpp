@@ -18,6 +18,15 @@
  */
 
 #include "crashhandler.h"
+#include "storagecontext.h"
+
+QString crashDatabasePath()
+{
+    return StorageContext::current().crashesDirectory();
+}
+
+#ifdef KLOGG_USE_SENTRY
+
 #include "zzlogg_brand.h"
 
 #include <QByteArray>
@@ -32,7 +41,6 @@
 #include <QProcess>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QStandardPaths>
 #include <QSysInfo>
 #include <QTimer>
 #include <QUrlQuery>
@@ -69,17 +77,6 @@ QString crashHelperPath( const char* baseName )
 
 constexpr const char* DSN
     = "https://aad3b270e5ba4ec2915eb5caf6e6d929@o453796.ingest.sentry.io/5442855";
-
-QString sentryDatabasePath()
-{
-#ifdef KLOGG_PORTABLE
-    auto basePath = QCoreApplication::applicationDirPath();
-#else
-    auto basePath = QStandardPaths::writableLocation( QStandardPaths::AppDataLocation );
-#endif
-
-    return basePath.append( "/klogg_dump" );
-}
 
 void logSentry( sentry_level_t level, const char* message, va_list args, void* userdata )
 {
@@ -229,7 +226,7 @@ bool checkCrashpadReports( const QString& databasePath )
 
 CrashHandler::CrashHandler()
 {
-    const auto dumpPath = sentryDatabasePath();
+    const auto dumpPath = crashDatabasePath();
     const auto hasDumpDir = QDir{ dumpPath }.mkpath( "." );
 
     const auto needWaitForUpload = hasDumpDir ? checkCrashpadReports( dumpPath ) : false;
@@ -316,3 +313,5 @@ CrashHandler::~CrashHandler()
     memoryUsageTimer_->stop();
     sentry_shutdown();
 }
+
+#endif

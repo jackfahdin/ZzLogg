@@ -64,6 +64,19 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
+add_executable(zzlogg_storage_consumers_test storageconsumerstest.cpp)
+target_link_libraries(zzlogg_storage_consumers_test PRIVATE
+  klogg_logging klogg_crash_handler klogg_storage Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_storage_consumers_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.storage_consumers
+         COMMAND zzlogg_storage_consumers_test)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.storage_consumers APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 if(TARGET klogg_portable_folder)
   set(ZZLOGG_PORTABLE_DIR_CONTRACT
     "$<TARGET_GENEX_EVAL:klogg_portable_folder,$<TARGET_PROPERTY:klogg_portable_folder,ZZLOGG_PORTABLE_DIR>>")

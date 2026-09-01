@@ -22,14 +22,17 @@
 
 #include <cstdint>
 
+#include <QString>
+
 #include "log.h"
 
 namespace logging {
 
 enum class LogLevel { None, Fatal, Error, Warning, Info, Debug };
 
-void enableLogging( bool enableLogging = true, LogLevel logLevel = LogLevel::Info);
-void enableFileLogging( bool enableLogging = true, LogLevel logLevel = LogLevel::Info);
+void enableLogging( bool enableLogging = true, LogLevel logLevel = LogLevel::Info );
+void enableFileLogging( bool enableLogging = true, LogLevel logLevel = LogLevel::Info );
+QString currentLogFilePath();
 } // namespace logging
 
 #endif
