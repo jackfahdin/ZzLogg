@@ -8,6 +8,8 @@
 class KloggApp;
 class QObject;
 
+inline constexpr int ZzLoggRestartExitCode = 773;
+
 using KloggUiRuntimeFactory = std::function<std::unique_ptr<QObject>( KloggApp&, QString* error )>;
 
 struct KloggApplicationOptions final {

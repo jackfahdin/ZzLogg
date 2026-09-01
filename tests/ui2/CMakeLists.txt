@@ -206,6 +206,52 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
+add_executable(zzlogg_storage_settings_test storagesettingstest.cpp)
+target_link_libraries(zzlogg_storage_settings_test PRIVATE
+  klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_storage_settings_test PRIVATE
+  "${CMAKE_BINARY_DIR}/src/ui/klogg_ui_autogen/include_$<CONFIG>")
+set_target_properties(zzlogg_storage_settings_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.storage_settings
+         COMMAND zzlogg_storage_settings_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.storage_settings PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.storage_settings APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
+qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+set_source_files_properties(
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h"
+  PROPERTIES SKIP_AUTOMOC ON)
+add_executable(zzlogg_restart_contract_test restartcontracttest.cpp
+  ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES}
+  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
+  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+target_link_libraries(zzlogg_restart_contract_test PRIVATE
+  klogg_ui klogg_logdata klogg_versioncheck klogg_crash_handler
+  klogg_storage roaring kdsingleapp Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_restart_contract_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app"
+  "${CMAKE_BINARY_DIR}/src/ui/klogg_ui_autogen/include_$<CONFIG>")
+set_target_properties(zzlogg_restart_contract_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.restart_contract
+         COMMAND zzlogg_restart_contract_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.restart_contract PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.restart_contract APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_executable(zzlogg_document_tab_close_test documenttabclosetest.cpp)
 target_link_libraries(zzlogg_document_tab_close_test PRIVATE
   klogg_ui Qt6::Test Qt6::Widgets)
@@ -236,13 +282,6 @@ if(WIN32)
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
 endif()
 
-qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
-  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
-set_source_files_properties(
-  "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
-  "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h"
-  PROPERTIES SKIP_AUTOMOC ON)
 add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES}
   "${PROJECT_SOURCE_DIR}/src/app/zzloggapplicationidentity.cpp"

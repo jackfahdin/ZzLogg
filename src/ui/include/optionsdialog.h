@@ -50,6 +50,8 @@
 
 #include "ui_optionsdialog.h"
 
+class StorageLocationPage;
+
 class KeySequencePresenter : public QWidget {
     Q_OBJECT
   public:
@@ -77,6 +79,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
   Q_SIGNALS:
     // Is emitted when new settings must be used
     void optionsChanged();
+    void restartRequested();
 
   private Q_SLOTS:
     // Clears and updates the font size box with the sizes allowed
@@ -84,7 +87,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     void updateFontSize( const QString& fontFamily );
     // Update the content of the global Config() using parameters
     // from the dialog box.
-    void updateConfigFromDialog();
+    bool updateConfigFromDialog();
     // Called when a ok/cancel/apply button is clicked.
     void onButtonBoxClicked( QAbstractButton* button );
 
@@ -116,9 +119,11 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     RegexpEngine getRegexpEngineFromIndex( int index ) const;
 
     void updateDialogFromConfig();
+    bool scheduleStorageMigration();
 
     QColor mainSearchColor_;
     QColor qfSearchColor_;
+    StorageLocationPage* storageLocationPage_ = nullptr;
 };
 
 #endif

@@ -39,7 +39,9 @@
 #include <QColorDialog>
 #include <QKeySequenceEdit>
 #include <QMessageBox>
+#include <QStandardPaths>
 #include <QToolButton>
+#include <QUuid>
 #include <QtGui>
 
 #include "encodings.h"
@@ -47,9 +49,14 @@
 #include "highlighteredit.h"
 #include "log.h"
 #include "mainwindow.h"
+#include "persistentinfo.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
 #include "shortcuts.h"
+#include "storagecontext.h"
+#include "storagelocationpage.h"
+#include "storagelocator.h"
+#include "storagevalidator.h"
 #include "styles.h"
 
 #include "optionsdialog.h"
@@ -57,12 +64,63 @@
 static constexpr int PollIntervalMin = 10;
 static constexpr int PollIntervalMax = 3600000;
 
+namespace {
+
+QString applicationPath( const char* testProperty, const QString& productionPath )
+{
+    const QString testPath = qApp->property( testProperty ).toString();
+    return QDir::cleanPath(
+        QDir::fromNativeSeparators( testPath.isEmpty() ? productionPath : testPath ) );
+}
+
+bool samePath( const QString& left, const QString& right )
+{
+#ifdef Q_OS_WIN
+    constexpr Qt::CaseSensitivity sensitivity = Qt::CaseInsensitive;
+#else
+    constexpr Qt::CaseSensitivity sensitivity = Qt::CaseSensitive;
+#endif
+    return QDir::cleanPath( QDir::fromNativeSeparators( left ) )
+               .compare( QDir::cleanPath( QDir::fromNativeSeparators( right ) ), sensitivity )
+           == 0;
+}
+
+bool sameLocation( const StorageLocation& left, const StorageLocation& right )
+{
+    return left.mode == right.mode && samePath( left.dataRoot, right.dataRoot )
+           && samePath( left.locatorPath, right.locatorPath )
+           && left.commandLineOverride == right.commandLineOverride;
+}
+
+bool sameRequestContents( const StorageMigrationRequest& left,
+                          const StorageMigrationRequest& right )
+{
+    return sameLocation( left.source, right.source ) && sameLocation( left.target, right.target )
+           && samePath( left.legacyConfigFile, right.legacyConfigFile )
+           && samePath( left.legacySessionFile, right.legacySessionFile )
+           && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory )
+           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory );
+}
+
+} // namespace
+
 // Constructor
 OptionsDialog::OptionsDialog( QWidget* parent )
     : QDialog( parent )
 {
     setupUi( this );
     setWindowTitle( tr( "%1 preferences" ).arg( QApplication::applicationDisplayName() ) );
+
+    storageLocationPage_ = new StorageLocationPage{ tabWidget };
+    tabWidget->addTab( storageLocationPage_, tr( "Storage" ) );
+    const auto& storage = StorageContext::current();
+    storageLocationPage_->setApplicationDirectory( applicationPath(
+        "zzlogg.test.applicationDirectory", QCoreApplication::applicationDirPath() ) );
+    storageLocationPage_->setUserDataDirectory( applicationPath(
+        "zzlogg.test.userDataDirectory",
+        QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ) ) );
+    storageLocationPage_->setLocation( storage.location() );
+    storageLocationPage_->setCommandLineManaged( storage.location().commandLineOverride );
 
     const bool fluentUi = qApp->property( "zzlogg.fluentUi" ).toBool();
     styleBox->setVisible( !fluentUi );
@@ -496,7 +554,7 @@ int OptionsDialog::updateTranslate()
     return mw->installLanguage( languageComboBox->currentData().toString() );
 }
 
-void OptionsDialog::updateConfigFromDialog()
+bool OptionsDialog::updateConfigFromDialog()
 {
     bool restartAppMessage = false;
     auto& config = Configuration::get();
@@ -605,6 +663,21 @@ void OptionsDialog::updateConfigFromDialog()
     recentFiles.setFilesHistoryMaxItems( filesHistoryMaxItemsSpinBox->value() );
     recentFiles.save();
 
+    auto& appSettings = PersistentInfo::getSettings( app_settings{} );
+    auto& sessionSettings = PersistentInfo::getSettings( session_settings{} );
+    appSettings.sync();
+    sessionSettings.sync();
+    if ( appSettings.status() != QSettings::NoError
+         || sessionSettings.status() != QSettings::NoError ) {
+        QMessageBox::critical( this, QApplication::applicationDisplayName(),
+                               tr( "Failed to save settings before changing storage location." ) );
+        return false;
+    }
+
+    if ( !scheduleStorageMigration() ) {
+        return false;
+    }
+
     if ( restartAppMessage ) {
         QMessageBox::warning(
             this, QApplication::applicationDisplayName(),
@@ -614,16 +687,116 @@ void OptionsDialog::updateConfigFromDialog()
     }
 
     Q_EMIT optionsChanged();
+    return true;
+}
+
+bool OptionsDialog::scheduleStorageMigration()
+{
+    const auto& storage = StorageContext::current();
+    const StorageLocation source = storage.location();
+    if ( source.commandLineOverride ) {
+        return true;
+    }
+    if ( !storageLocationPage_->isSelectionValid() ) {
+        QMessageBox::critical(
+            this, QApplication::applicationDisplayName(),
+            tr( "The selected storage location is not valid: %1" )
+                .arg( storageLocationPage_->validationError() ) );
+        return false;
+    }
+
+    const QString applicationDirectory = applicationPath(
+        "zzlogg.test.applicationDirectory", QCoreApplication::applicationDirPath() );
+    const QString appConfigDirectory = applicationPath(
+        "zzlogg.test.appConfigDirectory",
+        QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ) );
+    const StorageLocatorStore locatorStore{ applicationDirectory, appConfigDirectory };
+    StorageLocation target = storageLocationPage_->location();
+    target.locatorPath = target.mode == StorageMode::ProgramDirectory
+                             ? locatorStore.programLocatorPath()
+                             : locatorStore.userLocatorPath();
+    target.commandLineOverride = false;
+    if ( sameLocation( source, target ) ) {
+        return true;
+    }
+    if ( !samePath( source.dataRoot, target.dataRoot )
+         && StorageValidator::hasCompatibleManifest( target.dataRoot ) ) {
+        QMessageBox::critical(
+            this, QApplication::applicationDisplayName(),
+            tr( "The selected directory already contains ZzLogg data. Automatic merging is not "
+                "supported; choose an empty directory." ) );
+        return false;
+    }
+
+    const StorageResolution currentResolution = locatorStore.resolve();
+    if ( !currentResolution.state.has_value()
+         || !sameLocation( currentResolution.state->active, source ) ) {
+        QMessageBox::critical(
+            this, QApplication::applicationDisplayName(),
+            tr( "Cannot schedule the storage change because the active locator does not match "
+                "the current data directory: %1" )
+                .arg( currentResolution.error ) );
+        return false;
+    }
+
+    StorageMigrationRequest request;
+    request.transactionId = QUuid::createUuid().toString( QUuid::WithoutBraces );
+    request.source = source;
+    request.target = target;
+    request.legacyConfigFile = storage.configFilePath();
+    request.legacySessionFile = storage.sessionFilePath();
+    request.legacyCrashDirectory = storage.crashesDirectory();
+    request.sourceLogsDirectory = storage.logsDirectory();
+
+    if ( currentResolution.state->pending.has_value() ) {
+        if ( !sameRequestContents( *currentResolution.state->pending, request ) ) {
+            QMessageBox::critical(
+                this, QApplication::applicationDisplayName(),
+                tr( "Another storage location change is already pending. Restart ZzLogg before "
+                    "choosing a different location." ) );
+            return false;
+        }
+        request = *currentResolution.state->pending;
+    }
+    else {
+        QString error;
+        if ( !locatorStore.writePending( request, &error ) ) {
+            QMessageBox::critical(
+                this, QApplication::applicationDisplayName(),
+                tr( "Failed to schedule the storage location change: %1" ).arg( error ) );
+            return false;
+        }
+    }
+
+    bool restartNow = false;
+    const QVariant testAnswer = qApp->property( "zzlogg.test.restartAnswer" );
+    if ( testAnswer.isValid() ) {
+        restartNow = testAnswer.toString() == QStringLiteral( "now" );
+    }
+    else {
+        QMessageBox prompt{ QMessageBox::Question, QApplication::applicationDisplayName(),
+                            tr( "The storage location will change after ZzLogg restarts." ),
+                            QMessageBox::NoButton, this };
+        auto* now = prompt.addButton( tr( "Restart now" ), QMessageBox::AcceptRole );
+        prompt.addButton( tr( "Restart later" ), QMessageBox::RejectRole );
+        prompt.exec();
+        restartNow = prompt.clickedButton() == now;
+    }
+    if ( restartNow ) {
+        Q_EMIT restartRequested();
+    }
+    return true;
 }
 
 void OptionsDialog::onButtonBoxClicked( QAbstractButton* button )
 {
     QDialogButtonBox::ButtonRole role = buttonBox->buttonRole( button );
+    bool applied = true;
     if ( ( role == QDialogButtonBox::AcceptRole ) || ( role == QDialogButtonBox::ApplyRole ) ) {
-        updateConfigFromDialog();
+        applied = updateConfigFromDialog();
     }
 
-    if ( role == QDialogButtonBox::AcceptRole )
+    if ( role == QDialogButtonBox::AcceptRole && applied )
         accept();
     else if ( role == QDialogButtonBox::RejectRole )
         reject();

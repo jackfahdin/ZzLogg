@@ -86,6 +86,9 @@ class MainWindow : public QMainWindow {
     void reTranslateUI();
 
     static int installLanguage( QString lang );
+    bool prepareForApplicationExit();
+    void cancelApplicationExitPreparation();
+    bool closeForApplicationExit();
 
   public Q_SLOTS:
     // Load a file in a new tab (non-interactive)
@@ -191,6 +194,7 @@ class MainWindow : public QMainWindow {
     void windowActivated();
     void windowClosed();
     void exitRequested();
+    void restartRequested();
 
   private:
     void createActions();
@@ -317,6 +321,7 @@ class MainWindow : public QMainWindow {
 
     bool isMaximized_ = false;
     bool isCloseFromTray_ = false;
+    bool applicationExitPrepared_ = false;
 
     std::once_flag screenChangesConnect_;
 };

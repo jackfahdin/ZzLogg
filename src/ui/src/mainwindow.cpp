@@ -1178,6 +1178,9 @@ void MainWindow::options()
 {
     OptionsDialog dialog( this );
     signalMux_.connect( &dialog, SIGNAL( optionsChanged() ), SLOT( applyConfiguration() ) );
+    connect( &dialog, &OptionsDialog::restartRequested, this, [ this ] {
+        QTimer::singleShot( 0, this, [ this ] { Q_EMIT restartRequested(); } );
+    } );
 
     connect( &dialog, &OptionsDialog::optionsChanged, [ this ]() {
         const auto& config = Configuration::get();
@@ -1528,6 +1531,29 @@ void MainWindow::loadFileNonInteractive( const QString& file_name )
 // Events
 //
 
+bool MainWindow::prepareForApplicationExit()
+{
+    writeSettings();
+    applicationExitPrepared_ = true;
+    return true;
+}
+
+void MainWindow::cancelApplicationExitPreparation()
+{
+    applicationExitPrepared_ = false;
+}
+
+bool MainWindow::closeForApplicationExit()
+{
+    const bool previousCloseFromTray = isCloseFromTray_;
+    isCloseFromTray_ = true;
+    const bool closed = !property( "zzlogg.test.rejectApplicationClose" ).toBool() && close();
+    if ( !closed ) {
+        isCloseFromTray_ = previousCloseFromTray;
+    }
+    return closed;
+}
+
 // Closes the application
 void MainWindow::closeEvent( QCloseEvent* event )
 {
@@ -1538,9 +1564,10 @@ void MainWindow::closeEvent( QCloseEvent* event )
     }
     else {
         const auto saveSettings = session_.close();
-        if ( saveSettings ) {
+        if ( saveSettings && !applicationExitPrepared_ ) {
             writeSettings();
         }
+        applicationExitPrepared_ = false;
 
         closeAll( ActionInitiator::App );
         trayIcon_->hide();

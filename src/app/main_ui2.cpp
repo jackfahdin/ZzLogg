@@ -1,5 +1,12 @@
 #include <utility>
 
+#include <QDir>
+#include <QFileInfo>
+#include <QProcess>
+
+#include <cstdlib>
+#include <cstdio>
+
 #include <ZzCore/ZzError.h>
 #include <ZzWindowKit/ZzWindowKitBootstrap.h>
 
@@ -8,6 +15,14 @@
 
 int main( int argc, char* argv[] )
 {
+    const QString executablePath = QFileInfo{
+        QDir::fromNativeSeparators( QString::fromLocal8Bit( argv[ 0 ] ) )
+    }.absoluteFilePath();
+    QStringList arguments;
+    for ( int index = 1; index < argc; ++index ) {
+        arguments.append( QString::fromLocal8Bit( argv[ index ] ) );
+    }
+
     KloggApplicationOptions options;
     const auto bootstrap = ZzWindowKit::ZzWindowKitBootstrap::prepare();
     if ( !bootstrap ) {
@@ -18,5 +33,18 @@ int main( int argc, char* argv[] )
         options.createUiRuntime
             = []( KloggApp& app, QString* error ) { return ZzLoggUiRuntime::create( app, error ); };
     }
-    return runKloggApplication( argc, argv, std::move( options ) );
+    const int result = runKloggApplication( argc, argv, std::move( options ) );
+    if ( result != ZzLoggRestartExitCode ) {
+        return result;
+    }
+    if ( QProcess::startDetached( executablePath, arguments ) ) {
+        return EXIT_SUCCESS;
+    }
+    const QByteArray diagnostic
+        = QStringLiteral( "Failed to restart ZzLogg executable: %1\n" )
+              .arg( executablePath )
+              .toLocal8Bit();
+    std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
+    std::fflush( stderr );
+    return EXIT_FAILURE;
 }

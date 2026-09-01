@@ -44,9 +44,12 @@
 #endif
 
 #include "configuration.h"
+#include "applicationrunner.h"
 #include "crashhandler.h"
 #include "klogg_version.h"
 #include "log.h"
+#include "logger.h"
+#include "persistentinfo.h"
 #include "session.h"
 #include "uuid.h"
 
@@ -268,6 +271,8 @@ class KloggApp : public QApplication {
         connect( window, &MainWindow::windowClosed,
                  [ this, window ]() { onWindowClosed( *window ); } );
         connect( window, &MainWindow::exitRequested, [ this ] { exitApplication(); } );
+        connect( window, &MainWindow::restartRequested,
+                 [ this ] { restartApplication(); } );
 
         return window;
     }
@@ -292,15 +297,77 @@ class KloggApp : public QApplication {
     void exitApplication()
     {
         LOG_INFO << "exit application";
-        session_->setExitRequested( true );
-        auto mainWindows = mainWindows_;
-        mainWindows.reverse();
-        for ( const auto& [ session, window ] : mainWindows ) {
-            Q_UNUSED( session );
-            window->close();
+        if ( !closeAllWindowsForApplicationExit() ) {
+            return;
         }
 
         QTimer::singleShot( 100, this, &QCoreApplication::quit );
+    }
+
+    bool closeAllWindowsForApplicationExit()
+    {
+        if ( !session_ ) {
+            return true;
+        }
+        const bool previousExitRequested = session_->exitRequested();
+        auto mainWindows = mainWindows_;
+        mainWindows.reverse();
+        QList<MainWindow*> prepared;
+        for ( const auto& [ session, window ] : mainWindows ) {
+            Q_UNUSED( session );
+            if ( window == nullptr || !window->prepareForApplicationExit() ) {
+                for ( MainWindow* preparedWindow : prepared ) {
+                    preparedWindow->cancelApplicationExitPreparation();
+                }
+                session_->setExitRequested( previousExitRequested );
+                return false;
+            }
+            prepared.append( window );
+        }
+
+        auto& sessionSettings = PersistentInfo::getSettings( session_settings{} );
+        sessionSettings.sync();
+        const bool synced = sessionSettings.status() == QSettings::NoError
+                            && !property( "zzlogg.test.failSessionSync" ).toBool();
+        if ( !synced ) {
+            for ( MainWindow* preparedWindow : prepared ) {
+                preparedWindow->cancelApplicationExitPreparation();
+            }
+            session_->setExitRequested( previousExitRequested );
+            return false;
+        }
+
+        session_->setExitRequested( true );
+        for ( const auto& [ session, window ] : mainWindows ) {
+            Q_UNUSED( session );
+            if ( window != nullptr && !window->closeForApplicationExit() ) {
+                for ( MainWindow* preparedWindow : prepared ) {
+                    preparedWindow->cancelApplicationExitPreparation();
+                }
+                session_->setExitRequested( previousExitRequested );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void restartApplication()
+    {
+        if ( restartInProgress_ ) {
+            return;
+        }
+        restartInProgress_ = true;
+        LOG_INFO << "restart application";
+        if ( !closeAllWindowsForApplicationExit() ) {
+            restartInProgress_ = false;
+            if ( !property( "zzlogg.test.suppressRestartErrors" ).toBool() ) {
+                QMessageBox::critical( nullptr, applicationDisplayName(),
+                                       tr( "Unable to save the current session for restart." ) );
+            }
+            return;
+        }
+        logging::enableFileLogging( false );
+        QCoreApplication::exit( ZzLoggRestartExitCode );
     }
 
     void newVersionNotification( const QString& new_version, const QString& url,
@@ -353,6 +420,7 @@ class KloggApp : public QApplication {
     WindowDecorator windowDecorator_;
 
     VersionChecker versionChecker_;
+    bool restartInProgress_ = false;
 };
 
 #endif // KLOGG_KLOGGAPP_H
