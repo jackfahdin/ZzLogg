@@ -50,9 +50,9 @@ git commit -m "test: cover light theme propagation"
 
 在 `TabbedCrawlerWidget` 构造函数中，仅当 `zzlogg.fluentUi` 为假时应用原有 QSS。在 `AbstractLogView::changeEvent()` 中处理 `PaletteChange`、`ApplicationPaletteChange` 和 `StyleChange`，将 `textAreaCache_.invalid_` 置为 `true` 并刷新视口；边栏背景使用 `QPalette::AlternateBase`，普通项目符号和行号文字使用 `QPalette::Text`。
 
-- [ ] **步骤 2：刷新搜索提示栏默认调色板**
+- [ ] **步骤 2：刷新搜索提示栏调色板状态**
 
-让 `CrawlerWidget::changeEvent()` 在 `PaletteChange` 或 `ApplicationPaletteChange` 时同步更新 `searchInfoLineDefaultPalette_`，但只在 `StyleChange` 时重载图标。
+让 `CrawlerWidget::changeEvent()` 在 `PaletteChange` 或 `ApplicationPaletteChange` 时按当前父级调色板刷新活动进度条，但只在 `StyleChange` 时重载图标。进度结束后清除显式调色板并恢复继承；错误提示继续保留语义错误色。
 
 - [ ] **步骤 3：运行目标测试并确认通过**
 
