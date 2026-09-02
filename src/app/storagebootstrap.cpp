@@ -20,6 +20,25 @@ StorageBootstrapResult errorResult( QString error )
     return { StorageBootstrapStatus::Error, std::move( error ) };
 }
 
+bool samePath( const QString& left, const QString& right )
+{
+#ifdef Q_OS_WIN
+    constexpr Qt::CaseSensitivity caseSensitivity = Qt::CaseInsensitive;
+#else
+    constexpr Qt::CaseSensitivity caseSensitivity = Qt::CaseSensitive;
+#endif
+    return QDir::cleanPath( QDir::fromNativeSeparators( left ) )
+               .compare( QDir::cleanPath( QDir::fromNativeSeparators( right ) ), caseSensitivity )
+           == 0;
+}
+
+bool sameLocation( const StorageLocation& left, const StorageLocation& right )
+{
+    return left.mode == right.mode && samePath( left.dataRoot, right.dataRoot )
+           && samePath( left.locatorPath, right.locatorPath )
+           && left.commandLineOverride == right.commandLineOverride;
+}
+
 StorageBootstrapResult installLocation( StorageLocation location,
                                         const StorageRuntimePaths& runtimePaths,
                                         bool requireManifest, bool writeManifest )
@@ -57,7 +76,7 @@ StorageBootstrapResult installLocation( StorageLocation location,
 }
 
 StorageBootstrapResult installResolvedLocator( const StorageResolution& resolution,
-                                                const StorageRuntimePaths& runtimePaths )
+                                               const StorageRuntimePaths& runtimePaths )
 {
     if ( !resolution.error.isEmpty() ) {
         return errorResult( resolution.error );
@@ -136,8 +155,7 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
 
 StorageBootstrapResult
 bootstrapStorage( const QString& applicationDirectory, const QString& appConfigDirectory,
-                  const QString& userDataDirectory,
-                  const QString& legacyUserSettingsDirectory,
+                  const QString& userDataDirectory, const QString& legacyUserSettingsDirectory,
                   const QString& oldCrashDirectory, const QString& commandLineDataRoot,
                   StorageSelectionProvider selectionProvider )
 {
@@ -161,6 +179,25 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         return installLocation( std::move( location ), runtimePaths, false, true );
     }
 
+    if ( ( resolution.source == StorageResolutionSource::ProgramLocator
+           || resolution.source == StorageResolutionSource::UserLocator )
+         && resolution.error.isEmpty() && resolution.state.has_value()
+         && !resolution.state->pending.has_value() && !resolution.state->verified
+         && !StorageValidator::hasCompatibleManifest( resolution.state->active.dataRoot ) ) {
+        const auto legacy = LegacyStorageDetector::detect(
+            applicationDirectory, legacyUserSettingsDirectory, oldCrashDirectory );
+        if ( legacy.has_value()
+             && sameLocation( resolution.state->active,
+                              legacySourceLocation( *legacy, store, applicationDirectory,
+                                                    legacyUserSettingsDirectory ) ) ) {
+            QString error;
+            if ( !store.discardUnverifiedLegacyLocator( resolution.state->active, &error ) ) {
+                return errorResult( error );
+            }
+            resolution = store.resolve();
+        }
+    }
+
     if ( resolution.source == StorageResolutionSource::ProgramLocator
          || resolution.source == StorageResolutionSource::UserLocator ) {
         return resolveExisting( store, std::move( resolution ), runtimePaths );
@@ -174,9 +211,8 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
     const auto legacy = LegacyStorageDetector::detect(
         applicationDirectory, legacyUserSettingsDirectory, oldCrashDirectory );
     if ( legacy.has_value() ) {
-        const StorageLocation source
-            = legacySourceLocation( *legacy, store, applicationDirectory,
-                                    legacyUserSettingsDirectory );
+        const StorageLocation source = legacySourceLocation( *legacy, store, applicationDirectory,
+                                                             legacyUserSettingsDirectory );
         StorageLocation target
             = legacyTargetLocation( *legacy, store, applicationDirectory, userDataDirectory );
         const auto validation = StorageValidator::validate( target.dataRoot, false );

@@ -3,6 +3,7 @@
 #include "legacystorage.h"
 #include "storagevalidator.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -169,6 +170,7 @@ private Q_SLOTS:
     void sessionCopyFailureRollsBackAndPreservesPreexistingTargetContent();
     void recursiveCrashCopyUsesInjectedOperation();
     void lockConflictFailsBeforeWritingPendingState();
+    void staleMalformedMigrationLockIsRecovered();
     void commitFailureCleansManifestAndTransactionFiles();
     void commitFailureWithCommittedTargetRequiresRecovery_data();
     void commitFailureWithCommittedTargetRequiresRecovery();
@@ -742,6 +744,30 @@ void StorageMigratorTest::lockConflictFailsBeforeWritingPendingState()
     QVERIFY( result.error.contains( QDir::cleanPath( lockPath ) ) );
     verifySourceIsActiveWithoutPending( fixture );
     QVERIFY( !QFile::exists( fixture.targetRoot ) );
+}
+
+void StorageMigratorTest::staleMalformedMigrationLockIsRecovered()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    MigrationFixture fixture{ temporaryDirectory };
+    QVERIFY( fixture.initializeLocator() );
+    QVERIFY( writeBytes( fixture.request.legacyConfigFile, QByteArray{ "[General]\na=1\n" } ) );
+    QVERIFY( writeBytes( fixture.request.legacySessionFile, QByteArray{ "[General]\nb=2\n" } ) );
+    const QString lockPath = fixture.source.locatorPath + QStringLiteral( ".migration.lock" );
+    QFile staleLock{ lockPath };
+    QVERIFY( staleLock.open( QIODevice::WriteOnly ) );
+    staleLock.close();
+    QVERIFY( staleLock.open( QIODevice::ReadWrite ) );
+    QVERIFY( staleLock.setFileTime( QDateTime::currentDateTimeUtc().addDays( -2 ),
+                                    QFileDevice::FileModificationTime ) );
+    staleLock.close();
+
+    const StorageMigrationResult result
+        = StorageMigrator{ fixture.store }.execute( fixture.request );
+
+    QVERIFY2( result.success, qPrintable( result.error ) );
+    QVERIFY( !QFileInfo::exists( lockPath ) );
 }
 
 void StorageMigratorTest::commitFailureCleansManifestAndTransactionFiles()

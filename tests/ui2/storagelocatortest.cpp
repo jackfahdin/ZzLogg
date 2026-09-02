@@ -1,5 +1,6 @@
 #include "storagelocator.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -61,6 +62,8 @@ private Q_SLOTS:
     void reportsMalformedHigherPriorityLocatorWithoutFallback();
     void writeActiveRejectsConflictingLocatorChange();
     void writeActiveLeavesExistingLocatorWhenReplacementRejected();
+    void writeActiveRemovesLowerPriorityLocatorWhenProgramWins();
+    void programWriteDoesNotCreateAppConfigDirectory();
     void writeActiveRejectsCommandLineOverrideWithoutChangingLocators();
     void writeActiveRejectsConflictingExplicitLocatorPath();
     void writePendingPreservesVerifiedSourceState();
@@ -68,6 +71,9 @@ private Q_SLOTS:
     void writePendingRejectsDifferentExistingPending();
     void rollbackPendingRemovesNewLegacyLocator();
     void locatorMutationLockBlocksWrites();
+    void staleMalformedMutationLockIsRecovered();
+    void oldPendingWithoutPreimageRollsBackSyntheticLocator();
+    void discardsUnverifiedRolledBackLegacyLocator();
     void writeActiveRejectsReplacingDifferentActiveLocation();
     void commitPendingActivatesUnverifiedTargetAndRemovesSource();
     void commitPendingRestoresTargetWhenSourceDeletionFails();
@@ -220,6 +226,54 @@ void StorageLocatorTest::writeActiveLeavesExistingLocatorWhenReplacementRejected
     QVERIFY( !error.isEmpty() );
     QCOMPARE( readBytes( store.programLocatorPath() ), originalProgramLocator );
     QVERIFY( QDir{ store.userLocatorPath() }.exists() );
+}
+
+void StorageLocatorTest::writeActiveRemovesLowerPriorityLocatorWhenProgramWins()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
+                                     temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
+    const QString programRoot = temporaryDirectory.filePath( QStringLiteral( "program-root" ) );
+    const QString userRoot = temporaryDirectory.filePath( QStringLiteral( "user-root" ) );
+    QVERIFY( writeLocator( store.programLocatorPath(), QStringLiteral( "program" ), programRoot ) );
+    QVERIFY( writeLocator( store.userLocatorPath(), QStringLiteral( "user" ), userRoot ) );
+
+    QString error;
+    QVERIFY2( store.writeActive(
+                  { StorageMode::ProgramDirectory, programRoot, store.programLocatorPath(), false },
+                  &error ),
+              qPrintable( error ) );
+
+    QVERIFY( QFileInfo::exists( store.programLocatorPath() ) );
+    QVERIFY( !QFileInfo::exists( store.userLocatorPath() ) );
+    const auto resolution = store.resolve();
+    QCOMPARE( resolution.source, StorageResolutionSource::ProgramLocator );
+    QVERIFY( resolution.state.has_value() );
+    QCOMPARE( resolution.state->active.dataRoot, normalized( programRoot ) );
+}
+
+void StorageLocatorTest::programWriteDoesNotCreateAppConfigDirectory()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const QString applicationDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "portable-app" ) );
+    const QString appConfigDirectory
+        = temporaryDirectory.filePath( QStringLiteral( "must-not-be-created/config" ) );
+    QVERIFY( QDir{}.mkpath( applicationDirectory ) );
+    const StorageLocatorStore store{ applicationDirectory, appConfigDirectory };
+
+    QString error;
+    QVERIFY2(
+        store.writeActive( { StorageMode::ProgramDirectory,
+                             QDir{ applicationDirectory }.filePath( QStringLiteral( "data" ) ),
+                             store.programLocatorPath(), false },
+                           &error ),
+        qPrintable( error ) );
+
+    QVERIFY( QFileInfo::exists( store.programLocatorPath() ) );
+    QVERIFY( !QFileInfo::exists( appConfigDirectory ) );
 }
 
 void StorageLocatorTest::writeActiveRejectsCommandLineOverrideWithoutChangingLocators()
@@ -401,8 +455,8 @@ void StorageLocatorTest::locatorMutationLockBlocksWrites()
     QVERIFY( temporaryDirectory.isValid() );
     const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
                                      temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
-    QDir{}.mkpath( QFileInfo{ store.userLocatorPath() }.absolutePath() );
-    QLockFile lock{ store.userLocatorPath() + QStringLiteral( ".lock" ) };
+    QDir{}.mkpath( QFileInfo{ store.mutationLockPath() }.absolutePath() );
+    QLockFile lock{ store.mutationLockPath() };
     lock.setStaleLockTime( 0 );
     QVERIFY( lock.tryLock( 0 ) );
     QString error;
@@ -414,6 +468,89 @@ void StorageLocatorTest::locatorMutationLockBlocksWrites()
 
     QVERIFY( error.contains( QStringLiteral( "lock" ), Qt::CaseInsensitive ) );
     QVERIFY( !QFileInfo::exists( store.userLocatorPath() ) );
+}
+
+void StorageLocatorTest::staleMalformedMutationLockIsRecovered()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
+                                     temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
+    QVERIFY( QDir{}.mkpath( QFileInfo{ store.mutationLockPath() }.absolutePath() ) );
+    QFile staleLock{ store.mutationLockPath() };
+    QVERIFY( staleLock.open( QIODevice::WriteOnly ) );
+    staleLock.close();
+    QVERIFY( staleLock.open( QIODevice::ReadWrite ) );
+    QVERIFY( staleLock.setFileTime( QDateTime::currentDateTimeUtc().addSecs( -60 ),
+                                    QFileDevice::FileModificationTime ) );
+    staleLock.close();
+
+    QString error;
+    QVERIFY2( store.writeActive( { StorageMode::UserDirectory,
+                                   temporaryDirectory.filePath( QStringLiteral( "data" ) ),
+                                   store.userLocatorPath(), false },
+                                 &error ),
+              qPrintable( error ) );
+
+    QVERIFY( QFileInfo::exists( store.userLocatorPath() ) );
+    QVERIFY( !QFileInfo::exists( store.mutationLockPath() ) );
+}
+
+void StorageLocatorTest::oldPendingWithoutPreimageRollsBackSyntheticLocator()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
+                                     temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
+    const StorageLocation source{ StorageMode::UserDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "legacy" ) ),
+                                  store.userLocatorPath(), false };
+    const StorageLocation target{ StorageMode::ProgramDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "target" ) ),
+                                  store.programLocatorPath(), false };
+    const QString legacyConfig = QDir{ source.dataRoot }.filePath( QStringLiteral( "ZzLogg.ini" ) );
+    QVERIFY( writeRawLocator( legacyConfig, QByteArrayLiteral( "[legacy]\nvalue=true\n" ) ) );
+    const StorageMigrationRequest request{
+        QStringLiteral( "old-synthetic-pending" ), source, target, legacyConfig, legacyConfig, {}
+    };
+    QString error;
+    QVERIFY2( store.writePending( request, &error ), qPrintable( error ) );
+    {
+        QSettings settings{ store.userLocatorPath(), QSettings::IniFormat };
+        settings.remove( QStringLiteral( "Pending/sourceLocatorExisted" ) );
+        settings.sync();
+        QCOMPARE( settings.status(), QSettings::NoError );
+    }
+
+    const auto oldResolution = store.resolve();
+    QVERIFY2( oldResolution.state.has_value(), qPrintable( oldResolution.error ) );
+    QVERIFY( oldResolution.state->pending.has_value() );
+    QVERIFY( !oldResolution.state->pending->sourceLocatorExisted );
+    QVERIFY2( store.rollbackPending( request, &error ), qPrintable( error ) );
+    QVERIFY( !QFileInfo::exists( store.userLocatorPath() ) );
+}
+
+void StorageLocatorTest::discardsUnverifiedRolledBackLegacyLocator()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const StorageLocatorStore store{ temporaryDirectory.filePath( QStringLiteral( "app" ) ),
+                                     temporaryDirectory.filePath( QStringLiteral( "config" ) ) };
+    const StorageLocation legacy{ StorageMode::UserDirectory,
+                                  temporaryDirectory.filePath( QStringLiteral( "legacy" ) ),
+                                  store.userLocatorPath(), false };
+    const QByteArray locator
+        = QStringLiteral( "[Storage]\nformatVersion=1\nmode=user\ndataRoot=%1\nverified=false\n"
+                          "[LastMigration]\ntransactionId=old-rollback\noutcome=rolledBack\n" )
+              .arg( legacy.dataRoot )
+              .toUtf8();
+    QVERIFY( writeRawLocator( store.userLocatorPath(), locator ) );
+
+    QString error;
+    QVERIFY2( store.discardUnverifiedLegacyLocator( legacy, &error ), qPrintable( error ) );
+
+    QVERIFY( !QFileInfo::exists( store.userLocatorPath() ) );
+    QCOMPARE( store.resolve().source, StorageResolutionSource::Missing );
 }
 
 void StorageLocatorTest::writeActiveRejectsReplacingDifferentActiveLocation()

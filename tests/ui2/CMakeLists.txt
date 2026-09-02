@@ -479,7 +479,8 @@ if(WIN32)
       -NoProfile -ExecutionPolicy Bypass
       -File "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptancecontracttest.ps1"
       -Launcher "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptance.ps1"
-      -TestRoot "${CMAKE_CURRENT_BINARY_DIR}/manual-storage-acceptance-contract")
+      -RepositoryRoot "${PROJECT_SOURCE_DIR}"
+      -AllowedRoot "${PROJECT_SOURCE_DIR}/out/manual-storage-acceptance-contracts")
 endif()
 
 add_test(NAME zzlogg_ui2.storage_application_smoke

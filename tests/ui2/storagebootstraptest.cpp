@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QProcess>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QUuid>
 
@@ -474,6 +475,95 @@ int runScenario( const QString& name, const QString& root )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
+    if ( name == QStringLiteral( "old-legacy-pending-stage" ) ) {
+        const StorageLocation source{ StorageMode::UserDirectory,
+                                      fixture.legacyUserSettingsDirectory,
+                                      fixture.store.userLocatorPath(), false };
+        const StorageLocation target{ StorageMode::UserDirectory, fixture.userDataDirectory,
+                                      fixture.store.userLocatorPath(), false };
+        const QString legacyConfig
+            = QDir{ source.dataRoot }.filePath( QStringLiteral( "ZzLogg.ini" ) );
+        if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nold-pending=true\n" ) )
+             || !writeFile( fixture.oldCrashDirectory, QByteArrayLiteral( "not-a-directory" ) ) ) {
+            return EXIT_FAILURE;
+        }
+        const StorageMigrationRequest request{ QStringLiteral( "old-format-pending" ),
+                                               source,
+                                               target,
+                                               legacyConfig,
+                                               legacyConfig,
+                                               fixture.oldCrashDirectory };
+        QString error;
+        if ( !fixture.store.writePending( request, &error ) ) {
+            qCritical().noquote() << error;
+            return EXIT_FAILURE;
+        }
+        QSettings settings{ fixture.store.userLocatorPath(), QSettings::IniFormat };
+        settings.remove( QStringLiteral( "Pending/sourceLocatorExisted" ) );
+        settings.sync();
+        return expect( settings.status() == QSettings::NoError,
+                       QStringLiteral( "failed to create old pending fixture" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "old-legacy-pending-failure" ) ) {
+        const auto result = run( fixture, {}, neverSelect );
+        const bool removedFault = QFile::remove( fixture.oldCrashDirectory );
+        return expect( result.status == StorageBootstrapStatus::Error,
+                       QStringLiteral( "old pending retry fault was not reported" ) )
+                       && expect( removedFault,
+                                  QStringLiteral( "old pending fault fixture remained" ) )
+                       && expect( !QFileInfo::exists( fixture.store.userLocatorPath() ),
+                                  QStringLiteral( "old synthetic locator survived rollback" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "old-legacy-pending-retry" ) ) {
+        const auto result = run( fixture, {}, neverSelect );
+        const StorageContext targetContext{ { StorageMode::UserDirectory, fixture.userDataDirectory,
+                                              fixture.store.userLocatorPath(), false } };
+        QFile copied{ targetContext.configFilePath() };
+        const bool copiedLegacy
+            = copied.open( QIODevice::ReadOnly ) && copied.readAll().contains( "old-pending=true" );
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( copiedLegacy,
+                                  QStringLiteral( "old pending retry did not migrate data" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "old-legacy-rolledback-recover" ) ) {
+        const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg.ini" ) );
+        if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nold-rollback=true\n" ) ) ) {
+            return EXIT_FAILURE;
+        }
+        QSettings locator{ fixture.store.userLocatorPath(), QSettings::IniFormat };
+        locator.setValue( QStringLiteral( "Storage/formatVersion" ), 1 );
+        locator.setValue( QStringLiteral( "Storage/mode" ), QStringLiteral( "user" ) );
+        locator.setValue( QStringLiteral( "Storage/dataRoot" ),
+                          fixture.legacyUserSettingsDirectory );
+        locator.setValue( QStringLiteral( "Storage/verified" ), false );
+        locator.setValue( QStringLiteral( "LastMigration/transactionId" ),
+                          QStringLiteral( "old-rolled-back" ) );
+        locator.setValue( QStringLiteral( "LastMigration/outcome" ),
+                          QStringLiteral( "rolledBack" ) );
+        locator.sync();
+        if ( locator.status() != QSettings::NoError ) {
+            return EXIT_FAILURE;
+        }
+
+        const auto result = run( fixture, {}, neverSelect );
+        const StorageContext targetContext{ { StorageMode::UserDirectory, fixture.userDataDirectory,
+                                              fixture.store.userLocatorPath(), false } };
+        QFile copied{ targetContext.configFilePath() };
+        const bool copiedLegacy = copied.open( QIODevice::ReadOnly )
+                                  && copied.readAll().contains( "old-rollback=true" );
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( copiedLegacy,
+                                  QStringLiteral( "rolled-back legacy locator was not repaired" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
     if ( name == QStringLiteral( "pending-partial-stage" ) ) {
         const StorageLocation source{ StorageMode::UserDirectory,
                                       QDir{ root }.filePath( QStringLiteral( "source" ) ),
@@ -586,6 +676,7 @@ int main( int argc, char* argv[] )
         QStringLiteral( "provider-write-failure" ),
         QStringLiteral( "pending-recovery" ),
         QStringLiteral( "pending-rollback-retry" ),
+        QStringLiteral( "old-legacy-rolledback-recover" ),
     };
     for ( const QString& scenario : scenarios ) {
         if ( !executeScenarioProcess( scenario ) ) {
@@ -610,6 +701,16 @@ int main( int argc, char* argv[] )
                                            partialRetryRoot.path() )
          || !executeScenarioProcessAtRoot( QStringLiteral( "pending-partial-recover" ),
                                            partialRetryRoot.path() ) ) {
+        return EXIT_FAILURE;
+    }
+    QTemporaryDir oldPendingRetryRoot;
+    if ( !oldPendingRetryRoot.isValid()
+         || !executeScenarioProcessAtRoot( QStringLiteral( "old-legacy-pending-stage" ),
+                                           oldPendingRetryRoot.path() )
+         || !executeScenarioProcessAtRoot( QStringLiteral( "old-legacy-pending-failure" ),
+                                           oldPendingRetryRoot.path() )
+         || !executeScenarioProcessAtRoot( QStringLiteral( "old-legacy-pending-retry" ),
+                                           oldPendingRetryRoot.path() ) ) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

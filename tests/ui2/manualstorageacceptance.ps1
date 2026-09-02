@@ -149,6 +149,12 @@ $executable = Assert-SafeManualPath -Path $executable -Label 'Scenario executabl
 $appConfigRoot = Assert-SafeManualPath -Path $appConfigRoot -Label 'App-config override'
 $userDataRoot = Assert-SafeManualPath -Path $userDataRoot -Label 'User-data override'
 $customRoot = Assert-SafeManualPath -Path $customRoot -Label 'Custom storage root'
+$programLocator = Assert-SafeManualPath `
+  -Path (Join-Path $runtimeRoot 'ZzLogg.storage.ini') `
+  -Label 'Program locator'
+$programData = Assert-SafeManualPath `
+  -Path (Join-Path $runtimeRoot 'data') `
+  -Label 'Program data root'
 $freshExecutable = Join-Path $freshRuntimeRoot 'ZzLogg.exe'
 if (-not (Test-Path -LiteralPath $freshExecutable -PathType Leaf)) {
   throw "The fresh Task 10 runtime is missing: $freshRuntimeRoot"
@@ -183,8 +189,6 @@ elseif ($Scenario -eq 'custom-migration' -and -not (Test-Path -LiteralPath $cust
 }
 
 if (-not $ContinueScenario) {
-  $programLocator = Assert-SafeManualPath -Path (Join-Path $runtimeRoot 'ZzLogg.storage.ini') -Label 'Program locator'
-  $programData = Assert-SafeManualPath -Path (Join-Path $runtimeRoot 'data') -Label 'Program data root'
   foreach ($target in @($programLocator, $programData)) {
     if (Test-Path -LiteralPath $target) {
       Remove-Item -LiteralPath $target -Recurse -Force

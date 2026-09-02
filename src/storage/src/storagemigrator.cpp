@@ -76,6 +76,20 @@ bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationReq
            && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory );
 }
 
+bool oldPendingSourceLocatorExisted( bool verified, const StorageLocation& source,
+                                     const QString& legacyConfigFile,
+                                     const QString& legacySessionFile,
+                                     const QString& legacyCrashDirectory,
+                                     const QString& sourceLogsDirectory )
+{
+    const bool hasLegacyInputs = !legacyConfigFile.isEmpty() || !legacySessionFile.isEmpty()
+                                 || !legacyCrashDirectory.isEmpty()
+                                 || !sourceLogsDirectory.isEmpty();
+    const QString manifest
+        = QDir{ source.dataRoot }.filePath( QStringLiteral( "storage-manifest.ini" ) );
+    return verified || !hasLegacyInputs || QFileInfo{ manifest }.isFile();
+}
+
 bool sameOrChildPath( const QString& path, const QString& parent )
 {
     const QString cleanPath = normalized( path );
@@ -431,7 +445,17 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                 = QStringLiteral( "storage locator has invalid Pending locations: %1" ).arg( path );
             return state;
         }
-        bool sourceLocatorExisted = true;
+        const QString legacyConfigFile
+            = settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString();
+        const QString legacySessionFile
+            = settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString();
+        const QString legacyCrashDirectory
+            = settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString();
+        const QString sourceLogsDirectory
+            = settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString();
+        bool sourceLocatorExisted
+            = oldPendingSourceLocatorExisted( verified, active, legacyConfigFile, legacySessionFile,
+                                              legacyCrashDirectory, sourceLogsDirectory );
         if ( settings.contains( QStringLiteral( "Pending/sourceLocatorExisted" ) ) ) {
             const QString serializedExists
                 = settings.value( QStringLiteral( "Pending/sourceLocatorExisted" ) ).toString();
@@ -448,10 +472,10 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
               sourceLocator, false },
             { targetMode, settings.value( QStringLiteral( "Pending/targetRoot" ) ).toString(),
               targetLocator, false },
-            settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString(),
+            legacyConfigFile,
+            legacySessionFile,
+            legacyCrashDirectory,
+            sourceLogsDirectory,
             sourceLocatorExisted
         };
         StorageMigrationRequest pending;
@@ -971,6 +995,8 @@ StorageMigrator::StorageMigrator( StorageLocatorStore locatorStore,
 {
 }
 
+constexpr int migrationLockStaleTimeMs = 24 * 60 * 60 * 1000;
+
 StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& request ) const
 {
     QString error;
@@ -985,7 +1011,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
         return { false, false, error };
     }
     QLockFile lock{ lockPath };
-    lock.setStaleLockTime( 0 );
+    lock.setStaleLockTime( migrationLockStaleTimeMs );
     if ( !lock.tryLock( 0 ) ) {
         return { false, false, lockFailure( lock, lockPath ) };
     }
@@ -1094,7 +1120,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
         return { false, false, error };
     }
     QLockFile lock{ lockPath };
-    lock.setStaleLockTime( 0 );
+    lock.setStaleLockTime( migrationLockStaleTimeMs );
     if ( !lock.tryLock( 0 ) ) {
         return { false, false, lockFailure( lock, lockPath ) };
     }

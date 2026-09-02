@@ -1,5 +1,6 @@
 #include "storagelocator.h"
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -130,9 +131,26 @@ struct LocatorPaths {
     QString user;
 };
 
+QString locatorMutationLockPath( const LocatorPaths& paths )
+{
+    QString program = normalizedPath( paths.program );
+    QString user = normalizedPath( paths.user );
+#ifdef Q_OS_WIN
+    program = program.toCaseFolded();
+    user = user.toCaseFolded();
+#endif
+    QByteArray identity = program.toUtf8();
+    identity.append( '\0' );
+    identity.append( user.toUtf8() );
+    const QByteArray digest
+        = QCryptographicHash::hash( identity, QCryptographicHash::Sha256 ).toHex();
+    return QDir{ QDir::tempPath() }.filePath(
+        QStringLiteral( ".zzlogg-storage-%1.lock" ).arg( QString::fromLatin1( digest ) ) );
+}
+
 std::unique_ptr<QLockFile> lockLocatorMutations( const LocatorPaths& paths, QString* error )
 {
-    const QString lockPath = paths.user + QStringLiteral( ".lock" );
+    const QString lockPath = locatorMutationLockPath( paths );
     const QString parent = QFileInfo{ lockPath }.absolutePath();
     if ( !QDir{}.mkpath( parent ) ) {
         setError(
@@ -141,7 +159,7 @@ std::unique_ptr<QLockFile> lockLocatorMutations( const LocatorPaths& paths, QStr
         return {};
     }
     auto lock = std::make_unique<QLockFile>( lockPath );
-    lock->setStaleLockTime( 0 );
+    lock->setStaleLockTime( 30000 );
     if ( !lock->tryLock( 0 ) ) {
         setError(
             error,
@@ -149,6 +167,20 @@ std::unique_ptr<QLockFile> lockLocatorMutations( const LocatorPaths& paths, QStr
         return {};
     }
     return lock;
+}
+
+bool oldPendingSourceLocatorExisted( bool verified, const StorageLocation& source,
+                                     const QString& legacyConfigFile,
+                                     const QString& legacySessionFile,
+                                     const QString& legacyCrashDirectory,
+                                     const QString& sourceLogsDirectory )
+{
+    const bool hasLegacyInputs = !legacyConfigFile.isEmpty() || !legacySessionFile.isEmpty()
+                                 || !legacyCrashDirectory.isEmpty()
+                                 || !sourceLogsDirectory.isEmpty();
+    const QString manifest
+        = QDir{ source.dataRoot }.filePath( QStringLiteral( "storage-manifest.ini" ) );
+    return verified || !hasLegacyInputs || QFileInfo{ manifest }.isFile();
 }
 
 struct ReadResult {
@@ -419,7 +451,17 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                          "storage locator Pending source does not match active storage: %1" )
                          .arg( path ) };
         }
-        bool sourceLocatorExisted = true;
+        const QString legacyConfigFile
+            = settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString();
+        const QString legacySessionFile
+            = settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString();
+        const QString legacyCrashDirectory
+            = settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString();
+        const QString sourceLogsDirectory
+            = settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString();
+        bool sourceLocatorExisted
+            = oldPendingSourceLocatorExisted( verified, source, legacyConfigFile, legacySessionFile,
+                                              legacyCrashDirectory, sourceLogsDirectory );
         if ( settings.contains( QStringLiteral( "Pending/sourceLocatorExisted" ) )
              && !boolValue( settings, QStringLiteral( "Pending/sourceLocatorExisted" ),
                             &sourceLocatorExisted ) ) {
@@ -427,16 +469,14 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                      QStringLiteral( "storage locator Pending has invalid source preimage: %1" )
                          .arg( path ) };
         }
-        state.pending = StorageMigrationRequest{
-            transactionId,
-            source,
-            target,
-            settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString(),
-            sourceLocatorExisted
-        };
+        state.pending = StorageMigrationRequest{ transactionId,
+                                                 source,
+                                                 target,
+                                                 legacyConfigFile,
+                                                 legacySessionFile,
+                                                 legacyCrashDirectory,
+                                                 sourceLogsDirectory,
+                                                 sourceLocatorExisted };
     }
     if ( groups.contains( QStringLiteral( "LastMigration" ) ) ) {
         const QString transactionId
@@ -546,6 +586,12 @@ QString StorageLocatorStore::userLocatorPath() const
     return QDir{ appConfigDirectory_ }.filePath( QStringLiteral( "storage.ini" ) );
 }
 
+QString StorageLocatorStore::mutationLockPath() const
+{
+    return locatorMutationLockPath(
+        { applicationDirectory_, programLocatorPath(), userLocatorPath() } );
+}
+
 StorageResolution StorageLocatorStore::resolve( const QString& commandLineDataRoot ) const
 {
     const LocatorPaths paths{ applicationDirectory_, programLocatorPath(), userLocatorPath() };
@@ -606,15 +652,28 @@ bool StorageLocatorStore::writeActive( const StorageLocation& location, QString*
             return false;
         }
     }
-    const QString conflictingPath
-        = samePath( targetPath, paths.program ) ? paths.user : paths.program;
-    if ( QFileInfo{ conflictingPath }.exists() ) {
-        setError( error, QStringLiteral( "conflicting storage locator already exists: %1" )
-                             .arg( conflictingPath ) );
+    const StorageLocatorState state{ 1, active, std::nullopt, true };
+    const FileSnapshot previous = snapshot( targetPath );
+    if ( !previous.readable ) {
+        setError(
+            error,
+            QStringLiteral( "failed to read existing storage locator: %1" ).arg( targetPath ) );
         return false;
     }
-    const StorageLocatorState state{ 1, active, std::nullopt, true };
     if ( !writeState( targetPath, state, paths, error ) ) {
+        return false;
+    }
+    const QString conflictingPath
+        = samePath( targetPath, paths.program ) ? paths.user : paths.program;
+    if ( QFileInfo{ conflictingPath }.exists() && !QFile::remove( conflictingPath ) ) {
+        QString restoreError;
+        const bool restored = restore( targetPath, previous, &restoreError );
+        setError( error,
+                  restored
+                      ? QStringLiteral( "failed to remove conflicting storage locator: %1" )
+                            .arg( conflictingPath )
+                      : QStringLiteral( "failed to remove conflicting storage locator: %1; %2" )
+                            .arg( conflictingPath, restoreError ) );
         return false;
     }
     return true;
@@ -755,4 +814,50 @@ bool StorageLocatorStore::rollbackPending( const StorageMigrationRequest& reques
         normalized.source.locatorPath,
         StorageLocatorState{ 1, pending.source, std::nullopt, source.state->verified }, paths,
         error, LastMigrationRecord{ pending.transactionId, QStringLiteral( "rolledBack" ) } );
+}
+
+bool StorageLocatorStore::discardUnverifiedLegacyLocator( const StorageLocation& location,
+                                                          QString* error ) const
+{
+    const LocatorPaths paths{ applicationDirectory_, programLocatorPath(), userLocatorPath() };
+    const QString targetPath = pathForActiveLocation( location, paths );
+    StorageLocation normalized;
+    if ( !normalizedLocation( location, targetPath, paths, &normalized, error ) ) {
+        return false;
+    }
+    auto mutationLock = lockLocatorMutations( paths, error );
+    if ( !mutationLock ) {
+        return false;
+    }
+    const ReadResult existing = readState( targetPath, paths );
+    if ( !existing.state.has_value() ) {
+        setError( error,
+                  existing.error.isEmpty()
+                      ? QStringLiteral( "legacy storage locator is missing: %1" ).arg( targetPath )
+                      : existing.error );
+        return false;
+    }
+    if ( existing.state->verified || existing.state->pending.has_value()
+         || !sameLocation( existing.state->active, normalized ) ) {
+        setError( error, QStringLiteral( "legacy storage locator is not safely discardable: %1" )
+                             .arg( targetPath ) );
+        return false;
+    }
+    QSettings settings{ targetPath, QSettings::IniFormat };
+    if ( settings.value( QStringLiteral( "LastMigration/outcome" ) ).toString()
+             != QStringLiteral( "rolledBack" )
+         || settings.value( QStringLiteral( "LastMigration/transactionId" ) ).toString().isEmpty()
+         || settings.status() != QSettings::NoError ) {
+        setError( error,
+                  QStringLiteral( "legacy storage locator has no rolled-back transaction: %1" )
+                      .arg( targetPath ) );
+        return false;
+    }
+    if ( QFile::remove( targetPath ) ) {
+        return true;
+    }
+    setError(
+        error,
+        QStringLiteral( "failed to discard rolled-back legacy locator: %1" ).arg( targetPath ) );
+    return false;
 }
