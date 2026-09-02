@@ -382,7 +382,7 @@ class CrawlerWidget : public QSplitter,
     QMenu* searchLineContextMenu_;
     QCompleter* searchLineCompleter_;
 
-    InfoLine* searchInfoLine_;
+    InfoLine* searchInfoLine_ = nullptr;
 
     QToolButton* clearButton_;
     QToolButton* searchButton_;

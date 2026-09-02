@@ -433,10 +433,11 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     };
     struct PullToFollowCache {
         QPixmap pixmap_;
+        bool invalid_;
         LineLength nb_columns_;
     };
     TextAreaCache textAreaCache_ = { {}, true, 0_lnum, 0_lnum, 0_lcol };
-    PullToFollowCache pullToFollowCache_ = { {}, 0_length };
+    PullToFollowCache pullToFollowCache_ = { {}, true, 0_length };
     QFontMetrics pixmapFontMetrics_;
 
     LinesCount getNbVisibleLines() const;

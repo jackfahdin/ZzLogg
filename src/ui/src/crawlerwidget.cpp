@@ -248,6 +248,9 @@ void CrawlerWidget::changeEvent( QEvent* event )
     if ( event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
          || event->type() == QEvent::ApplicationPaletteChange ) {
         searchInfoLineDefaultPalette_ = palette();
+        if ( searchInfoLine_ != nullptr ) {
+            searchInfoLine_->refreshGaugePalette( searchInfoLineDefaultPalette_ );
+        }
     }
 
     if ( event->type() == QEvent::StyleChange ) {

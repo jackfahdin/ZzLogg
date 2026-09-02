@@ -54,6 +54,8 @@ class InfoLine : public QLabel {
     // Display the gauge in the background with the passed value (0-100)
     // This function doesn't change the text of the widget.
     void displayGauge( int completion );
+    // Refresh the gauge colors after the application palette changes.
+    void refreshGaugePalette( const QPalette& palette );
     // Hide the gauge and make the widget like a normal QLabel
     void hideGauge();
 
@@ -62,8 +64,11 @@ class InfoLine : public QLabel {
     void contextMenuEvent( QContextMenuEvent* event ) override;
 
   private:
+    void applyGaugePalette();
+
     // The original palette of the QLabel
     std::optional<QPalette> origPalette_;
+    std::optional<int> gaugeCompletion_;
 };
 
 #endif

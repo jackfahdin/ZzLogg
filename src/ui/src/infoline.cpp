@@ -60,8 +60,26 @@ void InfoLine::displayGauge( int completion )
     if ( !origPalette_ ) {
         origPalette_ = palette();
     }
+    gaugeCompletion_ = completion;
+    applyGaugePalette();
+}
 
-    int changeoverX = width() * completion / 100;
+void InfoLine::refreshGaugePalette( const QPalette& palette )
+{
+    if ( !gaugeCompletion_ ) {
+        return;
+    }
+
+    origPalette_ = palette;
+    applyGaugePalette();
+}
+
+void InfoLine::applyGaugePalette()
+{
+    Q_ASSERT( origPalette_ );
+    Q_ASSERT( gaugeCompletion_ );
+
+    const int changeoverX = width() * *gaugeCompletion_ / 100;
 
     // Create a gradient for the progress bar
     QLinearGradient linearGrad( changeoverX - 1, 0, changeoverX + 1, 0 );
@@ -80,6 +98,7 @@ void InfoLine::hideGauge()
         setPalette( *origPalette_ );
     }
     origPalette_.reset();
+    gaugeCompletion_.reset();
 }
 
 // Custom painter: draw the background then call QLabel's painter

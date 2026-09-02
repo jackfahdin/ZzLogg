@@ -463,6 +463,7 @@ void AbstractLogView::changeEvent( QEvent* changeEvent )
          || changeEvent->type() == QEvent::ApplicationPaletteChange
          || changeEvent->type() == QEvent::StyleChange ) {
         textAreaCache_.invalid_ = true;
+        pullToFollowCache_.invalid_ = true;
     }
 
     // Stop the timer if the widget becomes inactive
@@ -1124,11 +1125,17 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
                   ? ( wholeHeight - viewport()->height() ) + PullToFollowHookedHeight
                   : 0 );
 
-    if ( pullToFollowHeight && ( pullToFollowCache_.nb_columns_ != getNbVisibleCols() ) ) {
+    const auto visibleColumns = getNbVisibleCols();
+    if ( pullToFollowHeight
+         && ( pullToFollowCache_.invalid_
+              || pullToFollowCache_.nb_columns_ != visibleColumns ) ) {
         LOG_DEBUG << "Drawing pull to follow bar";
-        pullToFollowCache_.pixmap_
-            = drawPullToFollowBar( viewport()->width(), viewport()->devicePixelRatio() );
-        pullToFollowCache_.nb_columns_ = getNbVisibleCols();
+        auto pixmap = drawPullToFollowBar( viewport()->width(), viewport()->devicePixelRatio() );
+        if ( !pixmap.isNull() ) {
+            pullToFollowCache_.pixmap_ = std::move( pixmap );
+            pullToFollowCache_.nb_columns_ = visibleColumns;
+            pullToFollowCache_.invalid_ = false;
+        }
     }
 
     QPainter devicePainter( viewport() );
