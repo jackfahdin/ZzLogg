@@ -3,10 +3,12 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLockFile>
 #include <QSaveFile>
 #include <QSettings>
 #include <QUuid>
 
+#include <memory>
 #include <utility>
 
 namespace {
@@ -127,6 +129,27 @@ struct LocatorPaths {
     QString program;
     QString user;
 };
+
+std::unique_ptr<QLockFile> lockLocatorMutations( const LocatorPaths& paths, QString* error )
+{
+    const QString lockPath = paths.user + QStringLiteral( ".lock" );
+    const QString parent = QFileInfo{ lockPath }.absolutePath();
+    if ( !QDir{}.mkpath( parent ) ) {
+        setError(
+            error,
+            QStringLiteral( "failed to create storage locator lock directory: %1" ).arg( parent ) );
+        return {};
+    }
+    auto lock = std::make_unique<QLockFile>( lockPath );
+    lock->setStaleLockTime( 0 );
+    if ( !lock->tryLock( 0 ) ) {
+        setError(
+            error,
+            QStringLiteral( "storage locator mutation lock is already held: %1" ).arg( lockPath ) );
+        return {};
+    }
+    return lock;
+}
 
 struct ReadResult {
     bool found = false;
@@ -250,6 +273,8 @@ bool writeState( const QString& path, const StorageLocatorState& state, const Lo
                                pending.legacyCrashDirectory );
             settings.setValue( QStringLiteral( "Pending/sourceLogsDirectory" ),
                                pending.sourceLogsDirectory );
+            settings.setValue( QStringLiteral( "Pending/sourceLocatorExisted" ),
+                               pending.sourceLocatorExisted );
         }
         if ( lastMigration.has_value() ) {
             settings.setValue( QStringLiteral( "LastMigration/transactionId" ),
@@ -394,6 +419,14 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                          "storage locator Pending source does not match active storage: %1" )
                          .arg( path ) };
         }
+        bool sourceLocatorExisted = true;
+        if ( settings.contains( QStringLiteral( "Pending/sourceLocatorExisted" ) )
+             && !boolValue( settings, QStringLiteral( "Pending/sourceLocatorExisted" ),
+                            &sourceLocatorExisted ) ) {
+            return { true, std::nullopt,
+                     QStringLiteral( "storage locator Pending has invalid source preimage: %1" )
+                         .arg( path ) };
+        }
         state.pending = StorageMigrationRequest{
             transactionId,
             source,
@@ -401,7 +434,8 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
             settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString()
+            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString(),
+            sourceLocatorExisted
         };
     }
     if ( groups.contains( QStringLiteral( "LastMigration" ) ) ) {
@@ -460,12 +494,18 @@ bool normalizedRequest( const StorageMigrationRequest& input, const LocatorPaths
                                    QStringLiteral( "legacy crash directory" ),
                                    &legacyCrashDirectory, error )
          || !normalizedLegacyPath( input.sourceLogsDirectory,
-                                   QStringLiteral( "source logs directory" ),
-                                   &sourceLogsDirectory, error ) ) {
+                                   QStringLiteral( "source logs directory" ), &sourceLogsDirectory,
+                                   error ) ) {
         return false;
     }
-    *output = { input.transactionId, source, target, legacyConfigFile, legacySessionFile,
-                legacyCrashDirectory, sourceLogsDirectory };
+    *output = { input.transactionId,
+                source,
+                target,
+                legacyConfigFile,
+                legacySessionFile,
+                legacyCrashDirectory,
+                sourceLogsDirectory,
+                input.sourceLocatorExisted };
     return true;
 }
 
@@ -547,28 +587,34 @@ bool StorageLocatorStore::writeActive( const StorageLocation& location, QString*
     if ( !normalizedLocation( location, targetPath, paths, &active, error ) ) {
         return false;
     }
-    const StorageLocatorState state{ 1, active, std::nullopt, true };
-    const FileSnapshot previous = snapshot( targetPath );
-    if ( !previous.readable ) {
-        setError(
-            error,
-            QStringLiteral( "failed to read existing storage locator: %1" ).arg( targetPath ) );
+    auto mutationLock = lockLocatorMutations( paths, error );
+    if ( !mutationLock ) {
         return false;
     }
-    if ( !writeState( targetPath, state, paths, error ) ) {
+    const StorageResolution current = resolve();
+    if ( !current.error.isEmpty() ) {
+        setError( error, current.error );
         return false;
+    }
+    if ( current.state.has_value() ) {
+        if ( current.state->pending.has_value() ) {
+            setError( error, QStringLiteral( "active storage has a pending migration" ) );
+            return false;
+        }
+        if ( !sameLocation( current.state->active, active ) ) {
+            setError( error, QStringLiteral( "active storage changed before locator write" ) );
+            return false;
+        }
     }
     const QString conflictingPath
         = samePath( targetPath, paths.program ) ? paths.user : paths.program;
-    if ( QFileInfo{ conflictingPath }.exists() && !QFile::remove( conflictingPath ) ) {
-        QString restoreError;
-        const bool restored = restore( targetPath, previous, &restoreError );
-        setError( error,
-                  restored
-                      ? QStringLiteral( "failed to remove conflicting storage locator: %1" )
-                            .arg( conflictingPath )
-                      : QStringLiteral( "failed to remove conflicting storage locator: %1; %2" )
-                            .arg( conflictingPath, restoreError ) );
+    if ( QFileInfo{ conflictingPath }.exists() ) {
+        setError( error, QStringLiteral( "conflicting storage locator already exists: %1" )
+                             .arg( conflictingPath ) );
+        return false;
+    }
+    const StorageLocatorState state{ 1, active, std::nullopt, true };
+    if ( !writeState( targetPath, state, paths, error ) ) {
         return false;
     }
     return true;
@@ -582,12 +628,44 @@ bool StorageLocatorStore::writePending( const StorageMigrationRequest& request,
     if ( !normalizedRequest( request, paths, &normalized, error ) ) {
         return false;
     }
+    auto mutationLock = lockLocatorMutations( paths, error );
+    if ( !mutationLock ) {
+        return false;
+    }
     const ReadResult existing = readState( normalized.source.locatorPath, paths );
     if ( existing.found && !existing.state.has_value() ) {
         setError( error, existing.error );
         return false;
     }
+    const StorageResolution current = resolve();
+    if ( !current.error.isEmpty() ) {
+        setError( error, current.error );
+        return false;
+    }
+    if ( current.state.has_value() && !sameLocation( current.state->active, normalized.source ) ) {
+        setError( error, QStringLiteral( "active storage changed before pending migration" ) );
+        return false;
+    }
+    if ( existing.state.has_value() ) {
+        if ( !sameLocation( existing.state->active, normalized.source ) ) {
+            setError( error,
+                      QStringLiteral( "pending migration source does not match active storage" ) );
+            return false;
+        }
+        if ( existing.state->pending.has_value() ) {
+            if ( sameRequest( *existing.state->pending, normalized ) ) {
+                return true;
+            }
+            setError( error, QStringLiteral( "a different storage migration is already pending" ) );
+            return false;
+        }
+    }
+    else if ( current.state.has_value() ) {
+        setError( error, QStringLiteral( "pending migration source locator is no longer active" ) );
+        return false;
+    }
     const bool verified = existing.state.has_value() ? existing.state->verified : false;
+    normalized.sourceLocatorExisted = existing.found;
     return writeState( normalized.source.locatorPath,
                        StorageLocatorState{ 1, normalized.source, normalized, verified }, paths,
                        error );
@@ -599,6 +677,10 @@ bool StorageLocatorStore::commitPending( const StorageMigrationRequest& request,
     const LocatorPaths paths{ applicationDirectory_, programLocatorPath(), userLocatorPath() };
     StorageMigrationRequest normalized;
     if ( !normalizedRequest( request, paths, &normalized, error ) ) {
+        return false;
+    }
+    auto mutationLock = lockLocatorMutations( paths, error );
+    if ( !mutationLock ) {
         return false;
     }
     const ReadResult source = readState( normalized.source.locatorPath, paths );
@@ -648,6 +730,10 @@ bool StorageLocatorStore::rollbackPending( const StorageMigrationRequest& reques
     if ( !normalizedRequest( request, paths, &normalized, error ) ) {
         return false;
     }
+    auto mutationLock = lockLocatorMutations( paths, error );
+    if ( !mutationLock ) {
+        return false;
+    }
     const ReadResult source = readState( normalized.source.locatorPath, paths );
     if ( !source.state.has_value() || !source.state->pending.has_value()
          || !sameRequest( *source.state->pending, normalized ) ) {
@@ -657,6 +743,14 @@ bool StorageLocatorStore::rollbackPending( const StorageMigrationRequest& reques
         return false;
     }
     const StorageMigrationRequest& pending = *source.state->pending;
+    if ( !pending.sourceLocatorExisted ) {
+        if ( QFile::remove( normalized.source.locatorPath ) ) {
+            return true;
+        }
+        setError( error, QStringLiteral( "failed to remove newly created source locator: %1" )
+                             .arg( normalized.source.locatorPath ) );
+        return false;
+    }
     return writeState(
         normalized.source.locatorPath,
         StorageLocatorState{ 1, pending.source, std::nullopt, source.state->verified }, paths,

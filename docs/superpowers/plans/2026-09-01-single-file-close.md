@@ -188,4 +188,3 @@ ctest --test-dir out/ui2-vs -C RelWithDebInfo --output-on-failure -R "^zzlogg_ui
 git add src/ui/include/tabbedcrawlerwidget.h src/ui/src/tabbedcrawlerwidget.cpp tests/ui2/documenttabclosetest.cpp tests/ui2/CMakeLists.txt
 git commit -m "fix: keep the last document tab closeable"
 ```
-

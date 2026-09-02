@@ -137,10 +137,9 @@ int runScenario( const QString& name, const QString& root )
                        && expect(
                            shouldSucceed || result.error.contains( fixture.userDataDirectory ),
                            QStringLiteral( "manifest error omitted root: %1" ).arg( result.error ) )
-                       && expect(
-                           shouldSucceed || !QFileInfo::exists( fixture.userDataDirectory ),
-                           QStringLiteral( "missing managed root was recreated: %1" )
-                               .arg( fixture.userDataDirectory ) )
+                       && expect( shouldSucceed || !QFileInfo::exists( fixture.userDataDirectory ),
+                                  QStringLiteral( "missing managed root was recreated: %1" )
+                                      .arg( fixture.userDataDirectory ) )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
@@ -443,6 +442,89 @@ int runScenario( const QString& name, const QString& root )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
+    if ( name == QStringLiteral( "legacy-failure-stage" ) ) {
+        const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg.ini" ) );
+        if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nretry=after-failure\n" ) )
+             || !writeFile( fixture.oldCrashDirectory, QByteArrayLiteral( "not-a-directory" ) ) ) {
+            return EXIT_FAILURE;
+        }
+        const auto result = run( fixture, {}, neverSelect );
+        const bool removedFault = QFile::remove( fixture.oldCrashDirectory );
+        return expect( result.status == StorageBootstrapStatus::Error,
+                       QStringLiteral( "legacy migration fault was not reported" ) )
+                       && expect( removedFault, QStringLiteral( "legacy fault fixture remained" ) )
+                       && expect( QFileInfo::exists( legacyConfig ),
+                                  QStringLiteral( "legacy source was removed after failure" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "legacy-failure-retry" ) ) {
+        const auto result = run( fixture, {}, neverSelect );
+        const StorageContext targetContext{ { StorageMode::UserDirectory, fixture.userDataDirectory,
+                                              fixture.store.userLocatorPath(), false } };
+        QFile copied{ targetContext.configFilePath() };
+        const bool copiedLegacy = copied.open( QIODevice::ReadOnly )
+                                  && copied.readAll().contains( "retry=after-failure" );
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( providerCalls == 0,
+                                  QStringLiteral( "legacy retry invoked selection provider" ) )
+                       && expect( copiedLegacy,
+                                  QStringLiteral( "legacy retry did not copy source data" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
+    if ( name == QStringLiteral( "pending-partial-stage" ) ) {
+        const StorageLocation source{ StorageMode::UserDirectory,
+                                      QDir{ root }.filePath( QStringLiteral( "source" ) ),
+                                      fixture.store.userLocatorPath(), false };
+        const StorageLocation target{ StorageMode::ProgramDirectory,
+                                      QDir{ fixture.applicationDirectory }.filePath(
+                                          QStringLiteral( "data" ) ),
+                                      fixture.store.programLocatorPath(), false };
+        const StorageContext sourceContext{ source };
+        const StorageContext targetContext{ target };
+        const QByteArray config{ "[General]\npartial=config\n" };
+        const QByteArray session{ "[General]\npartial=session\n" };
+        const StorageMigrationRequest request{ QStringLiteral( "partial-across-process" ),
+                                               source,
+                                               target,
+                                               sourceContext.configFilePath(),
+                                               sourceContext.sessionFilePath(),
+                                               sourceContext.crashesDirectory(),
+                                               sourceContext.logsDirectory() };
+        QString error;
+        if ( !prepareManagedRoot( source ) || !writeFile( sourceContext.configFilePath(), config )
+             || !writeFile( sourceContext.sessionFilePath(), session )
+             || !fixture.store.writeActive( source, &error )
+             || !fixture.store.writePending( request, &error )
+             || !targetContext.ensureDirectories( &error )
+             || !writeFile( targetContext.configFilePath(), config ) ) {
+            qCritical().noquote() << error;
+            return EXIT_FAILURE;
+        }
+        return EXIT_SUCCESS;
+    }
+    if ( name == QStringLiteral( "pending-partial-recover" ) ) {
+        const auto result = run( fixture, {}, neverSelect );
+        const StorageContext targetContext{ { StorageMode::ProgramDirectory,
+                                              QDir{ fixture.applicationDirectory }.filePath(
+                                                  QStringLiteral( "data" ) ),
+                                              fixture.store.programLocatorPath(), false } };
+        QFile config{ targetContext.configFilePath() };
+        QFile session{ targetContext.sessionFilePath() };
+        const bool completed
+            = config.open( QIODevice::ReadOnly ) && config.readAll().contains( "partial=config" )
+              && session.open( QIODevice::ReadOnly )
+              && session.readAll().contains( "partial=session" )
+              && StorageValidator::hasCompatibleManifest( targetContext.dataRoot() );
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( providerCalls == 0,
+                                  QStringLiteral( "partial recovery invoked selection provider" ) )
+                       && expect( completed, QStringLiteral( "partial migration did not resume" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
 
     qCritical().noquote() << "unknown scenario:" << name;
     return EXIT_FAILURE;
@@ -450,17 +532,12 @@ int runScenario( const QString& name, const QString& root )
 
 } // namespace
 
-bool executeScenarioProcess( const QString& name, const QStringList& extraArguments = {} )
+bool executeScenarioProcessAtRoot( const QString& name, const QString& root,
+                                   const QStringList& extraArguments = {} )
 {
-    QTemporaryDir temporaryDirectory;
-    if ( !temporaryDirectory.isValid() ) {
-        qCritical().noquote() << name << ": failed to create temporary directory";
-        return false;
-    }
     QProcess process;
     process.setProgram( QCoreApplication::applicationFilePath() );
-    QStringList arguments{ QStringLiteral( "--bootstrap-scenario" ), name,
-                           temporaryDirectory.path() };
+    QStringList arguments{ QStringLiteral( "--bootstrap-scenario" ), name, root };
     arguments.append( extraArguments );
     process.setArguments( arguments );
     process.start();
@@ -474,6 +551,16 @@ bool executeScenarioProcess( const QString& name, const QStringList& extraArgume
     }
     qInfo().noquote() << "PASS" << name;
     return true;
+}
+
+bool executeScenarioProcess( const QString& name, const QStringList& extraArguments = {} )
+{
+    QTemporaryDir temporaryDirectory;
+    if ( !temporaryDirectory.isValid() ) {
+        qCritical().noquote() << name << ": failed to create temporary directory";
+        return false;
+    }
+    return executeScenarioProcessAtRoot( name, temporaryDirectory.path(), extraArguments );
 }
 
 int main( int argc, char* argv[] )
@@ -507,6 +594,22 @@ int main( int argc, char* argv[] )
     }
     if ( !executeScenarioProcess( QStringLiteral( "provider-write-failure" ),
                                   { QStringLiteral( "--preexisting-manifest" ) } ) ) {
+        return EXIT_FAILURE;
+    }
+    QTemporaryDir legacyRetryRoot;
+    if ( !legacyRetryRoot.isValid()
+         || !executeScenarioProcessAtRoot( QStringLiteral( "legacy-failure-stage" ),
+                                           legacyRetryRoot.path() )
+         || !executeScenarioProcessAtRoot( QStringLiteral( "legacy-failure-retry" ),
+                                           legacyRetryRoot.path() ) ) {
+        return EXIT_FAILURE;
+    }
+    QTemporaryDir partialRetryRoot;
+    if ( !partialRetryRoot.isValid()
+         || !executeScenarioProcessAtRoot( QStringLiteral( "pending-partial-stage" ),
+                                           partialRetryRoot.path() )
+         || !executeScenarioProcessAtRoot( QStringLiteral( "pending-partial-recover" ),
+                                           partialRetryRoot.path() ) ) {
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

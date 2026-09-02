@@ -144,8 +144,7 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
     if ( canonicalRoot.isEmpty() || canonicalExisting.isEmpty()
          || !sameOrChildPath( canonicalExisting, canonicalRoot ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral(
-                         "canonical migration target escapes data root through %1: %2" )
+            *error = QStringLiteral( "canonical migration target escapes data root through %1: %2" )
                          .arg( existing, absolutePath );
         }
         return false;
@@ -155,11 +154,10 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
 
 bool validateMigrationTargetContext( const StorageContext& context, QString* error )
 {
-    const QStringList targetPaths{
-        context.dataRoot(),          context.configDirectory(), context.sessionDirectory(),
-        context.logsDirectory(),     context.crashesDirectory(), context.configFilePath(),
-        context.sessionFilePath(),   context.manifestFilePath()
-    };
+    const QStringList targetPaths{ context.dataRoot(),         context.configDirectory(),
+                                   context.sessionDirectory(), context.logsDirectory(),
+                                   context.crashesDirectory(), context.configFilePath(),
+                                   context.sessionFilePath(),  context.manifestFilePath() };
     for ( const QString& path : targetPaths ) {
         if ( !validateMigrationTargetPath( path, context.dataRoot(), error ) ) {
             return false;
@@ -303,12 +301,18 @@ bool canonicalRequest( const StorageMigrationRequest& input, const StorageLocato
                                   QStringLiteral( "legacy crash directory" ), &legacyCrashDirectory,
                                   error )
          || !canonicalLegacyPath( input.sourceLogsDirectory,
-                                  QStringLiteral( "source logs directory" ),
-                                  &sourceLogsDirectory, error ) ) {
+                                  QStringLiteral( "source logs directory" ), &sourceLogsDirectory,
+                                  error ) ) {
         return false;
     }
-    *output = { input.transactionId, source, target, legacyConfigFile, legacySessionFile,
-                legacyCrashDirectory, sourceLogsDirectory };
+    *output = { input.transactionId,
+                source,
+                target,
+                legacyConfigFile,
+                legacySessionFile,
+                legacyCrashDirectory,
+                sourceLogsDirectory,
+                input.sourceLocatorExisted };
     return validateNoSourceTargetConflicts( *output, error );
 }
 
@@ -427,6 +431,17 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                 = QStringLiteral( "storage locator has invalid Pending locations: %1" ).arg( path );
             return state;
         }
+        bool sourceLocatorExisted = true;
+        if ( settings.contains( QStringLiteral( "Pending/sourceLocatorExisted" ) ) ) {
+            const QString serializedExists
+                = settings.value( QStringLiteral( "Pending/sourceLocatorExisted" ) ).toString();
+            if ( serializedExists != QStringLiteral( "true" )
+                 && serializedExists != QStringLiteral( "false" ) ) {
+                state.error = QStringLiteral( "invalid pending source preimage: %1" ).arg( path );
+                return state;
+            }
+            sourceLocatorExisted = serializedExists == QStringLiteral( "true" );
+        }
         StorageMigrationRequest serialized{
             settings.value( QStringLiteral( "Pending/transactionId" ) ).toString(),
             { sourceMode, settings.value( QStringLiteral( "Pending/sourceRoot" ) ).toString(),
@@ -436,7 +451,8 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
             settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString(),
             settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString(),
-            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString()
+            settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString(),
+            sourceLocatorExisted
         };
         StorageMigrationRequest pending;
         QString pendingError;
@@ -555,6 +571,61 @@ bool defaultCopy( const QString& source, const QString& target, QString* error )
     return true;
 }
 
+bool filesHaveSameContents( const QString& source, const QString& target, QString* error )
+{
+    QFile sourceFile{ source };
+    QFile targetFile{ target };
+    if ( !sourceFile.open( QIODevice::ReadOnly ) || !targetFile.open( QIODevice::ReadOnly ) ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "failed to open existing migration files for comparison" );
+        }
+        return false;
+    }
+    if ( sourceFile.size() != targetFile.size() ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "existing migration target size differs from source" );
+        }
+        return false;
+    }
+    while ( !sourceFile.atEnd() ) {
+        const QByteArray sourceBytes = sourceFile.read( 64 * 1024 );
+        const QByteArray targetBytes = targetFile.read( 64 * 1024 );
+        if ( sourceBytes != targetBytes ) {
+            if ( error != nullptr ) {
+                *error = QStringLiteral( "existing migration target differs from source" );
+            }
+            return false;
+        }
+        if ( sourceFile.error() != QFileDevice::NoError
+             || targetFile.error() != QFileDevice::NoError ) {
+            if ( error != nullptr ) {
+                *error = QStringLiteral( "failed while comparing existing migration files" );
+            }
+            return false;
+        }
+    }
+    return targetFile.atEnd();
+}
+
+bool fileHasContents( const QString& path, const QByteArray& expected, QString* error )
+{
+    QFile file{ path };
+    if ( !file.open( QIODevice::ReadOnly ) ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "failed to open existing migration target for comparison" );
+        }
+        return false;
+    }
+    const QByteArray contents = file.readAll();
+    if ( file.error() != QFileDevice::NoError || contents != expected ) {
+        if ( error != nullptr ) {
+            *error = QStringLiteral( "existing migration target differs from expected contents" );
+        }
+        return false;
+    }
+    return true;
+}
+
 bool ensureTargetDirectories( const StorageContext& context, CreatedTargets* created,
                               QString* error )
 {
@@ -613,16 +684,21 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
     if ( !validateMigrationTargetPath( target, targetDataRoot, error ) ) {
         return false;
     }
-    if ( pathExistsOrIsSymlink( target ) ) {
-        if ( error != nullptr ) {
-            *error
-                = QStringLiteral( "refusing to overwrite existing migration target from %1 to %2" )
-                      .arg( source, target );
-        }
-        return false;
-    }
     const QFileInfo sourceInfo{ source };
     if ( !sourceInfo.exists() ) {
+        if ( pathExistsOrIsSymlink( target ) ) {
+            QString detail;
+            if ( QFileInfo{ target }.isFile()
+                 && fileHasContents( target, QByteArrayLiteral( "[General]\n" ), &detail ) ) {
+                return true;
+            }
+            if ( error != nullptr ) {
+                *error = QStringLiteral( "refusing non-matching existing migration target for "
+                                         "missing %1 at %2: %3" )
+                             .arg( source, target, detail );
+            }
+            return false;
+        }
         QString detail;
         if ( createEmptyIni( target, created, &detail ) ) {
             return true;
@@ -636,6 +712,19 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
     if ( !sourceInfo.isFile() ) {
         if ( error != nullptr ) {
             *error = QStringLiteral( "legacy INI source is not a file: %1" ).arg( source );
+        }
+        return false;
+    }
+
+    if ( pathExistsOrIsSymlink( target ) ) {
+        QString detail;
+        if ( QFileInfo{ target }.isFile() && filesHaveSameContents( source, target, &detail ) ) {
+            return true;
+        }
+        if ( error != nullptr ) {
+            *error = QStringLiteral(
+                         "refusing non-matching existing migration target from %1 to %2: %3" )
+                         .arg( source, target, detail );
         }
         return false;
     }
@@ -658,8 +747,8 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
     return true;
 }
 
-bool ensureTreeDirectory( const QString& path, const QString& targetDataRoot,
-                          const QString& label, CreatedTargets* created, QString* error )
+bool ensureTreeDirectory( const QString& path, const QString& targetDataRoot, const QString& label,
+                          CreatedTargets* created, QString* error )
 {
     if ( !validateMigrationTargetPath( path, targetDataRoot, error ) ) {
         return false;
@@ -695,8 +784,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
     }
     if ( !rootInfo.isDir() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "%1 source is not a directory: %2" )
-                         .arg( label, sourceRoot );
+            *error = QStringLiteral( "%1 source is not a directory: %2" ).arg( label, sourceRoot );
         }
         return false;
     }
@@ -727,8 +815,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
         }
         if ( !info.isFile() ) {
             if ( error != nullptr ) {
-                *error
-                    = QStringLiteral( "unsupported entry in %1 tree: %2" ).arg( label, source );
+                *error = QStringLiteral( "unsupported entry in %1 tree: %2" ).arg( label, source );
             }
             return false;
         }
@@ -738,10 +825,15 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
         }
         const bool existed = pathExistsOrIsSymlink( target );
         if ( existed ) {
+            QString detail;
+            if ( QFileInfo{ target }.isFile()
+                 && filesHaveSameContents( source, target, &detail ) ) {
+                continue;
+            }
             if ( error != nullptr ) {
-                *error = QStringLiteral(
-                             "refusing to overwrite existing %1 target from %2 to %3" )
-                             .arg( label, source, target );
+                *error
+                    = QStringLiteral( "refusing non-matching existing %1 target from %2 to %3: %4" )
+                          .arg( label, source, target, detail );
             }
             return false;
         }
@@ -921,9 +1013,10 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
                     .arg( detail ) );
         }
         if ( !locatorStore_.commitPending( canonical, &error ) ) {
-            return { false, false,
-                     QStringLiteral( "failed to commit same-root storage change: %1" )
-                         .arg( error ) };
+            return {
+                false, false,
+                QStringLiteral( "failed to commit same-root storage change: %1" ).arg( error )
+            };
         }
         return { true, false, {} };
     }

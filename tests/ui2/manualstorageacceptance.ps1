@@ -29,6 +29,52 @@ function Test-FullyQualifiedWindowsPath {
     $Path -match '^\\\\[^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
 }
 
+function Test-WindowsDeviceNamespacePath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $normalizedPath = $Path.Replace('/', '\')
+  foreach ($prefix in @('\\?\', '\\.\', '\??\', '\\??\')) {
+    if ($normalizedPath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+      return $true
+    }
+  }
+  return $false
+}
+
+function Assert-NoReparsePointInExistingPath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Label
+  )
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $pathRoot = [System.IO.Path]::GetPathRoot($fullPath).TrimEnd('\')
+  $current = $fullPath.TrimEnd('\')
+
+  while ($true) {
+    if (Test-Path -LiteralPath $current) {
+      $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
+      if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "$Label must not traverse a reparse point: $current"
+      }
+    }
+
+    if ($current -eq $pathRoot) {
+      break
+    }
+    $parent = [System.IO.Path]::GetDirectoryName($current)
+    if ([string]::IsNullOrWhiteSpace($parent)) {
+      throw "$Label could not be traced safely to its filesystem root: $fullPath"
+    }
+    $current = $parent.TrimEnd('\')
+  }
+}
+
 function Assert-AbsoluteNonRootPath {
   param(
     [Parameter(Mandatory = $true)]
@@ -37,10 +83,16 @@ function Assert-AbsoluteNonRootPath {
     [string]$Label
   )
 
+  if (Test-WindowsDeviceNamespacePath -Path $Path) {
+    throw "$Label must not use a Windows device namespace: $Path"
+  }
   if (-not (Test-FullyQualifiedWindowsPath -Path $Path)) {
     throw "$Label must be fully qualified: $Path"
   }
   $fullPath = [System.IO.Path]::GetFullPath($Path)
+  if (Test-WindowsDeviceNamespacePath -Path $fullPath) {
+    throw "$Label must not use a Windows device namespace: $fullPath"
+  }
   $pathRoot = [System.IO.Path]::GetPathRoot($fullPath).TrimEnd('\')
   if ($fullPath.TrimEnd('\') -eq $pathRoot) {
     throw "$Label must not be a filesystem root: $fullPath"
@@ -48,13 +100,20 @@ function Assert-AbsoluteNonRootPath {
   return $fullPath
 }
 
+$repositoryRoot = Assert-AbsoluteNonRootPath `
+  -Path (Join-Path $PSScriptRoot '..\..') `
+  -Label 'Repository worktree root'
 $manualRoot = Assert-AbsoluteNonRootPath -Path $ManualRoot -Label 'Manual acceptance root'
 $freshRuntimeRoot = Assert-AbsoluteNonRootPath -Path $FreshRuntimeRoot -Label 'Fresh runtime root'
 $userProfile = [System.IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\')
+if (-not $manualRoot.StartsWith("$($repositoryRoot.TrimEnd('\'))\", [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "Manual acceptance root must be below the repository worktree: $manualRoot"
+}
 if ($manualRoot.TrimEnd('\') -eq $userProfile -or
     $manualRoot.StartsWith("$userProfile\", [System.StringComparison]::OrdinalIgnoreCase)) {
   throw "Manual acceptance root must not use the real user profile: $manualRoot"
 }
+Assert-NoReparsePointInExistingPath -Path $manualRoot -Label 'Manual acceptance root'
 
 $scenarioRoot = Join-Path $manualRoot "scenarios\$Scenario"
 $runtimeRoot = Join-Path $scenarioRoot 'runtime'
@@ -81,6 +140,7 @@ function Assert-SafeManualPath {
       $fullPath.StartsWith("$userProfile\", [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "$Label must not use the real user profile: $fullPath"
   }
+  Assert-NoReparsePointInExistingPath -Path $fullPath -Label $Label
   return $fullPath
 }
 

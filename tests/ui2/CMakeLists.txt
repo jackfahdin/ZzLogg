@@ -478,7 +478,8 @@ if(WIN32)
     COMMAND "${ZZLOGG_POWERSHELL_EXECUTABLE}"
       -NoProfile -ExecutionPolicy Bypass
       -File "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptancecontracttest.ps1"
-      -Launcher "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptance.ps1")
+      -Launcher "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptance.ps1"
+      -TestRoot "${CMAKE_CURRENT_BINARY_DIR}/manual-storage-acceptance-contract")
 endif()
 
 add_test(NAME zzlogg_ui2.storage_application_smoke

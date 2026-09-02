@@ -22,6 +22,7 @@ struct StorageMigrationRequest {
     QString legacySessionFile;
     QString legacyCrashDirectory;
     QString sourceLogsDirectory;
+    bool sourceLocatorExisted = true;
 };
 
 struct StorageLocatorState {
@@ -38,7 +39,7 @@ struct StorageResolution {
 };
 
 class StorageLocatorStore final {
-  public:
+public:
     StorageLocatorStore( QString applicationDirectory, QString appConfigDirectory );
     QString programLocatorPath() const;
     QString userLocatorPath() const;
@@ -48,7 +49,7 @@ class StorageLocatorStore final {
     bool commitPending( const StorageMigrationRequest& request, QString* error = nullptr ) const;
     bool rollbackPending( const StorageMigrationRequest& request, QString* error = nullptr ) const;
 
-  private:
+private:
     QString applicationDirectory_;
     QString appConfigDirectory_;
 };
