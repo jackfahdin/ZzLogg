@@ -121,7 +121,8 @@ void TabbedCrawlerWidget::loadIcons()
 
 void TabbedCrawlerWidget::changeEvent( QEvent* event )
 {
-    if ( event->type() == QEvent::StyleChange ) {
+    if ( event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
+         || event->type() == QEvent::ApplicationPaletteChange ) {
         dispatchToMainThread( [ this ] { loadIcons(); } );
     }
 

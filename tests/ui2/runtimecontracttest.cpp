@@ -11,6 +11,7 @@
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
 #include "zzlogguiruntime.h"
+#include <algorithm>
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
@@ -22,6 +23,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolBar>
 #include <QToolButton>
 #include <QUrl>
 #include <QtTest>
@@ -93,6 +95,38 @@ private Q_SLOTS:
             = second->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) );
         QVERIFY( secondShell );
 
+        auto* const mainToolBar = first->findChild<QToolBar*>();
+        QVERIFY( mainToolBar );
+        const auto toolBarActions = mainToolBar->actions();
+        QVERIFY( toolBarActions.size() >= 4 );
+        const QList<QAction*> themeSensitiveToolBarActions = toolBarActions.mid( 0, 4 );
+        const auto iconLightness = []( const QIcon& icon ) {
+            const QImage image
+                = icon.pixmap( QSize( 16, 16 ), QIcon::Normal, QIcon::Off ).toImage();
+            int lightnessSum = 0;
+            int visiblePixelCount = 0;
+            for ( int y = 0; y < image.height(); ++y ) {
+                for ( int x = 0; x < image.width(); ++x ) {
+                    const QColor color = image.pixelColor( x, y );
+                    if ( color.alpha() > 10 ) {
+                        lightnessSum += color.lightness();
+                        ++visiblePixelCount;
+                    }
+                }
+            }
+            return visiblePixelCount == 0 ? -1 : lightnessSum / visiblePixelCount;
+        };
+        const auto toolBarIconsMatchTheme = [ &themeSensitiveToolBarActions,
+                                              &iconLightness ]( bool darkTheme ) {
+            return std::all_of(
+                themeSensitiveToolBarActions.cbegin(), themeSensitiveToolBarActions.cend(),
+                [ &iconLightness, darkTheme ]( const QAction* action ) {
+                    const int lightness = iconLightness( action->icon() );
+                    return darkTheme ? lightness > 200 : lightness >= 0 && lightness < 80;
+                } );
+        };
+        QVERIFY( toolBarIconsMatchTheme( true ) );
+
         QTemporaryDir logDirectory;
         QVERIFY( logDirectory.isValid() );
         QFile logFile( logDirectory.filePath( QStringLiteral( "theme-propagation.log" ) ) );
@@ -114,6 +148,10 @@ private Q_SLOTS:
         QVERIFY( !documentTabs->testAttribute( Qt::WA_StyleSheet ) );
         auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 0 ) );
         QVERIFY( crawler );
+        auto* const searchButton
+            = crawler->findChild<QToolButton*>( QStringLiteral( "mainSearchButton" ) );
+        QVERIFY( searchButton );
+        QVERIFY( iconLightness( searchButton->icon() ) > 200 );
         auto* const searchInfoLine = crawler->findChild<InfoLine*>();
         QVERIFY( searchInfoLine );
         QTRY_VERIFY_WITH_TIMEOUT( first->findChild<AbstractLogView*>() != nullptr, 5000 );
@@ -190,6 +228,9 @@ private Q_SLOTS:
         QCOMPARE( app.palette().color( QPalette::Base ), QColor( QStringLiteral( "#ffffff" ) ) );
         QTRY_COMPARE_WITH_TIMEOUT( logView->viewport()->palette().color( QPalette::Base ),
                                    QColor( QStringLiteral( "#ffffff" ) ), 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( toolBarIconsMatchTheme( false ), 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( iconLightness( searchButton->icon() ) < 80, 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( iconLightness( documentTabs->tabIcon( 0 ) ) < 80, 5000 );
         QCOMPARE( logView->viewport()->size(), darkViewportSize );
         QCOMPARE( logView->horizontalScrollBar()->pageStep(), darkHorizontalPageStep );
         const QImage renderedViewport = logView->viewport()->grab().toImage();
@@ -219,6 +260,9 @@ private Q_SLOTS:
         Q_EMIT first->uiThemeChanged( UiThemeMode::Dark );
         QTRY_COMPARE_WITH_TIMEOUT( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark,
                                    5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( toolBarIconsMatchTheme( true ), 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( iconLightness( searchButton->icon() ) > 200, 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( iconLightness( documentTabs->tabIcon( 0 ) ) > 200, 5000 );
         QTRY_VERIFY_WITH_TIMEOUT( crawler->palette().color( QPalette::Window ).lightness() < 100,
                                   5000 );
         QTRY_VERIFY_WITH_TIMEOUT(

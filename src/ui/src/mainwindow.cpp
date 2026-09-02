@@ -719,8 +719,11 @@ void MainWindow::loadIcons()
     reloadAction->setIcon( iconLoader_.load( "icons8-restore-page" ) );
     followAction->setIcon( iconLoader_.load( "icons8-fast-forward" ) );
     showScratchPadAction->setIcon( iconLoader_.load( "icons8-create" ) );
-    addToFavoritesAction->setIcon( iconLoader_.load( "icons8-star" ) );
-    addToFavoritesMenuAction->setIcon( iconLoader_.load( "icons8-star" ) );
+    const auto favoriteIconName = addToFavoritesAction->data().toBool()
+                                      ? QStringLiteral( "icons8-star" )
+                                      : QStringLiteral( "icons8-star-filled" );
+    addToFavoritesAction->setIcon( iconLoader_.load( favoriteIconName ) );
+    addToFavoritesMenuAction->setIcon( iconLoader_.load( favoriteIconName ) );
 }
 
 void MainWindow::createMenus()
@@ -1602,6 +1605,10 @@ void MainWindow::changeEvent( QEvent* event )
             updateFavoritesMenu();
             updateHighlightersMenu();
         } );
+    }
+    else if ( event->type() == QEvent::PaletteChange
+              || event->type() == QEvent::ApplicationPaletteChange ) {
+        dispatchToMainThread( [ this ] { loadIcons(); } );
     }
     else if ( event->type() == QEvent::LanguageChange ) {
         reTranslateUI();

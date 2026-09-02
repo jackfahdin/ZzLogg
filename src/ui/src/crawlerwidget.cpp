@@ -245,14 +245,13 @@ void CrawlerWidget::changeEvent( QEvent* event )
 {
     QWidget::changeEvent( event );
 
-    if ( event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
-         || event->type() == QEvent::ApplicationPaletteChange ) {
+    const bool themeVisualChanged
+        = event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
+          || event->type() == QEvent::ApplicationPaletteChange;
+    if ( themeVisualChanged ) {
         if ( searchInfoLine_ != nullptr ) {
             searchInfoLine_->refreshGaugePalette( palette() );
         }
-    }
-
-    if ( event->type() == QEvent::StyleChange ) {
         dispatchToMainThread( [ this ] { loadIcons(); } );
     }
 }
