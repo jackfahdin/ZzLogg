@@ -243,14 +243,16 @@ void CrawlerWidget::doSendAllStateSignals()
 
 void CrawlerWidget::changeEvent( QEvent* event )
 {
-    if ( event->type() == QEvent::StyleChange ) {
-        dispatchToMainThread( [ this ] {
-            loadIcons();
-            searchInfoLineDefaultPalette_ = this->palette();
-        } );
+    QWidget::changeEvent( event );
+
+    if ( event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
+         || event->type() == QEvent::ApplicationPaletteChange ) {
+        searchInfoLineDefaultPalette_ = palette();
     }
 
-    QWidget::changeEvent( event );
+    if ( event->type() == QEvent::StyleChange ) {
+        dispatchToMainThread( [ this ] { loadIcons(); } );
+    }
 }
 
 //

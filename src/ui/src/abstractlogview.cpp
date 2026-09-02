@@ -459,6 +459,12 @@ void AbstractLogView::changeEvent( QEvent* changeEvent )
 {
     QAbstractScrollArea::changeEvent( changeEvent );
 
+    if ( changeEvent->type() == QEvent::PaletteChange
+         || changeEvent->type() == QEvent::ApplicationPaletteChange
+         || changeEvent->type() == QEvent::StyleChange ) {
+        textAreaCache_.invalid_ = true;
+    }
+
     // Stop the timer if the widget becomes inactive
     if ( changeEvent->type() == QEvent::ActivationChange ) {
         if ( !isActiveWindow() )
@@ -2220,7 +2226,7 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
     const auto& quickHighlighters = HighlighterSetCollection::get().quickHighlighters();
     QColor foreColor, backColor;
 
-    static const QBrush normalBulletBrush = QBrush( Qt::white );
+    const QBrush normalBulletBrush = viewport()->palette().brush( QPalette::Text );
     static const QBrush matchBulletBrush = QBrush( Qt::red );
     static const QBrush markBrush = QBrush( "dodgerblue" );
     static const QBrush markedMatchBrush = QBrush( "violet" );
@@ -2250,7 +2256,8 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 
     // First draw the bullet left margin
     painter->setPen( palette.color( QPalette::Text ) );
-    painter->fillRect( 0, 0, BulletAreaWidth, paintDeviceHeight, Qt::darkGray );
+    painter->fillRect( 0, 0, BulletAreaWidth, paintDeviceHeight,
+                       viewport()->palette().color( QPalette::AlternateBase ) );
 
     // Column at which the content should start (pixels)
     int contentStartPosX = BulletAreaWidth + SeparatorWidth;
@@ -2270,7 +2277,8 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 
         painter->setPen( palette.color( QPalette::Text ) );
         painter->fillRect( contentStartPosX - SeparatorWidth, 0,
-                           lineNumberAreaWidth + SeparatorWidth, paintDeviceHeight, Qt::darkGray );
+                           lineNumberAreaWidth + SeparatorWidth, paintDeviceHeight,
+                           viewport()->palette().color( QPalette::AlternateBase ) );
 
         painter->drawLine( contentStartPosX + lineNumberAreaWidth - SeparatorWidth, 0,
                            contentStartPosX + lineNumberAreaWidth - SeparatorWidth,
@@ -2558,7 +2566,7 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             static const QString lineNumberFormat( "%1" );
             const QString& lineNumberStr = lineNumberFormat.arg(
                 displayLineNumber( lineNumber ).get(), nbDigitsInLineNumber );
-            painter->setPen( Qt::white );
+            painter->setPen( viewport()->palette().color( QPalette::Text ) );
             painter->drawText( lineNumberAreaStartX + LineNumberPadding, yPos + fontAscent,
                                lineNumberStr );
         }
