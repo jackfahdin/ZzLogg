@@ -44,6 +44,8 @@ set(MAIN_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cli.h
 set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/messagereceiver.h
     ${CMAKE_CURRENT_SOURCE_DIR}/kloggapp.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationsmokepaths.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationsmokepaths.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrestart.cpp

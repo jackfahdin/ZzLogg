@@ -1,74 +1,53 @@
-function(zzlogg_capture_host_storage_state output_variable)
-  if(WIN32)
-    if(NOT DEFINED POWERSHELL OR NOT EXISTS "${POWERSHELL}")
-      message(FATAL_ERROR "POWERSHELL is required for Windows smoke isolation snapshots")
-    endif()
-    set(snapshot_script [=[
-$roaming = [Environment]::GetFolderPath('ApplicationData')
-$local = [Environment]::GetFolderPath('LocalApplicationData')
-$paths = @(
-  (Join-Path $roaming 'ZzLogg\ZzLogg.ini'),
-  (Join-Path $roaming 'ZzLogg\ZzLogg_session.ini'),
-  (Join-Path $local 'ZzLogg\storage.ini')
-)
-foreach ($path in $paths) {
-  if (Test-Path -LiteralPath $path) {
-    $item = Get-Item -LiteralPath $path
-    if ($item.PSIsContainer) {
-      Write-Output "$path|directory"
-    } else {
-      $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
-      Write-Output "$path|file|$hash|$($item.Length)|$($item.LastWriteTimeUtc.Ticks)"
-    }
-  } else {
-    Write-Output "$path|missing"
-  }
-}
-]=])
-    execute_process(
-      COMMAND "${POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass
-              -Command "${snapshot_script}"
-      RESULT_VARIABLE snapshot_result
-      OUTPUT_VARIABLE snapshot_state
-      ERROR_VARIABLE snapshot_error
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if(NOT snapshot_result EQUAL 0)
-      message(FATAL_ERROR "Failed to snapshot Windows host storage: ${snapshot_error}")
-    endif()
-  else()
-    if(DEFINED ENV{XDG_CONFIG_HOME} AND NOT "$ENV{XDG_CONFIG_HOME}" STREQUAL "")
-      set(host_config_home "$ENV{XDG_CONFIG_HOME}")
-    else()
-      set(host_config_home "$ENV{HOME}/.config")
-    endif()
-    set(host_paths
-      "${host_config_home}/ZzLogg/ZzLogg.conf"
-      "${host_config_home}/ZzLogg/ZzLogg_session.conf"
-      "${host_config_home}/ZzLogg/storage.ini")
-    set(snapshot_state "")
-    foreach(path IN LISTS host_paths)
-      if(IS_DIRECTORY "${path}")
-        string(APPEND snapshot_state "${path}|directory\n")
-      elseif(EXISTS "${path}")
-        file(SHA256 "${path}" path_hash)
-        file(SIZE "${path}" path_size)
-        file(TIMESTAMP "${path}" path_mtime "%Y-%m-%dT%H:%M:%S.%fZ" UTC)
-        string(APPEND snapshot_state "${path}|file|${path_hash}|${path_size}|${path_mtime}\n")
-      else()
-        string(APPEND snapshot_state "${path}|missing\n")
-      endif()
-    endforeach()
-    string(REGEX REPLACE "\n$" "" snapshot_state "${snapshot_state}")
+function(zzlogg_require_safe_test_root test_root)
+  if(NOT IS_ABSOLUTE "${test_root}")
+    message(FATAL_ERROR "Smoke test root must be absolute: ${test_root}")
   endif()
-  set(${output_variable} "${snapshot_state}" PARENT_SCOPE)
+
+  cmake_path(SET normalized_root NORMALIZE "${test_root}")
+  cmake_path(GET normalized_root ROOT_PATH filesystem_root)
+  if(normalized_root STREQUAL filesystem_root)
+    message(FATAL_ERROR "Smoke test root must not be a filesystem root: ${test_root}")
+  endif()
 endfunction()
 
-function(zzlogg_assert_host_storage_unchanged expected_state)
-  zzlogg_capture_host_storage_state(actual_state)
-  if(NOT "${actual_state}" STREQUAL "${expected_state}")
+function(zzlogg_assert_path_in_test_root label test_root candidate)
+  zzlogg_require_safe_test_root("${test_root}")
+  cmake_path(SET normalized_root NORMALIZE "${test_root}")
+  cmake_path(SET normalized_candidate NORMALIZE "${candidate}")
+  cmake_path(IS_PREFIX normalized_root "${normalized_candidate}" NORMALIZE is_contained)
+  if(NOT is_contained)
     message(FATAL_ERROR
-      "Smoke changed real host ZzLogg settings or locator.\nBefore:\n${expected_state}\nAfter:\n${actual_state}")
+      "${label} escaped the isolated smoke root: ${candidate} (root: ${test_root})")
   endif()
+endfunction()
+
+function(zzlogg_assert_output_isolated label test_root stdout stderr)
+  string(CONCAT combined_output "${stdout}" "\n" "${stderr}")
+  file(TO_CMAKE_PATH "${combined_output}" normalized_output)
+  string(TOLOWER "${normalized_output}" normalized_output)
+
+  set(forbidden_storage_paths)
+  if(DEFINED ENV{USERPROFILE} AND NOT "$ENV{USERPROFILE}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{USERPROFILE}" user_profile)
+    list(APPEND forbidden_storage_paths
+      "${user_profile}/AppData/Roaming/ZzLogg"
+      "${user_profile}/AppData/Local/ZzLogg")
+  endif()
+  if(DEFINED ENV{HOME} AND NOT "$ENV{HOME}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{HOME}" home_directory)
+    list(APPEND forbidden_storage_paths "${home_directory}/.config/ZzLogg")
+  endif()
+
+  foreach(forbidden_path IN LISTS forbidden_storage_paths)
+    string(TOLOWER "${forbidden_path}" forbidden_path_lower)
+    string(FIND "${normalized_output}" "${forbidden_path_lower}" forbidden_index)
+    if(NOT forbidden_index EQUAL -1)
+      message(FATAL_ERROR
+        "${label} exposed a real user storage path in process output: ${forbidden_path}")
+    endif()
+  endforeach()
+
+  zzlogg_assert_path_in_test_root("${label}" "${test_root}" "${test_root}")
 endfunction()
 
 function(zzlogg_assert_no_locator_or_probe runtime_directory config_root data_scope)

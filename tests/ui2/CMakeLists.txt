@@ -303,6 +303,16 @@ set_target_properties(zzlogg_application_restart_path_test PROPERTIES AUTOMOC ON
 add_test(NAME zzlogg_ui2.application_restart_path
          COMMAND zzlogg_application_restart_path_test)
 
+add_executable(zzlogg_application_smoke_paths_test
+  applicationsmokepathstest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/applicationsmokepaths.cpp")
+target_include_directories(zzlogg_application_smoke_paths_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app")
+target_link_libraries(zzlogg_application_smoke_paths_test PRIVATE Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_application_smoke_paths_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.application_smoke_paths
+         COMMAND zzlogg_application_smoke_paths_test)
+
 qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
@@ -393,10 +403,25 @@ add_test(NAME zzlogg_ui2.application_smoke
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/application-smoke-config"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
-          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationsmoke.cmake")
 set_tests_properties(zzlogg_ui2.application_smoke PROPERTIES
   TIMEOUT 35)
+
+add_test(NAME zzlogg_ui2.smoke_isolation_contract
+  COMMAND "${CMAKE_COMMAND}"
+          "-DUI2_TEST_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/smokeisolationcontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.storage_application_smoke
+  COMMAND "${CMAKE_COMMAND}"
+          "-DAPP=$<TARGET_FILE:klogg>"
+          "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/storage-application-smoke"
+          "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
+          "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/storageapplicationsmoke.cmake")
+set_tests_properties(zzlogg_ui2.storage_application_smoke PROPERTIES
+  RUN_SERIAL TRUE
+  TIMEOUT 60)
 
 if(WIN32)
   add_test(NAME zzlogg_ui2.windows_local_runtime_contract
@@ -413,7 +438,6 @@ add_test(NAME zzlogg_ui2.session_restore_smoke
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_CONFIG_DIR=${CMAKE_CURRENT_BINARY_DIR}/session-smoke-config"
-          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/sessionrestoresmoke.cmake")
 set_tests_properties(zzlogg_ui2.session_restore_smoke PROPERTIES TIMEOUT 45)
 
@@ -421,7 +445,6 @@ add_test(NAME zzlogg_ui2.smoke_setup_diagnostics
   COMMAND "${CMAKE_COMMAND}"
           "-DAPP=$<TARGET_FILE:klogg>"
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/smoke-setup-diagnostics"
-          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/smokesetupdiagnosticstest.cmake")
 set_tests_properties(zzlogg_ui2.smoke_setup_diagnostics PROPERTIES TIMEOUT 15)
 
@@ -431,7 +454,6 @@ add_test(NAME zzlogg_ui2.async_object_lifetime_smoke
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/async-object-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
-          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/asyncobjectlifetimesmoke.cmake")
 set_tests_properties(zzlogg_ui2.async_object_lifetime_smoke PROPERTIES TIMEOUT 20)
 
@@ -441,7 +463,6 @@ add_test(NAME zzlogg_ui2.titlebar_lifetime_smoke
           "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/titlebar-lifetime-smoke"
           "-DFIRST_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-first.log"
           "-DSECOND_LOG=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ui2-second.log"
-          "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/titlebarlifetimesmoke.cmake")
 set_tests_properties(zzlogg_ui2.titlebar_lifetime_smoke PROPERTIES TIMEOUT 20)
 

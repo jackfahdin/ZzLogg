@@ -18,24 +18,26 @@ before configuration:
 git submodule update --init --recursive
 ```
 
-ZzPureTools is the only remaining Git submodule. backward-cpp v1.6 is tracked
-directly under `3rdparty/vendor/backward-cpp`, so that dependency is available
-offline after the ZzLogg source tree itself has been cloned or archived. This
-does not make Qt, Boost, OpenSSL, or every CPM/CI dependency offline.
+ZzPureTools is a pinned, required build dependency and the repository's only
+remaining Git submodule. backward-cpp v1.6 is tracked directly under
+`3rdparty/vendor/backward-cpp`, so that dependency is available offline after
+the ZzLogg source tree itself has been cloned or archived. This does not make
+Qt, Boost, OpenSSL, or every CPM/CI dependency offline.
 
 ## Requirements
 
-The standard ZzLogg application requires:
+ZzLogg requires:
 
-- CMake 3.12 or later for direct command-line builds, or CMake 3.25 or later
-  for the checked-in presets and workflows;
-- a C++17 compiler;
-- Qt 6 Core, Core5Compat, Gui, Widgets, Concurrent, Network, Xml, and Tools modules.
+- CMake 3.23 or later for direct command-line builds; the checked-in presets
+  and workflows require CMake 3.25 or later;
+- a C++20 compiler (MSVC 2022 17.14+, GCC 13+, or Clang 16+);
+- Qt 6.8 or later, including Core, Core5Compat, Gui, Widgets, Svg, Concurrent,
+  Network, Xml, LinguistTools, and the matching private development files;
+- the pinned ZzPureTools submodule and the other vendored dependencies in this
+  repository.
 
-The optional UI2 application requires CMake 3.23 or later, a C++20 compiler,
-Qt 6.8 or later (including the matching private development files), and Qt
-Core, Gui, Widgets, Svg, Concurrent, and Test. UI2 builds on macOS currently
-set a 13.3 deployment target.
+Focused UI tests additionally require Qt Test. macOS builds currently set a
+13.3 deployment target.
 
 Hyperscan search additionally requires SSSE3, Boost headers, and Ragel. Pass
 `-DKLOGG_USE_HYPERSCAN=OFF` when those dependencies are unavailable; ZzLogg
@@ -66,10 +68,10 @@ cmake --build --preset ninja-release
 ctest --preset ninja-release
 ```
 
-The optional UI2 application and its focused tests use:
+The focused UI test workflow uses the same ZzLogg GUI target:
 
 ```bash
-cmake --workflow --preset ninja-ui2-debug
+cmake --workflow --preset ninja-ui-debug
 ```
 
 On Windows, copy `CMakeUserPresets.json.example` to `CMakeUserPresets.json`
@@ -77,9 +79,9 @@ and set the local Qt and Visual Studio paths. The repository includes Visual
 Studio 2026 presets; for example:
 
 ```powershell
-cmake --preset windows-vs2026-ui2 -DKLOGG_USE_HYPERSCAN=OFF
-cmake --build --preset windows-vs2026-ui2-debug
-ctest --preset windows-vs2026-ui2-debug
+cmake --preset windows-vs2026-ui -DKLOGG_USE_HYPERSCAN=OFF
+cmake --build --preset windows-vs2026-ui-relwithdebinfo
+ctest --preset windows-vs2026-ui-relwithdebinfo
 ```
 
 `CMakeUserPresets.json` is intentionally ignored so machine-specific paths do
@@ -97,9 +99,39 @@ cmake --build out/build/ZzLogg
 ctest --test-dir out/build/ZzLogg --output-on-failure
 ```
 
-The main external executable is `ZzLogg` (`ZzLogg.exe` on Windows). The
-optional UI2 executable is `ZzLogg_ui2`, and the portable executable is
-`ZzLogg_portable`.
+The only GUI executable is `ZzLogg` (`ZzLogg.exe` on Windows). The experimental
+`klogg_grep` target is excluded from the default build; build it explicitly
+only when working on that command-line frontend:
+
+```bash
+cmake --build out/build/ZzLogg --target klogg_grep
+```
+
+Default builds do not create alternate GUI or self-contained executable
+targets.
+
+## Storage location and migration
+
+On first launch, ZzLogg asks where its persistent configuration, saved session,
+logs, and crash data should live. Canceling the chooser exits without creating
+configuration. The choices are:
+
+- **User data directory**: the platform's per-user application data location;
+- **Program directory**: an adjacent `data/` directory, providing green use
+  with application and data kept together;
+- **Custom directory**: an absolute directory selected by the user.
+
+The selected root contains `config/ZzLogg.ini`,
+`session/ZzLogg_session.ini`, `logs/`, `crashes/`, and
+`storage-manifest.ini`. `--data-dir <absolute-path>` is a process-only override
+and does not replace the saved storage locator.
+
+The **Storage** page in Preferences can migrate an existing root to a new,
+empty location. ZzLogg saves current settings, performs the migration
+transactionally, and asks whether to restart immediately or later. The new
+location becomes active after restart; the saved session and recent files are
+preserved. If the selected root later becomes unavailable, startup reports the
+storage error instead of silently creating a new default profile.
 
 ## Install and CPack
 
@@ -129,27 +161,21 @@ self-contained runtime directory with:
 cmake --build --preset windows-vs2026-ui-relwithdebinfo --target zzlogg_runtime_folder
 ```
 
-The external directory is
+The generated directory is
 `<build-directory>/runtime/RelWithDebInfo/ZzLogg-runtime/` and contains the
 single `ZzLogg.exe` GUI plus its Qt, ZzPureTools, MSVC runtime, and TBB
-dependencies. Windows packaging copies this same tree into both the installer
-staging directory and the distribution whose archive name ends in `-portable`;
-portable is a distribution form, not a second executable or CMake target.
+dependencies. Windows packaging copies this same tree into installer and
+self-contained archive staging. Both forms run the same `ZzLogg.exe`.
 
-## Compatibility option names
-
-The formal UI test option is `KLOGG_BUILD_UI_TESTS`. The old
-`KLOGG_BUILD_UI2_TESTS` option maps to it for one compatibility release and
-emits a deprecation warning. The old `*-ui2` preset names remain executable
-compatibility aliases for the corresponding formal `*-ui` presets.
+## Build options and targets
 
 - `KLOGG_BUILD_UI_TESTS=ON` enables the focused UI tests;
 - `KLOGG_USE_HYPERSCAN=OFF` selects the Qt regular-expression backend;
 - `KLOGG_USE_SENTRY=ON` enables crash-reporting support;
 - `zzlogg_runtime_folder` creates the Windows self-contained runtime tree.
 
-These options do not change the public ZzLogg executable, package, or desktop
-entry names.
+These options do not create a second GUI. The public executable, package, and
+desktop entry remain ZzLogg.
 
 ## Verification boundaries
 

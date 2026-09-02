@@ -3,30 +3,33 @@ if(NOT DEFINED APP OR NOT DEFINED TEST_ROOT
   message(FATAL_ERROR "APP, TEST_ROOT, FIRST_LOG and SECOND_LOG are required")
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
+zzlogg_require_safe_test_root("${TEST_ROOT}")
 file(REMOVE_RECURSE "${TEST_ROOT}")
-file(MAKE_DIRECTORY "${TEST_ROOT}/runtime")
+file(MAKE_DIRECTORY
+  "${TEST_ROOT}/runtime"
+  "${TEST_ROOT}/config/Roaming"
+  "${TEST_ROOT}/config/Local"
+  "${TEST_ROOT}/config/xdg/config"
+  "${TEST_ROOT}/config/xdg/data"
+  "${TEST_ROOT}/config/xdg/cache"
+  "${TEST_ROOT}/config/smoke/app-config"
+  "${TEST_ROOT}/config/smoke/user-data")
 get_filename_component(app_name "${APP}" NAME)
 set(smoke_app "${TEST_ROOT}/runtime/${app_name}")
 file(COPY_FILE "${APP}" "${smoke_app}")
 set(data_root "${TEST_ROOT}/storage")
-include("${CMAKE_CURRENT_LIST_DIR}/smokeisolationcheck.cmake")
-zzlogg_capture_host_storage_state(host_state_before)
-
-if(WIN32)
-  file(MAKE_DIRECTORY "${TEST_ROOT}/config/Roaming" "${TEST_ROOT}/config/Local")
-  set(config_env
-    "APPDATA=${TEST_ROOT}/config/Roaming"
-    "LOCALAPPDATA=${TEST_ROOT}/config/Local")
-else()
-  file(MAKE_DIRECTORY
-    "${TEST_ROOT}/config/config"
-    "${TEST_ROOT}/config/data"
-    "${TEST_ROOT}/config/cache")
-  set(config_env
-    "XDG_CONFIG_HOME=${TEST_ROOT}/config/config"
-    "XDG_DATA_HOME=${TEST_ROOT}/config/data"
-    "XDG_CACHE_HOME=${TEST_ROOT}/config/cache"
-    "QT_QPA_PLATFORM=offscreen")
+zzlogg_assert_path_in_test_root("titlebar lifetime smoke data" "${TEST_ROOT}" "${data_root}")
+set(config_env
+  "APPDATA=${TEST_ROOT}/config/Roaming"
+  "LOCALAPPDATA=${TEST_ROOT}/config/Local"
+  "XDG_CONFIG_HOME=${TEST_ROOT}/config/xdg/config"
+  "XDG_DATA_HOME=${TEST_ROOT}/config/xdg/data"
+  "XDG_CACHE_HOME=${TEST_ROOT}/config/xdg/cache"
+  "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${TEST_ROOT}/config/smoke/app-config"
+  "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${TEST_ROOT}/config/smoke/user-data")
+if(NOT WIN32)
+  list(APPEND config_env "QT_QPA_PLATFORM=offscreen")
 endif()
 
 execute_process(
@@ -39,7 +42,8 @@ execute_process(
   OUTPUT_VARIABLE lifetime_stdout
   ERROR_VARIABLE lifetime_stderr
   TIMEOUT 15)
-zzlogg_assert_host_storage_unchanged("${host_state_before}")
+zzlogg_assert_output_isolated(
+  "titlebar lifetime smoke" "${TEST_ROOT}" "${lifetime_stdout}" "${lifetime_stderr}")
 zzlogg_assert_no_locator_or_probe(
   "${TEST_ROOT}/runtime" "${TEST_ROOT}/config" "${data_root}")
 if(lifetime_result EQUAL 0)

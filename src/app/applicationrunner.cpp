@@ -64,6 +64,7 @@
 
 #include "cli.h"
 #include "kloggapp.h"
+#include "applicationsmokepaths.h"
 #include "storagebootstrap.h"
 #include "zzlogg_brand.h"
 #include "zzloggapplicationidentity.h"
@@ -93,9 +94,9 @@ Ui2SmokeRequest prepareUi2SmokeRequest( const KloggApplicationOptions& options )
         return request;
     }
 
-    bool validDeadline = false;
-    request.deadlineMs = qEnvironmentVariableIntValue( "ZZLOGG_UI2_SMOKE_MS", &validDeadline );
-    request.requested = validDeadline && request.deadlineMs > 0;
+    request.deadlineMs = validatedApplicationSmokeDeadlineMs(
+        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MS" ) );
+    request.requested = request.deadlineMs > 0;
     if ( !request.requested ) {
         return request;
     }
@@ -519,10 +520,16 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     }
 
     const QString applicationDirectory = QCoreApplication::applicationDirPath();
-    const QString appConfigDirectory
-        = QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation );
-    const QString userDataDirectory
-        = QStandardPaths::writableLocation( QStandardPaths::AppDataLocation );
+    const auto smokeStoragePaths = resolveApplicationSmokeStoragePaths(
+        ui2Smoke.requested,
+        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR" ),
+        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_USER_DATA_DIR" ), [] {
+            return ApplicationSmokeStoragePaths{
+                QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ),
+                QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ), {}, false };
+        } );
+    const QString appConfigDirectory = smokeStoragePaths.appConfigDirectory;
+    const QString userDataDirectory = smokeStoragePaths.userDataDirectory;
     const auto storageResult = bootstrapStorage(
         applicationDirectory, appConfigDirectory, userDataDirectory,
         QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,

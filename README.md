@@ -36,13 +36,13 @@ git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
 cd ZzLogg
 ```
 
-ZzPureTools remains a pinned submodule. backward-cpp v1.6 is vendored directly
-in this repository and does not require separate submodule initialization or a
-configure-time download.
+ZzPureTools is a pinned, required build dependency. backward-cpp v1.6 is
+vendored directly in this repository and does not require separate submodule
+initialization or a configure-time download.
 
-The project requires a C++17 compiler, CMake, and Qt 6. The optional UI2 target
-requires C++20, CMake 3.23 or later, and Qt 6.8 or later. A typical Ninja build
-uses the checked-in presets:
+The project requires a C++20 compiler, CMake 3.23 or later, and Qt 6.8 or
+later. A typical Ninja build uses the checked-in presets (which require CMake
+3.25 or later):
 
 ```bash
 cmake --preset ninja-release
@@ -52,15 +52,35 @@ ctest --preset ninja-release
 
 If Boost and Ragel are not installed, configure with
 `-DKLOGG_USE_HYPERSCAN=OFF` to use the Qt regular-expression backend. Detailed
-platform requirements, Windows presets, UI2 commands, install commands, and
-the portable-folder target are documented in [docs/BUILD.md](docs/BUILD.md).
+platform requirements, focused UI test presets, install commands, and the
+Windows runtime-folder target are documented in [docs/BUILD.md](docs/BUILD.md).
+
+The default build produces one GUI, `ZzLogg` (`ZzLogg.exe` on Windows). The
+experimental `klogg_grep` command-line target is available only when built
+explicitly and is not part of the default build.
+
+## Storage and green use
+
+On first launch, ZzLogg asks whether to keep persistent data in the user data
+directory, an absolute custom directory, or a `data/` directory beside the
+program. Choosing the program directory is the green-use mode: the application
+and its configuration, saved session, logs, and crash data stay together.
+Canceling the chooser exits without creating configuration.
+
+The selected root uses one layout for every mode:
+`config/ZzLogg.ini`, `session/ZzLogg_session.ini`, `logs/`, `crashes/`, and
+`storage-manifest.ini`. To move it later, open **Preferences > Storage** and
+choose a new empty directory. ZzLogg migrates the existing state and offers
+**Restart now** or **Restart later**; the new location takes effect after the
+restart while the saved session and recent files are retained.
 
 ## Packaging and installation
 
 The maintained packaging inputs in this repository are CMake install/CPack,
 the Windows Qt 6 NSIS script, the Linux desktop entry and icon installation,
-and the CMake-generated Windows portable folder. Package creation depends on
-the corresponding platform tools and should be verified on its target host.
+and the CMake-generated Windows self-contained runtime folder. Package creation
+depends on the corresponding platform tools and should be verified on its
+target host.
 
 This repository does not currently advertise a hosted binary-release channel
 or package-manager feed. Build or install from the current source tree instead
