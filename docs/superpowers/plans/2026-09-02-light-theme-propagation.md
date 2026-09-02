@@ -26,14 +26,16 @@
 ```cpp
 QCOMPARE( logView->viewport()->palette().color( QPalette::Base ), QColor( "#ffffff" ) );
 QVERIFY( renderedPixel.lightness() > 200 );
-QVERIFY( !documentTabs->testAttribute( Qt::WA_StyleSheet ) );
+auto* documentTabBar = documentTabs->findChild<CrawlerTabBar*>();
+QVERIFY( documentTabBar->styleSheet().isEmpty() );
+QVERIFY( !documentTabBar->testAttribute( Qt::WA_StyleSheet ) );
 ```
 
 - [ ] **步骤 2：运行测试并确认旧代码失败**
 
 运行：`cmake --build build/windows-msvc --target zzlogg_runtime_contract_test --config Release && ctest --test-dir build/windows-msvc -C Release -R zzlogg_runtime_contract --output-on-failure`
 
-预期：FAIL，日志视口仍为深色或文档标签仍带 `WA_StyleSheet`。
+预期：FAIL，日志视口仍为深色或实际的 `CrawlerTabBar` 仍带 `WA_StyleSheet`。
 
 - [ ] **步骤 3：提交回归测试**
 

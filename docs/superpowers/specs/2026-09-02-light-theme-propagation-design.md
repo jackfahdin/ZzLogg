@@ -22,4 +22,4 @@
 
 ## 验证
 
-用真实 `MainWindow`、真实日志文件和真实 `ZzFluentStyle` 做集成测试：先应用深色主题并打开日志，再切换浅色主题，断言中央日志视口的 `Base` 颜色和实际渲染像素均变为浅色，并确认 Fluent 文档标签不再形成 QSS 边界。最后运行全部测试。
+用真实 `MainWindow`、真实日志文件和真实 `ZzFluentStyle` 做集成测试：先应用深色主题并打开日志，再切换浅色主题，断言中央日志视口的 `Base` 颜色和实际渲染像素均变为浅色，并确认 `documentTabs` 下实际的 `CrawlerTabBar` 不再形成 QSS 边界。最后运行全部测试。

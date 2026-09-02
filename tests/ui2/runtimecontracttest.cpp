@@ -1,5 +1,7 @@
 #include "configuration.h"
 #include "abstractlogview.h"
+#include "crawlerwidget.h"
+#include "infoline.h"
 #include "kloggapp.h"
 #include "mainwindow.h"
 #include "persistentinfo.h"
@@ -12,8 +14,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGradient>
 #include <QMessageBox>
 #include <QPalette>
+#include <QScrollBar>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -101,6 +105,15 @@ private Q_SLOTS:
             = first->findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
         QVERIFY( documentTabs );
         QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
+        auto* const documentTabBar = documentTabs->findChild<CrawlerTabBar*>();
+        QVERIFY( documentTabBar );
+        QVERIFY( documentTabBar->styleSheet().isEmpty() );
+        QVERIFY( !documentTabBar->testAttribute( Qt::WA_StyleSheet ) );
+        QVERIFY( !documentTabs->testAttribute( Qt::WA_StyleSheet ) );
+        auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 0 ) );
+        QVERIFY( crawler );
+        auto* const searchInfoLine = crawler->findChild<InfoLine*>();
+        QVERIFY( searchInfoLine );
         QTRY_VERIFY_WITH_TIMEOUT( first->findChild<AbstractLogView*>() != nullptr, 5000 );
         auto* const logView = first->findChild<AbstractLogView*>();
         QVERIFY( logView );
@@ -108,6 +121,54 @@ private Q_SLOTS:
                                       && logView->viewport()->width() > 100
                                       && logView->viewport()->height() > 100,
                                   5000 );
+
+        QTRY_VERIFY_WITH_TIMEOUT(
+            logView->viewport()->palette().color( QPalette::Base ).lightness() < 100, 5000 );
+        const int stableScrollBarWidth = logView->verticalScrollBar()->width();
+        QVERIFY( stableScrollBarWidth > 0 );
+        logView->verticalScrollBar()->setFixedWidth( stableScrollBarWidth );
+        logView->updateDisplaySize();
+        QCoreApplication::processEvents();
+
+        const QPalette darkGaugeBasePalette = searchInfoLine->palette();
+        QVERIFY( darkGaugeBasePalette.color( QPalette::Window ).lightness() < 100 );
+        searchInfoLine->displayGauge( 37 );
+        searchInfoLine->show();
+        QTRY_VERIFY_WITH_TIMEOUT( searchInfoLine->isVisible(), 5000 );
+        const auto gaugeWindowStop = [ searchInfoLine ] {
+            const QBrush background
+                = searchInfoLine->palette().brush( searchInfoLine->backgroundRole() );
+            const QGradient* const gradient = background.gradient();
+            if ( gradient == nullptr || gradient->type() != QGradient::LinearGradient ) {
+                return QColor{};
+            }
+            const QGradientStops stops = gradient->stops();
+            return stops.isEmpty() ? QColor{} : stops.constLast().second;
+        };
+        const QColor darkGaugeWindowStop = gaugeWindowStop();
+        QVERIFY( darkGaugeWindowStop.isValid() );
+        QCOMPARE( darkGaugeWindowStop, darkGaugeBasePalette.color( QPalette::Window ) );
+
+        logView->followSet( true );
+        QCoreApplication::processEvents();
+        const QSize darkViewportSize = logView->viewport()->size();
+        const int darkHorizontalPageStep = logView->horizontalScrollBar()->pageStep();
+        const QImage darkRenderedViewport = logView->viewport()->grab().toImage();
+        QVERIFY( !darkRenderedViewport.isNull() );
+        const QPoint blankContentPoint( darkRenderedViewport.width() * 3 / 4,
+                                        darkRenderedViewport.height() * 3 / 4 );
+        QVERIFY( darkRenderedViewport.rect().contains( blankContentPoint ) );
+        const QColor darkBlankContent = darkRenderedViewport.pixelColor( blankContentPoint );
+        QVERIFY2( darkBlankContent.lightness() < 100,
+                  qPrintable( QStringLiteral( "dark content sample was %1" )
+                                  .arg( darkBlankContent.name( QColor::HexArgb ) ) ) );
+        const QPoint pullToFollowBackgroundPoint( 10, darkRenderedViewport.height() - 5 );
+        QVERIFY( darkRenderedViewport.rect().contains( pullToFollowBackgroundPoint ) );
+        const QColor darkPullToFollowBackground
+            = darkRenderedViewport.pixelColor( pullToFollowBackgroundPoint );
+        QVERIFY2( darkPullToFollowBackground.lightness() < 100,
+                  qPrintable( QStringLiteral( "dark pull-to-follow sample was %1" )
+                                  .arg( darkPullToFollowBackground.name( QColor::HexArgb ) ) ) );
 
         QSignalSpy documentSpy( first, &MainWindow::activeDocumentNameChanged );
         Q_EMIT first->activeDocumentNameChanged( {} );
@@ -127,13 +188,31 @@ private Q_SLOTS:
         QCOMPARE( app.palette().color( QPalette::Base ), QColor( QStringLiteral( "#ffffff" ) ) );
         QTRY_COMPARE_WITH_TIMEOUT( logView->viewport()->palette().color( QPalette::Base ),
                                    QColor( QStringLiteral( "#ffffff" ) ), 5000 );
+        QCOMPARE( logView->viewport()->size(), darkViewportSize );
+        QCOMPARE( logView->horizontalScrollBar()->pageStep(), darkHorizontalPageStep );
         const QImage renderedViewport = logView->viewport()->grab().toImage();
         QVERIFY( !renderedViewport.isNull() );
-        const QPoint blankContentPoint( renderedViewport.width() * 3 / 4,
-                                        renderedViewport.height() * 3 / 4 );
         QVERIFY( renderedViewport.rect().contains( blankContentPoint ) );
         QVERIFY( renderedViewport.pixelColor( blankContentPoint ).lightness() > 200 );
-        QVERIFY( !documentTabs->testAttribute( Qt::WA_StyleSheet ) );
+        QVERIFY( renderedViewport.rect().contains( pullToFollowBackgroundPoint ) );
+        const QColor lightPullToFollowBackground
+            = renderedViewport.pixelColor( pullToFollowBackgroundPoint );
+        const QColor lightGaugeWindowStop = gaugeWindowStop();
+        QVERIFY2(
+            lightPullToFollowBackground.lightness() > 200
+                && lightGaugeWindowStop.isValid() && lightGaugeWindowStop.lightness() > 200,
+            qPrintable( QStringLiteral( "light samples remained stale: pull-to-follow=%1, "
+                                        "active-gauge-window-stop=%2" )
+                            .arg( lightPullToFollowBackground.name( QColor::HexArgb ),
+                                  lightGaugeWindowStop.name( QColor::HexArgb ) ) ) );
+        QCOMPARE( lightPullToFollowBackground,
+                  logView->palette().color( logView->backgroundRole() ) );
+        QCOMPARE( lightGaugeWindowStop, crawler->palette().color( QPalette::Window ) );
+        QVERIFY( searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
+                 != nullptr );
+        searchInfoLine->hideGauge();
+        searchInfoLine->hide();
+        logView->followSet( false );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::HighContrast );
         QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::System );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::Dark );
