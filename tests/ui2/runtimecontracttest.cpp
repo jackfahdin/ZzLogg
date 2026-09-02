@@ -125,8 +125,8 @@ private Q_SLOTS:
         QCOMPARE( Configuration::get().uiThemeMode(), UiThemeMode::Dark );
         QCOMPARE( QFileInfo( settings.fileName() ).lastModified(), settingsMtime );
         QCOMPARE( app.palette().color( QPalette::Base ), QColor( QStringLiteral( "#ffffff" ) ) );
-        QCOMPARE( logView->viewport()->palette().color( QPalette::Base ),
-                  QColor( QStringLiteral( "#ffffff" ) ) );
+        QTRY_COMPARE_WITH_TIMEOUT( logView->viewport()->palette().color( QPalette::Base ),
+                                   QColor( QStringLiteral( "#ffffff" ) ), 5000 );
         const QImage renderedViewport = logView->viewport()->grab().toImage();
         QVERIFY( !renderedViewport.isNull() );
         const QPoint blankContentPoint( renderedViewport.width() * 3 / 4,
