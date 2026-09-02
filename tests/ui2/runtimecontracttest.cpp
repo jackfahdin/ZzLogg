@@ -1,15 +1,19 @@
 #include "configuration.h"
+#include "abstractlogview.h"
 #include "kloggapp.h"
 #include "mainwindow.h"
 #include "persistentinfo.h"
 #include "storagecontext.h"
+#include "tabbedcrawlerwidget.h"
 #include "zzloggfluentshell.h"
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
 #include "zzlogguiruntime.h"
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QPalette>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -83,6 +87,28 @@ private Q_SLOTS:
             = second->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) );
         QVERIFY( secondShell );
 
+        QTemporaryDir logDirectory;
+        QVERIFY( logDirectory.isValid() );
+        QFile logFile( logDirectory.filePath( QStringLiteral( "theme-propagation.log" ) ) );
+        QVERIFY( logFile.open( QIODevice::WriteOnly | QIODevice::Text ) );
+        QVERIFY( logFile.write( "first visible log line\nsecond visible log line\n"
+                                "third visible log line\n" ) > 0 );
+        logFile.close();
+
+        first->resize( 960, 720 );
+        first->loadFileNonInteractive( logFile.fileName() );
+        auto* const documentTabs
+            = first->findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
+        QVERIFY( documentTabs );
+        QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( first->findChild<AbstractLogView*>() != nullptr, 5000 );
+        auto* const logView = first->findChild<AbstractLogView*>();
+        QVERIFY( logView );
+        QTRY_VERIFY_WITH_TIMEOUT( logView->viewport()->isVisible()
+                                      && logView->viewport()->width() > 100
+                                      && logView->viewport()->height() > 100,
+                                  5000 );
+
         QSignalSpy documentSpy( first, &MainWindow::activeDocumentNameChanged );
         Q_EMIT first->activeDocumentNameChanged( {} );
         QCOMPARE( first->windowTitle(), QStringLiteral( "ZzLogg" ) );
@@ -91,12 +117,23 @@ private Q_SLOTS:
         QCOMPARE( documentSpy.count(), 2 );
 
         const QDateTime settingsMtime = QFileInfo( settings.fileName() ).lastModified();
-        QTest::qWait( 20 );
+        QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark );
         Q_EMIT first->uiThemeChanged( UiThemeMode::Light );
+        QTRY_COMPARE_WITH_TIMEOUT( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Light,
+                                   5000 );
         settings.sync();
         QCOMPARE( Configuration::get().uiThemeMode(), UiThemeMode::Dark );
         QCOMPARE( QFileInfo( settings.fileName() ).lastModified(), settingsMtime );
-        QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Light );
+        QCOMPARE( app.palette().color( QPalette::Base ), QColor( QStringLiteral( "#ffffff" ) ) );
+        QCOMPARE( logView->viewport()->palette().color( QPalette::Base ),
+                  QColor( QStringLiteral( "#ffffff" ) ) );
+        const QImage renderedViewport = logView->viewport()->grab().toImage();
+        QVERIFY( !renderedViewport.isNull() );
+        const QPoint blankContentPoint( renderedViewport.width() * 3 / 4,
+                                        renderedViewport.height() * 3 / 4 );
+        QVERIFY( renderedViewport.rect().contains( blankContentPoint ) );
+        QVERIFY( renderedViewport.pixelColor( blankContentPoint ).lightness() > 200 );
+        QVERIFY( !documentTabs->testAttribute( Qt::WA_StyleSheet ) );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::HighContrast );
         QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::System );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::Dark );
