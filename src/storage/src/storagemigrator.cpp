@@ -2,6 +2,7 @@
 
 #include "storagevalidator.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -985,6 +986,47 @@ QString lockFailure( const QLockFile& lock, const QString& lockPath )
     return QStringLiteral( "failed to acquire storage migration lock: %1" ).arg( lockPath );
 }
 
+constexpr qint64 malformedMigrationLockGraceMs = 30 * 1000;
+
+bool acquireMigrationLock( QLockFile* lock, const QString& lockPath, QString* error )
+{
+    lock->setStaleLockTime( 0 );
+    if ( lock->tryLock( 0 ) ) {
+        return true;
+    }
+
+    if ( lock->error() == QLockFile::LockFailedError ) {
+        qint64 processId = 0;
+        QString hostname;
+        QString applicationName;
+        if ( !lock->getLockInfo( &processId, &hostname, &applicationName ) ) {
+            const QFileInfo malformedInfo{ lockPath };
+            if ( !malformedInfo.exists() ) {
+                if ( lock->tryLock( 0 ) ) {
+                    return true;
+                }
+            }
+            else {
+                const QDateTime modified = malformedInfo.lastModified().toUTC();
+                const qint64 ageMs = modified.msecsTo( QDateTime::currentDateTimeUtc() );
+                const QFileInfo confirmation{ lockPath };
+                if ( modified.isValid() && ageMs >= malformedMigrationLockGraceMs
+                     && confirmation.exists() && confirmation.lastModified().toUTC() == modified
+                     && confirmation.size() == malformedInfo.size()
+                     && !lock->getLockInfo( &processId, &hostname, &applicationName )
+                     && lock->removeStaleLockFile() && lock->tryLock( 0 ) ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    if ( error != nullptr ) {
+        *error = lockFailure( *lock, lockPath );
+    }
+    return false;
+}
+
 } // namespace
 
 StorageMigrator::StorageMigrator( StorageLocatorStore locatorStore,
@@ -994,8 +1036,6 @@ StorageMigrator::StorageMigrator( StorageLocatorStore locatorStore,
                                     : StorageCopyOperation{ defaultCopy } )
 {
 }
-
-constexpr int migrationLockStaleTimeMs = 24 * 60 * 60 * 1000;
 
 StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& request ) const
 {
@@ -1011,9 +1051,8 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
         return { false, false, error };
     }
     QLockFile lock{ lockPath };
-    lock.setStaleLockTime( migrationLockStaleTimeMs );
-    if ( !lock.tryLock( 0 ) ) {
-        return { false, false, lockFailure( lock, lockPath ) };
+    if ( !acquireMigrationLock( &lock, lockPath, &error ) ) {
+        return { false, false, error };
     }
 
     if ( !locatorStore_.writePending( canonical, &error ) ) {
@@ -1120,9 +1159,8 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
         return { false, false, error };
     }
     QLockFile lock{ lockPath };
-    lock.setStaleLockTime( migrationLockStaleTimeMs );
-    if ( !lock.tryLock( 0 ) ) {
-        return { false, false, lockFailure( lock, lockPath ) };
+    if ( !acquireMigrationLock( &lock, lockPath, &error ) ) {
+        return { false, false, error };
     }
 
     const DirectLocatorState sourceState

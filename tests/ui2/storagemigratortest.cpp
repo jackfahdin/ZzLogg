@@ -24,6 +24,31 @@
 
 namespace {
 
+bool setFileModificationTime( const QString& path, const QDateTime& timestamp )
+{
+#ifdef Q_OS_WIN
+    constexpr qint64 windowsEpochOffsetMs = 11644473600000;
+    ULARGE_INTEGER windowsTime;
+    windowsTime.QuadPart
+        = static_cast<ULONGLONG>( timestamp.toMSecsSinceEpoch() + windowsEpochOffsetMs ) * 10000;
+    const FILETIME fileTime{ windowsTime.LowPart, windowsTime.HighPart };
+    const HANDLE handle
+        = CreateFileW( reinterpret_cast<LPCWSTR>( path.utf16() ), FILE_WRITE_ATTRIBUTES,
+                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr );
+    if ( handle == INVALID_HANDLE_VALUE ) {
+        return false;
+    }
+    const bool success = SetFileTime( handle, nullptr, nullptr, &fileTime ) != FALSE;
+    CloseHandle( handle );
+    return success;
+#else
+    QFile file{ path };
+    return file.open( QIODevice::ReadWrite )
+           && file.setFileTime( timestamp, QFileDevice::FileModificationTime );
+#endif
+}
+
 bool writeBytes( const QString& path, const QByteArray& contents )
 {
     if ( !QDir{}.mkpath( QFileInfo{ path }.absolutePath() ) ) {
@@ -734,6 +759,7 @@ void StorageMigratorTest::lockConflictFailsBeforeWritingPendingState()
     QLockFile heldLock{ lockPath };
     heldLock.setStaleLockTime( 0 );
     QVERIFY( heldLock.tryLock( 0 ) );
+    QVERIFY( setFileModificationTime( lockPath, QDateTime::currentDateTimeUtc().addDays( -2 ) ) );
 
     const StorageMigrationResult result
         = StorageMigrator{ fixture.store }.execute( fixture.request );
@@ -758,10 +784,7 @@ void StorageMigratorTest::staleMalformedMigrationLockIsRecovered()
     QFile staleLock{ lockPath };
     QVERIFY( staleLock.open( QIODevice::WriteOnly ) );
     staleLock.close();
-    QVERIFY( staleLock.open( QIODevice::ReadWrite ) );
-    QVERIFY( staleLock.setFileTime( QDateTime::currentDateTimeUtc().addDays( -2 ),
-                                    QFileDevice::FileModificationTime ) );
-    staleLock.close();
+    QVERIFY( setFileModificationTime( lockPath, QDateTime::currentDateTimeUtc().addSecs( -60 ) ) );
 
     const StorageMigrationResult result
         = StorageMigrator{ fixture.store }.execute( fixture.request );
