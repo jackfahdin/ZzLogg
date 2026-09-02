@@ -46,9 +46,7 @@ function(zzlogg_prepare_case case_name output_runtime output_config output_env)
     "LOCALAPPDATA=${localappdata_dir}"
     "XDG_CONFIG_HOME=${xdg_config_dir}"
     "XDG_DATA_HOME=${xdg_data_dir}"
-    "XDG_CACHE_HOME=${xdg_cache_dir}"
-    "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${smoke_app_config_dir}"
-    "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${smoke_user_data_dir}")
+    "XDG_CACHE_HOME=${xdg_cache_dir}")
   if(NOT WIN32)
     list(APPEND case_env "QT_QPA_PLATFORM=offscreen")
   endif()
@@ -135,15 +133,19 @@ file(MAKE_DIRECTORY "${TEST_ROOT}")
 zzlogg_prepare_case(custom custom_runtime custom_config custom_env)
 zzlogg_copy_application("${custom_runtime}" custom_app)
 set(custom_data_root "${TEST_ROOT}/custom/storage")
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${custom_env}
-          ZZLOGG_UI2_SMOKE_MS=1800
-          "${custom_app}" --multi --new-session --log
-          --data-dir "${custom_data_root}" "${FIRST_LOG}" "${SECOND_LOG}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "custom --data-dir"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${custom_config}/smoke/app-config"
+  USER_DATA_DIR "${custom_config}/smoke/user-data"
+  SMOKE_MS 1800
   RESULT_VARIABLE custom_result
   OUTPUT_VARIABLE custom_stdout
   ERROR_VARIABLE custom_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${custom_env}
+  COMMAND "${custom_app}" --multi --new-session --log
+          --data-dir "${custom_data_root}" "${FIRST_LOG}" "${SECOND_LOG}")
 if(NOT custom_result EQUAL 0)
   zzlogg_record_failure(
     "custom --data-dir launch failed (${custom_result}): ${custom_stdout} ${custom_stderr}")
@@ -160,14 +162,18 @@ set(program_data_root "${program_runtime}/data")
 zzlogg_write_manifest("${program_data_root}")
 file(WRITE "${program_runtime}/ZzLogg.storage.ini"
   "[Storage]\nformatVersion=1\nmode=program\ndataRoot=data\nverified=true\n")
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${program_env}
-          ZZLOGG_UI2_SMOKE_MS=1800
-          "${program_app}" --multi --new-session "${FIRST_LOG}" "${SECOND_LOG}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "program locator"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${program_config}/smoke/app-config"
+  USER_DATA_DIR "${program_config}/smoke/user-data"
+  SMOKE_MS 1800
   RESULT_VARIABLE program_result
   OUTPUT_VARIABLE program_stdout
   ERROR_VARIABLE program_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${program_env}
+  COMMAND "${program_app}" --multi --new-session "${FIRST_LOG}" "${SECOND_LOG}")
 if(NOT program_result EQUAL 0)
   zzlogg_record_failure(
     "program locator launch failed (${program_result}): ${program_stdout} ${program_stderr}")
@@ -189,14 +195,18 @@ file(MAKE_DIRECTORY "${user_locator_directory}")
 file(WRITE "${user_locator}"
   "[Storage]\nformatVersion=1\nmode=user\ndataRoot=${serialized_user_data_root}\nverified=true\n")
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${user_env}
-          ZZLOGG_UI2_SMOKE_MODE=seed-session ZZLOGG_UI2_SMOKE_MS=3000
-          "${user_app}" --multi --new-session
+zzlogg_run_isolated_smoke_process(
+  LABEL "user locator seed"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${user_config}/smoke/app-config"
+  USER_DATA_DIR "${user_config}/smoke/user-data"
+  SMOKE_MS 3000
   RESULT_VARIABLE user_seed_result
   OUTPUT_VARIABLE user_seed_stdout
   ERROR_VARIABLE user_seed_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${user_env} "ZZLOGG_UI2_SMOKE_MODE=seed-session"
+  COMMAND "${user_app}" --multi --new-session)
 if(NOT user_seed_result EQUAL 0)
   zzlogg_record_failure(
     "user locator session seed failed (${user_seed_result}): ${user_seed_stdout} ${user_seed_stderr}")
@@ -206,14 +216,18 @@ zzlogg_assert_output_isolated(
 zzlogg_check_data_root("user locator seed" "${user_data_root}" FALSE)
 zzlogg_check_no_business_settings("user locator seed" "${user_config}")
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${user_env}
-          ZZLOGG_UI2_SMOKE_MODE=verify-restored ZZLOGG_UI2_SMOKE_MS=3000
-          "${user_app}" --multi --load-session
+zzlogg_run_isolated_smoke_process(
+  LABEL "user locator restore"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${user_config}/smoke/app-config"
+  USER_DATA_DIR "${user_config}/smoke/user-data"
+  SMOKE_MS 3000
   RESULT_VARIABLE user_restore_result
   OUTPUT_VARIABLE user_restore_stdout
   ERROR_VARIABLE user_restore_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${user_env} "ZZLOGG_UI2_SMOKE_MODE=verify-restored"
+  COMMAND "${user_app}" --multi --load-session)
 if(NOT user_restore_result EQUAL 0)
   zzlogg_record_failure(
     "user locator session restore failed (${user_restore_result}): ${user_restore_stdout} ${user_restore_stderr}")
@@ -228,14 +242,18 @@ file(WRITE "${user_locator}"
   "[Storage]\nformatVersion=1\nmode=custom\ndataRoot=${serialized_user_data_root}\nverified=true\n")
 set(hidden_user_data_root "${TEST_ROOT}/user/storage-hidden")
 file(RENAME "${user_data_root}" "${hidden_user_data_root}")
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${user_env}
-          ZZLOGG_UI2_SMOKE_MS=500
-          "${user_app}" --multi --new-session
+zzlogg_run_isolated_smoke_process(
+  LABEL "missing custom storage root"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${user_config}/smoke/app-config"
+  USER_DATA_DIR "${user_config}/smoke/user-data"
+  SMOKE_MS 500
   RESULT_VARIABLE missing_root_result
   OUTPUT_VARIABLE missing_root_stdout
   ERROR_VARIABLE missing_root_stderr
-  TIMEOUT 10)
+  TIMEOUT 10
+  ENVIRONMENT ${user_env}
+  COMMAND "${user_app}" --multi --new-session)
 if(missing_root_result EQUAL 0)
   zzlogg_record_failure(
     "missing custom storage root launched with a blank default profile")
@@ -243,7 +261,7 @@ endif()
 zzlogg_assert_output_isolated(
   "missing custom storage root" "${TEST_ROOT}" "${missing_root_stdout}" "${missing_root_stderr}")
 string(FIND "${missing_root_stderr}"
-  "storage directory has no compatible manifest" missing_root_error_index)
+  "storage directory is missing" missing_root_error_index)
 if(missing_root_error_index EQUAL -1)
   zzlogg_record_failure(
     "missing custom storage root did not report the recovery error: ${missing_root_stdout} ${missing_root_stderr}")
@@ -253,6 +271,14 @@ if(EXISTS "${user_data_root}/config/ZzLogg.ini"
    OR EXISTS "${user_data_root}/storage-manifest.ini")
   zzlogg_record_failure(
     "missing custom storage root created a blank persistent profile: ${user_data_root}")
+endif()
+set(missing_fallback_root "${user_config}/smoke/user-data")
+file(GLOB_RECURSE missing_fallback_files LIST_DIRECTORIES FALSE
+  "${missing_fallback_root}/*")
+if(missing_fallback_files)
+  list(JOIN missing_fallback_files ", " missing_fallback_text)
+  zzlogg_record_failure(
+    "missing custom storage root wrote a blank profile into the real fallback user-data override: ${missing_fallback_text}")
 endif()
 
 file(REMOVE_RECURSE "${TEST_ROOT}")

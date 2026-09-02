@@ -173,6 +173,16 @@
     </message>
 </context>
 <context>
+    <name>ApplicationRunner</name>
+    <message>
+        <location filename="../applicationrunner.cpp" line="102"/>
+        <source>ZzLogg could not open its data directory:
+%1</source>
+        <translation>ZzLogg could not open its data directory:
+%1</translation>
+    </message>
+</context>
+<context>
     <name>CrawlerWidget</name>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="449"/>
@@ -719,7 +729,7 @@
         <translation>Preferences</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="112"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="105"/>
         <source>%1 preferences</source>
         <translation>%1 preferences</translation>
     </message>
@@ -1094,107 +1104,107 @@
         <translation>Verbosity</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="115"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="108"/>
         <source>Storage</source>
         <translation>Storage</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="128"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="131"/>
         <source>Use system setting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="130"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="133"/>
         <source>Light</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="131"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="134"/>
         <source>Dark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="207"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="210"/>
         <source>Extended Regexp</source>
         <translation>Extended Regexp</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="207"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="210"/>
         <source>Fixed Strings</source>
         <translation>Fixed Strings</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="213"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="216"/>
         <source>Hyperscan</source>
         <translation>Hyperscan</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="213"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="216"/>
         <source>Qt</source>
         <translation>Qt</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="673"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="676"/>
         <source>Failed to save settings before changing storage location.</source>
         <translation>Failed to save settings before changing storage location.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="684"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="687"/>
         <source>%1 needs to be restarted to apply some changes. </source>
         <translation>%1 needs to be restarted to apply some changes. </translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="703"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="706"/>
         <source>The selected storage location is not valid: %1</source>
         <translation>The selected storage location is not valid: %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="726"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="725"/>
         <source>The selected directory already contains ZzLogg data. Automatic merging is not supported; choose an empty directory.</source>
         <translation>The selected directory already contains ZzLogg data. Automatic merging is not supported; choose an empty directory.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="736"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="735"/>
         <source>Cannot schedule the storage change because the active locator does not match the current data directory: %1</source>
         <translation>Cannot schedule the storage change because the active locator does not match the current data directory: %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="755"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="754"/>
         <source>Another storage location change is already pending. Restart ZzLogg before choosing a different location.</source>
         <translation>Another storage location change is already pending. Restart ZzLogg before choosing a different location.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="766"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="765"/>
         <source>Failed to schedule the storage location change: %1</source>
         <translation>Failed to schedule the storage location change: %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="778"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="777"/>
         <source>The storage location will change after ZzLogg restarts.</source>
         <translation>The storage location will change after ZzLogg restarts.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="780"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="779"/>
         <source>Restart now</source>
         <translation>Restart now</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="781"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="780"/>
         <source>Restart later</source>
         <translation>Restart later</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="900"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="899"/>
         <source>Action</source>
         <translation>Action</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="901"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="900"/>
         <source>Primary shortcut</source>
         <translation>Primary shortcut</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="903"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="902"/>
         <source>Secondary shortcut</source>
         <translation>Secondary shortcut</translation>
     </message>
@@ -1784,7 +1794,7 @@
         <translation>B</translation>
     </message>
     <message>
-        <location filename="../applicationrunner.cpp" line="657"/>
+        <location filename="../applicationrunner.cpp" line="679"/>
         <location filename="../../ui2/src/zzlogguiruntime.cpp" line="108"/>
         <source>ZzLogg UI</source>
         <translation type="unfinished"></translation>

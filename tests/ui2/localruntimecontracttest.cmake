@@ -40,27 +40,29 @@ file(MAKE_DIRECTORY
   "${TEST_ROOT}/xdg/cache"
   "${TEST_ROOT}/smoke/app-config"
   "${TEST_ROOT}/smoke/user-data")
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env
-          --unset=QT_PLUGIN_PATH
-          --unset=QT_QPA_PLATFORM_PLUGIN_PATH
-          --unset=QT_QPA_PLATFORM
-          "APPDATA=${TEST_ROOT}/Roaming"
-          "LOCALAPPDATA=${TEST_ROOT}/Local"
-          "XDG_CONFIG_HOME=${TEST_ROOT}/xdg/config"
-          "XDG_DATA_HOME=${TEST_ROOT}/xdg/data"
-          "XDG_CACHE_HOME=${TEST_ROOT}/xdg/cache"
-          "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${TEST_ROOT}/smoke/app-config"
-          "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${TEST_ROOT}/smoke/user-data"
-          "PATH=${runtime_dir}"
-          ZZLOGG_UI2_SMOKE_MS=800
-          "${runtime_app}" --multi --new-session --data-dir "${TEST_ROOT}/storage"
-          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-first.log"
-          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-second.log"
+zzlogg_run_isolated_smoke_process(
+  LABEL "local runtime smoke"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${TEST_ROOT}/smoke/app-config"
+  USER_DATA_DIR "${TEST_ROOT}/smoke/user-data"
+  SMOKE_MS 800
   RESULT_VARIABLE smoke_result
   OUTPUT_VARIABLE smoke_stdout
   ERROR_VARIABLE smoke_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT
+    --unset=QT_PLUGIN_PATH
+    --unset=QT_QPA_PLATFORM_PLUGIN_PATH
+    --unset=QT_QPA_PLATFORM
+    "APPDATA=${TEST_ROOT}/Roaming"
+    "LOCALAPPDATA=${TEST_ROOT}/Local"
+    "XDG_CONFIG_HOME=${TEST_ROOT}/xdg/config"
+    "XDG_DATA_HOME=${TEST_ROOT}/xdg/data"
+    "XDG_CACHE_HOME=${TEST_ROOT}/xdg/cache"
+    "PATH=${runtime_dir}"
+  COMMAND "${runtime_app}" --multi --new-session --data-dir "${TEST_ROOT}/storage"
+          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-first.log"
+          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-second.log")
 zzlogg_assert_output_isolated(
   "local runtime smoke" "${TEST_ROOT}" "${smoke_stdout}" "${smoke_stderr}")
 zzlogg_assert_no_locator_or_probe(

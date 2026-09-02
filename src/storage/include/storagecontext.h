@@ -11,15 +11,24 @@ struct StorageLocation {
     bool commandLineOverride = false;
 };
 
+struct StorageRuntimePaths {
+    QString applicationDirectory;
+    QString appConfigDirectory;
+    QString userDataDirectory;
+};
+
 class StorageContext final {
   public:
-    explicit StorageContext( StorageLocation location );
+    explicit StorageContext( StorageLocation location, StorageRuntimePaths runtimePaths = {} );
 
     static bool install( StorageLocation location, QString* error = nullptr );
+    static bool install( StorageLocation location, StorageRuntimePaths runtimePaths,
+                         QString* error = nullptr );
     static bool isInstalled();
     static const StorageContext& current();
 
     const StorageLocation& location() const;
+    const StorageRuntimePaths& runtimePaths() const;
     QString dataRoot() const;
     QString configDirectory() const;
     QString sessionDirectory() const;
@@ -32,4 +41,5 @@ class StorageContext final {
 
   private:
     StorageLocation location_;
+    StorageRuntimePaths runtimePaths_;
 };

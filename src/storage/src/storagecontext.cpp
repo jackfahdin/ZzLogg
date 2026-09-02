@@ -41,14 +41,24 @@ bool ensureDirectory( const QString& path, QString* error )
 
 } // namespace
 
-StorageContext::StorageContext( StorageLocation location )
+StorageContext::StorageContext( StorageLocation location, StorageRuntimePaths runtimePaths )
     : location_( std::move( location ) )
+    , runtimePaths_( std::move( runtimePaths ) )
 {
     location_.dataRoot = normalizedPath( location_.dataRoot );
     location_.locatorPath = normalizedPath( location_.locatorPath );
+    runtimePaths_.applicationDirectory = normalizedPath( runtimePaths_.applicationDirectory );
+    runtimePaths_.appConfigDirectory = normalizedPath( runtimePaths_.appConfigDirectory );
+    runtimePaths_.userDataDirectory = normalizedPath( runtimePaths_.userDataDirectory );
 }
 
 bool StorageContext::install( StorageLocation location, QString* error )
+{
+    return install( std::move( location ), {}, error );
+}
+
+bool StorageContext::install( StorageLocation location, StorageRuntimePaths runtimePaths,
+                              QString* error )
 {
     const QMutexLocker locker{ &contextMutex() };
     if ( installedContext() != nullptr ) {
@@ -57,7 +67,8 @@ bool StorageContext::install( StorageLocation location, QString* error )
         }
         return false;
     }
-    installedContext() = new StorageContext( std::move( location ) );
+    installedContext()
+        = new StorageContext( std::move( location ), std::move( runtimePaths ) );
     return true;
 }
 
@@ -77,6 +88,11 @@ const StorageContext& StorageContext::current()
 const StorageLocation& StorageContext::location() const
 {
     return location_;
+}
+
+const StorageRuntimePaths& StorageContext::runtimePaths() const
+{
+    return runtimePaths_;
 }
 
 QString StorageContext::dataRoot() const

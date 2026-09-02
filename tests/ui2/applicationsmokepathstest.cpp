@@ -10,15 +10,34 @@ class ApplicationSmokePathsTest final : public QObject {
   private slots:
     void acceptsOnlyPositiveSmokeDeadlines_data();
     void acceptsOnlyPositiveSmokeDeadlines();
+    void recognizesOnlyManualIsolationMode();
+    void showsBootstrapErrorsOnlyForInteractiveStarts();
     void invalidSmokeDeadlinesDoNotEnableOverrides_data();
     void invalidSmokeDeadlinesDoNotEnableOverrides();
     void ignoresOverridesOutsideSmokeMode();
     void acceptsAbsoluteNonRootOverridesInSmokeMode();
     void skipsProductionProviderForValidSmokeOverrides();
+    void smokeRequestRemainsEnabledWhenUiRuntimeIsUnavailable();
     void leavesDefaultsWhenSmokeOverridesAreAbsent();
     void fallsBackForPartialOrUnsafeSmokeOverrides_data();
     void fallsBackForPartialOrUnsafeSmokeOverrides();
 };
+
+void ApplicationSmokePathsTest::recognizesOnlyManualIsolationMode()
+{
+    QVERIFY( isManualIsolationSmokeMode( QStringLiteral( "manual-isolation" ) ) );
+    QVERIFY( !isManualIsolationSmokeMode( QString{} ) );
+    QVERIFY( !isManualIsolationSmokeMode( QStringLiteral( "seed-session" ) ) );
+}
+
+void ApplicationSmokePathsTest::showsBootstrapErrorsOnlyForInteractiveStarts()
+{
+    QVERIFY( shouldShowStorageBootstrapFailureDialog( false, QString{} ) );
+    QVERIFY( shouldShowStorageBootstrapFailureDialog(
+        true, QStringLiteral( "manual-isolation" ) ) );
+    QVERIFY( !shouldShowStorageBootstrapFailureDialog(
+        true, QStringLiteral( "seed-session" ) ) );
+}
 
 void ApplicationSmokePathsTest::acceptsOnlyPositiveSmokeDeadlines_data()
 {
@@ -61,8 +80,8 @@ void ApplicationSmokePathsTest::invalidSmokeDeadlinesDoNotEnableOverrides()
         QStringLiteral( "D:/attempted/data" ), [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 1 );
@@ -79,8 +98,8 @@ void ApplicationSmokePathsTest::ignoresOverridesOutsideSmokeMode()
         [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 1 );
@@ -102,13 +121,16 @@ void ApplicationSmokePathsTest::acceptsAbsoluteNonRootOverridesInSmokeMode()
         true, config, data, [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 0 );
     QCOMPARE( result.appConfigDirectory, QDir::cleanPath( config ) );
     QCOMPARE( result.userDataDirectory, QDir::cleanPath( data ) );
+    QCOMPARE( result.legacyUserSettingsDirectory,
+              QDir{ QDir::cleanPath( config ) }.filePath(
+                  QStringLiteral( "legacy-user-settings" ) ) );
     QVERIFY( result.error.isEmpty() );
     QVERIFY( result.overridden );
 }
@@ -126,13 +148,46 @@ void ApplicationSmokePathsTest::skipsProductionProviderForValidSmokeOverrides()
         smokeRequested, config, data, [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 0 );
     QCOMPARE( result.appConfigDirectory, QDir::cleanPath( config ) );
     QCOMPARE( result.userDataDirectory, QDir::cleanPath( data ) );
+    QCOMPARE( result.legacyUserSettingsDirectory,
+              QDir{ QDir::cleanPath( config ) }.filePath(
+                  QStringLiteral( "legacy-user-settings" ) ) );
+}
+
+void ApplicationSmokePathsTest::smokeRequestRemainsEnabledWhenUiRuntimeIsUnavailable()
+{
+    const auto startupPlan = planApplicationSmokeStartup(
+        QStringLiteral( "1800" ), QStringLiteral( "manual-isolation" ), false );
+
+    QVERIFY( startupPlan.smokeRequest.requested );
+    QCOMPARE( startupPlan.smokeRequest.deadlineMs, 1800 );
+    QCOMPARE( startupPlan.smokeRequest.mode, QStringLiteral( "manual-isolation" ) );
+    QVERIFY( !startupPlan.createUiRuntime );
+
+    QTemporaryDir root;
+    QVERIFY( root.isValid() );
+    const QString config = QDir{ root.path() }.filePath( QStringLiteral( "config" ) );
+    const QString data = QDir{ root.path() }.filePath( QStringLiteral( "data" ) );
+    int productionProviderCalls = 0;
+
+    const auto result = resolveApplicationSmokeStoragePaths(
+        startupPlan.smokeRequest.requested, config, data, [ &productionProviderCalls ] {
+            ++productionProviderCalls;
+            return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
+        } );
+
+    QCOMPARE( productionProviderCalls, 0 );
+    QVERIFY( result.overridden );
+    QCOMPARE( result.legacyUserSettingsDirectory,
+              QDir{ config }.filePath( QStringLiteral( "legacy-user-settings" ) ) );
 }
 
 void ApplicationSmokePathsTest::leavesDefaultsWhenSmokeOverridesAreAbsent()
@@ -142,8 +197,8 @@ void ApplicationSmokePathsTest::leavesDefaultsWhenSmokeOverridesAreAbsent()
         true, {}, {}, [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 1 );
@@ -179,8 +234,8 @@ void ApplicationSmokePathsTest::fallsBackForPartialOrUnsafeSmokeOverrides()
         true, config, data, [ &productionProviderCalls ] {
             ++productionProviderCalls;
             return ApplicationSmokeStoragePaths{ QStringLiteral( "C:/production/config" ),
-                                                 QStringLiteral( "C:/production/data" ), {},
-                                                 false };
+                                                 QStringLiteral( "C:/production/data" ),
+                                                 QStringLiteral( "C:/production/legacy" ), {}, false };
         } );
 
     QCOMPARE( productionProviderCalls, 1 );

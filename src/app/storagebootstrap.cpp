@@ -9,7 +9,6 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QSettings>
 #include <QUuid>
 
 #include <utility>
@@ -21,9 +20,14 @@ StorageBootstrapResult errorResult( QString error )
     return { StorageBootstrapStatus::Error, std::move( error ) };
 }
 
-StorageBootstrapResult installLocation( StorageLocation location, bool requireManifest,
-                                        bool writeManifest )
+StorageBootstrapResult installLocation( StorageLocation location,
+                                        const StorageRuntimePaths& runtimePaths,
+                                        bool requireManifest, bool writeManifest )
 {
+    if ( requireManifest && !QFileInfo{ location.dataRoot }.isDir() ) {
+        return errorResult(
+            QStringLiteral( "storage directory is missing: %1" ).arg( location.dataRoot ) );
+    }
     const auto validation = StorageValidator::validate( location.dataRoot, true );
     if ( !validation.valid ) {
         return errorResult(
@@ -45,14 +49,15 @@ StorageBootstrapResult installLocation( StorageLocation location, bool requireMa
     if ( writeManifest && !StorageValidator::writeManifest( context, &error ) ) {
         return errorResult( error );
     }
-    if ( !StorageContext::install( context.location(), &error ) ) {
+    if ( !StorageContext::install( context.location(), runtimePaths, &error ) ) {
         return errorResult( QStringLiteral( "failed to install storage context for %1: %2" )
                                 .arg( context.dataRoot(), error ) );
     }
     return { StorageBootstrapStatus::Ready, {} };
 }
 
-StorageBootstrapResult installResolvedLocator( const StorageResolution& resolution )
+StorageBootstrapResult installResolvedLocator( const StorageResolution& resolution,
+                                                const StorageRuntimePaths& runtimePaths )
 {
     if ( !resolution.error.isEmpty() ) {
         return errorResult( resolution.error );
@@ -61,7 +66,7 @@ StorageBootstrapResult installResolvedLocator( const StorageResolution& resoluti
         return errorResult(
             QStringLiteral( "storage locator did not contain an active location" ) );
     }
-    return installLocation( resolution.state->active, true, false );
+    return installLocation( resolution.state->active, runtimePaths, true, false );
 }
 
 StorageLocation legacySourceLocation( const LegacyStorage& legacy, const StorageLocatorStore& store,
@@ -73,14 +78,6 @@ StorageLocation legacySourceLocation( const LegacyStorage& legacy, const Storage
                  false };
     }
     return { StorageMode::UserDirectory, userSettingsDirectory, store.userLocatorPath(), false };
-}
-
-QString legacyUserSettingsDirectory()
-{
-    const QSettings legacySettings{ QSettings::IniFormat, QSettings::UserScope,
-                                    QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
-                                    QString::fromLatin1( zzlogg::brand::SettingsApplication ) };
-    return QFileInfo{ legacySettings.fileName() }.absolutePath();
 }
 
 StorageLocation legacyTargetLocation( const LegacyStorage& legacy, const StorageLocatorStore& store,
@@ -96,7 +93,8 @@ StorageLocation legacyTargetLocation( const LegacyStorage& legacy, const Storage
 }
 
 StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
-                                        StorageResolution resolution )
+                                        StorageResolution resolution,
+                                        const StorageRuntimePaths& runtimePaths )
 {
     for ( int recoveryAttempt = 0; recoveryAttempt < 3; ++recoveryAttempt ) {
         if ( !resolution.error.isEmpty() ) {
@@ -107,7 +105,7 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
                 QStringLiteral( "storage locator did not contain an active location" ) );
         }
         if ( !resolution.state->pending.has_value() ) {
-            return installResolvedLocator( resolution );
+            return installResolvedLocator( resolution, runtimePaths );
         }
 
         const StorageMigrationRequest request = *resolution.state->pending;
@@ -138,9 +136,13 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
 
 StorageBootstrapResult
 bootstrapStorage( const QString& applicationDirectory, const QString& appConfigDirectory,
-                  const QString& userDataDirectory, const QString& oldCrashDirectory,
-                  const QString& commandLineDataRoot, StorageSelectionProvider selectionProvider )
+                  const QString& userDataDirectory,
+                  const QString& legacyUserSettingsDirectory,
+                  const QString& oldCrashDirectory, const QString& commandLineDataRoot,
+                  StorageSelectionProvider selectionProvider )
 {
+    const StorageRuntimePaths runtimePaths{ applicationDirectory, appConfigDirectory,
+                                            userDataDirectory };
     const StorageLocatorStore store{ applicationDirectory, appConfigDirectory };
     StorageResolution resolution = store.resolve( commandLineDataRoot );
     if ( resolution.source == StorageResolutionSource::CommandLine ) {
@@ -156,25 +158,25 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         StorageLocation location = resolution.state->active;
         location.commandLineOverride = true;
         location.locatorPath.clear();
-        return installLocation( std::move( location ), false, true );
+        return installLocation( std::move( location ), runtimePaths, false, true );
     }
 
     if ( resolution.source == StorageResolutionSource::ProgramLocator
          || resolution.source == StorageResolutionSource::UserLocator ) {
-        return resolveExisting( store, std::move( resolution ) );
+        return resolveExisting( store, std::move( resolution ), runtimePaths );
     }
 
     if ( !selectionProvider ) {
         StorageLocation location{ StorageMode::UserDirectory, userDataDirectory, {}, false };
-        return installLocation( std::move( location ), false, true );
+        return installLocation( std::move( location ), runtimePaths, false, true );
     }
 
-    const QString userSettingsDirectory = legacyUserSettingsDirectory();
-    const auto legacy = LegacyStorageDetector::detect( applicationDirectory, userSettingsDirectory,
-                                                       oldCrashDirectory );
+    const auto legacy = LegacyStorageDetector::detect(
+        applicationDirectory, legacyUserSettingsDirectory, oldCrashDirectory );
     if ( legacy.has_value() ) {
         const StorageLocation source
-            = legacySourceLocation( *legacy, store, applicationDirectory, userSettingsDirectory );
+            = legacySourceLocation( *legacy, store, applicationDirectory,
+                                    legacyUserSettingsDirectory );
         StorageLocation target
             = legacyTargetLocation( *legacy, store, applicationDirectory, userDataDirectory );
         const auto validation = StorageValidator::validate( target.dataRoot, false );
@@ -197,7 +199,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
                 QStringLiteral( "failed to migrate legacy storage from %1 to %2: %3" )
                     .arg( source.dataRoot, target.dataRoot, migrated.error ) );
         }
-        return resolveExisting( store, store.resolve() );
+        return resolveExisting( store, store.resolve(), runtimePaths );
     }
 
     const std::optional<StorageLocation> selected
@@ -233,5 +235,5 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         }
         return errorResult( error );
     }
-    return resolveExisting( store, store.resolve() );
+    return resolveExisting( store, store.resolve(), runtimePaths );
 }

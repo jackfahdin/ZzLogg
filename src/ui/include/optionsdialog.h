@@ -47,6 +47,7 @@
 #include <QPushButton>
 
 #include "configuration.h"
+#include "optionsdialogstoragepaths.h"
 
 #include "ui_optionsdialog.h"
 
@@ -124,6 +125,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     QColor mainSearchColor_;
     QColor qfSearchColor_;
     StorageLocationPage* storageLocationPage_ = nullptr;
+    OptionsDialogStoragePaths storagePaths_;
 };
 
 #endif

@@ -9,7 +9,6 @@
 #include <QDir>
 #include <QFile>
 #include <QProcess>
-#include <QSettings>
 #include <QTemporaryDir>
 #include <QUuid>
 
@@ -19,7 +18,6 @@ struct Fixture {
     QString root;
     QString applicationDirectory;
     QString appConfigDirectory;
-    QString legacySettingsBase;
     QString legacyUserSettingsDirectory;
     QString userDataDirectory;
     QString oldCrashDirectory;
@@ -29,13 +27,8 @@ struct Fixture {
         : root( QDir::cleanPath( std::move( testRoot ) ) )
         , applicationDirectory( QDir{ root }.filePath( QStringLiteral( "app" ) ) )
         , appConfigDirectory( QDir{ root }.filePath( QStringLiteral( "settings" ) ) )
-        , legacySettingsBase( QDir{ root }.filePath( QStringLiteral( "legacy-settings-base" ) ) )
         , legacyUserSettingsDirectory(
-              QFileInfo{ QSettings{ QSettings::IniFormat, QSettings::UserScope,
-                                    QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
-                                    QString::fromLatin1( zzlogg::brand::SettingsApplication ) }
-                             .fileName() }
-                  .absolutePath() )
+              QDir{ root }.filePath( QStringLiteral( "legacy-user-settings" ) ) )
         , userDataDirectory( QDir{ root }.filePath( QStringLiteral( "user-data" ) ) )
         , oldCrashDirectory( QDir{ root }.filePath( QStringLiteral( "old-crashes" ) ) )
         , store( applicationDirectory, appConfigDirectory )
@@ -73,15 +66,12 @@ StorageBootstrapResult run( const Fixture& fixture, const QString& cli,
                             StorageSelectionProvider provider )
 {
     return bootstrapStorage( fixture.applicationDirectory, fixture.appConfigDirectory,
-                             fixture.userDataDirectory, fixture.oldCrashDirectory, cli,
-                             std::move( provider ) );
+                             fixture.userDataDirectory, fixture.legacyUserSettingsDirectory,
+                             fixture.oldCrashDirectory, cli, std::move( provider ) );
 }
 
 int runScenario( const QString& name, const QString& root )
 {
-    const QString legacySettingsBase
-        = QDir{ root }.filePath( QStringLiteral( "legacy-settings-base" ) );
-    QSettings::setPath( QSettings::IniFormat, QSettings::UserScope, legacySettingsBase );
     Fixture fixture{ root };
     int providerCalls = 0;
     const auto neverSelect
@@ -147,6 +137,10 @@ int runScenario( const QString& name, const QString& root )
                        && expect(
                            shouldSucceed || result.error.contains( fixture.userDataDirectory ),
                            QStringLiteral( "manifest error omitted root: %1" ).arg( result.error ) )
+                       && expect(
+                           shouldSucceed || !QFileInfo::exists( fixture.userDataDirectory ),
+                           QStringLiteral( "missing managed root was recreated: %1" )
+                               .arg( fixture.userDataDirectory ) )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
@@ -257,15 +251,7 @@ int runScenario( const QString& name, const QString& root )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
-    if ( name == QStringLiteral( "user-legacy-settings-path" ) ) {
-        const QString expectedLegacyDirectory
-            = QDir{ fixture.legacySettingsBase }.filePath( QStringLiteral( "ZzLogg" ) );
-        if ( QDir::cleanPath( fixture.legacyUserSettingsDirectory )
-             != QDir::cleanPath( expectedLegacyDirectory ) ) {
-            qCritical().noquote() << "unexpected QSettings legacy directory:"
-                                  << fixture.legacyUserSettingsDirectory;
-            return EXIT_FAILURE;
-        }
+    if ( name == QStringLiteral( "explicit-user-legacy-settings-path" ) ) {
         const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
             QStringLiteral( "ZzLogg.ini" ) );
         const QString legacySession = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
@@ -284,12 +270,12 @@ int runScenario( const QString& name, const QString& root )
         const auto resolution = fixture.store.resolve();
         return expect( result.status == StorageBootstrapStatus::Ready, result.error )
                        && expect( providerCalls == 0,
-                                  QStringLiteral( "QSettings user legacy invoked provider" ) )
+                                  QStringLiteral( "explicit user legacy invoked provider" ) )
                        && expect( StorageContext::current().dataRoot()
                                       == QDir::cleanPath( fixture.userDataDirectory ),
-                                  QStringLiteral( "QSettings user legacy target was wrong" ) )
+                                  QStringLiteral( "explicit user legacy target was wrong" ) )
                        && expect( copiedUserLegacy,
-                                  QStringLiteral( "QSettings user legacy was not copied" ) )
+                                  QStringLiteral( "explicit user legacy was not copied" ) )
                        && expect( QFileInfo::exists( legacyConfig ),
                                   QStringLiteral( "QSettings user legacy source was deleted" ) )
                        && expect( QFileInfo::exists( fixture.store.userLocatorPath() )
@@ -508,7 +494,7 @@ int main( int argc, char* argv[] )
         QStringLiteral( "cancelled" ),
         QStringLiteral( "empty-provider" ),
         QStringLiteral( "legacy-priority" ),
-        QStringLiteral( "user-legacy-settings-path" ),
+        QStringLiteral( "explicit-user-legacy-settings-path" ),
         QStringLiteral( "empty-provider-ignores-legacy" ),
         QStringLiteral( "provider-write-failure" ),
         QStringLiteral( "pending-recovery" ),

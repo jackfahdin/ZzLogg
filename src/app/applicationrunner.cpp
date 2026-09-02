@@ -43,6 +43,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QSettings>
 #include <QMenu>
 #include <QMessageBox>
 #include <QObject>
@@ -64,6 +65,7 @@
 
 #include "cli.h"
 #include "kloggapp.h"
+#include "applicationlanguage.h"
 #include "applicationsmokepaths.h"
 #include "storagebootstrap.h"
 #include "zzlogg_brand.h"
@@ -80,31 +82,6 @@ enum class Ui2SmokeStage {
     WaitForTheme,
 };
 
-struct Ui2SmokeRequest {
-    bool requested = false;
-    int deadlineMs = 0;
-    QString mode;
-    QString error;
-};
-
-Ui2SmokeRequest prepareUi2SmokeRequest( const KloggApplicationOptions& options )
-{
-    Ui2SmokeRequest request;
-    if ( !options.createUiRuntime ) {
-        return request;
-    }
-
-    request.deadlineMs = validatedApplicationSmokeDeadlineMs(
-        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MS" ) );
-    request.requested = request.deadlineMs > 0;
-    if ( !request.requested ) {
-        return request;
-    }
-
-    request.mode = qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MODE" );
-    return request;
-}
-
 void reportUi2SmokeSetupFailure( const QString& error )
 {
     const QByteArray diagnostic
@@ -113,12 +90,19 @@ void reportUi2SmokeSetupFailure( const QString& error )
     std::fflush( stderr );
 }
 
-void reportStorageBootstrapFailure( const QString& error )
+void reportStorageBootstrapFailure( const QString& error, bool showDialog )
 {
     const QByteArray diagnostic
         = QStringLiteral( "ZzLogg storage bootstrap failure: %1\n" ).arg( error ).toLocal8Bit();
     std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
     std::fflush( stderr );
+    if ( showDialog ) {
+        QMessageBox::critical(
+            nullptr, QApplication::applicationDisplayName(),
+            QApplication::translate( "ApplicationRunner",
+                                     "ZzLogg could not open its data directory:\n%1" )
+                .arg( error ) );
+    }
 }
 
 struct Ui2SmokeState {
@@ -440,6 +424,15 @@ void startUi2SmokeProbe( KloggApp& app, int deadlineMs, QString mode )
     state->timer->start();
 }
 
+void startUi2ManualIsolationDeadline( KloggApp& app, int deadlineMs )
+{
+    QTimer::singleShot( deadlineMs, &app, [ &app ] {
+        reportUi2SmokeSetupFailure(
+            QStringLiteral( "manual isolation deadline expired" ) );
+        app.exit( EXIT_FAILURE );
+    } );
+}
+
 void setApplicationAttributes( bool enableQtHdpi, int scaleFactorRounding )
 {
     // When QNetworkAccessManager is instantiated it regularly starts polling
@@ -502,11 +495,11 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         return app.exec();
     }
 
-    const Ui2SmokeRequest ui2Smoke = prepareUi2SmokeRequest( options );
-    if ( ui2Smoke.requested && !ui2Smoke.error.isEmpty() ) {
-        reportUi2SmokeSetupFailure( ui2Smoke.error );
-        return EXIT_FAILURE;
-    }
+    const auto startupPlan = planApplicationSmokeStartup(
+        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MS" ),
+        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MODE" ),
+        static_cast<bool>( options.createUiRuntime ) );
+    const ApplicationSmokeRequest& ui2Smoke = startupPlan.smokeRequest;
 
     QString iconError;
     if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
@@ -524,14 +517,33 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         ui2Smoke.requested,
         qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR" ),
         qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_USER_DATA_DIR" ), [] {
+            const QSettings legacySettings{
+                QSettings::IniFormat, QSettings::UserScope,
+                QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
+                QString::fromLatin1( zzlogg::brand::SettingsApplication )
+            };
             return ApplicationSmokeStoragePaths{
                 QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ),
-                QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ), {}, false };
+                QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ),
+                QFileInfo{ legacySettings.fileName() }.absolutePath(), {}, false };
         } );
+    const bool showStorageBootstrapFailureDialog
+        = shouldShowStorageBootstrapFailureDialog( ui2Smoke.requested, ui2Smoke.mode );
     const QString appConfigDirectory = smokeStoragePaths.appConfigDirectory;
     const QString userDataDirectory = smokeStoragePaths.userDataDirectory;
+    const QString legacyUserSettingsDirectory
+        = smokeStoragePaths.legacyUserSettingsDirectory;
+    const QString bootstrapLanguage = preBootstrapLanguage( QLocale::system() );
+    if ( MainWindow::installLanguage( bootstrapLanguage ) != 0 ) {
+        reportStorageBootstrapFailure(
+            QStringLiteral( "failed to install pre-bootstrap language: %1" )
+                .arg( bootstrapLanguage ),
+            showStorageBootstrapFailureDialog );
+        return EXIT_FAILURE;
+    }
     const auto storageResult = bootstrapStorage(
         applicationDirectory, appConfigDirectory, userDataDirectory,
+        legacyUserSettingsDirectory,
         QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,
         []( const StorageBootstrapPrompt& prompt ) -> std::optional<StorageLocation> {
             StorageBootstrapDialog dialog;
@@ -540,7 +552,8 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         } );
     if ( storageResult.status != StorageBootstrapStatus::Ready ) {
         if ( storageResult.status == StorageBootstrapStatus::Error ) {
-            reportStorageBootstrapFailure( storageResult.error );
+            reportStorageBootstrapFailure( storageResult.error,
+                                           showStorageBootstrapFailureDialog );
         }
         return storageResult.status == StorageBootstrapStatus::Cancelled ? EXIT_SUCCESS
                                                                          : EXIT_FAILURE;
@@ -554,17 +567,23 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         if ( !locatorStore.writeActive( currentLocation, &locatorError ) ) {
             reportStorageBootstrapFailure(
                 QStringLiteral( "failed to verify storage locator %1 for %2: %3" )
-                    .arg( currentLocation.locatorPath, currentLocation.dataRoot, locatorError ) );
+                    .arg( currentLocation.locatorPath, currentLocation.dataRoot, locatorError ),
+                showStorageBootstrapFailureDialog );
             return EXIT_FAILURE;
         }
     }
 
-    if ( ui2Smoke.requested ) {
+    if ( ui2Smoke.requested && !isManualIsolationSmokeMode( ui2Smoke.mode ) ) {
         auto& smokeConfiguration = Configuration::get();
         smokeConfiguration.setUiThemeMode( UiThemeMode::System );
         smokeConfiguration.save();
     }
-    MainWindow::installLanguage( config.language() );
+    if ( MainWindow::installLanguage( config.language() ) != 0 ) {
+        reportStorageBootstrapFailure(
+            QStringLiteral( "failed to install configured language: %1" ).arg( config.language() ),
+            showStorageBootstrapFailureDialog );
+        return EXIT_FAILURE;
+    }
 
     const auto logLevel
         = static_cast<logging::LogLevel>( std::max( parameters.log_level, config.loggingLevel() ) );
@@ -603,7 +622,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     std::unique_ptr<QObject> uiRuntime;
     QString runtimeError;
 
-    if ( options.createUiRuntime ) {
+    if ( startupPlan.createUiRuntime ) {
         uiRuntime = options.createUiRuntime( app, &runtimeError );
     }
     if ( !uiRuntime ) {
@@ -639,7 +658,12 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     app.startBackgroundTasks();
 
     if ( ui2Smoke.requested ) {
-        startUi2SmokeProbe( app, ui2Smoke.deadlineMs, ui2Smoke.mode );
+        if ( isManualIsolationSmokeMode( ui2Smoke.mode ) ) {
+            startUi2ManualIsolationDeadline( app, ui2Smoke.deadlineMs );
+        }
+        else {
+            startUi2SmokeProbe( app, ui2Smoke.deadlineMs, ui2Smoke.mode );
+        }
     }
 
     auto warning = options.startupWarning;

@@ -54,8 +54,8 @@ int main( int argc, char* argv[] )
     const auto storageResult = bootstrapStorage(
         QCoreApplication::applicationDirPath(),
         QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ), userDataDirectory,
-        QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,
-        {} );
+        {}, QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ),
+        parameters.data_dir, {} );
     if ( storageResult.status != StorageBootstrapStatus::Ready ) {
         if ( !storageResult.error.isEmpty() ) {
             std::cerr << storageResult.error.toStdString() << "\n";

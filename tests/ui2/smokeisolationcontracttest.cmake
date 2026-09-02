@@ -6,18 +6,19 @@ set(cmake_lists "${UI2_TEST_SOURCE_DIR}/CMakeLists.txt")
 file(READ "${cmake_lists}" cmake_contents)
 
 set(smoke_contracts
-  "application_smoke|applicationsmoke.cmake"
-  "storage_application_smoke|storageapplicationsmoke.cmake"
-  "session_restore_smoke|sessionrestoresmoke.cmake"
-  "smoke_setup_diagnostics|smokesetupdiagnosticstest.cmake"
-  "async_object_lifetime_smoke|asyncobjectlifetimesmoke.cmake"
-  "titlebar_lifetime_smoke|titlebarlifetimesmoke.cmake"
-  "windows_local_runtime_contract|localruntimecontracttest.cmake")
+  "application_smoke|applicationsmoke.cmake|1"
+  "storage_application_smoke|storageapplicationsmoke.cmake|5"
+  "session_restore_smoke|sessionrestoresmoke.cmake|2"
+  "smoke_setup_diagnostics|smokesetupdiagnosticstest.cmake|1"
+  "async_object_lifetime_smoke|asyncobjectlifetimesmoke.cmake|1"
+  "titlebar_lifetime_smoke|titlebarlifetimesmoke.cmake|1"
+  "windows_local_runtime_contract|localruntimecontracttest.cmake|1")
 
 foreach(smoke_contract IN LISTS smoke_contracts)
   string(REPLACE "|" ";" smoke_fields "${smoke_contract}")
   list(GET smoke_fields 0 test_name)
   list(GET smoke_fields 1 script_name)
+  list(GET smoke_fields 2 expected_helper_calls)
 
   string(FIND "${cmake_contents}" "NAME zzlogg_ui2.${test_name}" test_index)
   if(test_index EQUAL -1)
@@ -31,16 +32,18 @@ foreach(smoke_contract IN LISTS smoke_contracts)
 
   set(script_path "${UI2_TEST_SOURCE_DIR}/${script_name}")
   file(READ "${script_path}" script_contents)
-  foreach(required_assignment IN ITEMS
-      "ZZLOGG_UI2_SMOKE_MS="
-      "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR="
-      "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=")
-    string(FIND "${script_contents}" "${required_assignment}" assignment_index)
-    if(assignment_index EQUAL -1)
-      message(FATAL_ERROR
-        "${script_name} does not set ${required_assignment} for its GUI process")
-    endif()
-  endforeach()
+  string(FIND "${script_contents}" "execute_process(" raw_process_index)
+  if(NOT raw_process_index EQUAL -1)
+    message(FATAL_ERROR
+      "${script_name} launches a process outside zzlogg_run_isolated_smoke_process")
+  endif()
+  string(REGEX MATCHALL "zzlogg_run_isolated_smoke_process\\("
+    helper_calls "${script_contents}")
+  list(LENGTH helper_calls helper_call_count)
+  if(NOT helper_call_count EQUAL expected_helper_calls)
+    message(FATAL_ERROR
+      "${script_name} expected ${expected_helper_calls} isolated launches, found ${helper_call_count}")
+  endif()
 
   foreach(forbidden_host_access IN ITEMS
       "zzlogg_capture_host_storage_state"
@@ -56,6 +59,17 @@ foreach(smoke_contract IN LISTS smoke_contracts)
 endforeach()
 
 file(READ "${UI2_TEST_SOURCE_DIR}/smokeisolationcheck.cmake" helper_contents)
+foreach(required_helper_fragment IN ITEMS
+    "function(zzlogg_run_isolated_smoke_process)"
+    "ZZLOGG_UI2_SMOKE_MS=\${SMOKE_SMOKE_MS}"
+    "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=\${SMOKE_APP_CONFIG_DIR}"
+    "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=\${SMOKE_USER_DATA_DIR}")
+  string(FIND "${helper_contents}" "${required_helper_fragment}" helper_fragment_index)
+  if(helper_fragment_index EQUAL -1)
+    message(FATAL_ERROR
+      "smokeisolationcheck.cmake lost centralized injection: ${required_helper_fragment}")
+  endif()
+endforeach()
 foreach(forbidden_host_access IN ITEMS
     "zzlogg_capture_host_storage_state"
     "zzlogg_assert_host_storage_unchanged"
@@ -67,6 +81,24 @@ foreach(forbidden_host_access IN ITEMS
       "smokeisolationcheck.cmake still exposes real host access via ${forbidden_host_access}")
   endif()
 endforeach()
+
+foreach(helper_registration_fragment IN ITEMS
+    "NAME zzlogg_ui2.smoke_isolation_helper_contract"
+    "smokeisolationhelpercontracttest.cmake")
+  string(FIND "${cmake_contents}" "${helper_registration_fragment}"
+    helper_contract_index)
+  if(helper_contract_index EQUAL -1)
+    message(FATAL_ERROR
+      "Missing centralized helper regression coverage: ${helper_registration_fragment}")
+  endif()
+endforeach()
+file(READ "${UI2_TEST_SOURCE_DIR}/smokeisolationhelpercontracttest.cmake"
+  helper_contract_contents)
+string(FIND "${helper_contract_contents}" "smokeisolationmissingoverridefixture.cmake"
+  missing_override_fixture_index)
+if(missing_override_fixture_index EQUAL -1)
+  message(FATAL_ERROR "The helper contract lacks a missing-override negative fixture")
+endif()
 
 cmake_path(GET UI2_TEST_SOURCE_DIR PARENT_PATH tests_directory)
 cmake_path(GET tests_directory PARENT_PATH project_source_directory)

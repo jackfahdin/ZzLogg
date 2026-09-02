@@ -30,7 +30,8 @@ ZzLogg requires:
 
 - CMake 3.23 or later for direct command-line builds; the checked-in presets
   and workflows require CMake 3.25 or later;
-- a C++20 compiler (MSVC 2022 17.14+, GCC 13+, or Clang 16+);
+- a C++20 compiler: GCC 13.1 or newer, Clang 17 or newer, Apple Clang 15 or newer, or MSVC 19.38 or newer (Visual Studio 2022 17.8+); Apple builds
+  require a macOS deployment target 13.3 or newer;
 - Qt 6.8 or later, including Core, Core5Compat, Gui, Widgets, Svg, Concurrent,
   Network, Xml, LinguistTools, and the matching private development files;
 - the pinned ZzPureTools submodule and the other vendored dependencies in this

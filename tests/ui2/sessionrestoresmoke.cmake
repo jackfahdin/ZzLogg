@@ -24,21 +24,23 @@ set(config_env
   "LOCALAPPDATA=${TEST_CONFIG_DIR}/Local"
   "XDG_CONFIG_HOME=${TEST_CONFIG_DIR}/xdg/config"
   "XDG_DATA_HOME=${TEST_CONFIG_DIR}/xdg/data"
-  "XDG_CACHE_HOME=${TEST_CONFIG_DIR}/xdg/cache"
-  "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${TEST_CONFIG_DIR}/smoke/app-config"
-  "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${TEST_CONFIG_DIR}/smoke/user-data")
+  "XDG_CACHE_HOME=${TEST_CONFIG_DIR}/xdg/cache")
 if(NOT WIN32)
   list(APPEND config_env "QT_QPA_PLATFORM=offscreen")
 endif()
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${config_env}
-          ZZLOGG_UI2_SMOKE_MODE=seed-session ZZLOGG_UI2_SMOKE_MS=3000
-          "${smoke_app}" --multi --new-session --data-dir "${data_root}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "session seed smoke"
+  TEST_ROOT "${TEST_CONFIG_DIR}"
+  APP_CONFIG_DIR "${TEST_CONFIG_DIR}/smoke/app-config"
+  USER_DATA_DIR "${TEST_CONFIG_DIR}/smoke/user-data"
+  SMOKE_MS 3000
   RESULT_VARIABLE seed_result
   OUTPUT_VARIABLE seed_stdout
   ERROR_VARIABLE seed_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=seed-session"
+  COMMAND "${smoke_app}" --multi --new-session --data-dir "${data_root}")
 zzlogg_assert_output_isolated(
   "session seed smoke" "${TEST_CONFIG_DIR}" "${seed_stdout}" "${seed_stderr}")
 zzlogg_assert_no_locator_or_probe(
@@ -54,14 +56,18 @@ foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
   endif()
 endforeach()
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${config_env}
-          ZZLOGG_UI2_SMOKE_MODE=verify-restored ZZLOGG_UI2_SMOKE_MS=3000
-          "${smoke_app}" --multi --load-session --data-dir "${data_root}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "session restore smoke"
+  TEST_ROOT "${TEST_CONFIG_DIR}"
+  APP_CONFIG_DIR "${TEST_CONFIG_DIR}/smoke/app-config"
+  USER_DATA_DIR "${TEST_CONFIG_DIR}/smoke/user-data"
+  SMOKE_MS 3000
   RESULT_VARIABLE restore_result
   OUTPUT_VARIABLE restore_stdout
   ERROR_VARIABLE restore_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=verify-restored"
+  COMMAND "${smoke_app}" --multi --load-session --data-dir "${data_root}")
 zzlogg_assert_output_isolated(
   "session restore smoke" "${TEST_CONFIG_DIR}" "${restore_stdout}" "${restore_stderr}")
 zzlogg_assert_no_locator_or_probe(

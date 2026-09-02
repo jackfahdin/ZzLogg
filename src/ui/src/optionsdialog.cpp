@@ -66,13 +66,6 @@ static constexpr int PollIntervalMax = 3600000;
 
 namespace {
 
-QString applicationPath( const char* testProperty, const QString& productionPath )
-{
-    const QString testPath = qApp->property( testProperty ).toString();
-    return QDir::cleanPath(
-        QDir::fromNativeSeparators( testPath.isEmpty() ? productionPath : testPath ) );
-}
-
 bool samePath( const QString& left, const QString& right )
 {
 #ifdef Q_OS_WIN
@@ -114,11 +107,21 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     storageLocationPage_ = new StorageLocationPage{ tabWidget };
     tabWidget->addTab( storageLocationPage_, tr( "Storage" ) );
     const auto& storage = StorageContext::current();
-    storageLocationPage_->setApplicationDirectory( applicationPath(
-        "zzlogg.test.applicationDirectory", QCoreApplication::applicationDirPath() ) );
-    storageLocationPage_->setUserDataDirectory( applicationPath(
-        "zzlogg.test.userDataDirectory",
-        QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ) ) );
+    const StorageRuntimePaths& installedPaths = storage.runtimePaths();
+    storagePaths_ = resolveOptionsDialogStoragePaths(
+        { installedPaths.applicationDirectory, installedPaths.appConfigDirectory,
+          installedPaths.userDataDirectory },
+        { qApp->property( "zzlogg.test.applicationDirectory" ).toString(),
+          qApp->property( "zzlogg.test.appConfigDirectory" ).toString(),
+          qApp->property( "zzlogg.test.userDataDirectory" ).toString() },
+        [] {
+            return OptionsDialogStoragePaths{
+                QCoreApplication::applicationDirPath(),
+                QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ),
+                QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ) };
+        } );
+    storageLocationPage_->setApplicationDirectory( storagePaths_.applicationDirectory );
+    storageLocationPage_->setUserDataDirectory( storagePaths_.userDataDirectory );
     storageLocationPage_->setLocation( storage.location() );
     storageLocationPage_->setCommandLineManaged( storage.location().commandLineOverride );
 
@@ -705,12 +708,8 @@ bool OptionsDialog::scheduleStorageMigration()
         return false;
     }
 
-    const QString applicationDirectory = applicationPath(
-        "zzlogg.test.applicationDirectory", QCoreApplication::applicationDirPath() );
-    const QString appConfigDirectory = applicationPath(
-        "zzlogg.test.appConfigDirectory",
-        QStandardPaths::writableLocation( QStandardPaths::AppConfigLocation ) );
-    const StorageLocatorStore locatorStore{ applicationDirectory, appConfigDirectory };
+    const StorageLocatorStore locatorStore{ storagePaths_.applicationDirectory,
+                                            storagePaths_.appConfigDirectory };
     StorageLocation target = storageLocationPage_->location();
     target.locatorPath = target.mode == StorageMode::ProgramDirectory
                              ? locatorStore.programLocatorPath()

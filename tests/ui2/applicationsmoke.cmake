@@ -27,21 +27,24 @@ set(config_env
   "LOCALAPPDATA=${TEST_CONFIG_DIR}/Local"
   "XDG_CONFIG_HOME=${TEST_CONFIG_DIR}/xdg/config"
   "XDG_DATA_HOME=${TEST_CONFIG_DIR}/xdg/data"
-  "XDG_CACHE_HOME=${TEST_CONFIG_DIR}/xdg/cache"
-  "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${TEST_CONFIG_DIR}/smoke/app-config"
-  "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${TEST_CONFIG_DIR}/smoke/user-data")
+  "XDG_CACHE_HOME=${TEST_CONFIG_DIR}/xdg/cache")
 if(NOT WIN32)
   list(APPEND config_env "QT_QPA_PLATFORM=offscreen")
 endif()
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${config_env} ZZLOGG_UI2_SMOKE_MS=1800
-          "${smoke_app}" --multi --new-session --data-dir "${data_root}"
-          "${FIRST_LOG}" "${SECOND_LOG}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "application smoke"
+  TEST_ROOT "${TEST_CONFIG_DIR}"
+  APP_CONFIG_DIR "${TEST_CONFIG_DIR}/smoke/app-config"
+  USER_DATA_DIR "${TEST_CONFIG_DIR}/smoke/user-data"
+  SMOKE_MS 1800
   RESULT_VARIABLE smoke_result
   OUTPUT_VARIABLE smoke_stdout
   ERROR_VARIABLE smoke_stderr
-  TIMEOUT 30)
+  TIMEOUT 30
+  ENVIRONMENT ${config_env}
+  COMMAND "${smoke_app}" --multi --new-session --data-dir "${data_root}"
+          "${FIRST_LOG}" "${SECOND_LOG}")
 zzlogg_assert_output_isolated(
   "application smoke" "${TEST_CONFIG_DIR}" "${smoke_stdout}" "${smoke_stderr}")
 zzlogg_assert_no_locator_or_probe("${TEST_RUNTIME_DIR}" "${TEST_CONFIG_DIR}" "${data_root}")

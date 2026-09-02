@@ -64,6 +64,44 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
+find_package(Qt6 REQUIRED COMPONENTS LinguistTools)
+set(ZZLOGG_TRANSLATION_TEST_TS_FILES
+  "${PROJECT_SOURCE_DIR}/src/app/i18n/en.ts"
+  "${PROJECT_SOURCE_DIR}/src/app/i18n/zh_CN.ts"
+  "${PROJECT_SOURCE_DIR}/src/app/i18n/zh_TW.ts")
+qt6_add_translation(ZZLOGG_TRANSLATION_TEST_QM_FILES
+  ${ZZLOGG_TRANSLATION_TEST_TS_FILES})
+set(Qt_LCONVERT_EXECUTABLE Qt6::lconvert)
+include(TranslationUtils)
+add_app_translations_resource(ZZLOGG_TRANSLATION_TEST_APP_RES
+  ${ZZLOGG_TRANSLATION_TEST_QM_FILES})
+add_qt_translations_resource(ZZLOGG_TRANSLATION_TEST_QT_RES zh_CN zh_TW)
+add_executable(zzlogg_application_translation_test
+  applicationtranslationtest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/applicationlanguage.cpp"
+  ${ZZLOGG_TRANSLATION_TEST_APP_RES}
+  ${ZZLOGG_TRANSLATION_TEST_QT_RES})
+target_link_libraries(zzlogg_application_translation_test PRIVATE
+  klogg_ui Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_application_translation_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app")
+set_target_properties(zzlogg_application_translation_test PROPERTIES
+  AUTOMOC ON AUTORCC ON)
+add_test(NAME zzlogg_ui2.application_translation
+  COMMAND zzlogg_application_translation_test -platform offscreen)
+add_test(NAME zzlogg_ui2.application_translation_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationtranslationcontracttest.cmake")
+if(WIN32)
+  set_property(TEST zzlogg_ui2.application_translation PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.application_translation APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_executable(zzlogg_storage_consumers_test storageconsumerstest.cpp)
 target_link_libraries(zzlogg_storage_consumers_test PRIVATE
   klogg_logging klogg_crash_handler klogg_storage Qt6::Test Qt6::Core)
@@ -111,6 +149,11 @@ add_test(NAME zzlogg_ui2.ci_compiler_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cicompilercontracttest.cmake")
+
+add_test(NAME zzlogg_ui2.build_documentation_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/builddocumentationcontracttest.cmake")
 
 add_test(NAME zzlogg_ui2.linux_packaging_contract
   COMMAND "${CMAKE_COMMAND}"
@@ -284,7 +327,15 @@ target_include_directories(zzlogg_storage_settings_test PRIVATE
   "${CMAKE_BINARY_DIR}/src/ui/klogg_ui_autogen/include_$<CONFIG>")
 set_target_properties(zzlogg_storage_settings_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.storage_settings
-         COMMAND zzlogg_storage_settings_test -platform offscreen)
+  COMMAND zzlogg_storage_settings_test -platform offscreen)
+
+add_executable(zzlogg_options_dialog_storage_paths_test
+  optionsdialogstoragepathstest.cpp)
+target_link_libraries(zzlogg_options_dialog_storage_paths_test PRIVATE
+  klogg_ui Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_options_dialog_storage_paths_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.options_dialog_storage_paths
+  COMMAND zzlogg_options_dialog_storage_paths_test)
 if(WIN32)
   set_property(TEST zzlogg_ui2.storage_settings PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
@@ -292,6 +343,9 @@ if(WIN32)
     ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+  set_property(TEST zzlogg_ui2.options_dialog_storage_paths APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
 add_executable(zzlogg_application_restart_path_test applicationrestartpathtest.cpp
@@ -411,6 +465,21 @@ add_test(NAME zzlogg_ui2.smoke_isolation_contract
   COMMAND "${CMAKE_COMMAND}"
           "-DUI2_TEST_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
           -P "${CMAKE_CURRENT_SOURCE_DIR}/smokeisolationcontracttest.cmake")
+add_test(NAME zzlogg_ui2.smoke_isolation_helper_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/smoke-isolation-helper-contract"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/smokeisolationhelpercontracttest.cmake")
+add_test(NAME zzlogg_ui2.storage_path_isolation_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/storagepathisolationcontracttest.cmake")
+if(WIN32)
+  add_test(NAME zzlogg_ui2.manual_storage_acceptance_contract
+    COMMAND "${ZZLOGG_POWERSHELL_EXECUTABLE}"
+      -NoProfile -ExecutionPolicy Bypass
+      -File "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptancecontracttest.ps1"
+      -Launcher "${CMAKE_CURRENT_SOURCE_DIR}/manualstorageacceptance.ps1")
+endif()
 
 add_test(NAME zzlogg_ui2.storage_application_smoke
   COMMAND "${CMAKE_COMMAND}"

@@ -25,23 +25,24 @@ set(config_env
   "LOCALAPPDATA=${TEST_ROOT}/config/Local"
   "XDG_CONFIG_HOME=${TEST_ROOT}/config/xdg/config"
   "XDG_DATA_HOME=${TEST_ROOT}/config/xdg/data"
-  "XDG_CACHE_HOME=${TEST_ROOT}/config/xdg/cache"
-  "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${TEST_ROOT}/config/smoke/app-config"
-  "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${TEST_ROOT}/config/smoke/user-data")
+  "XDG_CACHE_HOME=${TEST_ROOT}/config/xdg/cache")
 if(NOT WIN32)
   list(APPEND config_env "QT_QPA_PLATFORM=offscreen")
 endif()
 
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E env ${config_env}
-          ZZLOGG_UI2_SMOKE_MODE=close-second-window-during-search
-          ZZLOGG_UI2_SMOKE_MS=1800
-          "${smoke_app}" --multi --new-session --data-dir "${data_root}"
-          "${FIRST_LOG}" "${SECOND_LOG}"
+zzlogg_run_isolated_smoke_process(
+  LABEL "titlebar lifetime smoke"
+  TEST_ROOT "${TEST_ROOT}"
+  APP_CONFIG_DIR "${TEST_ROOT}/config/smoke/app-config"
+  USER_DATA_DIR "${TEST_ROOT}/config/smoke/user-data"
+  SMOKE_MS 1800
   RESULT_VARIABLE lifetime_result
   OUTPUT_VARIABLE lifetime_stdout
   ERROR_VARIABLE lifetime_stderr
-  TIMEOUT 15)
+  TIMEOUT 15
+  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=close-second-window-during-search"
+  COMMAND "${smoke_app}" --multi --new-session --data-dir "${data_root}"
+          "${FIRST_LOG}" "${SECOND_LOG}")
 zzlogg_assert_output_isolated(
   "titlebar lifetime smoke" "${TEST_ROOT}" "${lifetime_stdout}" "${lifetime_stderr}")
 zzlogg_assert_no_locator_or_probe(

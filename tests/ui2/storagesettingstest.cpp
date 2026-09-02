@@ -63,6 +63,8 @@ int runChildScenario( const QString& scenario, const QString& root )
     const StorageLocatorStore store{ appDirectory, appConfigDirectory };
     const bool commandLine = scenario == QStringLiteral( "command-line" );
     const bool sameRootMode = scenario == QStringLiteral( "same-root-mode" );
+    const bool installedRuntimePaths
+        = scenario == QStringLiteral( "installed-runtime-paths" );
     const QString sourceRoot
         = sameRootMode ? QDir{ appDirectory }.filePath( QStringLiteral( "data" ) )
                        : QDir{ root }.filePath( QStringLiteral( "source" ) );
@@ -75,7 +77,13 @@ int runChildScenario( const QString& scenario, const QString& root )
     if ( !commandLine && !store.writeActive( source, &error ) ) {
         return fail( QStringLiteral( "failed to create isolated active locator: %1" ).arg( error ) );
     }
-    if ( !StorageContext::install( source, &error ) ) {
+    const bool installed = installedRuntimePaths
+                               ? StorageContext::install(
+                                   source,
+                                   { appDirectory, appConfigDirectory, userDataDirectory },
+                                   &error )
+                               : StorageContext::install( source, &error );
+    if ( !installed ) {
         return fail( QStringLiteral( "failed to install isolated context: %1" ).arg( error ) );
     }
     if ( !StorageContext::current().ensureDirectories( &error ) ) {
@@ -85,9 +93,11 @@ int runChildScenario( const QString& scenario, const QString& root )
         return fail( QStringLiteral( "failed to mark isolated storage managed: %1" ).arg( error ) );
     }
 
-    qApp->setProperty( "zzlogg.test.applicationDirectory", appDirectory );
-    qApp->setProperty( "zzlogg.test.appConfigDirectory", appConfigDirectory );
-    qApp->setProperty( "zzlogg.test.userDataDirectory", userDataDirectory );
+    if ( !installedRuntimePaths ) {
+        qApp->setProperty( "zzlogg.test.applicationDirectory", appDirectory );
+        qApp->setProperty( "zzlogg.test.appConfigDirectory", appConfigDirectory );
+        qApp->setProperty( "zzlogg.test.userDataDirectory", userDataDirectory );
+    }
     qApp->setProperty( "zzlogg.test.restartAnswer",
                        scenario == QStringLiteral( "later" ) ? QStringLiteral( "later" )
                                                                : QStringLiteral( "now" ) );
@@ -234,6 +244,7 @@ private Q_SLOTS:
     void schedulesOnlySafeIsolatedChanges()
     {
         const QStringList scenarios{ QStringLiteral( "normal" ),
+                                     QStringLiteral( "installed-runtime-paths" ),
                                      QStringLiteral( "later" ),
                                      QStringLiteral( "command-line" ),
                                      QStringLiteral( "equivalent" ),

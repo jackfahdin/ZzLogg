@@ -21,6 +21,69 @@ function(zzlogg_assert_path_in_test_root label test_root candidate)
   endif()
 endfunction()
 
+function(zzlogg_run_isolated_smoke_process)
+  set(one_value_arguments
+    LABEL TEST_ROOT APP_CONFIG_DIR USER_DATA_DIR SMOKE_MS
+    RESULT_VARIABLE OUTPUT_VARIABLE ERROR_VARIABLE TIMEOUT)
+  set(multi_value_arguments ENVIRONMENT COMMAND)
+  cmake_parse_arguments(SMOKE "" "${one_value_arguments}"
+    "${multi_value_arguments}" ${ARGN})
+
+  foreach(required_argument IN ITEMS
+      LABEL TEST_ROOT APP_CONFIG_DIR USER_DATA_DIR SMOKE_MS
+      RESULT_VARIABLE OUTPUT_VARIABLE ERROR_VARIABLE TIMEOUT)
+    if(NOT DEFINED SMOKE_${required_argument}
+       OR "${SMOKE_${required_argument}}" STREQUAL "")
+      message(FATAL_ERROR
+        "zzlogg_run_isolated_smoke_process: ${required_argument} is required")
+    endif()
+  endforeach()
+  if(NOT SMOKE_COMMAND)
+    message(FATAL_ERROR
+      "zzlogg_run_isolated_smoke_process: COMMAND is required")
+  endif()
+  if(NOT "${SMOKE_SMOKE_MS}" MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR
+      "zzlogg_run_isolated_smoke_process: SMOKE_MS must be a positive integer")
+  endif()
+
+  zzlogg_require_safe_test_root("${SMOKE_TEST_ROOT}")
+  zzlogg_assert_path_in_test_root(
+    "${SMOKE_LABEL} app-config override"
+    "${SMOKE_TEST_ROOT}" "${SMOKE_APP_CONFIG_DIR}")
+  zzlogg_assert_path_in_test_root(
+    "${SMOKE_LABEL} user-data override"
+    "${SMOKE_TEST_ROOT}" "${SMOKE_USER_DATA_DIR}")
+  if(SMOKE_APP_CONFIG_DIR STREQUAL SMOKE_USER_DATA_DIR)
+    message(FATAL_ERROR
+      "${SMOKE_LABEL}: app-config and user-data overrides must be independent")
+  endif()
+
+  foreach(environment_entry IN LISTS SMOKE_ENVIRONMENT)
+    if(environment_entry MATCHES
+       "^ZZLOGG_UI2_SMOKE_(MS|APP_CONFIG_DIR|USER_DATA_DIR)=")
+      message(FATAL_ERROR
+        "${SMOKE_LABEL}: reserved smoke isolation variable supplied by caller: ${environment_entry}")
+    endif()
+  endforeach()
+
+  file(MAKE_DIRECTORY "${SMOKE_APP_CONFIG_DIR}" "${SMOKE_USER_DATA_DIR}")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E env ${SMOKE_ENVIRONMENT}
+      "ZZLOGG_UI2_SMOKE_MS=${SMOKE_SMOKE_MS}"
+      "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${SMOKE_APP_CONFIG_DIR}"
+      "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${SMOKE_USER_DATA_DIR}"
+      ${SMOKE_COMMAND}
+    RESULT_VARIABLE process_result
+    OUTPUT_VARIABLE process_stdout
+    ERROR_VARIABLE process_stderr
+    TIMEOUT "${SMOKE_TIMEOUT}")
+
+  set(${SMOKE_RESULT_VARIABLE} "${process_result}" PARENT_SCOPE)
+  set(${SMOKE_OUTPUT_VARIABLE} "${process_stdout}" PARENT_SCOPE)
+  set(${SMOKE_ERROR_VARIABLE} "${process_stderr}" PARENT_SCOPE)
+endfunction()
+
 function(zzlogg_assert_output_isolated label test_root stdout stderr)
   string(CONCAT combined_output "${stdout}" "\n" "${stderr}")
   file(TO_CMAKE_PATH "${combined_output}" normalized_output)
