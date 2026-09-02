@@ -397,9 +397,6 @@ class CrawlerWidget : public QSplitter,
 
     std::map<QString, QShortcut*> shortcuts_;
 
-    // Default palette to be remembered
-    QPalette searchInfoLineDefaultPalette_;
-
     // Reference to the QuickFind Pattern (not owned)
 
     QWidget* qfSavedFocus_ = nullptr;

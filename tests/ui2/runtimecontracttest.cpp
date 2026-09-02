@@ -11,6 +11,7 @@
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
 #include "zzlogguiruntime.h"
+#include <QComboBox>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -21,6 +22,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolButton>
 #include <QUrl>
 #include <QtTest>
 #include <ZzFluentUI/ZzFluentStyle.h>
@@ -210,8 +212,56 @@ private Q_SLOTS:
         QCOMPARE( lightGaugeWindowStop, crawler->palette().color( QPalette::Window ) );
         QVERIFY( searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
                  != nullptr );
-        searchInfoLine->hideGauge();
-        searchInfoLine->hide();
+
+        QVERIFY( QMetaObject::invokeMethod( crawler, "stopSearch", Qt::DirectConnection ) );
+        QVERIFY( searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
+                 == nullptr );
+        Q_EMIT first->uiThemeChanged( UiThemeMode::Dark );
+        QTRY_COMPARE_WITH_TIMEOUT( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark,
+                                   5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( crawler->palette().color( QPalette::Window ).lightness() < 100,
+                                  5000 );
+        QTRY_VERIFY_WITH_TIMEOUT(
+            searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
+                == nullptr,
+            5000 );
+        QCOMPARE( searchInfoLine->palette().color( QPalette::Window ),
+                  crawler->palette().color( QPalette::Window ) );
+
+        Q_EMIT first->uiThemeChanged( UiThemeMode::Light );
+        QTRY_COMPARE_WITH_TIMEOUT( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Light,
+                                   5000 );
+        QTRY_VERIFY_WITH_TIMEOUT( crawler->palette().color( QPalette::Window ).lightness() > 200,
+                                  5000 );
+        searchInfoLine->displayGauge( 37 );
+        auto* const searchEdit
+            = crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
+        QVERIFY( searchEdit );
+        QToolButton* regexpButton = nullptr;
+        for ( auto* const button : crawler->findChildren<QToolButton*>() ) {
+            if ( button->toolTip() == QStringLiteral( "Use regex" ) ) {
+                regexpButton = button;
+                break;
+            }
+        }
+        QVERIFY( regexpButton );
+        regexpButton->setChecked( true );
+        searchEdit->setEditText( QStringLiteral( "[" ) );
+        QVERIFY( QMetaObject::invokeMethod( crawler, "startNewSearch", Qt::DirectConnection ) );
+        QTRY_VERIFY_WITH_TIMEOUT(
+            searchInfoLine->text().startsWith( QStringLiteral( "Error in expression" ) ), 5000 );
+        QVERIFY( searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
+                 == nullptr );
+        const QColor errorWindowColor = searchInfoLine->palette().color( QPalette::Window );
+
+        Q_EMIT first->uiThemeChanged( UiThemeMode::Dark );
+        QTRY_COMPARE_WITH_TIMEOUT( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark,
+                                   5000 );
+        QTRY_VERIFY_WITH_TIMEOUT(
+            searchInfoLine->palette().brush( searchInfoLine->backgroundRole() ).gradient()
+                == nullptr,
+            5000 );
+        QCOMPARE( searchInfoLine->palette().color( QPalette::Window ), errorWindowColor );
         logView->followSet( false );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::HighContrast );
         QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::System );

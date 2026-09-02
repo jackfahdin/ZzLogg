@@ -247,9 +247,8 @@ void CrawlerWidget::changeEvent( QEvent* event )
 
     if ( event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
          || event->type() == QEvent::ApplicationPaletteChange ) {
-        searchInfoLineDefaultPalette_ = palette();
         if ( searchInfoLine_ != nullptr ) {
-            searchInfoLine_->refreshGaugePalette( searchInfoLineDefaultPalette_ );
+            searchInfoLine_->refreshGaugePalette( palette() );
         }
     }
 
@@ -494,7 +493,6 @@ void CrawlerWidget::updateFilteredView( LinesCount nbMatches, int progress,
     if ( progress == 100 ) {
         // Searching done
         printSearchInfoMessage( nbMatches );
-        searchInfoLine_->hideGauge();
         // De-activate the stop button
         stopButton_->setEnabled( false );
         stopButton_->hide();
@@ -1047,7 +1045,6 @@ void CrawlerWidget::setup()
     auto searchInfoLineSizePolicy = searchInfoLine_->sizePolicy();
     searchInfoLineSizePolicy.setRetainSizeWhenHidden( false );
     searchInfoLine_->setSizePolicy( searchInfoLineSizePolicy );
-    searchInfoLineDefaultPalette_ = this->palette();
     searchInfoLine_->setContentsMargins( 2, 2, 2, 2 );
 
     matchCaseButton_ = new QToolButton();
@@ -1617,6 +1614,8 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             logFilteredData_->runSearch( regexpPattern, searchStartLine_, searchEndLine_ );
             // Accept auto-refresh of the search
             searchState_.startSearch();
+            searchInfoLine_->hideGauge();
+            searchInfoLine_->setPalette( QPalette{} );
             searchInfoLine_->hide();
             logMainView_->setSearchPattern( regexpPattern );
             filteredView_->setSearchPattern( regexpPattern );
@@ -1637,6 +1636,7 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             // }
             errorMessage += ": ";
             errorMessage += errorString;
+            searchInfoLine_->hideGauge();
             searchInfoLine_->setPalette( ErrorPalette );
             searchInfoLine_->setText( errorMessage );
             searchInfoLine_->show();
@@ -1688,7 +1688,8 @@ void CrawlerWidget::printSearchInfoMessage( LinesCount nbMatches )
         break;
     }
 
-    searchInfoLine_->setPalette( searchInfoLineDefaultPalette_ );
+    searchInfoLine_->hideGauge();
+    searchInfoLine_->setPalette( QPalette{} );
     searchInfoLine_->setText( text );
     searchInfoLine_->setVisible( !text.isEmpty() );
 }
