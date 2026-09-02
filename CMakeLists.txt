@@ -284,6 +284,19 @@ if(KLOGG_BUILD_UI_TESTS)
   add_subdirectory(tests/ui2)
 endif()
 
+if(ZZ_BUNDLE_GNU_RUNTIME)
+  install(FILES "${ZZLOGG_GNU_LIBSTDCXX_PATH}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RENAME libstdc++.so.6)
+  install(FILES "${ZZLOGG_GNU_LIBGCC_PATH}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RENAME libgcc_s.so.1)
+  install(FILES
+    "${ZZLOGG_GNU_RUNTIME_LICENSE_DIR}/COPYING3"
+    "${ZZLOGG_GNU_RUNTIME_LICENSE_DIR}/COPYING.RUNTIME"
+    DESTINATION "share/ZzPureToolsFrame/licenses/gcc-runtime")
+endif()
+
 # Installation and packaging
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 set(CPACK_SOURCE_IGNORE_FILES "build_root;.git")
@@ -318,6 +331,12 @@ if(UNIX)
 
   else()
     set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/ZzLogg")
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/cmake/StageLinuxPackageIntegration.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/StageLinuxPackageIntegration.cmake"
+      @ONLY)
+    set(CPACK_INSTALL_SCRIPTS
+      "${CMAKE_CURRENT_BINARY_DIR}/StageLinuxPackageIntegration.cmake")
     zzlogg_install_legacy_linux_icons("${CMAKE_CURRENT_SOURCE_DIR}")
 
     install(
@@ -340,7 +359,7 @@ if(UNIX)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Anton Filimonov <${CPACK_PACKAGE_CONTACT}>")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS NO)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libc6, libstdc++6, libgcc-s1, libgl1, libfontconfig1, libfreetype6, libglib2.0-0, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0")
+        "libc6, libgl1, libfontconfig1, libfreetype6, libglib2.0-0, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0")
 
     #RPM
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")

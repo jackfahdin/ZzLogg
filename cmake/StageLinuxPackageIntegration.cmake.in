@@ -1,0 +1,39 @@
+if(NOT DEFINED CMAKE_INSTALL_PREFIX
+   OR CMAKE_INSTALL_PREFIX STREQUAL ""
+   OR CMAKE_INSTALL_PREFIX STREQUAL "/")
+  message(FATAL_ERROR "Refusing to stage Linux integration without a package root")
+endif()
+
+set(package_root "${CMAKE_INSTALL_PREFIX}")
+set(source_root "@PROJECT_SOURCE_DIR@")
+
+file(MAKE_DIRECTORY "${package_root}/usr/bin")
+file(WRITE "${package_root}/usr/bin/ZzLogg"
+  "#!/bin/sh\nexec /opt/ZzLogg/bin/ZzLogg \"\$@\"\n")
+file(CHMOD "${package_root}/usr/bin/ZzLogg"
+  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+              GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+file(MAKE_DIRECTORY "${package_root}/usr/share/applications")
+configure_file(
+  "${source_root}/packaging/linux/ZzLogg.desktop"
+  "${package_root}/usr/share/applications/ZzLogg.desktop"
+  COPYONLY)
+
+foreach(icon_size IN ITEMS 16 32 48 64 128 256 512)
+  set(icon_dir
+    "${package_root}/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps")
+  file(MAKE_DIRECTORY "${icon_dir}")
+  configure_file(
+    "${source_root}/src/app/images/hicolor/${icon_size}x${icon_size}/ZzLogg.png"
+    "${icon_dir}/ZzLogg.png"
+    COPYONLY)
+endforeach()
+
+set(scalable_dir
+  "${package_root}/usr/share/icons/hicolor/scalable/apps")
+file(MAKE_DIRECTORY "${scalable_dir}")
+configure_file(
+  "${source_root}/src/app/images/hicolor/scalable/ZzLogg.svg"
+  "${scalable_dir}/ZzLogg.svg"
+  COPYONLY)

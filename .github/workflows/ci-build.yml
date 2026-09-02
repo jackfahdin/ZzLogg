@@ -47,6 +47,7 @@ jobs:
       QT_VERSION: 6.8.3
       CC: gcc-13
       CXX: g++-13
+      ZZ_GNU_RUNTIME_LICENSE_DIR: ${{ github.workspace }}/build-linux/gcc-runtime-licenses
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/klogg-version
@@ -77,16 +78,29 @@ jobs:
           cmake -P tests/ui2/cmakeversioncontracttest.cmake
           cmake "-DCOMPILER_VERSION=$(gcc-13 -dumpfullversion)" \
             -P tests/ui2/compilerversioncontracttest.cmake
+      - name: Verify GNU runtime license provenance
+        run: |
+          mkdir -p "$ZZ_GNU_RUNTIME_LICENSE_DIR"
+          curl -fsSL \
+            https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-13.3.0/COPYING3 \
+            -o "$ZZ_GNU_RUNTIME_LICENSE_DIR/COPYING3"
+          curl -fsSL \
+            https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-13.3.0/COPYING.RUNTIME \
+            -o "$ZZ_GNU_RUNTIME_LICENSE_DIR/COPYING.RUNTIME"
+          echo "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903  $ZZ_GNU_RUNTIME_LICENSE_DIR/COPYING3" | sha256sum --check
+          echo "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74  $ZZ_GNU_RUNTIME_LICENSE_DIR/COPYING.RUNTIME" | sha256sum --check
       - name: Configure
         run: >-
           cmake -S . -B build-linux -G Ninja
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_BUILD_TYPE=Release
           -DKLOGG_BUILD_UI_TESTS=ON
           -DKLOGG_USE_SENTRY=OFF
           -DKLOGG_USE_VECTORSCAN=OFF
           -DKLOGG_USE_HYPERSCAN=OFF
           -DKLOGG_OVERRIDE_MALLOC=OFF
           -DCMAKE_INSTALL_PREFIX=/opt/ZzLogg
+          -DZZ_BUNDLE_GNU_RUNTIME=ON
+          -DZZ_GNU_RUNTIME_LICENSE_DIR=$ZZ_GNU_RUNTIME_LICENSE_DIR
       - name: Build
         run: cmake --build build-linux --target ci_build --parallel 2
       - name: Test
@@ -115,8 +129,28 @@ jobs:
             -v "${{ github.workspace }}/packages:/packages:ro" \
             ubuntu:22.04 bash -euxo pipefail -c '
               apt-get update
-              apt-get install -y /packages/ZzLogg-*.deb
+              set -- /packages/ZzLogg-*.deb
+              deb=$1
+              test -f "$deb"
+              package=$(dpkg-deb -f "$deb" Package)
+              apt-get install -y desktop-file-utils binutils "$deb"
               unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH
+              command -v ZzLogg
+              dpkg -L "$package" | tee /tmp/zzlogg-package-files.txt
+              for owned in \
+                /usr/bin/ZzLogg \
+                /usr/share/applications/ZzLogg.desktop \
+                /usr/share/icons/hicolor/16x16/apps/ZzLogg.png \
+                /usr/share/icons/hicolor/512x512/apps/ZzLogg.png \
+                /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg \
+                /opt/ZzLogg/lib/libstdc++.so.6 \
+                /opt/ZzLogg/lib/libgcc_s.so.1 \
+                /opt/ZzLogg/share/ZzPureToolsFrame/licenses/gcc-runtime/COPYING3 \
+                /opt/ZzLogg/share/ZzPureToolsFrame/licenses/gcc-runtime/COPYING.RUNTIME; do
+                grep -Fx "$owned" /tmp/zzlogg-package-files.txt
+              done
+              desktop-file-validate /usr/share/applications/ZzLogg.desktop
+              grep -F "Exec=ZzLogg" /usr/share/applications/ZzLogg.desktop
               app=/opt/ZzLogg/bin/ZzLogg
               test -x "$app"
               test -f /opt/ZzLogg/lib/libQt6Core.so.6
@@ -125,21 +159,53 @@ jobs:
               ldd "$app" | tee /tmp/zzlogg-ldd.txt
               ! grep -q "not found" /tmp/zzlogg-ldd.txt
               grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
-              QT_DEBUG_PLUGINS=1 "$app" -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
+              stdcxx=$(awk "/libstdc\\+\\+\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              libgcc=$(awk "/libgcc_s\\.so\\.1 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              test "$(readlink -f "$stdcxx")" = "$(readlink -f /opt/ZzLogg/lib/libstdc++.so.6)"
+              test "$(readlink -f "$libgcc")" = "$(readlink -f /opt/ZzLogg/lib/libgcc_s.so.1)"
+              required=$(find /opt/ZzLogg/bin /opt/ZzLogg/lib -type f -exec readelf --version-info {} \; 2>/dev/null | grep -o "GLIBCXX_[0-9.]*" | sort -V | tail -1)
+              test -n "$required"
+              strings /opt/ZzLogg/lib/libstdc++.so.6 | grep -Fx "$required"
+              QT_DEBUG_PLUGINS=1 ZzLogg -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
               pid=$!
               sleep 3
               kill -0 "$pid"
               kill "$pid"
               wait "$pid" || true
               grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
+              apt-get remove -y "$package"
+              hash -r
+              ! command -v ZzLogg
+              test ! -e /usr/share/applications/ZzLogg.desktop
+              test ! -e /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg
             '
       - name: Validate RPM in clean Fedora
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/packages:/packages:ro" \
-            fedora:41 bash -euxo pipefail -c '
-              dnf install -y /packages/ZzLogg-*.rpm
+            fedora:44 bash -euxo pipefail -c '
+              set -- /packages/ZzLogg-*.rpm
+              rpm_file=$1
+              test -f "$rpm_file"
+              package=$(rpm -qp --qf "%{NAME}" "$rpm_file")
+              dnf install -y desktop-file-utils binutils "$rpm_file"
               unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH
+              command -v ZzLogg
+              rpm -ql "$package" | tee /tmp/zzlogg-package-files.txt
+              for owned in \
+                /usr/bin/ZzLogg \
+                /usr/share/applications/ZzLogg.desktop \
+                /usr/share/icons/hicolor/16x16/apps/ZzLogg.png \
+                /usr/share/icons/hicolor/512x512/apps/ZzLogg.png \
+                /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg \
+                /opt/ZzLogg/lib/libstdc++.so.6 \
+                /opt/ZzLogg/lib/libgcc_s.so.1 \
+                /opt/ZzLogg/share/ZzPureToolsFrame/licenses/gcc-runtime/COPYING3 \
+                /opt/ZzLogg/share/ZzPureToolsFrame/licenses/gcc-runtime/COPYING.RUNTIME; do
+                grep -Fx "$owned" /tmp/zzlogg-package-files.txt
+              done
+              desktop-file-validate /usr/share/applications/ZzLogg.desktop
+              grep -F "Exec=ZzLogg" /usr/share/applications/ZzLogg.desktop
               app=/opt/ZzLogg/bin/ZzLogg
               test -x "$app"
               test -f /opt/ZzLogg/lib/libQt6Core.so.6
@@ -148,13 +214,25 @@ jobs:
               ldd "$app" | tee /tmp/zzlogg-ldd.txt
               ! grep -q "not found" /tmp/zzlogg-ldd.txt
               grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
-              QT_DEBUG_PLUGINS=1 "$app" -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
+              stdcxx=$(awk "/libstdc\\+\\+\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              libgcc=$(awk "/libgcc_s\\.so\\.1 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              test "$(readlink -f "$stdcxx")" = "$(readlink -f /opt/ZzLogg/lib/libstdc++.so.6)"
+              test "$(readlink -f "$libgcc")" = "$(readlink -f /opt/ZzLogg/lib/libgcc_s.so.1)"
+              required=$(find /opt/ZzLogg/bin /opt/ZzLogg/lib -type f -exec readelf --version-info {} \; 2>/dev/null | grep -o "GLIBCXX_[0-9.]*" | sort -V | tail -1)
+              test -n "$required"
+              strings /opt/ZzLogg/lib/libstdc++.so.6 | grep -Fx "$required"
+              QT_DEBUG_PLUGINS=1 ZzLogg -platform minimal >/tmp/zzlogg-smoke.log 2>&1 &
               pid=$!
               sleep 3
               kill -0 "$pid"
               kill "$pid"
               wait "$pid" || true
               grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
+              dnf remove -y "$package"
+              hash -r
+              ! command -v ZzLogg
+              test ! -e /usr/share/applications/ZzLogg.desktop
+              test ! -e /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg
             '
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4

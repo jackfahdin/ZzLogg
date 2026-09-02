@@ -127,6 +127,17 @@ add_test(NAME zzlogg_ui2.linux_package_validation_contract
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxpackagevalidationcontracttest.cmake")
 
+add_test(NAME zzlogg_ui2.linux_package_integration_staging
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/linux-package-integration"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxpackageintegrationstagingtest.cmake")
+
+add_test(NAME zzlogg_ui2.linux_gnu_runtime_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/linuxgnuruntimecontracttest.cmake")
+
 add_test(NAME zzlogg_ui2.staged_install_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"

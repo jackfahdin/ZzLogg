@@ -24,9 +24,35 @@ function(klogg_add_zzpuretools)
   set(ZZ_ENABLE_LTO OFF)
   set(ZZ_BUILD_FLUENT_QUICK OFF)
   set(ZZ_RELEASE_BUILD OFF)
+  set(zz_binary_dir "${CMAKE_BINARY_DIR}/_deps/zzpuretools")
   add_subdirectory("${zz_source_dir}"
-                   "${CMAKE_BINARY_DIR}/_deps/zzpuretools"
+                   "${zz_binary_dir}"
                    EXCLUDE_FROM_ALL)
+
+  # The vendored subtree resolves the exact runtime selected by CXX. Its
+  # install rules are excluded with the subtree, so expose those audited
+  # inputs for the application's deliberately small runtime install closure.
+  if(ZZ_BUNDLE_GNU_RUNTIME)
+    get_directory_property(ZZLOGG_GNU_LIBSTDCXX_PATH
+      DIRECTORY "${zz_binary_dir}"
+      DEFINITION ZZ_GNU_LIBSTDCXX_PATH)
+    get_directory_property(ZZLOGG_GNU_LIBGCC_PATH
+      DIRECTORY "${zz_binary_dir}"
+      DEFINITION ZZ_GNU_LIBGCC_PATH)
+    foreach(zz_runtime_path IN ITEMS
+        "${ZZLOGG_GNU_LIBSTDCXX_PATH}"
+        "${ZZLOGG_GNU_LIBGCC_PATH}")
+      if(NOT zz_runtime_path OR NOT EXISTS "${zz_runtime_path}")
+        message(FATAL_ERROR "ZzPureTools did not resolve its GNU runtime")
+      endif()
+    endforeach()
+    set(ZZLOGG_GNU_LIBSTDCXX_PATH
+      "${ZZLOGG_GNU_LIBSTDCXX_PATH}" PARENT_SCOPE)
+    set(ZZLOGG_GNU_LIBGCC_PATH
+      "${ZZLOGG_GNU_LIBGCC_PATH}" PARENT_SCOPE)
+    set(ZZLOGG_GNU_RUNTIME_LICENSE_DIR
+      "${ZZ_GNU_RUNTIME_LICENSE_DIR}" PARENT_SCOPE)
+  endif()
 endfunction()
 
 function(klogg_copy_ui2_runtime_dlls target)

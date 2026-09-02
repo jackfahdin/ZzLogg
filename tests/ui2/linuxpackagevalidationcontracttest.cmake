@@ -23,7 +23,7 @@ foreach(required IN ITEMS
     "rpm -qp"
     "docker run --rm"
     "ubuntu:22.04"
-    "fedora:41"
+    "fedora:44"
     "unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH"
     "/opt/ZzLogg/bin/ZzLogg"
     "/opt/ZzLogg/lib/libQt6Core.so.6"
@@ -33,9 +33,28 @@ foreach(required IN ITEMS
     [=[grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6"]=]
     "QT_DEBUG_PLUGINS=1"
     [=[grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log]=]
+    "command -v ZzLogg"
+    [=[dpkg -L "$package"]=]
+    [=[rpm -ql "$package"]=]
+    "/usr/bin/ZzLogg"
+    "/usr/share/applications/ZzLogg.desktop"
+    "/usr/share/icons/hicolor/16x16/apps/ZzLogg.png"
+    "/usr/share/icons/hicolor/512x512/apps/ZzLogg.png"
+    "/usr/share/icons/hicolor/scalable/apps/ZzLogg.svg"
+    "desktop-file-validate /usr/share/applications/ZzLogg.desktop"
+    [=[grep -F "Exec=ZzLogg" /usr/share/applications/ZzLogg.desktop]=]
+    "ZzLogg -platform minimal"
+    [=[apt-get remove -y "$package"]=]
+    [=[dnf remove -y "$package"]=]
+    "! command -v ZzLogg"
     "-platform minimal")
   string(FIND "${linux_job}" "${required}" found)
   if(found EQUAL -1)
     message(FATAL_ERROR "Linux clean-package validation is missing: ${required}")
   endif()
 endforeach()
+
+string(FIND "${linux_job}" "fedora:41" fedora_41)
+if(NOT fedora_41 EQUAL -1)
+  message(FATAL_ERROR "Linux validation must not use EOL Fedora 41")
+endif()
