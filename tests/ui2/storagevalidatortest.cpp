@@ -35,9 +35,13 @@ void StorageValidatorTest::rejectsEmptyRelativeAndFileRoots()
 {
     const auto empty = StorageValidator::validate( {}, false );
     QVERIFY( !empty.valid );
+    QCOMPARE( empty.errorCode, StorageValidationError::InvalidRoot );
+    QCOMPARE( empty.errorParameters, QStringList{} );
 
     const auto relative = StorageValidator::validate( QStringLiteral( "relative-storage" ), false );
     QVERIFY( !relative.valid );
+    QCOMPARE( relative.errorCode, StorageValidationError::InvalidRoot );
+    QCOMPARE( relative.errorParameters, QStringList{} );
 
     QTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
@@ -49,6 +53,8 @@ void StorageValidatorTest::rejectsEmptyRelativeAndFileRoots()
 
     const auto result = StorageValidator::validate( fileRoot, false );
     QVERIFY( !result.valid );
+    QCOMPARE( result.errorCode, StorageValidationError::NotDirectory );
+    QCOMPARE( result.errorParameters, QStringList{ QDir::cleanPath( fileRoot ) } );
     QVERIFY( result.error.contains( QDir::cleanPath( fileRoot ) ) );
 }
 
@@ -102,6 +108,8 @@ void StorageValidatorTest::rejectsUnmanagedNonEmptyDirectory()
 
     QVERIFY( !result.valid );
     QVERIFY( !result.managedDirectory );
+    QCOMPARE( result.errorCode, StorageValidationError::NotEmptyManagedDirectory );
+    QCOMPARE( result.errorParameters, QStringList{ QDir::cleanPath( root ) } );
     QVERIFY( result.error.contains( QDir::cleanPath( root ) ) );
     QCOMPARE( QDir{ root }.entryList( { QStringLiteral( ".zzlogg-write-test-*" ) }, QDir::Files ),
               QStringList{} );

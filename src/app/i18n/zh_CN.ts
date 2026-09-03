@@ -532,33 +532,33 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1160"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1179"/>
         <source>Open URL as log file</source>
         <translation>打开URL作为日志文件</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2080"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2099"/>
         <source>Select item to remove from favorites</source>
         <translation type="unfinished">选择从收藏中移除的项目</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2125"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2144"/>
         <source>%1 -- switch to file</source>
         <translation>%1 -- 切换到已打开的文件</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2277"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2296"/>
         <source>%1 - generate crash dump</source>
         <translation>%1 - 生成崩溃记录</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2278"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2297"/>
         <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
         <translation>这将关闭 %1 并生成诊断崩溃转储。是否继续？</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="416"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="883"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="902"/>
         <source>Open window</source>
         <translation>打开窗口</translation>
     </message>
@@ -570,180 +570,180 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="308"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="746"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="765"/>
         <source>Open Recent</source>
         <translation>最近打开文件</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="417"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="885"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="904"/>
         <source>Quit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="938"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="957"/>
         <source>Open file</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="938"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1721"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="957"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1740"/>
         <source>All files (*)</source>
         <translation>全部文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="961"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="980"/>
         <source>Downloading %1</source>
         <translation>正在下载 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="980"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="985"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="999"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1004"/>
         <source>%1 - File download</source>
         <translation>%1 - 文件下载</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="986"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1005"/>
         <source>Failed to create temp file</source>
         <translation>创建临时文件失败</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1011"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1030"/>
         <source>%1 - remove from recent</source>
         <translation>%1 - 从最近文件中移除</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1012"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1031"/>
         <source>Could not read file %1. Remove it from recent files?</source>
         <translation>无法读取文件%1, 是否从最近的文件中移除？</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1033"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1052"/>
         <source>%1 - remove from favorites</source>
         <translation>%1 - 从收藏中移除</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1034"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1053"/>
         <source>Could not read file %1. Remove it from favorites?</source>
         <translation>无法读取文件%1, 从收藏夹中删除它?</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1105"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1124"/>
         <source>%1 - clear file</source>
         <translation>%1 - 清除文件内容</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1160"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1179"/>
         <source>URL to download:</source>
         <translation>下载文件的URL:</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1220"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1239"/>
         <source>About %1</source>
         <translation>关于 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1221"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1240"/>
         <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
         <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;一款快速、先进的日志查看器。&lt;/p&gt;&lt;p&gt;构建于 %3，提交 %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;基于 klogg：&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg 是 glogg 的分支&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;使用来自 &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; 项目的图标&lt;/p&gt;&lt;p&gt;版权所有 &amp;copy; 2020 Nicolas Bonnefon、Anton Filimonov 及其他贡献者&lt;/p&gt;&lt;p&gt;您可以根据 GPL（第 3 版或更高版本）的条款修改和重新分发本程序。&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1239"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1258"/>
         <source>About Qt</source>
         <translation>关于QT</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1252"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1271"/>
         <source>%1 documentation</source>
         <translation>%1 文档</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1721"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1740"/>
         <source>Open file from archive</source>
         <translation type="unfinished">从压缩包中打开文件</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1844"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1863"/>
         <source>Untitled</source>
         <translation>未命名</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1854"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1873"/>
         <source>%1 - %2%3</source>
         <translation>%1 - %2%3</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1328"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1347"/>
         <source>Ln:%1/%2</source>
         <translation>行：%1/%2</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1106"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1125"/>
         <source>Clear file %1? File content will be removed from disk, this is irreversible</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1333"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1352"/>
         <source>Ln:%1/%2 Col:%3 Sel:%4|%5</source>
         <translation>行：%1/%2 列：%3 选择：%4|%5</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1342"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1361"/>
         <source>Ln:%1/%2 Sel:%4|%5</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1370"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1389"/>
         <source> - Indexing lines... (%1 %)</source>
         <translation type="unfinished"> - 正在索引行... (%1 %)</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1403"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1422"/>
         <source>Not enough memory.</source>
         <translation type="unfinished">内存不足.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1405"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1424"/>
         <source>The system does not have enough memory to hold the index for this file. The file will now be closed.</source>
         <translation type="unfinished">系统内存不, 无法来记录文件索引。文件将被关闭。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1667"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1686"/>
         <source>Extract archive to temp folder?</source>
         <translation>将存档解压缩到临时文件夹？</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1679"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1698"/>
         <source>Extracting %1</source>
         <translation type="unfinished">正在解压缩 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1707"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1726"/>
         <source>Failed to decompress %1</source>
         <translation type="unfinished">解压失败 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1732"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1751"/>
         <source>Failed to extract %1</source>
         <translation type="unfinished">提取 %1 失败</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1855"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1874"/>
         <source> (build </source>
         <translation> （构建 </translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1882"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1901"/>
         <source>&amp;%1 %2</source>
         <translation>&amp;%1 %2</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1953"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1972"/>
         <source>modified on %1</source>
         <translation>修改于 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2079"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2098"/>
         <source>Remove from favorites</source>
         <translation>从收藏中移除</translation>
     </message>
@@ -1194,70 +1194,70 @@
         <translation>自动</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="662"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="665"/>
         <source>Failed to save settings before changing storage location.</source>
         <translation>更改存储位置前无法保存设置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="673"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="676"/>
         <source>%1 needs to be restarted to apply some changes. </source>
         <translation>%1 需要重启以应用部分更改。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="692"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="695"/>
         <source>The selected storage location is not valid: %1</source>
         <translation>所选存储位置无效：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="711"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="714"/>
         <source>The selected directory already contains ZzLogg data. Automatic merging is not supported; choose an empty directory.</source>
         <translation>所选目录已包含 ZzLogg 数据。不支持自动合并；请选择空目录。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="721"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="724"/>
         <source>Cannot schedule the storage change because the active locator does not match the current data directory: %1</source>
         <translation>当前定位文件与当前数据目录不匹配，无法安排存储位置更改：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="740"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="743"/>
         <source>Another storage location change is already pending. Restart ZzLogg before choosing a different location.</source>
         <translation>已有另一个存储位置更改等待处理。请先重启 ZzLogg，再选择其他位置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="751"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="754"/>
         <source>Failed to schedule the storage location change: %1</source>
         <translation>无法安排存储位置更改：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="763"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="766"/>
         <source>The storage location will change after ZzLogg restarts.</source>
         <translation>ZzLogg 重启后将更改存储位置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="765"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="768"/>
         <source>Restart now</source>
         <translation>立即重启</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="766"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="769"/>
         <source>Restart later</source>
         <translation>稍后重启</translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="221"/>
-        <location filename="../../ui/src/optionsdialog.cpp" line="885"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="888"/>
         <source>Action</source>
         <translation>动作</translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="224"/>
-        <location filename="../../ui/src/optionsdialog.cpp" line="886"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="889"/>
         <source>Primary shortcut</source>
         <translation>首选快捷键</translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="227"/>
-        <location filename="../../ui/src/optionsdialog.cpp" line="888"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="891"/>
         <source>Secondary shortcut</source>
         <translation>备选快捷键</translation>
     </message>
@@ -1963,27 +1963,72 @@
         <translation>数据目录：</translation>
     </message>
     <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="286"/>
+        <source>storage directory must be an absolute, non-empty path</source>
+        <translation>存储目录必须是非空的绝对路径</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="288"/>
+        <source>storage path is not a directory: %1</source>
+        <translation>存储路径不是目录：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="290"/>
+        <source>failed to create storage directory: %1</source>
+        <translation>无法创建存储目录：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="292"/>
+        <source>failed to write storage directory: %1</source>
+        <translation>无法写入存储目录：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="294"/>
+        <source>failed to read storage directory: %1</source>
+        <translation>无法读取存储目录：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="296"/>
+        <source>failed to atomically write storage directory: %1</source>
+        <translation>无法以原子方式写入存储目录：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="298"/>
+        <source>failed to read atomic storage write: %1</source>
+        <translation>无法读回存储目录的原子写入：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="300"/>
+        <source>failed to remove storage probe file: %1</source>
+        <translation>无法删除存储写入探针文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="302"/>
+        <source>storage directory is not an empty managed directory: %1</source>
+        <translation>存储目录不是空的受管目录：%1</translation>
+    </message>
+    <message>
         <location filename="../../ui/src/storagelocationpage.cpp" line="114"/>
         <source>选择 ZzLogg 数据目录</source>
         <translation>选择 ZzLogg 数据目录</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="262"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="267"/>
         <source>无法创建程序目录以验证存储位置：%1</source>
         <translation>无法创建程序目录以验证存储位置：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="264"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="269"/>
         <source>无法清理存储定位文件写入探针：%1</source>
         <translation>无法清理存储定位文件写入探针：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="266"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="271"/>
         <source>无法在程序目录旁原子写入存储定位文件：%1</source>
         <translation>无法在程序目录旁原子写入存储定位文件：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="268"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="273"/>
         <source>写入后无法完整读回存储定位文件探针：%1</source>
         <translation>写入后无法完整读回存储定位文件探针：%1</translation>
     </message>

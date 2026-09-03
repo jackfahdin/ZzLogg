@@ -217,8 +217,11 @@ void StorageLocationPage::refreshValidation( bool normalizeCustomPath, bool vali
     if ( !validateStorage ) {
         if ( programLocatorValidationError_ != ProgramLocatorValidationError::None ) {
             validationError_ = programLocatorValidationErrorText();
-            storageValidationLabel_->setText( validationError_ );
         }
+        else {
+            validationError_ = storageValidationErrorText();
+        }
+        storageValidationLabel_->setText( validationError_ );
         storageValidationLabel_->setStyleSheet( validationError_.isEmpty()
                                                     ? QString{}
                                                     : QStringLiteral( "color: #b00020;" ) );
@@ -231,7 +234,9 @@ void StorageLocationPage::refreshValidation( bool normalizeCustomPath, bool vali
 
     const auto result = StorageValidator::validate( root, true );
     bool valid = result.valid;
-    QString error = result.error;
+    storageValidationError_ = result.errorCode;
+    storageValidationErrorParameters_ = result.errorParameters;
+    QString error = storageValidationErrorText();
     programLocatorValidationError_ = ProgramLocatorValidationError::None;
     programLocatorProbePath_.clear();
     if ( valid && mode_ == StorageMode::ProgramDirectory
@@ -267,6 +272,34 @@ QString StorageLocationPage::programLocatorValidationErrorText() const
     case ProgramLocatorValidationError::CannotReadProbe:
         return tr( "写入后无法完整读回存储定位文件探针：%1" )
             .arg( programLocatorProbePath_ );
+    }
+    return {};
+}
+
+QString StorageLocationPage::storageValidationErrorText() const
+{
+    const QString parameter = storageValidationErrorParameters_.value( 0 );
+    switch ( storageValidationError_ ) {
+    case StorageValidationError::None:
+        return {};
+    case StorageValidationError::InvalidRoot:
+        return tr( "storage directory must be an absolute, non-empty path" );
+    case StorageValidationError::NotDirectory:
+        return tr( "storage path is not a directory: %1" ).arg( parameter );
+    case StorageValidationError::CannotCreateDirectory:
+        return tr( "failed to create storage directory: %1" ).arg( parameter );
+    case StorageValidationError::CannotWriteDirectory:
+        return tr( "failed to write storage directory: %1" ).arg( parameter );
+    case StorageValidationError::CannotReadDirectory:
+        return tr( "failed to read storage directory: %1" ).arg( parameter );
+    case StorageValidationError::CannotAtomicallyWriteDirectory:
+        return tr( "failed to atomically write storage directory: %1" ).arg( parameter );
+    case StorageValidationError::CannotReadAtomicWrite:
+        return tr( "failed to read atomic storage write: %1" ).arg( parameter );
+    case StorageValidationError::CannotRemoveProbe:
+        return tr( "failed to remove storage probe file: %1" ).arg( parameter );
+    case StorageValidationError::NotEmptyManagedDirectory:
+        return tr( "storage directory is not an empty managed directory: %1" ).arg( parameter );
     }
     return {};
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storagecontext.h"
+#include "storagevalidator.h"
 
 #include <QWidget>
 
@@ -44,6 +45,7 @@ private:
     QString rootForSelection() const;
     void refreshValidation( bool normalizeCustomPath = true, bool validateStorage = true );
     QString programLocatorValidationErrorText() const;
+    QString storageValidationErrorText() const;
     void updateEditControls();
     bool validateProgramLocatorDirectory( QString* error );
 
@@ -63,6 +65,8 @@ private:
     bool commandLineManaged_ = false;
     bool selectionValid_ = false;
     QString validationError_;
+    StorageValidationError storageValidationError_ = StorageValidationError::None;
+    QStringList storageValidationErrorParameters_;
     ProgramLocatorValidationError programLocatorValidationError_
         = ProgramLocatorValidationError::None;
     QString programLocatorProbePath_;

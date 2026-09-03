@@ -67,6 +67,7 @@ class ApplicationTranslationTest final : public QObject {
     void retranslatesExistingOptionsDialog();
     void showsUnknownConfiguredShortcutAction();
     void changingLanguageDoesNotWriteProgramDirectory();
+    void retranslatesInvalidStorageValidationWithoutWriting();
     void changingOnlyLanguageDoesNotRequestRestart();
     void retranslatesOpenDocumentSearchAndQuickFindControls();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
@@ -416,6 +417,47 @@ void ApplicationTranslationTest::changingLanguageDoesNotWriteProgramDirectory()
     qApp->setProperty( "zzlogg.test.applicationDirectory", {} );
     qApp->setProperty( "zzlogg.test.appConfigDirectory", {} );
     qApp->setProperty( "zzlogg.test.userDataDirectory", {} );
+}
+
+void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWriting()
+{
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const QString invalidRoot
+        = temporaryDirectory.filePath( QStringLiteral( "not-a-storage-directory" ) );
+    QFile file{ invalidRoot };
+    QVERIFY( file.open( QIODevice::WriteOnly ) );
+    QVERIFY( file.write( "user data" ) > 0 );
+    file.close();
+
+    StorageLocationPage page;
+    page.setLocation( { StorageMode::CustomDirectory, invalidRoot, {}, false } );
+    const StorageLocation selectedLocation = page.location();
+    const QString normalizedRoot = QDir::cleanPath( invalidRoot );
+    QVERIFY( !page.isSelectionValid() );
+    QCOMPARE( page.validationError(),
+              QStringLiteral( "storage path is not a directory: %1" ).arg( normalizedRoot ) );
+
+    QFileSystemWatcher watcher;
+    QVERIFY( watcher.addPath( temporaryDirectory.path() ) );
+    QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    QTest::qWait( 200 );
+
+    QCOMPARE( page.validationError(),
+              QStringLiteral( "存储路径不是目录：%1" ).arg( normalizedRoot ) );
+    QCOMPARE( child<QLabel>( page, "storageValidationLabel" )->text(), page.validationError() );
+    QCOMPARE( page.location().mode, selectedLocation.mode );
+    QCOMPARE( page.location().dataRoot, selectedLocation.dataRoot );
+    QVERIFY( !page.isSelectionValid() );
+    QCOMPARE( directoryChanged.count(), 0 );
+    QFile unchangedFile{ invalidRoot };
+    QVERIFY( unchangedFile.open( QIODevice::ReadOnly ) );
+    QCOMPARE( unchangedFile.readAll(), QByteArray( "user data" ) );
 }
 
 void ApplicationTranslationTest::changingOnlyLanguageDoesNotRequestRestart()

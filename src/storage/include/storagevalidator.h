@@ -3,11 +3,27 @@
 #include "storagecontext.h"
 
 #include <QString>
+#include <QStringList>
+
+enum class StorageValidationError {
+    None,
+    InvalidRoot,
+    NotDirectory,
+    CannotCreateDirectory,
+    CannotWriteDirectory,
+    CannotReadDirectory,
+    CannotAtomicallyWriteDirectory,
+    CannotReadAtomicWrite,
+    CannotRemoveProbe,
+    NotEmptyManagedDirectory,
+};
 
 struct StorageValidationResult {
     bool valid = false;
     bool managedDirectory = false;
     QString normalizedRoot;
+    StorageValidationError errorCode = StorageValidationError::None;
+    QStringList errorParameters;
     QString error;
 };
 
