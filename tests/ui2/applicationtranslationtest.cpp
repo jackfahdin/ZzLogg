@@ -18,6 +18,7 @@
 #include "tabbedscratchpad.h"
 
 #include <QAction>
+#include <QAbstractItemModel>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFile>
@@ -52,6 +53,19 @@ T* child( QWidget& widget, const char* objectName )
 
 } // namespace
 
+struct ApplicationTranslationCrawlerAccess {
+};
+
+template <>
+struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
+    static bool loadingFinished( const CrawlerWidget& crawler )
+    {
+        return !crawler.loadingInProgress_;
+    }
+};
+
+using TranslationCrawlerAccess = CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess>;
+
 class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
@@ -70,6 +84,7 @@ class ApplicationTranslationTest final : public QObject {
     void retranslatesInvalidStorageValidationWithoutWriting();
     void changingOnlyLanguageDoesNotRequestRestart();
     void retranslatesOpenDocumentSearchAndQuickFindControls();
+    void retranslatesCrawlerSemanticSearchStatus();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
 
@@ -506,8 +521,8 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
     auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 0 ) );
     QVERIFY( crawler );
-    QSignalSpy loadingFinished{ crawler, &CrawlerWidget::loadingFinished };
-    QTRY_VERIFY_WITH_TIMEOUT( loadingFinished.count() > 0, 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( TranslationCrawlerAccess::loadingFinished( *crawler ), 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( crawler->isVisible(), 5000 );
     QTRY_VERIFY_WITH_TIMEOUT( crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) )
                                   != nullptr,
                               5000 );
@@ -520,6 +535,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     auto* const keepResultsButton = child<QToolButton>( *crawler, "keepSearchResultsButton" );
     auto* const predefinedFilters
         = child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" );
+    auto* const filteredResultsTabs = child<QTabWidget>( *crawler, "filteredResultsTabs" );
     auto* const clearHistory = child<QAction>( *crawler, "clearSearchHistoryAction" );
     auto* const editHistory = child<QAction>( *crawler, "editSearchHistoryAction" );
     auto* const saveFilter = child<QAction>( *crawler, "saveAsPredefinedFilterAction" );
@@ -533,6 +549,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QVERIFY( autoRefreshButton );
     QVERIFY( keepResultsButton );
     QVERIFY( predefinedFilters );
+    QVERIFY( filteredResultsTabs );
     QVERIFY( clearHistory );
     QVERIFY( editHistory );
     QVERIFY( saveFilter );
@@ -554,6 +571,13 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     searchEdit->setCurrentText( QStringLiteral( "matching" ) );
     searchButton->click();
     QTRY_COMPARE_WITH_TIMEOUT( searchInfo->text(), QStringLiteral( "2 matches found" ), 5000 );
+    QCOMPARE( filteredResultsTabs->tabText( filteredResultsTabs->currentIndex() ),
+              QStringLiteral( "Find \"matching\"" ) );
+    const QWidget* const existingResults = filteredResultsTabs->currentWidget();
+    QSignalSpy predefinedFilterChanged{ predefinedFilters,
+                                        &PredefinedFiltersComboBox::filterChanged };
+    QSignalSpy predefinedModelChanged{ predefinedFilters->model(),
+                                       &QAbstractItemModel::dataChanged };
     const QString searchText = searchEdit->currentText();
     const bool matchCaseChecked = matchCaseButton->isChecked();
     const bool autoRefreshChecked = autoRefreshButton->isChecked();
@@ -570,6 +594,11 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
               QStringLiteral( "保留这些结果，并在新窗口中显示后续结果" ) );
     QCOMPARE( matchCaseButton->toolTip(), QStringLiteral( "匹配大小写" ) );
     QCOMPARE( predefinedFilters->itemText( 0 ), QStringLiteral( "预定义过滤器" ) );
+    QCOMPARE( predefinedFilterChanged.count(), 0 );
+    QVERIFY( predefinedModelChanged.count() > 0 );
+    QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
+    QCOMPARE( filteredResultsTabs->tabText( filteredResultsTabs->currentIndex() ),
+              QStringLiteral( "查找“matching”" ) );
     QCOMPARE( ignoreCase->text(), QStringLiteral( "忽略大小写(&C)" ) );
     QCOMPARE( previous->text(), QStringLiteral( "上一个" ) );
     QCOMPARE( next->text(), QStringLiteral( "下一个" ) );
@@ -586,6 +615,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QCOMPARE( child<QToolButton>( *crawler, "matchCaseButton" ), matchCaseButton );
     QCOMPARE( child<QToolButton>( *crawler, "keepSearchResultsButton" ), keepResultsButton );
     QCOMPARE( child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" ), predefinedFilters );
+    QCOMPARE( child<QTabWidget>( *crawler, "filteredResultsTabs" ), filteredResultsTabs );
     QCOMPARE( child<QAction>( *crawler, "clearSearchHistoryAction" ), clearHistory );
     QCOMPARE( child<QAction>( *crawler, "editSearchHistoryAction" ), editHistory );
     QCOMPARE( child<QAction>( *crawler, "saveAsPredefinedFilterAction" ), saveFilter );
@@ -601,6 +631,10 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QCOMPARE( keepResultsButton->toolTip(),
               QStringLiteral( "保留這些結果，並在新視窗中顯示後續結果" ) );
     QCOMPARE( keepResultsButton->isChecked(), keepResultsChecked );
+    QCOMPARE( predefinedFilterChanged.count(), 0 );
+    QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
+    QCOMPARE( filteredResultsTabs->tabText( filteredResultsTabs->currentIndex() ),
+              QStringLiteral( "尋找「matching」" ) );
 
     quickFind->userActivate();
     quickFindEdit->setFocus();
@@ -608,6 +642,87 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     next->click();
     QTRY_COMPARE_WITH_TIMEOUT( notification->text(),
                                QStringLiteral( "已到達檔案末尾，未找到符合項目。" ), 5000 );
+}
+
+void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
+{
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QTemporaryDir logs;
+    QVERIFY( logs.isValid() );
+    const QString logPath = logs.filePath( QStringLiteral( "semantic-search-status.log" ) );
+    QFile log{ logPath };
+    QVERIFY( log.open( QIODevice::WriteOnly | QIODevice::Text ) );
+    QVERIFY( log.write( "matching line\nsecond matching line\n" ) > 0 );
+    log.close();
+
+    auto session = std::make_shared<Session>();
+    MainWindow window{ WindowSession{ session, QStringLiteral( "semantic-search-status" ), 0 } };
+    window.show();
+    window.loadFileNonInteractive( logPath );
+    auto* const documentTabs
+        = window.findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
+    QVERIFY( documentTabs );
+    QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
+    auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->currentWidget() );
+    QVERIFY( crawler );
+    QTRY_VERIFY_WITH_TIMEOUT( TranslationCrawlerAccess::loadingFinished( *crawler ), 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( crawler->isVisible(), 5000 );
+
+    auto* const searchEdit = child<QComboBox>( *crawler, "mainSearchEdit" );
+    auto* const searchButton = child<QToolButton>( *crawler, "mainSearchButton" );
+    auto* const searchInfo = crawler->findChild<InfoLine*>();
+    auto* const filteredResultsTabs = child<QTabWidget>( *crawler, "filteredResultsTabs" );
+    QVERIFY( searchInfo );
+
+    QToolButton* regexpButton = nullptr;
+    for ( auto* candidate : crawler->findChildren<QToolButton*>() ) {
+        if ( candidate->toolTip() == QStringLiteral( "Use regex" ) ) {
+            regexpButton = candidate;
+            break;
+        }
+    }
+    QVERIFY( regexpButton );
+    regexpButton->setChecked( true );
+    searchEdit->setCurrentText( QStringLiteral( "[" ) );
+    searchButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT(
+        searchInfo->text().startsWith( QStringLiteral( "Error in expression: " ) ), 5000 );
+    const QString expressionError = searchInfo->text().mid(
+        QStringLiteral( "Error in expression: " ).size() );
+    const QPalette errorPalette = searchInfo->palette();
+    QSignalSpy loadingFinishedAfterLanguageChange{ crawler, &CrawlerWidget::loadingFinished };
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    QTRY_COMPARE( searchInfo->text(),
+                  QStringLiteral( "表达式错误：%1" ).arg( expressionError ) );
+    QCOMPARE( searchInfo->palette(), errorPalette );
+    QCOMPARE( loadingFinishedAfterLanguageChange.count(), 0 );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    regexpButton->setChecked( false );
+    searchEdit->setCurrentText( QStringLiteral( "matching" ) );
+    searchButton->click();
+    QTRY_COMPARE_WITH_TIMEOUT( searchInfo->text(), QStringLiteral( "2 matches found" ), 5000 );
+    const QWidget* const existingResults = filteredResultsTabs->currentWidget();
+    QVERIFY( QMetaObject::invokeMethod(
+        crawler, "updateFilteredView", Qt::DirectConnection,
+        Q_ARG( LinesCount, LinesCount( 2 ) ), Q_ARG( int, 37 ),
+        Q_ARG( LineNumber, LineNumber( 0 ) ) ) );
+    QCOMPARE( searchInfo->text(),
+              QStringLiteral( "Search in progress (37 %)... 2 matches found so far." ) );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    QTRY_COMPARE( searchInfo->text(),
+                  QStringLiteral( "正在搜尋（37 %）... 到目前為止已找到 2 個符合項目。" ) );
+    QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
+    QCOMPARE( searchEdit->currentText(), QStringLiteral( "matching" ) );
+    QCOMPARE( loadingFinishedAfterLanguageChange.count(), 0 );
 }
 
 void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChangingDocumentState()
@@ -634,8 +749,8 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
     auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->currentWidget() );
     QVERIFY( crawler );
-    QSignalSpy loadingFinished{ crawler, &CrawlerWidget::loadingFinished };
-    QTRY_VERIFY_WITH_TIMEOUT( loadingFinished.count() > 0, 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( TranslationCrawlerAccess::loadingFinished( *crawler ), 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( crawler->isVisible(), 5000 );
 
     auto* const searchEdit = child<QComboBox>( *crawler, "mainSearchEdit" );
     auto* const searchButton = child<QToolButton>( *crawler, "mainSearchButton" );
@@ -670,6 +785,8 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     QCOMPARE( recentFilesMenu->title(), QStringLiteral( "Open Recent" ) );
     QCOMPARE( QString{ encodingMenu->title() }.remove( '&' ), QStringLiteral( "Encoding" ) );
     QCOMPARE( encodingAutoAction->text(), QStringLiteral( "Auto" ) );
+    QCOMPARE( encodingAutoAction->statusTip(),
+              QStringLiteral( "Automatically detect the file's encoding" ) );
     QVERIFY( encodingSystemAction->text().startsWith( QStringLiteral( "System (" ) ) );
     QCOMPARE( trayOpenAction->text(), QStringLiteral( "Open window" ) );
     QCOMPARE( trayQuitAction->text(), QStringLiteral( "Quit" ) );
@@ -688,9 +805,40 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     const int currentTab = documentTabs->currentIndex();
     const QWidget* const currentDocument = documentTabs->currentWidget();
     const QString currentSearchText = searchEdit->currentText();
-    const QString currentSearchStatus = searchInfo->text();
     const QString currentTitle = window.windowTitle();
     const bool autoEncodingChecked = encodingAutoAction->isChecked();
+
+    QLabel* encodingField = nullptr;
+    QLabel* lineNumberField = nullptr;
+    for ( auto* candidate : window.findChildren<QLabel*>() ) {
+        if ( candidate->text().startsWith( QStringLiteral( "Detected as " ) ) ) {
+            encodingField = candidate;
+        }
+    }
+    QVERIFY( encodingField );
+    const QString encodingName
+        = encodingField->text().mid( QStringLiteral( "Detected as " ).size() );
+    QVERIFY( QMetaObject::invokeMethod(
+        &window, "lineNumberHandler", Qt::DirectConnection,
+        Q_ARG( LineNumber, LineNumber( 0 ) ), Q_ARG( LinesCount, LinesCount( 1 ) ),
+        Q_ARG( LineColumn, LineColumn( 3 ) ), Q_ARG( LineLength, LineLength( 4 ) ) ) );
+    for ( auto* candidate : window.findChildren<QLabel*>() ) {
+        if ( candidate->text() == QStringLiteral( "Ln:1/2 Col:3 Sel:4|1" ) ) {
+            lineNumberField = candidate;
+            break;
+        }
+    }
+    QVERIFY( lineNumberField );
+
+    InfoLine* mainInfoLine = nullptr;
+    const QString nativeLogPath = QDir::toNativeSeparators( logPath );
+    for ( auto* candidate : window.findChildren<InfoLine*>() ) {
+        if ( candidate->text() == nativeLogPath ) {
+            mainInfoLine = candidate;
+            break;
+        }
+    }
+    QVERIFY( mainInfoLine );
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
     QCoreApplication::sendPostedEvents();
@@ -700,6 +848,7 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     // The existing Chinese menu translation retains a mnemonic suffix ("(&E)").
     QVERIFY( encodingMenu->title().startsWith( QStringLiteral( "编码" ) ) );
     QCOMPARE( encodingAutoAction->text(), QStringLiteral( "自动" ) );
+    QCOMPARE( encodingAutoAction->statusTip(), QStringLiteral( "自动检测文件的编码" ) );
     QVERIFY( encodingSystemAction->text().startsWith( QStringLiteral( "跟随系统（" ) ) );
     QCOMPARE( trayOpenAction->text(), QStringLiteral( "打开窗口" ) );
     QCOMPARE( trayQuitAction->text(), QStringLiteral( "退出" ) );
@@ -711,6 +860,14 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     QCOMPARE( searchEdit->currentText(), currentSearchText );
     QCOMPARE( searchInfo->text(), QStringLiteral( "找到2个匹配" ) );
     QCOMPARE( encodingAutoAction->isChecked(), autoEncodingChecked );
+    QTRY_COMPARE( encodingField->text(), QStringLiteral( "检测到编码: %1" ).arg( encodingName ) );
+    QTRY_COMPARE( lineNumberField->text(), QStringLiteral( "行：1/2 列：3 选择：4|1" ) );
+
+    QVERIFY( QMetaObject::invokeMethod(
+        &window, "lineNumberHandler", Qt::DirectConnection,
+        Q_ARG( LineNumber, LineNumber( 0 ) ), Q_ARG( LinesCount, LinesCount( 2 ) ),
+        Q_ARG( LineColumn, LineColumn( 0 ) ), Q_ARG( LineLength, LineLength( 4 ) ) ) );
+    QCOMPARE( lineNumberField->text(), QStringLiteral( "行：1/2 选择：4|2" ) );
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
     QCoreApplication::sendPostedEvents();
@@ -729,9 +886,24 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     QCOMPARE( searchEdit->currentText(), currentSearchText );
     QCOMPARE( searchInfo->text(), QStringLiteral( "找到 2 個符合項目" ) );
     QCOMPARE( encodingAutoAction->isChecked(), autoEncodingChecked );
+    QCOMPARE( encodingAutoAction->statusTip(), QStringLiteral( "自動偵測檔案的編碼" ) );
+    QTRY_COMPARE( encodingField->text(), QStringLiteral( "偵測為 %1" ).arg( encodingName ) );
+    QTRY_COMPARE( lineNumberField->text(), QStringLiteral( "行數：1/2 選取：4|2" ) );
+    QCOMPARE( mainInfoLine->text(), nativeLogPath );
     QVERIFY( window.windowTitle().contains( QFileInfo{ logPath }.fileName() ) );
     QVERIFY( window.windowTitle() != currentTitle );
-    QVERIFY( currentSearchStatus == QStringLiteral( "2 matches found" ) );
+
+    QVERIFY( QMetaObject::invokeMethod( &window, "updateLoadingProgress", Qt::DirectConnection,
+                                        Q_ARG( int, 37 ) ) );
+    QCOMPARE( mainInfoLine->text(),
+              nativeLogPath + QStringLiteral( " - 正在建立行數索引... (37 %)" ) );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    QTRY_COMPARE( mainInfoLine->text(),
+                  nativeLogPath + QStringLiteral( " - 正在索引行... (37 %)" ) );
+    QCOMPARE( documentTabs->currentWidget(), currentDocument );
+    QCOMPARE( searchEdit->currentText(), currentSearchText );
 }
 
 int main( int argc, char* argv[] )

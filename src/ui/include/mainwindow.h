@@ -107,6 +107,7 @@ class MainWindow : public QMainWindow {
 
   private:
     enum class ActionInitiator { User, App };
+    enum class InfoDisplayState { Normal, Loading };
 
   private Q_SLOTS:
     void open();
@@ -164,6 +165,9 @@ class MainWindow : public QMainWindow {
     // Update quick find searchable
     void handleFilteredViewChanged();
 
+    // Refresh parent-owned status strings after the current crawler has handled LanguageChange.
+    void retranslateStatusUi();
+
     // Close the tab with the passed index
     void closeTab( int index, ActionInitiator initiator );
     // Setup the tab with current index for view
@@ -217,6 +221,7 @@ class MainWindow : public QMainWindow {
     void displayQuickFindBar( QuickFindMux::QFDirection direction );
     void updateMenuBarFromDocument( const CrawlerWidget* crawler );
     void updateInfoLine();
+    void renderLineNumberStatus();
     void showInfoLabels( bool show );
     void logScreenInfo( QScreen* screen );
     void removeFromFavorites( const QString& pathToRemove );
@@ -318,6 +323,13 @@ class MainWindow : public QMainWindow {
     TabbedScratchPad scratchPad_;
 
     QTemporaryDir tempDir_;
+
+    InfoDisplayState infoDisplayState_ = InfoDisplayState::Normal;
+    int loadingProgress_ = 0;
+    LineNumber selectedStartLine_ = 0_lnum;
+    LinesCount selectedLineCount_ = 0_lcount;
+    LineColumn selectedStartColumn_ = 0_lcol;
+    LineLength selectedSymbolCount_ = 0_length;
 
     bool isMaximized_ = false;
     bool isCloseFromTray_ = false;

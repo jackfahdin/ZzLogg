@@ -41,7 +41,7 @@
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
 #include <QEvent>
-#include <QSignalBlocker>
+#include <QScopedValueRollback>
 #include <qabstractitemview.h>
 
 #include "log.h"
@@ -124,7 +124,7 @@ void PredefinedFiltersComboBox::updateSearchPattern( const QString newSearchPatt
 
 void PredefinedFiltersComboBox::retranslateUi()
 {
-    const QSignalBlocker blocker{ model_ };
+    const QScopedValueRollback<bool> collectingGuard{ ignoreCollecting_, true };
     setItemText( 0, tr( "Predefined filters" ) );
 }
 

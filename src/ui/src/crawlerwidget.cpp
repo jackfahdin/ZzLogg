@@ -78,6 +78,7 @@
 #include "shortcuts.h"
 
 static constexpr char AnsiColorSequenceRegex[] = "\\x1B\\[([0-9]{1,4}((;|:)[0-9]{1,3})*)?[mK]";
+static constexpr char SearchPatternProperty[] = "zzlogg.searchPattern";
 
 // Palette for error signaling (yellow background)
 const QPalette CrawlerWidget::ErrorPalette( Qt::darkYellow );
@@ -247,6 +248,7 @@ void CrawlerWidget::changeEvent( QEvent* event )
 
     if ( event->type() == QEvent::LanguageChange && searchButton_ != nullptr ) {
         retranslateUi();
+        Q_EMIT languageDisplayChanged();
     }
 
     const bool themeVisualChanged
@@ -403,8 +405,11 @@ void CrawlerWidget::startNewSearch()
         applyConfiguration();
     }
 
-    tabbedFilteredView_->setTabText( tabbedFilteredView_->currentIndex(),
-                                     "Find \"" + searchLineEdit_->currentText() + "\"" );
+    const int currentIndex = tabbedFilteredView_->currentIndex();
+    tabbedFilteredView_->currentWidget()->setProperty( SearchPatternProperty,
+                                                        searchLineEdit_->currentText() );
+    tabbedFilteredView_->setTabText(
+        currentIndex, tr( "Find \"%1\"" ).arg( searchLineEdit_->currentText() ) );
 
     // Record the search line in the recent list
     // (reload the list first in case another glogg changed it)
@@ -506,16 +511,10 @@ void CrawlerWidget::updateFilteredView( LinesCount nbMatches, int progress,
         // Search in progress
         // We ignore 0% and 100% to avoid a flash when the search is very short
         if ( progress > 0 ) {
-            // Some languages translate the plural the same as the singular, so use the full string
-
-            searchInfoLine_->setText(
-                tr( "Search in progress (%1 %)..." ).arg( QString::number( progress ) )
-                + ( nbMatches.get() > 1 ? tr( " %1 matches found so far." )
-                                              .arg( QString::number( nbMatches.get() ) )
-                                        : tr( " %1 match found so far." )
-                                              .arg( QString::number( nbMatches.get() ) ) ) );
-
-            searchInfoLine_->displayGauge( progress );
+            searchInfoState_ = SearchInfoState::Progress;
+            searchInfoMatches_ = nbMatches;
+            searchInfoProgress_ = progress;
+            renderSearchInfoMessage();
         }
     }
 
@@ -1628,9 +1627,9 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             logFilteredData_->runSearch( regexpPattern, searchStartLine_, searchEndLine_ );
             // Accept auto-refresh of the search
             searchState_.startSearch();
-            searchInfoLine_->hideGauge();
-            searchInfoLine_->setPalette( QPalette{} );
-            searchInfoLine_->hide();
+            searchInfoState_ = SearchInfoState::Empty;
+            searchExpressionError_.clear();
+            renderSearchInfoMessage();
             logMainView_->setSearchPattern( regexpPattern );
             filteredView_->setSearchPattern( regexpPattern );
         }
@@ -1641,19 +1640,9 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             searchState_.resetState();
 
             // Inform the user
-            QString errorString = hsExpression.errorString();
-            QString errorMessage = tr( "Error in expression" );
-            // const int offset = regexp.patternErrorOffset();
-            // if ( offset != -1 ) {
-            //     errorMessage += " at position ";
-            //     errorMessage += QString::number( offset );
-            // }
-            errorMessage += ": ";
-            errorMessage += errorString;
-            searchInfoLine_->hideGauge();
-            searchInfoLine_->setPalette( ErrorPalette );
-            searchInfoLine_->setText( errorMessage );
-            searchInfoLine_->show();
+            searchInfoState_ = SearchInfoState::InvalidExpression;
+            searchExpressionError_ = hsExpression.errorString();
+            renderSearchInfoMessage();
 
             logMainView_->setSearchPattern( {} );
             filteredView_->setSearchPattern( {} );
@@ -1684,28 +1673,70 @@ void CrawlerWidget::updateSearchCombo()
 // Print the search info message.
 void CrawlerWidget::printSearchInfoMessage( LinesCount nbMatches )
 {
-    QString text;
-
     switch ( searchState_.getState() ) {
     case SearchState::NoSearch:
-        // Blank text is fine
+        searchInfoState_ = SearchInfoState::Empty;
         break;
     case SearchState::Static:
     case SearchState::Autorefreshing:
-        // Some languages translate the plural the same as the singular, so use the full string
-        text = nbMatches.get() > 1 ? tr( "%1 matches found" ).arg( nbMatches.get() )
-                                   : tr( "%1 match found" ).arg( nbMatches.get() );
+        searchInfoState_ = SearchInfoState::Matches;
+        searchInfoMatches_ = nbMatches;
         break;
     case SearchState::FileTruncated:
     case SearchState::TruncatedAutorefreshing:
+        searchInfoState_ = SearchInfoState::FileTruncated;
+        break;
+    }
+
+    renderSearchInfoMessage();
+}
+
+void CrawlerWidget::renderSearchInfoMessage()
+{
+    QString text;
+    switch ( searchInfoState_ ) {
+    case SearchInfoState::Empty:
+        break;
+    case SearchInfoState::Matches:
+        text = searchInfoMatches_.get() > 1
+                   ? tr( "%1 matches found" ).arg( searchInfoMatches_.get() )
+                   : tr( "%1 match found" ).arg( searchInfoMatches_.get() );
+        break;
+    case SearchInfoState::FileTruncated:
         text = tr( "File truncated on disk" );
+        break;
+    case SearchInfoState::Progress:
+        text = tr( "Search in progress (%1 %)..." ).arg( searchInfoProgress_ )
+               + ( searchInfoMatches_.get() > 1
+                       ? tr( " %1 matches found so far." ).arg( searchInfoMatches_.get() )
+                       : tr( " %1 match found so far." ).arg( searchInfoMatches_.get() ) );
+        break;
+    case SearchInfoState::InvalidExpression:
+        text = tr( "Error in expression: %1" ).arg( searchExpressionError_ );
         break;
     }
 
     searchInfoLine_->hideGauge();
-    searchInfoLine_->setPalette( QPalette{} );
+    searchInfoLine_->setPalette( searchInfoState_ == SearchInfoState::InvalidExpression
+                                     ? ErrorPalette
+                                     : QPalette{} );
     searchInfoLine_->setText( text );
     searchInfoLine_->setVisible( !text.isEmpty() );
+    if ( searchInfoState_ == SearchInfoState::Progress ) {
+        searchInfoLine_->displayGauge( searchInfoProgress_ );
+    }
+}
+
+void CrawlerWidget::retranslateSearchResultTitles()
+{
+    for ( int index = 0; index < tabbedFilteredView_->count(); ++index ) {
+        const QVariant searchPattern
+            = tabbedFilteredView_->widget( index )->property( SearchPatternProperty );
+        if ( searchPattern.isValid() ) {
+            tabbedFilteredView_->setTabText(
+                index, tr( "Find \"%1\"" ).arg( searchPattern.toString() ) );
+        }
+    }
 }
 
 // Change the data status and, if needed, advise upstream.
@@ -1738,7 +1769,8 @@ void CrawlerWidget::retranslateUi()
     keepSearchResultsButton_->setToolTip(
         tr( "Keep these results and show subsequent results in a new window" ) );
     predefinedFilters_->retranslateUi();
-    printSearchInfoMessage( nbMatches_ );
+    retranslateSearchResultTitles();
+    renderSearchInfoMessage();
     updateEncodingText();
 }
 

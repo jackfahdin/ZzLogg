@@ -185,6 +185,9 @@ class CrawlerWidget : public QSplitter,
     // Sent up when the current filtered view has been changed
     void filteredViewChanged();
 
+    // Sent after display-only text owned by the crawler has been retranslated.
+    void languageDisplayChanged();
+
   private Q_SLOTS:
     // Instructs the widget to start a search using the current search line.
     void startNewSearch();
@@ -323,6 +326,14 @@ class CrawlerWidget : public QSplitter,
         bool autoRefreshRequested_;
     };
 
+    enum class SearchInfoState {
+        Empty,
+        Matches,
+        FileTruncated,
+        Progress,
+        InvalidExpression,
+    };
+
     // Private functions
     void setup();
     void setShortcuts();
@@ -330,6 +341,8 @@ class CrawlerWidget : public QSplitter,
     void updateSearchCombo();
     AbstractLogView* activeView() const;
     void printSearchInfoMessage( LinesCount nbMatches = 0_lcount );
+    void renderSearchInfoMessage();
+    void retranslateSearchResultTitles();
     void changeDataStatus( DataStatus status );
     void retranslateUi();
     void updateEncoding();
@@ -418,6 +431,11 @@ class CrawlerWidget : public QSplitter,
 
     // Current number of matches
     LinesCount nbMatches_;
+
+    SearchInfoState searchInfoState_ = SearchInfoState::Empty;
+    LinesCount searchInfoMatches_ = 0_lcount;
+    int searchInfoProgress_ = 0;
+    QString searchExpressionError_;
 
     LineNumber searchStartLine_;
     LineNumber searchEndLine_;

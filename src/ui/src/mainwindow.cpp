@@ -185,6 +185,8 @@ MainWindow::MainWindow( WindowSession session )
 
     signalMux_.connect( SIGNAL( filteredViewChanged() ), this,
                         SLOT( handleFilteredViewChanged() ) );
+    signalMux_.connect( SIGNAL( languageDisplayChanged() ), this,
+                        SLOT( retranslateStatusUi() ) );
 
     // Configure the main tabbed widget
     mainTabWidget_.setObjectName( QStringLiteral( "documentTabs" ) );
@@ -422,9 +424,6 @@ void MainWindow::reTranslateUI()
     scratchPad_.setWindowTitle( tr( "%1 - scratchpad" ).arg( productName() ) );
     auto* const crawler = currentCrawlerWidget();
     updateTitleBar( crawler ? session_.getFilename( crawler ) : QString{} );
-    if ( crawler != nullptr ) {
-        updateInfoLine();
-    }
 }
 
 int MainWindow::installLanguage( QString lang )
@@ -584,7 +583,13 @@ void MainWindow::createActions()
         auto& config = Configuration::get();
         config.setLineNumbersVisible( visible );
         config.save();
-        Q_EMIT optionsChanged();
+        for ( int index = 0; index < mainTabWidget_.count(); ++index ) {
+            auto* const crawler
+                = qobject_cast<CrawlerWidget*>( mainTabWidget_.widget( index ) );
+            if ( crawler != nullptr ) {
+                crawler->applyConfiguration();
+            }
+        }
     } );
 
     followAction = new QAction( tr( action::followText ), this );
@@ -848,12 +853,14 @@ void MainWindow::createMenus()
 void MainWindow::createToolBars()
 {
     infoLine = new PathLine();
+    infoLine->setObjectName( QStringLiteral( "mainInfoLine" ) );
     infoLine->setFrameStyle( QFrame::StyledPanel );
     infoLine->setFrameShadow( QFrame::Sunken );
     infoLine->setLineWidth( 0 );
     infoLine->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Minimum );
 
     sizeField = new QLabel();
+    sizeField->setObjectName( QStringLiteral( "sizeField" ) );
     sizeField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
     dateField = new QLabel();
@@ -861,9 +868,11 @@ void MainWindow::createToolBars()
     dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
     encodingField = new QLabel();
+    encodingField->setObjectName( QStringLiteral( "encodingField" ) );
     dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
     lineNbField = new QLabel();
+    lineNbField->setObjectName( QStringLiteral( "lineNumberField" ) );
     lineNbField->setAlignment( Qt::AlignRight | Qt::AlignVCenter );
     lineNbField->setContentsMargins( 2, 0, 2, 0 );
 
@@ -1335,34 +1344,49 @@ void MainWindow::changeFollowMode( bool follow )
 void MainWindow::lineNumberHandler( LineNumber startLine, LinesCount nLines, LineColumn startCol,
                                     LineLength nSymbols )
 {
+    selectedStartLine_ = startLine;
+    selectedLineCount_ = nLines;
+    selectedStartColumn_ = startCol;
+    selectedSymbolCount_ = nSymbols;
+    renderLineNumberStatus();
+}
+
+void MainWindow::renderLineNumberStatus()
+{
     // The line number received is the internal (starts at 0)
     uint64_t fileSize{};
     uint64_t fileNbLine{};
     QDateTime lastModified;
 
-    session_.getFileInfo( currentCrawlerWidget(), &fileSize, &fileNbLine, &lastModified );
+    auto* const crawler = currentCrawlerWidget();
+    if ( crawler == nullptr ) {
+        lineNbField->clear();
+        return;
+    }
+    session_.getFileInfo( crawler, &fileSize, &fileNbLine, &lastModified );
 
     if ( fileNbLine != 0 ) {
-        if ( nSymbols.get() == 0 ) {
-            lineNbField->setText( tr( "Ln:%1/%2" ).arg( startLine.get() + 1 ).arg( fileNbLine ) );
+        if ( selectedSymbolCount_.get() == 0 ) {
+            lineNbField->setText(
+                tr( "Ln:%1/%2" ).arg( selectedStartLine_.get() + 1 ).arg( fileNbLine ) );
         }
         else {
-            if ( nLines.get() == 1 ) {
+            if ( selectedLineCount_.get() == 1 ) {
                 // portion selection on one line
                 lineNbField->setText( tr( "Ln:%1/%2 Col:%3 Sel:%4|%5" )
-                                          .arg( startLine.get() + 1 )
+                                          .arg( selectedStartLine_.get() + 1 )
                                           .arg( fileNbLine )
-                                          .arg( startCol.get() )
-                                          .arg( nSymbols.get() )
-                                          .arg( nLines.get() ) );
+                                          .arg( selectedStartColumn_.get() )
+                                          .arg( selectedSymbolCount_.get() )
+                                          .arg( selectedLineCount_.get() ) );
             }
             else {
                 // multiple lines selection
                 lineNbField->setText( tr( "Ln:%1/%2 Sel:%4|%5" )
-                                          .arg( startLine.get() + 1 )
+                                          .arg( selectedStartLine_.get() + 1 )
                                           .arg( fileNbLine )
-                                          .arg( nSymbols.get() )
-                                          .arg( nLines.get() ) );
+                                          .arg( selectedSymbolCount_.get() )
+                                          .arg( selectedLineCount_.get() ) );
             }
         }
     }
@@ -1380,16 +1404,12 @@ void MainWindow::updateLoadingProgress( int progress )
 {
     LOG_DEBUG << "Loading progress: " << progress;
 
-    QString current_file
-        = QDir::toNativeSeparators( session_.getFilename( currentCrawlerWidget() ) );
-
     // We ignore 0% and 100% to avoid a flash when the file (or update)
     // is very short.
     if ( progress > 0 && progress < 100 ) {
-        infoLine->setText( current_file + tr( " - Indexing lines... (%1 %)" ).arg( progress ) );
-        infoLine->displayGauge( progress );
-
-        showInfoLabels( false );
+        infoDisplayState_ = InfoDisplayState::Loading;
+        loadingProgress_ = progress;
+        updateInfoLine();
 
         stopAction->setEnabled( true );
         reloadAction->setEnabled( false );
@@ -1402,6 +1422,7 @@ void MainWindow::handleLoadingFinished( LoadingStatus status )
 
     // No file is loading
     loadingFileName.clear();
+    infoDisplayState_ = InfoDisplayState::Normal;
 
     if ( status == LoadingStatus::Successful ) {
         updateInfoLine();
@@ -1950,22 +1971,34 @@ void MainWindow::updateMenuBarFromDocument( const CrawlerWidget* crawler )
 void MainWindow::updateInfoLine()
 {
     QLocale defaultLocale;
+    auto* const crawler = currentCrawlerWidget();
+    Q_ASSERT( crawler != nullptr );
 
     // Following should always work as we will only receive enter
     // this slot if there is a crawler connected.
     QString current_file
-        = QDir::toNativeSeparators( session_.getFilename( currentCrawlerWidget() ) );
+        = QDir::toNativeSeparators( session_.getFilename( crawler ) );
+
+    infoLine->setPath( current_file );
+    encodingField->setText( crawler->encodingText() );
+    if ( infoDisplayState_ == InfoDisplayState::Loading ) {
+        infoLine->setText(
+            current_file + tr( " - Indexing lines... (%1 %)" ).arg( loadingProgress_ ) );
+        infoLine->displayGauge( loadingProgress_ );
+        showInfoLabels( false );
+        return;
+    }
 
     uint64_t fileSize;
     uint64_t fileNbLine;
     QDateTime lastModified;
 
-    session_.getFileInfo( currentCrawlerWidget(), &fileSize, &fileNbLine, &lastModified );
+    session_.getFileInfo( crawler, &fileSize, &fileNbLine, &lastModified );
 
     infoLine->setText( current_file );
-    infoLine->setPath( current_file );
+    infoLine->hideGauge();
+    showInfoLabels( true );
     sizeField->setText( readableSize( fileSize ) );
-    encodingField->setText( currentCrawlerWidget()->encodingText() );
 
     if ( lastModified.isValid() ) {
         const QString date = defaultLocale.toString( lastModified, QLocale::NarrowFormat );
@@ -1974,6 +2007,14 @@ void MainWindow::updateInfoLine()
     }
     else {
         dateField->hide();
+    }
+}
+
+void MainWindow::retranslateStatusUi()
+{
+    if ( currentCrawlerWidget() != nullptr ) {
+        updateInfoLine();
+        renderLineNumberStatus();
     }
 }
 

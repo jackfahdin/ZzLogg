@@ -37,8 +37,10 @@ void LineNumberConfigurationTest::migratesLegacyValues_data()
                                    << QVariant::fromValue( false ) << true;
     QTest::newRow( "true-true" ) << QVariant::fromValue( true )
                                   << QVariant::fromValue( true ) << true;
-    QTest::newRow( "main-only" ) << QVariant::fromValue( false ) << QVariant{} << false;
-    QTest::newRow( "filtered-only" ) << QVariant{} << QVariant::fromValue( true ) << true;
+    QTest::newRow( "main-only-false" ) << QVariant::fromValue( false ) << QVariant{} << false;
+    QTest::newRow( "main-only-true" ) << QVariant::fromValue( true ) << QVariant{} << true;
+    QTest::newRow( "filtered-only-false" ) << QVariant{} << QVariant::fromValue( false ) << false;
+    QTest::newRow( "filtered-only-true" ) << QVariant{} << QVariant::fromValue( true ) << true;
 }
 
 void LineNumberConfigurationTest::migratesLegacyValues()

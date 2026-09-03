@@ -124,6 +124,7 @@ endif()
 
 target_include_directories(klogg_ui PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/klogg_ui_autogen/include>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/klogg_ui_autogen/include_$<CONFIG>>")
 target_link_libraries(
   klogg_ui

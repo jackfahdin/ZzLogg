@@ -120,6 +120,8 @@ class EncodingMenu {
 
         autoEncoding->setText(
             QApplication::translate( "klogg::mainwindow::action", action::autoEncodingText ) );
+        autoEncoding->setStatusTip( QApplication::translate(
+            "klogg::mainwindow::action", action::autoEncodingStatusTip ) );
         systemEncoding->setText(
             QCoreApplication::translate( "EncodingMenu", "System (%1)" )
                 .arg( systemEncoding->property( "encodingName" ).toString() ) );
