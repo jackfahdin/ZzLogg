@@ -1,8 +1,9 @@
 #include <QtTest>
 
 #include <QAction>
+#include <QMenu>
+#include <QMenuBar>
 #include <QPointer>
-#include <QRegularExpression>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
@@ -66,10 +67,25 @@ void LineNumberUiTest::oneActionSynchronizesLineNumbersAcrossViewsAndDocuments()
     auto* action = window.findChild<QAction*>( QStringLiteral( "lineNumbersVisibleAction" ) );
     QVERIFY( action );
     QCOMPARE( action->text(), QStringLiteral( "Line &numbers" ) );
-    QCOMPARE( window.findChildren<QAction*>( QRegularExpression{
-                  QStringLiteral( "lineNumbersVisible(InMain|InFiltered)Action" ) } )
-                  .size(),
-              0 );
+    QMenu* viewMenu = nullptr;
+    const auto menus = window.menuBar()->findChildren<QMenu*>( QString(), Qt::FindDirectChildrenOnly );
+    for ( auto* menu : menus ) {
+        if ( menu->title() == QStringLiteral( "&View" ) ) {
+            viewMenu = menu;
+            break;
+        }
+    }
+    QVERIFY( viewMenu );
+
+    QList<QAction*> lineNumberActions;
+    for ( auto* candidate : viewMenu->actions() ) {
+        if ( candidate->text().contains( QStringLiteral( "line" ), Qt::CaseInsensitive )
+             && candidate->text().contains( QStringLiteral( "number" ), Qt::CaseInsensitive ) ) {
+            lineNumberActions.append( candidate );
+        }
+    }
+    QCOMPARE( lineNumberActions.size(), 1 );
+    QCOMPARE( lineNumberActions.constFirst(), action );
 
     auto* mainView = window.findChild<LogMainView*>( QStringLiteral( "logMainView" ) );
     auto* filteredView = window.findChild<FilteredView*>( QStringLiteral( "logFilteredView" ) );
