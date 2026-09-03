@@ -338,10 +338,19 @@ private Q_SLOTS:
             5000 );
         QCOMPARE( searchInfoLine->palette().color( QPalette::Window ), errorWindowColor );
         logView->followSet( false );
-        Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::HighContrast );
-        QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::System );
         Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::Dark );
         QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::Dark );
+        QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark );
+
+        Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::HighContrast );
+        QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::Dark );
+        QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark );
+
+        Q_EMIT secondShell->themeModeRequested( ZzFluentUI::ZzThemeMode::System );
+        QCOMPARE( Configuration::getSynced().uiThemeMode(), UiThemeMode::Dark );
+        QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark );
+
+        Q_EMIT first->uiThemeChanged( UiThemeMode::System );
         QCOMPARE( style->themeSnapshot()->mode(), ZzFluentUI::ZzThemeMode::Dark );
 
         first->close();

@@ -1,6 +1,7 @@
 #include "zzlogguiruntime.h"
 
 #include <exception>
+#include <optional>
 
 #include <QMessageBox>
 #include <QStyleFactory>
@@ -32,7 +33,7 @@ ZzFluentUI::ZzThemeMode toZzThemeMode( UiThemeMode mode )
     }
 }
 
-UiThemeMode fromZzThemeMode( ZzFluentUI::ZzThemeMode mode )
+std::optional<UiThemeMode> fromZzThemeMode( ZzFluentUI::ZzThemeMode mode )
 {
     switch ( mode ) {
     case ZzFluentUI::ZzThemeMode::Light:
@@ -42,7 +43,7 @@ UiThemeMode fromZzThemeMode( ZzFluentUI::ZzThemeMode mode )
     case ZzFluentUI::ZzThemeMode::HighContrast:
     case ZzFluentUI::ZzThemeMode::System:
     default:
-        return UiThemeMode::System;
+        return std::nullopt;
     }
 }
 
@@ -138,7 +139,9 @@ void ZzLoggUiRuntime::decorate( MainWindow& window )
                  [ this ]( UiThemeMode mode ) { applyTheme( mode, false ); } );
         connect( shell, &ZzLoggFluentShell::themeModeRequested, this,
                  [ this ]( ZzFluentUI::ZzThemeMode mode ) {
-                     applyTheme( fromZzThemeMode( mode ), true );
+                     if ( const auto requestedMode = fromZzThemeMode( mode ) ) {
+                         applyTheme( *requestedMode, true );
+                     }
                  } );
     } catch ( const std::exception& exception ) {
         LOG_WARNING << "Fluent window decoration threw: " << exception.what();
@@ -149,6 +152,10 @@ void ZzLoggUiRuntime::decorate( MainWindow& window )
 
 void ZzLoggUiRuntime::applyTheme( UiThemeMode mode, bool persist )
 {
+    if ( mode == UiThemeMode::System ) {
+        return;
+    }
+
     if ( persist ) {
         auto& configuration = Configuration::get();
         configuration.setUiThemeMode( mode );
