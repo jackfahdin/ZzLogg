@@ -61,9 +61,7 @@ const char* action::openClipboardStatusTip = QT_TR_NOOP( "Open clipboard as log 
 const char* action::openUrlText = QT_TR_NOOP( "Open from URL..." );
 const char* action::openUrlStatusTip = QT_TR_NOOP( "Open URL as log file" );
 const char* action::overviewVisibleText = QT_TR_NOOP( "Matches &overview" );
-const char* action::lineNumbersVisibleInMainText = QT_TR_NOOP( "Line &numbers in main view" );
-const char* action::lineNumbersVisibleInFilteredText
-    = QT_TR_NOOP( "Line &numbers in filtered view" );
+const char* action::lineNumbersVisibleText = QT_TR_NOOP( "Line &numbers" );
 const char* action::followText = QT_TR_NOOP( "&Follow File" );
 const char* action::wrapText = QT_TR_NOOP( "&Wrap text" );
 const char* action::reloadText = QT_TR_NOOP( "&Reload" );

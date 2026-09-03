@@ -4,6 +4,21 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_line_number_ui_test linenumberuitest.cpp)
+target_link_libraries(zzlogg_line_number_ui_test PRIVATE
+  klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
+set_target_properties(zzlogg_line_number_ui_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.line_number_ui
+  COMMAND zzlogg_line_number_ui_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.line_number_ui PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.line_number_ui APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_executable(zzlogg_line_number_configuration_test
   linenumberconfigurationtest.cpp)
 target_link_libraries(zzlogg_line_number_configuration_test PRIVATE

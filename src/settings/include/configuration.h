@@ -285,15 +285,6 @@ class Configuration final : public Persistable<Configuration> {
     {
         lineNumbersVisible_ = visible;
     }
-    // Temporary compatibility wrappers for callers migrated in a later task.
-    bool mainLineNumbersVisible() const
-    {
-        return lineNumbersVisible_;
-    }
-    bool filteredLineNumbersVisible() const
-    {
-        return lineNumbersVisible_;
-    }
     bool minimizeToTray() const
     {
         return minimizeToTray_;
@@ -301,14 +292,6 @@ class Configuration final : public Persistable<Configuration> {
     QString style() const
     {
         return style_;
-    }
-    void setMainLineNumbersVisible( bool lineNumbersVisible )
-    {
-        lineNumbersVisible_ = lineNumbersVisible;
-    }
-    void setFilteredLineNumbersVisible( bool lineNumbersVisible )
-    {
-        lineNumbersVisible_ = lineNumbersVisible;
     }
     void setMinimizeToTray( bool minimizeToTray )
     {

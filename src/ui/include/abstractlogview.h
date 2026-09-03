@@ -279,6 +279,7 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
 
     // Configure the setting of whether to show line number margin
     void setLineNumbersVisible( bool lineNumbersVisible );
+    bool lineNumbersVisible() const { return lineNumbersVisible_; }
 
     // Force the next refresh to fully redraw the view by invalidating the cache.
     // To be used if the data might have changed.

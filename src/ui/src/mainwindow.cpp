@@ -365,9 +365,7 @@ void MainWindow::reTranslateUI()
 
     overviewVisibleAction->setText( transAction( action::overviewVisibleText ) );
 
-    lineNumbersVisibleInMainAction->setText( transAction( action::lineNumbersVisibleInMainText ) );
-    lineNumbersVisibleInFilteredAction->setText(
-        transAction( action::lineNumbersVisibleInFilteredText ) );
+    lineNumbersVisibleAction->setText( transAction( action::lineNumbersVisibleText ) );
 
     followAction->setText( transAction( action::followText ) );
     textWrapAction->setText( transAction( action::wrapText ) );
@@ -548,19 +546,16 @@ void MainWindow::createActions()
     connect( overviewVisibleAction, &QAction::toggled, this,
              &MainWindow::toggleOverviewVisibility );
 
-    lineNumbersVisibleInMainAction
-        = new QAction( tr( action::lineNumbersVisibleInMainText ), this );
-    lineNumbersVisibleInMainAction->setCheckable( true );
-    lineNumbersVisibleInMainAction->setChecked( config.mainLineNumbersVisible() );
-    connect( lineNumbersVisibleInMainAction, &QAction::toggled, this,
-             &MainWindow::toggleMainLineNumbersVisibility );
-
-    lineNumbersVisibleInFilteredAction
-        = new QAction( tr( action::lineNumbersVisibleInFilteredText ), this );
-    lineNumbersVisibleInFilteredAction->setCheckable( true );
-    lineNumbersVisibleInFilteredAction->setChecked( config.filteredLineNumbersVisible() );
-    connect( lineNumbersVisibleInFilteredAction, &QAction::toggled, this,
-             &MainWindow::toggleFilteredLineNumbersVisibility );
+    lineNumbersVisibleAction = new QAction( tr( action::lineNumbersVisibleText ), this );
+    lineNumbersVisibleAction->setObjectName( QStringLiteral( "lineNumbersVisibleAction" ) );
+    lineNumbersVisibleAction->setCheckable( true );
+    lineNumbersVisibleAction->setChecked( config.lineNumbersVisible() );
+    connect( lineNumbersVisibleAction, &QAction::toggled, this, [ this ]( bool visible ) {
+        auto& config = Configuration::get();
+        config.setLineNumbersVisible( visible );
+        config.save();
+        Q_EMIT optionsChanged();
+    } );
 
     followAction = new QAction( tr( action::followText ), this );
     followAction->setCheckable( true );
@@ -775,8 +770,7 @@ void MainWindow::createMenus()
     viewMenu->addSeparator();
     viewMenu->addAction( overviewVisibleAction );
     viewMenu->addSeparator();
-    viewMenu->addAction( lineNumbersVisibleInMainAction );
-    viewMenu->addAction( lineNumbersVisibleInFilteredAction );
+    viewMenu->addAction( lineNumbersVisibleAction );
     viewMenu->addSeparator();
     viewMenu->addAction( textWrapAction );
     viewMenu->addSeparator();
@@ -1287,24 +1281,6 @@ void MainWindow::toggleOverviewVisibility( bool isVisible )
 {
     auto& config = Configuration::get();
     config.setOverviewVisible( isVisible );
-    config.save();
-    Q_EMIT optionsChanged();
-}
-
-void MainWindow::toggleMainLineNumbersVisibility( bool isVisible )
-{
-    auto& config = Configuration::get();
-
-    config.setMainLineNumbersVisible( isVisible );
-    config.save();
-    Q_EMIT optionsChanged();
-}
-
-void MainWindow::toggleFilteredLineNumbersVisibility( bool isVisible )
-{
-    auto& config = Configuration::get();
-
-    config.setFilteredLineNumbersVisible( isVisible );
     config.save();
     Q_EMIT optionsChanged();
 }

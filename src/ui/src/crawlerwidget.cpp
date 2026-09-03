@@ -643,7 +643,8 @@ void CrawlerWidget::applyConfiguration()
         logData_->setPrefilter( {} );
     }
 
-    logMainView_->setLineNumbersVisible( config.mainLineNumbersVisible() );
+    const bool lineNumbersVisible = config.lineNumbersVisible();
+    logMainView_->setLineNumbersVisible( lineNumbersVisible );
 
     const auto isFollowModeAllowed = config.anyFileWatchEnabled();
     logMainView_->allowFollowMode( isFollowModeAllowed );
@@ -653,7 +654,7 @@ void CrawlerWidget::applyConfiguration()
 
     for ( auto i = 0; i < tabbedFilteredView_->count(); ++i ) {
         auto fv = qobject_cast<FilteredView*>( tabbedFilteredView_->widget( i ) );
-        fv->setLineNumbersVisible( config.filteredLineNumbersVisible() );
+        fv->setLineNumbersVisible( lineNumbersVisible );
         fv->allowFollowMode( isFollowModeAllowed );
         fv->updateFont( font );
     }
@@ -973,9 +974,11 @@ void CrawlerWidget::setup()
     overviewWidget_ = new OverviewWidget();
     logMainView_
         = new LogMainView( logData_.get(), quickFindPattern_.get(), &overview_, overviewWidget_ );
+    logMainView_->setObjectName( QStringLiteral( "logMainView" ) );
     logMainView_->setContentsMargins( 2, 0, 2, 0 );
 
     filteredView_ = new FilteredView( logFilteredData_.get(), quickFindPattern_.get() );
+    filteredView_->setObjectName( QStringLiteral( "logFilteredView" ) );
     filteredViewsData_[ filteredView_ ] = logFilteredData_;
     filteredView_->setContentsMargins( 2, 0, 2, 0 );
 
