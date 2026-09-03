@@ -52,6 +52,7 @@
 #include "ui_optionsdialog.h"
 
 class StorageLocationPage;
+class QEvent;
 
 class KeySequencePresenter : public QWidget {
     Q_OBJECT
@@ -82,6 +83,9 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     void optionsChanged();
     void restartRequested();
 
+  protected:
+    void changeEvent( QEvent* event ) override;
+
   private Q_SLOTS:
     // Clears and updates the font size box with the sizes allowed
     // by the passed font family.
@@ -108,16 +112,12 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     void setupStyles();
     void setupEncodings();
     void setupLanguageList();
+    void retranslateDynamicUi();
+    void retranslateShortcutTable();
 
     int updateTranslate();
 
     void buildShortcutsTable(bool useDefaultsOnly);
-
-    int getRegexpTypeIndex( SearchRegexpType syntax ) const;
-    SearchRegexpType getRegexpTypeFromIndex( int index ) const;
-
-    int getRegexpEngineIndex( RegexpEngine engine ) const;
-    RegexpEngine getRegexpEngineFromIndex( int index ) const;
 
     void updateDialogFromConfig();
     bool scheduleStorageMigration();

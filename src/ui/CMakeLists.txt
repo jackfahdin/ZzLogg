@@ -122,7 +122,9 @@ if(KLOGG_USE_LTO)
   set_property(TARGET klogg_ui PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-target_include_directories(klogg_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(klogg_ui PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/klogg_ui_autogen/include_$<CONFIG>>")
 target_link_libraries(
   klogg_ui
   PUBLIC project_options

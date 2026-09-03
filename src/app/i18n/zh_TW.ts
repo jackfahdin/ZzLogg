@@ -729,7 +729,8 @@
         <translation>偏好設定</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="105"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="106"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="198"/>
         <source>%1 preferences</source>
         <translation>%1 偏好設定</translation>
     </message>
@@ -1104,102 +1105,132 @@
         <translation>詳細級別</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="108"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="109"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="199"/>
         <source>Storage</source>
         <translation>儲存</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="131"/>
-        <source>Light</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="132"/>
-        <source>Dark</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../ui/src/optionsdialog.cpp" line="200"/>
+        <source>Light</source>
+        <translation>淺色</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="208"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="133"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="201"/>
+        <source>Dark</source>
+        <translation>深色</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="161"/>
+        <source>Restore Default Shortcuts</source>
+        <translation>還原預設快捷鍵</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="161"/>
+        <source>Do you want to restore default shortcuts?</source>
+        <translation>要還原預設快捷鍵嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="202"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="205"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="256"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="258"/>
         <source>Extended Regexp</source>
         <translation>擴充正規表達式</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="208"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="203"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="206"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="257"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="260"/>
         <source>Fixed Strings</source>
         <translation>固定字串</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="214"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="207"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="261"/>
         <source>Hyperscan</source>
         <translation>Hyperscan</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="214"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="208"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="262"/>
         <source>Qt</source>
         <translation>Qt</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="674"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="209"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="273"/>
+        <source>Auto</source>
+        <translation>自動</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/optionsdialog.cpp" line="658"/>
         <source>Failed to save settings before changing storage location.</source>
         <translation>變更儲存位置前無法儲存設定。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="685"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="669"/>
         <source>%1 needs to be restarted to apply some changes. </source>
         <translation>%1 需要重新啟動以套用部分變更。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="704"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="688"/>
         <source>The selected storage location is not valid: %1</source>
         <translation>所選的儲存位置無效：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="723"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="707"/>
         <source>The selected directory already contains ZzLogg data. Automatic merging is not supported; choose an empty directory.</source>
         <translation>所選目錄已包含 ZzLogg 資料。不支援自動合併；請選擇空目錄。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="733"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="717"/>
         <source>Cannot schedule the storage change because the active locator does not match the current data directory: %1</source>
         <translation>目前的定位檔與目前的資料目錄不符，無法排程變更儲存位置：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="752"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="736"/>
         <source>Another storage location change is already pending. Restart ZzLogg before choosing a different location.</source>
         <translation>另一項儲存位置變更已在等待處理。請先重新啟動 ZzLogg，再選擇其他位置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="763"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="747"/>
         <source>Failed to schedule the storage location change: %1</source>
         <translation>無法排程儲存位置變更：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="775"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="759"/>
         <source>The storage location will change after ZzLogg restarts.</source>
         <translation>ZzLogg 重新啟動後將變更儲存位置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="777"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="761"/>
         <source>Restart now</source>
         <translation>立即重新啟動</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="778"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="762"/>
         <source>Restart later</source>
         <translation>稍後重新啟動</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="897"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="217"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="881"/>
         <source>Action</source>
         <translation>動作</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="898"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="220"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="882"/>
         <source>Primary shortcut</source>
         <translation>主要快捷鍵</translation>
     </message>
     <message>
-        <location filename="../../ui/src/optionsdialog.cpp" line="900"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="223"/>
+        <location filename="../../ui/src/optionsdialog.cpp" line="884"/>
         <source>Secondary shortcut</source>
         <translation>次要快捷鍵</translation>
     </message>
@@ -1816,67 +1847,73 @@
 <context>
     <name>StorageLocationPage</name>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="36"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="140"/>
         <source>请选择 ZzLogg 数据的保存位置。</source>
         <translation>請選擇 ZzLogg 資料的儲存位置。</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="41"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="42"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="141"/>
         <source>用户数据目录</source>
         <translation>使用者資料目錄</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="46"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="47"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="142"/>
         <source>程序目录（data）</source>
         <translation>程式目錄（data）</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="50"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="51"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="143"/>
         <source>自定义目录</source>
         <translation>自訂目錄</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="58"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="59"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="144"/>
         <source>请输入绝对路径</source>
         <translation>請輸入絕對路徑</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="59"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="60"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="146"/>
         <source>浏览…</source>
         <translation>瀏覽…</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="69"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="70"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="147"/>
         <source>打开目录</source>
         <translation>開啟目錄</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="74"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="145"/>
         <source>数据目录：</source>
         <translation>資料目錄：</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="111"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="114"/>
         <source>选择 ZzLogg 数据目录</source>
         <translation>選擇 ZzLogg 資料目錄</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="235"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="259"/>
         <source>无法创建程序目录以验证存储位置：%1</source>
         <translation>無法建立程式目錄以驗證儲存位置：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="267"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="291"/>
         <source>无法清理存储定位文件写入探针：%1</source>
         <translation>無法清理儲存定位檔寫入探針：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="271"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="295"/>
         <source>无法在程序目录旁原子写入存储定位文件：%1</source>
         <translation>無法在程式目錄旁以原子方式寫入儲存定位檔：%1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/storagelocationpage.cpp" line="275"/>
+        <location filename="../../ui/src/storagelocationpage.cpp" line="299"/>
         <source>写入后无法完整读回存储定位文件探针：%1</source>
         <translation>寫入後無法完整讀回儲存定位檔探針：%1</translation>
     </message>

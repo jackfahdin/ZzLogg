@@ -8,6 +8,7 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QRadioButton;
+class QEvent;
 
 // Reusable selector that validates a choice without persisting it.
 class StorageLocationPage final : public QWidget {
@@ -23,13 +24,17 @@ public:
     bool isSelectionValid() const;
     QString validationError() const;
     void setCommandLineManaged( bool managed );
+    void retranslateUi();
 
 Q_SIGNALS:
     void validityChanged( bool valid );
 
+  protected:
+    void changeEvent( QEvent* event ) override;
+
 private:
     QString rootForSelection() const;
-    void refreshValidation();
+    void refreshValidation( bool normalizeCustomPath = true );
     void updateEditControls();
     bool validateProgramLocatorDirectory( QString* error ) const;
 
@@ -40,6 +45,8 @@ private:
     QLineEdit* customStoragePath_ = nullptr;
     QPushButton* browseStorageButton_ = nullptr;
     QPushButton* openStorageDirectoryButton_ = nullptr;
+    QLabel* explanationLabel_ = nullptr;
+    QLabel* dataDirectoryLabel_ = nullptr;
     QLabel* storageValidationLabel_ = nullptr;
     QString applicationDirectory_;
     QString userDataDirectory_;

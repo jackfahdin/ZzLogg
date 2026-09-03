@@ -37,6 +37,7 @@
  */
 
 #include <QColorDialog>
+#include <QEvent>
 #include <QKeySequenceEdit>
 #include <QMessageBox>
 #include <QStandardPaths>
@@ -157,7 +158,7 @@ OptionsDialog::OptionsDialog( QWidget* parent )
 
     connect( restoreShortcutsDefaults, &QPushButton::clicked, this, [ this ]() {
         auto ret = QMessageBox::question(
-            this, "Restore Default Shortcuts", "Do you want to restore default shortcuts?",
+            this, tr( "Restore Default Shortcuts" ), tr( "Do you want to restore default shortcuts?" ),
             QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel );
         if ( ret == QMessageBox::Yes )
             buildShortcutsTable( true );
@@ -171,9 +172,57 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     setupArchives();
 }
 
+void OptionsDialog::changeEvent( QEvent* event )
+{
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateDynamicUi();
+    }
+    QDialog::changeEvent( event );
+}
+
 //
 // Private functions
 //
+
+void OptionsDialog::retranslateDynamicUi()
+{
+    const auto replaceText = []( QComboBox* box, const QVariant& itemData,
+                                 const QString& text ) {
+        const int index = box->findData( itemData );
+        if ( index >= 0 ) {
+            box->setItemText( index, text );
+        }
+    };
+
+    retranslateUi( this );
+    setWindowTitle( tr( "%1 preferences" ).arg( QApplication::applicationDisplayName() ) );
+    tabWidget->setTabText( tabWidget->indexOf( storageLocationPage_ ), tr( "Storage" ) );
+    replaceText( themeModeComboBox, int( UiThemeMode::Light ), tr( "Light" ) );
+    replaceText( themeModeComboBox, int( UiThemeMode::Dark ), tr( "Dark" ) );
+    replaceText( mainSearchBox, int( SearchRegexpType::ExtendedRegexp ), tr( "Extended Regexp" ) );
+    replaceText( mainSearchBox, int( SearchRegexpType::FixedString ), tr( "Fixed Strings" ) );
+    replaceText( quickFindSearchBox, int( SearchRegexpType::ExtendedRegexp ),
+                 tr( "Extended Regexp" ) );
+    replaceText( quickFindSearchBox, int( SearchRegexpType::FixedString ), tr( "Fixed Strings" ) );
+    replaceText( regexpEngineComboBox, int( RegexpEngine::Hyperscan ), tr( "Hyperscan" ) );
+    replaceText( regexpEngineComboBox, int( RegexpEngine::QRegularExpression ), tr( "Qt" ) );
+    replaceText( encodingComboBox, -1, tr( "Auto" ) );
+    retranslateShortcutTable();
+    storageLocationPage_->retranslateUi();
+}
+
+void OptionsDialog::retranslateShortcutTable()
+{
+    if ( auto* actionHeader = shortcutsTable->horizontalHeaderItem( 0 ) ) {
+        actionHeader->setText( tr( "Action" ) );
+    }
+    if ( auto* primaryHeader = shortcutsTable->horizontalHeaderItem( 1 ) ) {
+        primaryHeader->setText( tr( "Primary shortcut" ) );
+    }
+    if ( auto* secondaryHeader = shortcutsTable->horizontalHeaderItem( 2 ) ) {
+        secondaryHeader->setText( tr( "Secondary shortcut" ) );
+    }
+}
 
 // Setups the tabs depending on the configuration
 void OptionsDialog::setupTabs()
@@ -204,16 +253,13 @@ void OptionsDialog::setupFontList()
 // Populate the regexp ComboBoxes
 void OptionsDialog::setupRegexp()
 {
-    QStringList regexpTypes;
-    regexpTypes << tr( "Extended Regexp" ) << tr( "Fixed Strings" );
-
-    mainSearchBox->addItems( regexpTypes );
-    quickFindSearchBox->addItems( regexpTypes );
-
-    QStringList regexpEngines;
-    regexpEngines << tr( "Hyperscan" ) << tr( "Qt" );
-
-    regexpEngineComboBox->addItems( regexpEngines );
+    mainSearchBox->addItem( tr( "Extended Regexp" ), int( SearchRegexpType::ExtendedRegexp ) );
+    mainSearchBox->addItem( tr( "Fixed Strings" ), int( SearchRegexpType::FixedString ) );
+    quickFindSearchBox->addItem( tr( "Extended Regexp" ),
+                                 int( SearchRegexpType::ExtendedRegexp ) );
+    quickFindSearchBox->addItem( tr( "Fixed Strings" ), int( SearchRegexpType::FixedString ) );
+    regexpEngineComboBox->addItem( tr( "Hyperscan" ), int( RegexpEngine::Hyperscan ) );
+    regexpEngineComboBox->addItem( tr( "Qt" ), int( RegexpEngine::QRegularExpression ) );
 }
 
 void OptionsDialog::setupStyles()
@@ -224,7 +270,7 @@ void OptionsDialog::setupStyles()
 void OptionsDialog::setupEncodings()
 {
     const auto availableEncodings = EncodingMenu::supportedEncodings();
-    encodingComboBox->addItem( "Auto", -1 );
+    encodingComboBox->addItem( tr( "Auto" ), -1 );
 
     std::map<QString, int> allMibs;
 
@@ -283,72 +329,6 @@ void OptionsDialog::setupArchives()
     extractArchivesAlwaysCheckBox->setEnabled( extractArchivesCheckBox->isChecked() );
 }
 
-// Convert a regexp type to its index in the list
-int OptionsDialog::getRegexpTypeIndex( SearchRegexpType syntax ) const
-{
-    int index;
-
-    switch ( syntax ) {
-    case SearchRegexpType::FixedString:
-        index = 1;
-        break;
-    default:
-        index = 0;
-        break;
-    }
-
-    return index;
-}
-
-// Convert the index of a regexp type to its type
-SearchRegexpType OptionsDialog::getRegexpTypeFromIndex( int index ) const
-{
-    SearchRegexpType type;
-
-    switch ( index ) {
-    case 1:
-        type = SearchRegexpType::FixedString;
-        break;
-    default:
-        type = SearchRegexpType::ExtendedRegexp;
-        break;
-    }
-
-    return type;
-}
-
-int OptionsDialog::getRegexpEngineIndex( RegexpEngine engine ) const
-{
-    int index;
-
-    switch ( engine ) {
-    case RegexpEngine::QRegularExpression:
-        index = 1;
-        break;
-    default:
-        index = 0;
-        break;
-    }
-
-    return index;
-}
-
-RegexpEngine OptionsDialog::getRegexpEngineFromIndex( int index ) const
-{
-    RegexpEngine type;
-
-    switch ( index ) {
-    case 1:
-        type = RegexpEngine::QRegularExpression;
-        break;
-    default:
-        type = RegexpEngine::Hyperscan;
-        break;
-    }
-
-    return type;
-}
-
 // Updates the dialog box using values in global Config()
 void OptionsDialog::updateDialogFromConfig()
 {
@@ -395,13 +375,16 @@ void OptionsDialog::updateDialogFromConfig()
     hideAnsiColorsCheckBox->setChecked( config.hideAnsiColorSequences() );
 
     // Regexp types
-    mainSearchBox->setCurrentIndex( getRegexpTypeIndex( config.mainRegexpType() ) );
+    const int mainRegexpIndex = mainSearchBox->findData( int( config.mainRegexpType() ) );
+    mainSearchBox->setCurrentIndex( mainRegexpIndex < 0 ? 0 : mainRegexpIndex );
     mainSearchColor_ = config.mainSearchBackColor();
     HighlighterEdit::updateIcon( mainSearchColorButton, mainSearchColor_ );
-    quickFindSearchBox->setCurrentIndex( getRegexpTypeIndex( config.quickfindRegexpType() ) );
+    const int quickFindRegexpIndex = quickFindSearchBox->findData( int( config.quickfindRegexpType() ) );
+    quickFindSearchBox->setCurrentIndex( quickFindRegexpIndex < 0 ? 0 : quickFindRegexpIndex );
     qfSearchColor_ = config.qfBackColor();
     HighlighterEdit::updateIcon( quickFindColorButton, qfSearchColor_ );
-    regexpEngineComboBox->setCurrentIndex( getRegexpEngineIndex( config.regexpEngine() ) );
+    const int regexpEngineIndex = regexpEngineComboBox->findData( int( config.regexpEngine() ) );
+    regexpEngineComboBox->setCurrentIndex( regexpEngineIndex < 0 ? 0 : regexpEngineIndex );
     autoRunSearchOnAddCheckBox->setChecked( config.autoRunSearchOnPatternChange() );
 
     highlightMainSearchCheckBox->setChecked( config.mainSearchHighlight() );
@@ -551,8 +534,7 @@ void OptionsDialog::checkShortcutsOnDuplicate() const
 
 int OptionsDialog::updateTranslate()
 {
-    auto mw = dynamic_cast<MainWindow*>( parent() );
-    return mw->installLanguage( languageComboBox->currentData().toString() );
+    return MainWindow::installLanguage( languageComboBox->currentData().toString() );
 }
 
 bool OptionsDialog::updateConfigFromDialog()
@@ -568,17 +550,20 @@ bool OptionsDialog::updateConfigFromDialog()
     config.setEnableQtHighDpi( enableQtHiDpiCheckBox->isChecked() );
     config.setScaleFactorRounding( scaleRoundingComboBox->currentIndex() + 1 );
 
-    config.setMainRegexpType( getRegexpTypeFromIndex( mainSearchBox->currentIndex() ) );
+    config.setMainRegexpType(
+        static_cast<SearchRegexpType>( mainSearchBox->currentData().toInt() ) );
     config.setMainSearchBackColor( mainSearchColor_ );
     config.setEnableMainSearchHighlight( highlightMainSearchCheckBox->isChecked() );
     config.setVariateMainSearchHighlight( variateHighlightCheckBox->isChecked() );
     config.setSearchIgnoreCaseDefault( !caseSensitiveCheckBox->isChecked() );
     config.setSearchAutoRefreshDefault( autoRefreshCheckBox->isChecked() );
     config.setSearchLogicalCombiningDefault( logicalCombiningCheckBox->isChecked() );
-    config.setQuickfindRegexpType( getRegexpTypeFromIndex( quickFindSearchBox->currentIndex() ) );
+    config.setQuickfindRegexpType(
+        static_cast<SearchRegexpType>( quickFindSearchBox->currentData().toInt() ) );
     config.setQfBackColor( qfSearchColor_ );
     config.setQuickfindIncremental( incrementalCheckBox->isChecked() );
-    config.setRegexpEnging( getRegexpEngineFromIndex( regexpEngineComboBox->currentIndex() ) );
+    config.setRegexpEnging(
+        static_cast<RegexpEngine>( regexpEngineComboBox->currentData().toInt() ) );
     config.setAutoRunSearchOnPatternChange( autoRunSearchOnAddCheckBox->isChecked() );
 
     config.setNativeFileWatchEnabled( nativeFileWatchCheckBox->isChecked() );
@@ -649,10 +634,9 @@ bool OptionsDialog::updateConfigFromDialog()
     config.setShortcuts( shortcuts );
 
     // update translate when accept or apply clicked
-    restartAppMessage |= config.language() != languageComboBox->currentData().toString();
     updateTranslate();
     config.setLanguage( languageComboBox->currentData().toString() );
-    retranslateUi( this );
+    retranslateDynamicUi();
 
     config.save();
 

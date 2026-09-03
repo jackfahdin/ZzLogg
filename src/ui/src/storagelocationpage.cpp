@@ -4,6 +4,7 @@
 
 #include <QDesktopServices>
 #include <QDir>
+#include <QEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -33,10 +34,10 @@ StorageLocationPage::StorageLocationPage( QWidget* parent )
     setObjectName( QStringLiteral( "storageLocationPage" ) );
 
     auto* layout = new QVBoxLayout{ this };
-    auto* explanation = new QLabel{ tr( "请选择 ZzLogg 数据的保存位置。" ), this };
-    explanation->setObjectName( QStringLiteral( "storageLocationExplanation" ) );
-    explanation->setWordWrap( true );
-    layout->addWidget( explanation );
+    explanationLabel_ = new QLabel{ this };
+    explanationLabel_->setObjectName( QStringLiteral( "storageLocationExplanation" ) );
+    explanationLabel_->setWordWrap( true );
+    layout->addWidget( explanationLabel_ );
 
     userStorageRadio_ = new QRadioButton{ tr( "用户数据目录" ), this };
     userStorageRadio_->setObjectName( QStringLiteral( "userStorageRadio" ) );
@@ -71,7 +72,9 @@ StorageLocationPage::StorageLocationPage( QWidget* parent )
     auto* previewRow = new QHBoxLayout;
     previewRow->addWidget( storagePathPreview_ );
     previewRow->addWidget( openStorageDirectoryButton_ );
-    previewLayout->addRow( tr( "数据目录：" ), previewRow );
+    dataDirectoryLabel_ = new QLabel{ this };
+    dataDirectoryLabel_->setObjectName( QStringLiteral( "dataDirectoryLabel" ) );
+    previewLayout->addRow( dataDirectoryLabel_, previewRow );
     layout->addLayout( previewLayout );
 
     storageValidationLabel_ = new QLabel{ this };
@@ -121,7 +124,28 @@ StorageLocationPage::StorageLocationPage( QWidget* parent )
     } );
 
     updateEditControls();
-    refreshValidation();
+    retranslateUi();
+}
+
+void StorageLocationPage::changeEvent( QEvent* event )
+{
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi();
+    }
+    QWidget::changeEvent( event );
+}
+
+void StorageLocationPage::retranslateUi()
+{
+    explanationLabel_->setText( tr( "请选择 ZzLogg 数据的保存位置。" ) );
+    userStorageRadio_->setText( tr( "用户数据目录" ) );
+    programStorageRadio_->setText( tr( "程序目录（data）" ) );
+    customStorageRadio_->setText( tr( "自定义目录" ) );
+    customStoragePath_->setPlaceholderText( tr( "请输入绝对路径" ) );
+    dataDirectoryLabel_->setText( tr( "数据目录：" ) );
+    browseStorageButton_->setText( tr( "浏览…" ) );
+    openStorageDirectoryButton_->setText( tr( "打开目录" ) );
+    refreshValidation( false );
 }
 
 void StorageLocationPage::setApplicationDirectory( QString path )
@@ -188,7 +212,7 @@ QString StorageLocationPage::rootForSelection() const
     return {};
 }
 
-void StorageLocationPage::refreshValidation()
+void StorageLocationPage::refreshValidation( bool normalizeCustomPath )
 {
     const QString root = rootForSelection();
     storagePathPreview_->setText( root );
@@ -201,7 +225,7 @@ void StorageLocationPage::refreshValidation()
          && !validateProgramLocatorDirectory( &error ) ) {
         valid = false;
     }
-    if ( valid && mode_ == StorageMode::CustomDirectory ) {
+    if ( normalizeCustomPath && valid && mode_ == StorageMode::CustomDirectory ) {
         customStoragePath_->setText( result.normalizedRoot );
         storagePathPreview_->setText( result.normalizedRoot );
     }
