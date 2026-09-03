@@ -206,119 +206,121 @@
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="999"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1723"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
         <source>Marks and matches</source>
         <translation>標記和符合項目</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1004"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1725"/>
         <source>Marks</source>
         <translation>僅標記</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1008"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1725"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1726"/>
         <source>Matches</source>
         <translation>僅符合項目</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1058"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1726"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1727"/>
         <source>Match case</source>
         <translation>區分大小寫</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1064"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1727"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1728"/>
         <source>Use regex</source>
         <translation>使用正規表達式</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1070"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1728"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1729"/>
         <source>Inverse match</source>
         <translation>反向搜尋</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1076"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1729"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1730"/>
         <source>Enable regular expression logical combining</source>
         <translation>啟用正規表達式邏輯組合</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1083"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1730"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1731"/>
         <source>Auto-refresh</source>
         <translation>自動重新整理</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1100"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1731"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1732"/>
         <source>Clear search history</source>
         <translation>清除搜尋歷史</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1102"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1732"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1733"/>
         <source>Edit search history</source>
         <translation>編輯搜尋歷史</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1104"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1733"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1734"/>
         <source>Save as Filter</source>
         <translation>儲存為篩選器</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1119"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1735"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1736"/>
         <source>Clear search text</source>
         <translation>清除搜尋文字</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1125"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1734"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1735"/>
         <source>Search</source>
         <translation>搜尋</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1130"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1131"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1737"/>
         <source>Keep Results</source>
-        <translation type="unfinished"></translation>
+        <translation>保留結果</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1132"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1133"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1739"/>
         <source>Keep these results and show subsequent results in a new window</source>
-        <translation type="unfinished"></translation>
+        <translation>保留這些結果，並在新視窗中顯示後續結果</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1644"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1645"/>
         <source>Error in expression</source>
         <translation>表達式錯誤</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1695"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1696"/>
         <source>%1 matches found</source>
         <translation>找到 %1 個符合項目</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1696"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1697"/>
         <source>%1 match found</source>
         <translation>找到 %1 個符合項目</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1700"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1701"/>
         <source>File truncated on disk</source>
         <translation>磁碟上的檔案已被截斷</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Displayed as %1</source>
         <translation>顯示為 %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Detected as %1</source>
         <translation>偵測為 %1</translation>
     </message>
@@ -785,12 +787,12 @@
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="146"/>
         <source>Case sensitive</source>
-        <translation>區分大小寫</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="153"/>
         <source>Logical combining</source>
-        <translation>邏輯組合</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="160"/>

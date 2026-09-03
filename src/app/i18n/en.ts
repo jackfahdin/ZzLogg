@@ -206,119 +206,121 @@
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="999"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1723"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
         <source>Marks and matches</source>
         <translation>Marks and matches</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1004"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1725"/>
         <source>Marks</source>
         <translation>Marks</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1008"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1725"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1726"/>
         <source>Matches</source>
         <translation>Matches</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1058"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1726"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1727"/>
         <source>Match case</source>
         <translation>Match case</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1064"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1727"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1728"/>
         <source>Use regex</source>
         <translation>Use regex</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1070"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1728"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1729"/>
         <source>Inverse match</source>
         <translation>Inverse match</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1076"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1729"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1730"/>
         <source>Enable regular expression logical combining</source>
         <translation>Enable regular expression logical combining</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1083"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1730"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1731"/>
         <source>Auto-refresh</source>
         <translation>Auto-refresh</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1100"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1731"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1732"/>
         <source>Clear search history</source>
         <translation>Clear search history</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1102"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1732"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1733"/>
         <source>Edit search history</source>
         <translation>Edit search history</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1104"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1733"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1734"/>
         <source>Save as Filter</source>
         <translation>Save as Filter</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1119"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1735"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1736"/>
         <source>Clear search text</source>
         <translation>Clear search text</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1125"/>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1734"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1735"/>
         <source>Search</source>
         <translation>Search</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1130"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1131"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1737"/>
         <source>Keep Results</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1132"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1133"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1739"/>
         <source>Keep these results and show subsequent results in a new window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1644"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1645"/>
         <source>Error in expression</source>
         <translation>Error in expression</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1695"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1696"/>
         <source>%1 matches found</source>
         <translation>%1 matches found</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1696"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1697"/>
         <source>%1 match found</source>
         <translation>%1 match found</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1700"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1701"/>
         <source>File truncated on disk</source>
         <translation>File truncated on disk</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Displayed as %1</source>
         <translation>Displayed as %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Detected as %1</source>
         <translation>Detected as %1</translation>
     </message>

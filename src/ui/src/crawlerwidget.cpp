@@ -1127,6 +1127,7 @@ void CrawlerWidget::setup()
     searchButton_->setContentsMargins( 2, 2, 2, 2 );
 
     keepSearchResultsButton_ = new QToolButton();
+    keepSearchResultsButton_->setObjectName( QStringLiteral( "keepSearchResultsButton" ) );
     keepSearchResultsButton_->setText( tr( "Keep Results" ) );
     keepSearchResultsButton_->setToolTip(
         tr( "Keep these results and show subsequent results in a new window" ) );
@@ -1733,6 +1734,9 @@ void CrawlerWidget::retranslateUi()
     saveAsPredefinedFilterAction_->setText( tr( "Save as Filter" ) );
     searchButton_->setText( tr( "Search" ) );
     clearButton_->setText( tr( "Clear search text" ) );
+    keepSearchResultsButton_->setText( tr( "Keep Results" ) );
+    keepSearchResultsButton_->setToolTip(
+        tr( "Keep these results and show subsequent results in a new window" ) );
     predefinedFilters_->retranslateUi();
     printSearchInfoMessage( nbMatches_ );
     updateEncodingText();

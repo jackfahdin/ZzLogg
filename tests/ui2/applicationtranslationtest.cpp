@@ -427,6 +427,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     auto* const clearButton = child<QToolButton>( *crawler, "clearSearchButton" );
     auto* const matchCaseButton = child<QToolButton>( *crawler, "matchCaseButton" );
     auto* const autoRefreshButton = child<QToolButton>( *crawler, "searchRefreshButton" );
+    auto* const keepResultsButton = child<QToolButton>( *crawler, "keepSearchResultsButton" );
     auto* const predefinedFilters
         = child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" );
     auto* const clearHistory = child<QAction>( *crawler, "clearSearchHistoryAction" );
@@ -440,6 +441,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QVERIFY( clearButton );
     QVERIFY( matchCaseButton );
     QVERIFY( autoRefreshButton );
+    QVERIFY( keepResultsButton );
     QVERIFY( predefinedFilters );
     QVERIFY( clearHistory );
     QVERIFY( editHistory );
@@ -465,6 +467,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     const QString searchText = searchEdit->currentText();
     const bool matchCaseChecked = matchCaseButton->isChecked();
     const bool autoRefreshChecked = autoRefreshButton->isChecked();
+    const bool keepResultsChecked = keepResultsButton->isChecked();
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
     QCoreApplication::sendPostedEvents();
@@ -472,6 +475,9 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
 
     QCOMPARE( searchButton->text(), QStringLiteral( "搜索" ) );
     QCOMPARE( clearButton->text(), QStringLiteral( "清除搜索文本" ) );
+    QCOMPARE( keepResultsButton->text(), QStringLiteral( "保留结果" ) );
+    QCOMPARE( keepResultsButton->toolTip(),
+              QStringLiteral( "保留这些结果，并在新窗口中显示后续结果" ) );
     QCOMPARE( matchCaseButton->toolTip(), QStringLiteral( "匹配大小写" ) );
     QCOMPARE( predefinedFilters->itemText( 0 ), QStringLiteral( "预定义过滤器" ) );
     QCOMPARE( ignoreCase->text(), QStringLiteral( "忽略大小写(&C)" ) );
@@ -488,6 +494,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QCOMPARE( child<QToolButton>( *crawler, "mainSearchButton" ), searchButton );
     QCOMPARE( child<QToolButton>( *crawler, "clearSearchButton" ), clearButton );
     QCOMPARE( child<QToolButton>( *crawler, "matchCaseButton" ), matchCaseButton );
+    QCOMPARE( child<QToolButton>( *crawler, "keepSearchResultsButton" ), keepResultsButton );
     QCOMPARE( child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" ), predefinedFilters );
     QCOMPARE( child<QAction>( *crawler, "clearSearchHistoryAction" ), clearHistory );
     QCOMPARE( child<QAction>( *crawler, "editSearchHistoryAction" ), editHistory );
@@ -500,6 +507,10 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     QCOMPARE( searchInfo->text(), QStringLiteral( "找到 2 個符合項目" ) );
     QCOMPARE( matchCaseButton->isChecked(), matchCaseChecked );
     QCOMPARE( autoRefreshButton->isChecked(), autoRefreshChecked );
+    QCOMPARE( keepResultsButton->text(), QStringLiteral( "保留結果" ) );
+    QCOMPARE( keepResultsButton->toolTip(),
+              QStringLiteral( "保留這些結果，並在新視窗中顯示後續結果" ) );
+    QCOMPARE( keepResultsButton->isChecked(), keepResultsChecked );
 
     quickFind->userActivate();
     quickFindEdit->setFocus();
