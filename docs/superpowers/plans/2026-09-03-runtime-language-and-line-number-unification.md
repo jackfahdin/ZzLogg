@@ -292,13 +292,14 @@ git commit -m "feat: unify line number visibility action"
 QCOMPARE( MainWindow::installLanguage( "en" ), 0 );
 OptionsDialog dialog;
 auto* theme = child<QComboBox>( dialog, "themeModeComboBox" );
-auto* regexType = child<QComboBox>( dialog, "regexpTypeComboBox" );
+auto* regexType = child<QComboBox>( dialog, "mainSearchBox" );
 auto* encoding = child<QComboBox>( dialog, "encodingComboBox" );
+auto* storagePage = child<StorageLocationPage>( dialog, "storageLocationPage" );
 const QVariant selectedThemeData = theme->currentData();
 const QVariant selectedRegexData = regexType->currentData();
 const QVariant selectedEncodingData = encoding->currentData();
 
-auto* editedShortcut = qobject_cast<KeySequencePresenter*>(
+QPointer<KeySequencePresenter> editedShortcut = qobject_cast<KeySequencePresenter*>(
     child<QTableWidget>( dialog, "shortcutsTable" )->cellWidget( 0, 1 ) );
 const QString unsavedShortcut = editedShortcut->keySequence();
 
@@ -311,12 +312,13 @@ QCOMPARE( theme->itemText( theme->findData( int( UiThemeMode::Light ) ) ),
 QCOMPARE( theme->currentData(), selectedThemeData );
 QCOMPARE( regexType->currentData(), selectedRegexData );
 QCOMPARE( encoding->currentData(), selectedEncodingData );
+QVERIFY( editedShortcut );
 QCOMPARE( editedShortcut->keySequence(), unsavedShortcut );
 QCOMPARE( child<QLabel>( *storagePage, "storageLocationExplanation" )->text(),
           QStringLiteral( "请选择 ZzLogg 数据的保存位置。" ) );
 ```
 
-同时断言 Storage 标签、正则类型/引擎、Auto 编码、快捷键表头和一个动作名。再从同一个存活窗口切到 `zh_TW`，覆盖第二次语言变化而不是重新构造控件。
+同时断言 Storage 标签、主搜索与 Quick Find 正则类型、正则引擎、Auto 编码和快捷键表头。快捷键动作名称的首次语言冻结由 Task 4 的专门 RED/GREEN 测试覆盖；Task 3 只保证表格不被重建。再从同一个存活窗口切到 `zh_TW`，覆盖第二次语言变化而不是重新构造控件。
 
 - [ ] **步骤 2：写出“仅改语言不弹重启警告”的失败测试**
 
@@ -371,7 +373,7 @@ void OptionsDialog::retranslateDynamicUi()
     replaceText( regexpEngineComboBox, int( RegexpEngine::Hyperscan ), tr( "Hyperscan" ) );
     replaceText( regexpEngineComboBox, int( RegexpEngine::QRegularExpression ), tr( "Qt" ) );
     replaceText( encodingComboBox, -1, tr( "Auto" ) );
-    retranslateShortcutTable();
+    retranslateShortcutTable(); // Task 3 更新表头且不重建 cell；Task 4 增加动作名称刷新。
     storageLocationPage_->retranslateUi();
 }
 ```
@@ -415,7 +417,7 @@ void StorageLocationPage::retranslateUi()
 
 - [ ] **步骤 5：更新本任务翻译并运行翻译测试**
 
-先运行 `lupdate`，补齐本任务涉及的 Storage 标签、Light/Dark、正则类型/引擎、Auto 编码、快捷键表头、设置对话框动态文案的简体和繁体翻译；英文保持源文本。随后构建测试资源：
+先运行 `lupdate`，补齐本任务涉及的 Storage 标签、Light/Dark、正则类型/引擎、Auto 编码、快捷键表头、设置对话框动态文案的简体和繁体翻译；快捷键动作名称留给 Task 4。英文保持源文本。随后构建测试资源：
 
 ```powershell
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
