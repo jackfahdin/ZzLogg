@@ -18,6 +18,8 @@ class OptionsThemeTest final : public QObject {
   private Q_SLOTS:
     void showsOnlyTheModeOwnedByTheEntryPoint()
     {
+        auto& config = Configuration::get();
+        config.setUiThemeMode( UiThemeMode::System );
         qApp->setProperty( "zzlogg.fluentUi", false );
         OptionsDialog legacy;
         auto* legacyStyle = legacy.findChild<QGroupBox*>( QStringLiteral( "styleBox" ) );
@@ -37,10 +39,11 @@ class OptionsThemeTest final : public QObject {
         QVERIFY( !fluentTheme->isHidden() );
         auto* combo = fluent.findChild<QComboBox*>( QStringLiteral( "themeModeComboBox" ) );
         QVERIFY( combo );
-        QCOMPARE( combo->count(), 3 );
-        QCOMPARE( combo->itemData( 0 ).toInt(), static_cast<int>( UiThemeMode::System ) );
-        QCOMPARE( combo->itemData( 1 ).toInt(), static_cast<int>( UiThemeMode::Light ) );
-        QCOMPARE( combo->itemData( 2 ).toInt(), static_cast<int>( UiThemeMode::Dark ) );
+        QCOMPARE( combo->count(), 2 );
+        QCOMPARE( combo->itemData( 0 ).toInt(), static_cast<int>( UiThemeMode::Light ) );
+        QCOMPARE( combo->itemData( 1 ).toInt(), static_cast<int>( UiThemeMode::Dark ) );
+        QCOMPARE( combo->findData( static_cast<int>( UiThemeMode::System ) ), -1 );
+        QCOMPARE( combo->currentData().toInt(), static_cast<int>( UiThemeMode::Light ) );
     }
 
     void fluentEntrySavesThemeWithoutOverwritingStyle()
@@ -52,7 +55,7 @@ class OptionsThemeTest final : public QObject {
         OptionsDialog dialog;
         auto* combo = dialog.findChild<QComboBox*>( QStringLiteral( "themeModeComboBox" ) );
         QVERIFY( combo );
-        combo->setCurrentIndex( 1 );
+        combo->setCurrentIndex( combo->findData( static_cast<int>( UiThemeMode::Light ) ) );
         auto* languageCombo
             = dialog.findChild<QComboBox*>( QStringLiteral( "languageComboBox" ) );
         QVERIFY( languageCombo );

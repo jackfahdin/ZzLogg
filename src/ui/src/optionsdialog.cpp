@@ -128,8 +128,6 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     const bool fluentUi = qApp->property( "zzlogg.fluentUi" ).toBool();
     styleBox->setVisible( !fluentUi );
     themeBox->setVisible( fluentUi );
-    themeModeComboBox->addItem( tr( "Use system setting" ),
-                                 static_cast<int>( UiThemeMode::System ) );
     themeModeComboBox->addItem( tr( "Light" ), static_cast<int>( UiThemeMode::Light ) );
     themeModeComboBox->addItem( tr( "Dark" ), static_cast<int>( UiThemeMode::Dark ) );
 
