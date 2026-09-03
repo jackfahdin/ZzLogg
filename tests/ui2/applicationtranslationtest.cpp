@@ -4,6 +4,7 @@
 #include "optionsdialog.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
+#include "shortcuts.h"
 #include "storagebootstrapdialog.h"
 #include "storagecontext.h"
 #include "storagelocationpage.h"
@@ -48,7 +49,9 @@ class ApplicationTranslationTest final : public QObject {
     void translatesBootstrapUi();
     void installsEnglishWithoutBundledQtTranslator();
     void rejectsMissingApplicationTranslator();
+    void retranslatesShortcutNamesAfterEnglishPrewarm();
     void retranslatesExistingOptionsDialog();
+    void showsUnknownConfiguredShortcutAction();
     void changingLanguageDoesNotWriteProgramDirectory();
     void changingOnlyLanguageDoesNotRequestRestart();
 };
@@ -235,6 +238,80 @@ void ApplicationTranslationTest::retranslatesExistingOptionsDialog()
     QCOMPARE( encoding->currentData(), selectedEncodingData );
     QVERIFY( editedShortcut );
     QCOMPARE( editedShortcut->keySequence(), unsavedShortcut );
+}
+
+void ApplicationTranslationTest::retranslatesShortcutNamesAfterEnglishPrewarm()
+{
+    QCOMPARE( MainWindow::installLanguage( "en" ), 0 );
+    const auto& definitions = ShortcutAction::defaultShortcutList();
+    QVERIFY( definitions.find( ShortcutAction::MainWindowOpenFile ) != definitions.end() );
+    QCOMPARE( ShortcutAction::displayName( ShortcutAction::MainWindowOpenFile ),
+              QStringLiteral( "Open file" ) );
+
+    OptionsDialog dialog;
+    auto* shortcuts = child<QTableWidget>( dialog, "shortcutsTable" );
+    const auto action = QString::fromLatin1( ShortcutAction::MainWindowOpenFile );
+    int actionRow = -1;
+    for ( int row = 0; row < shortcuts->rowCount(); ++row ) {
+        if ( shortcuts->item( row, 0 )->data( Qt::UserRole ).toString() == action ) {
+            actionRow = row;
+            break;
+        }
+    }
+    QVERIFY( actionRow >= 0 );
+
+    auto* primaryShortcut
+        = qobject_cast<KeySequencePresenter*>( shortcuts->cellWidget( actionRow, 1 ) );
+    auto* secondaryShortcut
+        = qobject_cast<KeySequencePresenter*>( shortcuts->cellWidget( actionRow, 2 ) );
+    QVERIFY( primaryShortcut );
+    QVERIFY( secondaryShortcut );
+    const QString primaryKey = primaryShortcut->keySequence();
+    const QString secondaryKey = secondaryShortcut->keySequence();
+
+    QCOMPARE( MainWindow::installLanguage( "zh_CN" ), 0 );
+    QCoreApplication::processEvents();
+    QCOMPARE( ShortcutAction::displayName( ShortcutAction::MainWindowOpenFile ),
+              QStringLiteral( "打开文件" ) );
+    QCOMPARE( shortcuts->item( actionRow, 0 )->text(), QStringLiteral( "打开文件" ) );
+    QCOMPARE( shortcuts->cellWidget( actionRow, 1 ), primaryShortcut );
+    QCOMPARE( shortcuts->cellWidget( actionRow, 2 ), secondaryShortcut );
+    QCOMPARE( primaryShortcut->keySequence(), primaryKey );
+    QCOMPARE( secondaryShortcut->keySequence(), secondaryKey );
+
+    QCOMPARE( MainWindow::installLanguage( "zh_TW" ), 0 );
+    QCoreApplication::processEvents();
+    QCOMPARE( ShortcutAction::displayName( ShortcutAction::MainWindowOpenFile ),
+              QStringLiteral( "開啟檔案" ) );
+    QCOMPARE( shortcuts->item( actionRow, 0 )->text(), QStringLiteral( "開啟檔案" ) );
+    QCOMPARE( shortcuts->cellWidget( actionRow, 1 ), primaryShortcut );
+    QCOMPARE( shortcuts->cellWidget( actionRow, 2 ), secondaryShortcut );
+    QCOMPARE( primaryShortcut->keySequence(), primaryKey );
+    QCOMPARE( secondaryShortcut->keySequence(), secondaryKey );
+}
+
+void ApplicationTranslationTest::showsUnknownConfiguredShortcutAction()
+{
+    auto& config = Configuration::get();
+    const auto configuredShortcuts = config.shortcuts();
+    const std::string unknownAction = "shortcut.unknown_action";
+    config.setShortcuts( { { unknownAction, QStringList{ "Ctrl+Alt+U" } } } );
+
+    OptionsDialog dialog;
+    auto* shortcuts = child<QTableWidget>( dialog, "shortcutsTable" );
+    int actionRow = -1;
+    for ( int row = 0; row < shortcuts->rowCount(); ++row ) {
+        if ( shortcuts->item( row, 0 )->data( Qt::UserRole ).toString()
+             == QString::fromStdString( unknownAction ) ) {
+            actionRow = row;
+            break;
+        }
+    }
+    QVERIFY( actionRow >= 0 );
+    QCOMPARE( shortcuts->item( actionRow, 0 )->text(),
+              QString::fromStdString( unknownAction ) );
+
+    config.setShortcuts( configuredShortcuts );
 }
 
 void ApplicationTranslationTest::changingLanguageDoesNotWriteProgramDirectory()

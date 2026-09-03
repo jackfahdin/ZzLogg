@@ -127,7 +127,7 @@ struct ShortcutAction {
 
 private:
     struct ShortcutDesc {
-        QString name;
+        const char* sourceText;
         QStringList keySequence;
     };
 
@@ -137,6 +137,7 @@ public:
     using ConfiguredShortcuts = std::map<std::string, QStringList>; // <action,keySequence>
 
     static const ShortcutList& defaultShortcutList();
+    static QString displayName( const std::string& action );
 
     static void registerShortcut( const ConfiguredShortcuts& configuredShortcuts,
                                   std::map<QString, QShortcut*>& shortcutsStorage,

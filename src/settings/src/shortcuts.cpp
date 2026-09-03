@@ -19,7 +19,7 @@
 
 #include <functional>
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QShortcut>
 #include <QWidget>
 
@@ -33,6 +33,15 @@ QStringList getKeyBindings( QKeySequence::StandardKey standardKey )
                     []( const auto& keySequence ) { return keySequence.toString(); } );
 
     return stringBindings;
+}
+
+QString ShortcutAction::displayName( const std::string& action )
+{
+    const auto& definitions = defaultShortcutList();
+    const auto definition = definitions.find( action );
+    return definition != definitions.end()
+               ? QCoreApplication::translate( "ShortcutAction", definition->second.sourceText )
+               : QString::fromStdString( action );
 }
 
 QStringList ShortcutAction::defaultShortcutKeys( const std::string& action )
@@ -100,154 +109,154 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             MainWindowNewWindow,
             {
-                QApplication::tr( "Open new window" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open new window" ),
                 QStringList{},
             },
         },
         {
             MainWindowOpenFile,
             {
-                QApplication::tr( "Open file" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open file" ),
                 getKeyBindings( QKeySequence::Open ),
             },
         },
         {
             MainWindowCloseFile,
             {
-                QApplication::tr( "Close file" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Close file" ),
                 getKeyBindings( QKeySequence::Close ),
             },
         },
         {
             MainWindowCloseAll,
             {
-                QApplication::tr( "Close all files" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Close all files" ),
                 QStringList{},
             },
         },
         {
             MainWindowSelectAll,
             {
-                QApplication::tr( "Select all" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Select all" ),
                 QStringList{ "Ctrl+A" },
             },
         },
         {
             MainWindowCopy,
             {
-                QApplication::tr( "Copy selection to clipboard" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Copy selection to clipboard" ),
                 getKeyBindings( QKeySequence::Copy ),
             },
         },
         {
             MainWindowQuit,
             {
-                QApplication::tr( "Exit application" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Exit application" ),
                 QStringList{ "Ctrl+Q" },
             },
         },
         {
             MainWindowFullScreen,
             {
-                QApplication::tr( "Full Screen" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Full Screen" ),
                 QStringList{},
             },
         },
         {
             MainWindowMax,
             {
-                QApplication::tr( "Maximize window" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Maximize window" ),
                 QStringList{},
             },
         },
         {
             MainWindowMin,
             {
-                QApplication::tr( "Minimize Window" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Minimize Window" ),
                 QStringList{},
             },
         },
         {
             MainWindowPreference,
             {
-                QApplication::tr( "Preferences" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Preferences" ),
                 QStringList{},
             },
         },
         {
             MainWindowOpenQf,
             {
-                QApplication::tr( "Open quick find" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open quick find" ),
                 getKeyBindings( QKeySequence::Find ),
             },
         },
         {
             MainWindowOpenQfForward,
             {
-                QApplication::tr( "Quick find forward" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Quick find forward" ),
                 QStringList{ QKeySequence( Qt::Key_Apostrophe ).toString() },
             },
         },
         {
             MainWindowOpenQfBackward,
             {
-                QApplication::tr( "Quick find backward" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Quick find backward" ),
                 QStringList{ QKeySequence( Qt::Key_QuoteDbl ).toString() },
             },
         },
         {
             MainWindowFocusSearchInput,
             {
-                QApplication::tr( "Set focus to search input" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Set focus to search input" ),
                 QStringList{ { "Ctrl+S", "Ctrl+Shift+F" } },
             },
         },
         {
             MainWindowClearFile,
             {
-                QApplication::tr( "Clear file" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Clear file" ),
                 QStringList{ getKeyBindings( QKeySequence::Cut ) },
             },
         },
         {
             MainWindowOpenContainingFolder,
             {
-                QApplication::tr( "Open containing folder" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open containing folder" ),
                 QStringList{},
             },
         },
         {
             MainWindowOpenInEditor,
             {
-                QApplication::tr( "Open file in editor" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open file in editor" ),
                 QStringList{},
             },
         },
         {
             MainWindowCopyPathToClipboard,
             {
-                QApplication::tr( "Copy file path to clipboard" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Copy file path to clipboard" ),
                 QStringList{},
             },
         },
         {
             MainWindowOpenFromClipboard,
             {
-                QApplication::tr( "Paste text from clipboard" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Paste text from clipboard" ),
                 getKeyBindings( QKeySequence::Paste ),
             },
         },
         {
             MainWindowOpenFromUrl,
             {
-                QApplication::tr( "Open file from URL" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open file from URL" ),
                 QStringList{},
             },
         },
         {
             MainWindowFollowFile,
             {
-                QApplication::tr( "Monitor file changes" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Monitor file changes" ),
                 { { QKeySequence( Qt::Key_F ).toString(),
                     QKeySequence( Qt::Key_F10 ).toString() } },
             },
@@ -255,126 +264,126 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             MainWindowTextWrap,
             {
-                QApplication::tr( "Toggle text wrap" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Toggle text wrap" ),
                 QStringList{ QKeySequence( Qt::Key_W ).toString() },
             },
         },
         {
             MainWindowReload,
             {
-                QApplication::tr( "Reload file" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Reload file" ),
                 QStringList{ getKeyBindings( QKeySequence::Refresh ) },
             },
         },
         {
             MainWindowStop,
             {
-                QApplication::tr( "Stop file loading" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Stop file loading" ),
                 QStringList{ getKeyBindings( QKeySequence::Cancel ) },
             },
         },
         {
             MainWindowScratchpad,
             {
-                QApplication::tr( "Open scratchpad" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Open scratchpad" ),
                 QStringList{},
             },
         },
         {
             MainWindowSelectOpenFile,
             {
-                QApplication::tr( "Switch to file" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Switch to file" ),
                 QStringList{ "Ctrl+Shift+O" },
             },
         },
         {
             CrawlerChangeVisibilityForward,
             {
-                QApplication::tr( "Change filtered lines visibility forward" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Change filtered lines visibility forward" ),
                 QStringList{ QKeySequence( Qt::Key_V ).toString() },
             },
         },
         {
             CrawlerChangeVisibilityBackward,
             {
-                QApplication::tr( "Change filtered lines visibility backward" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Change filtered lines visibility backward" ),
                 QStringList{ "Shift+V" },
             },
         },
         {
             CrawlerChangeVisibilityToMarksAndMatches,
             {
-                QApplication::tr( "Change filtered lines visibility to marks and matches" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Change filtered lines visibility to marks and matches" ),
                 QStringList{ QKeySequence( Qt::Key_1 ).toString() },
             },
         },
         {
             CrawlerChangeVisibilityToMarks,
             {
-                QApplication::tr( "Change filtered lines visibility to marks" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Change filtered lines visibility to marks" ),
                 QStringList{ QKeySequence( Qt::Key_2 ).toString() },
             },
         },
         {
             CrawlerChangeVisibilityToMatches,
             {
-                QApplication::tr( "Change filtered lines visibility to matches" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Change filtered lines visibility to matches" ),
                 QStringList{ QKeySequence( Qt::Key_3 ).toString() },
             },
         },
         {
             CrawlerIncreseTopViewSize,
             {
-                QApplication::tr( "Increase main view" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Increase main view" ),
                 QStringList{ QKeySequence( Qt::Key_Plus ).toString() },
             },
         },
         {
             CrawlerDecreaseTopViewSize,
             {
-                QApplication::tr( "Decrease main view" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Decrease main view" ),
                 QStringList{ QKeySequence( Qt::Key_Minus ).toString() },
             },
         },
         {
             CrawlerEnableCaseMatching,
             {
-                QApplication::tr( "Enable case matching" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Enable case matching" ),
                 QStringList{ QKeySequence( Qt::Key_4 ).toString() },
             },
         },
         {
             CrawlerEnableRegex,
             {
-                QApplication::tr( "Enable regex" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Enable regex" ),
                 QStringList{ QKeySequence( Qt::Key_5 ).toString() },
             },
         },
         {
             CrawlerEnableInverseMatching,
             {
-                QApplication::tr( "Enable inverse matching" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Enable inverse matching" ),
                 QStringList{ QKeySequence( Qt::Key_6 ).toString() },
             },
         },
         {
             CrawlerEnableRegexCombining,
             {
-                QApplication::tr( "Enable regex combining" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Enable regex combining" ),
                 QStringList{ QKeySequence( Qt::Key_7 ).toString() },
             },
         },
         {
             CrawlerEnableAutoRefresh,
             {
-                QApplication::tr( "Enable auto refresh" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Enable auto refresh" ),
                 QStringList{ QKeySequence( Qt::Key_8 ).toString() },
             },
         },
         {
             CrawlerKeepResults,
             {
-                QApplication::tr( "Keep search results" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Keep search results" ),
                 QStringList{ QKeySequence( Qt::Key_9 ).toString() },
             },
         },
@@ -386,35 +395,35 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewMark,
             {
-                QApplication::tr( "Add line mark" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Add line mark" ),
                 QStringList{ QKeySequence( Qt::Key_M ).toString() },
             },
         },
         {
             LogViewNextMark,
             {
-                QApplication::tr( "Jump to next mark" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to next mark" ),
                 QStringList{ QKeySequence( Qt::Key_BracketRight ).toString() },
             },
         },
         {
             LogViewPrevMark,
             {
-                QApplication::tr( "Jump to previous mark" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to previous mark" ),
                 QStringList{ QKeySequence( Qt::Key_BracketLeft ).toString() },
             },
         },
         {
             LogViewSelectionUp,
             {
-                QApplication::tr( "Move selection up" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Move selection up" ),
                 { { QKeySequence( Qt::Key_Up ).toString(), QKeySequence( Qt::Key_K ).toString() } },
             },
         },
         {
             LogViewSelectionDown,
             {
-                QApplication::tr( "Move selection down" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Move selection down" ),
                 { { QKeySequence( Qt::Key_Down ).toString(),
                     QKeySequence( Qt::Key_J ).toString() } },
             },
@@ -422,21 +431,21 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewScrollUp,
             {
-                QApplication::tr( "Scroll up" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Scroll up" ),
                 QStringList{ "Ctrl+Up" },
             },
         },
         {
             LogViewScrollDown,
             {
-                QApplication::tr( "Scroll down" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Scroll down" ),
                 QStringList{ "Ctrl+Down" },
             },
         },
         {
             LogViewScrollLeft,
             {
-                QApplication::tr( "Scroll left" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Scroll left" ),
                 { { QKeySequence( Qt::Key_Left ).toString(),
                     QKeySequence( Qt::Key_H ).toString() } },
             },
@@ -444,7 +453,7 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewScrollRight,
             {
-                QApplication::tr( "Scroll right" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Scroll right" ),
                 { { QKeySequence( Qt::Key_Right ).toString(),
                     QKeySequence( Qt::Key_L ).toString() } },
             },
@@ -452,7 +461,7 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewJumpToStartOfLine,
             {
-                QApplication::tr( "Jump to the beginning of the current line" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to the beginning of the current line" ),
                 { QKeySequence( Qt::Key_Home ).toString(),
                   QKeySequence( Qt::Key_AsciiCircum ).toString() },
             },
@@ -460,62 +469,62 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewJumpToEndOfLine,
             {
-                QApplication::tr( "Jump to the end start of the current line" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to the end start of the current line" ),
                 QStringList{ QKeySequence( Qt::Key_Dollar ).toString() },
             },
         },
         {
             LogViewJumpToRightOfScreen,
             {
-                QApplication::tr( "Jump to the right of the text" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to the right of the text" ),
                 QStringList{ QKeySequence( Qt::Key_End ).toString() },
             },
         },
         {
             LogViewJumpToBottom,
             {
-                QApplication::tr( "Jump to the bottom of the text" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to the bottom of the text" ),
                 QStringList{ { "Ctrl+End", "Shift+G" } },
             },
         },
         {
             LogViewJumpToTop,
             {
-                QApplication::tr( "Jump to the top of the text" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to the top of the text" ),
                 QStringList{ "Ctrl+Home" },
             },
         },
         {
             LogViewJumpToLine,
             {
-                QApplication::tr( "Jump to line" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Jump to line" ),
                 QStringList{ "Ctrl+L" },
             },
         },
         {
             LogViewQfForward,
             {
-                QApplication::tr( "Main view: find next" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Main view: find next" ),
                 getKeyBindings( QKeySequence::FindNext )
                     << QKeySequence( Qt::Key_N ).toString() << "Ctrl+G",
             },
         },
         {
             LogViewQfBackward,
-            { QApplication::tr( "Main view: find previous" ),
+            { QT_TRANSLATE_NOOP( "ShortcutAction", "Main view: find previous" ),
               getKeyBindings( QKeySequence::FindPrevious ) << "Shift+N"
                                                            << "Ctrl+Shift+G" },
         },
         {
             LogViewQfSelectedForward,
-            { QApplication::tr( "Set selection to QuickFind and find next" ),
+            { QT_TRANSLATE_NOOP( "ShortcutAction", "Set selection to QuickFind and find next" ),
               { QKeySequence( Qt::Key_Asterisk ).toString(),
                 QKeySequence( Qt::Key_Period ).toString() } },
         },
         {
             LogViewQfSelectedBackward,
             {
-                QApplication::tr( "Set selection to QuickFind and find previous" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Set selection to QuickFind and find previous" ),
                 QStringList{ QKeySequence( Qt::Key_Slash ).toString(),
                              QKeySequence( Qt::Key_Comma ).toString() },
             },
@@ -523,133 +532,133 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
         {
             LogViewExitView,
             {
-                QApplication::tr( "Release focus from view" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Release focus from view" ),
                 QStringList{ QKeySequence( Qt::Key_Space ).toString() },
             },
         },
         {
             LogViewAddColorLabel1,
             {
-                QApplication::tr( "Highlight text with color 1" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 1" ),
                 QStringList{ "Ctrl+Shift+1" },
             },
         },
         {
             LogViewAddColorLabel2,
             {
-                QApplication::tr( "Highlight text with color 2" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 2" ),
                 QStringList{ "Ctrl+Shift+2" },
             },
         },
         {
             LogViewAddColorLabel3,
             {
-                QApplication::tr( "Highlight text with color 3" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 3" ),
                 QStringList{ "Ctrl+Shift+3" },
             },
         },
         {
             LogViewAddColorLabel4,
             {
-                QApplication::tr( "Highlight text with color 4" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 4" ),
                 QStringList{ "Ctrl+Shift+4" },
             },
         },
         {
             LogViewAddColorLabel5,
             {
-                QApplication::tr( "Highlight text with color 5" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 5" ),
                 QStringList{ "Ctrl+Shift+5" },
             },
         },
         {
             LogViewAddColorLabel6,
             {
-                QApplication::tr( "Highlight text with color 6" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 6" ),
                 QStringList{ "Ctrl+Shift+6" },
             },
         },
         {
             LogViewAddColorLabel7,
             {
-                QApplication::tr( "Highlight text with color 7" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 7" ),
                 QStringList{ "Ctrl+Shift+7" },
             },
         },
         {
             LogViewAddColorLabel8,
             {
-                QApplication::tr( "Highlight text with color 8" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 8" ),
                 QStringList{ "Ctrl+Shift+8" },
             },
         },
         {
             LogViewAddColorLabel9,
             {
-                QApplication::tr( "Highlight text with color 9" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with color 9" ),
                 QStringList{ "Ctrl+Shift+9" },
             },
         },
         {
             LogViewAddNextColorLabel,
             {
-                QApplication::tr( "Highlight text with next color" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Highlight text with next color" ),
                 QStringList{ "Ctrl+D" },
             },
         },
         {
             LogViewClearColorLabels,
             {
-                QApplication::tr( "Clear all color labels" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Clear all color labels" ),
                 QStringList{ "Ctrl+Shift+0" },
             },
         },
         {
             LogViewSendSelectionToScratchpad,
             {
-                QApplication::tr( "Send selection to scratchpad" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Send selection to scratchpad" ),
                 QStringList{ "Ctrl+Z" },
             },
         },
         {
             LogViewReplaceScratchpadWithSelection,
             {
-                QApplication::tr( "Replace scratchpad with selection" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Replace scratchpad with selection" ),
                 QStringList{ "Ctrl+Shift+Z" },
             },
         },
         {
             LogViewAddToSearch,
             {
-                QApplication::tr( "Add selection to search pattern" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Add selection to search pattern" ),
                 QStringList{ "Shift+A" },
             },
         },
         {
             LogViewExcludeFromSearch,
             {
-                QApplication::tr( "Exclude selection from search pattern " ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Exclude selection from search pattern " ),
                 QStringList{ "Shift+E" },
             },
         },
         {
             LogViewReplaceSearch,
             {
-                QApplication::tr( "Replace search pattern with selection" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Replace search pattern with selection" ),
                 QStringList{ "Shift+R" },
             },
         },
         {
             LogViewSelectLinesUp,
             {
-                QApplication::tr( "Select lines down" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Select lines down" ),
                 QStringList{ "Shift+Up" },
             },
         },
         {
             LogViewSelectLinesDown,
             {
-                QApplication::tr( "Select lines up" ),
+                QT_TRANSLATE_NOOP( "ShortcutAction", "Select lines up" ),
                 QStringList{ "Shift+Down" },
             },
         },

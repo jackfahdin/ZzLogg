@@ -212,6 +212,11 @@ void OptionsDialog::retranslateDynamicUi()
 
 void OptionsDialog::retranslateShortcutTable()
 {
+    for ( int row = 0; row < shortcutsTable->rowCount(); ++row ) {
+        auto* actionItem = shortcutsTable->item( row, 0 );
+        actionItem->setText( ShortcutAction::displayName(
+            actionItem->data( Qt::UserRole ).toString().toStdString() ) );
+    }
     if ( auto* actionHeader = shortcutsTable->horizontalHeaderItem( 0 ) ) {
         actionHeader->setText( tr( "Action" ) );
     }
@@ -853,7 +858,7 @@ void OptionsDialog::buildShortcutsTable( bool useDefaultsOnly )
         auto currentRow = shortcutsTable->rowCount();
         shortcutsTable->insertRow( currentRow );
 
-        auto keyItem = new QTableWidgetItem( shortCut.name );
+        auto keyItem = new QTableWidgetItem( ShortcutAction::displayName( action ) );
         keyItem->setFlags( Qt::ItemIsEnabled | Qt::ItemIsSelectable );
         keyItem->setData( Qt::UserRole, QString::fromStdString( action ) );
         shortcutsTable->setItem( currentRow, 0, keyItem );
