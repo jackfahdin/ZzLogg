@@ -441,11 +441,17 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     QTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     const QString invalidRoot
-        = temporaryDirectory.filePath( QStringLiteral( "not-a-storage-directory" ) );
-    QFile file{ invalidRoot };
+        = temporaryDirectory.filePath( QStringLiteral( "non-empty-storage-directory" ) );
+    QVERIFY( QDir{}.mkpath( invalidRoot ) );
+    const QString sentinelPath = QDir{ invalidRoot }.filePath( QStringLiteral( "user-data" ) );
+    QFile file{ sentinelPath };
     QVERIFY( file.open( QIODevice::WriteOnly ) );
     QVERIFY( file.write( "user data" ) > 0 );
     file.close();
+
+    QFileSystemWatcher watcher;
+    QVERIFY( watcher.addPath( invalidRoot ) );
+    QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
 
     StorageLocationPage page;
     page.setLocation( { StorageMode::CustomDirectory, invalidRoot, {}, false } );
@@ -453,11 +459,13 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     const QString normalizedRoot = QDir::cleanPath( invalidRoot );
     QVERIFY( !page.isSelectionValid() );
     QCOMPARE( page.validationError(),
-              QStringLiteral( "storage path is not a directory: %1" ).arg( normalizedRoot ) );
+              QStringLiteral( "storage directory is not an empty managed directory: %1" )
+                  .arg( normalizedRoot ) );
+    QTRY_VERIFY_WITH_TIMEOUT( directoryChanged.count() > 0, 5000 );
+    QCoreApplication::processEvents();
+    directoryChanged.clear();
 
-    QFileSystemWatcher watcher;
-    QVERIFY( watcher.addPath( temporaryDirectory.path() ) );
-    QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
+    QSignalSpy validityChanged{ &page, &StorageLocationPage::validityChanged };
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
     QCoreApplication::sendPostedEvents();
@@ -465,13 +473,14 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     QTest::qWait( 200 );
 
     QCOMPARE( page.validationError(),
-              QStringLiteral( "存储路径不是目录：%1" ).arg( normalizedRoot ) );
+              QStringLiteral( "存储目录不是空的受管目录：%1" ).arg( normalizedRoot ) );
     QCOMPARE( child<QLabel>( page, "storageValidationLabel" )->text(), page.validationError() );
     QCOMPARE( page.location().mode, selectedLocation.mode );
     QCOMPARE( page.location().dataRoot, selectedLocation.dataRoot );
     QVERIFY( !page.isSelectionValid() );
+    QCOMPARE( validityChanged.count(), 0 );
     QCOMPARE( directoryChanged.count(), 0 );
-    QFile unchangedFile{ invalidRoot };
+    QFile unchangedFile{ sentinelPath };
     QVERIFY( unchangedFile.open( QIODevice::ReadOnly ) );
     QCOMPARE( unchangedFile.readAll(), QByteArray( "user data" ) );
 }
