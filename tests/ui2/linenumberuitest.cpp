@@ -122,10 +122,45 @@ void LineNumberUiTest::oneActionSynchronizesLineNumbersAcrossViewsAndDocuments()
         } )(),
         5000 );
 
+    tabs->setCurrentIndex( 0 );
+    auto* const firstCrawler = qobject_cast<CrawlerWidget*>( tabs->currentWidget() );
+    QVERIFY( firstCrawler );
+    auto* const searchEdit
+        = firstCrawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
+    auto* const searchButton
+        = firstCrawler->findChild<QToolButton*>( QStringLiteral( "mainSearchButton" ) );
+    auto* const keepResultsButton
+        = firstCrawler->findChild<QToolButton*>( QStringLiteral( "keepSearchResultsButton" ) );
+    auto* const filteredResultsTabs
+        = firstCrawler->findChild<QTabWidget*>( QStringLiteral( "filteredResultsTabs" ) );
+    QVERIFY( searchEdit );
+    QVERIFY( searchButton );
+    QVERIFY( keepResultsButton );
+    QVERIFY( filteredResultsTabs );
+
+    searchEdit->setCurrentText( QStringLiteral( "first" ) );
+    searchButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT( searchButton->isVisible(), 5000 );
+    QCOMPARE( filteredResultsTabs->count(), 1 );
+
+    keepResultsButton->setChecked( true );
+    searchEdit->setCurrentText( QStringLiteral( "second" ) );
+    searchButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT( searchButton->isVisible(), 5000 );
+    QTRY_COMPARE( filteredResultsTabs->count(), 2 );
+
+    keepResultsButton->setChecked( true );
+    searchEdit->setCurrentText( QStringLiteral( "line" ) );
+    searchButton->click();
+    QTRY_VERIFY_WITH_TIMEOUT( searchButton->isVisible(), 5000 );
+    QTRY_COMPARE( filteredResultsTabs->count(), 3 );
+    const auto firstCrawlerFilteredViews = firstCrawler->findChildren<FilteredView*>();
+    QCOMPARE( firstCrawlerFilteredViews.size(), 3 );
+
     auto mainViews = window.findChildren<LogMainView*>( QStringLiteral( "logMainView" ) );
-    auto filteredViews = window.findChildren<FilteredView*>( QStringLiteral( "logFilteredView" ) );
+    auto filteredViews = window.findChildren<FilteredView*>();
     QCOMPARE( mainViews.size(), 2 );
-    QCOMPARE( filteredViews.size(), 2 );
+    QCOMPARE( filteredViews.size(), 4 );
     QVERIFY( std::all_of( mainViews.cbegin(), mainViews.cend(),
                           []( const auto* view ) { return view->lineNumbersVisible(); } ) );
     QVERIFY( std::all_of( filteredViews.cbegin(), filteredViews.cend(),
