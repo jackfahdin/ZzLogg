@@ -541,7 +541,8 @@ bool OptionsDialog::updateConfigFromDialog()
     bool restartAppMessage = false;
     auto& config = Configuration::get();
     const QString requestedLanguage = languageComboBox->currentData().toString();
-    if ( MainWindow::installLanguage( requestedLanguage ) != 0 ) {
+    if ( requestedLanguage != config.language()
+         && MainWindow::installLanguage( requestedLanguage ) != 0 ) {
         const int configuredLanguageIndex = languageComboBox->findData( config.language() );
         if ( configuredLanguageIndex >= 0 ) {
             const QSignalBlocker blocker{ languageComboBox };

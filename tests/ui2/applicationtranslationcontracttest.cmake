@@ -46,7 +46,7 @@ endif()
 string(FIND "${main_window_contents}"
   "if ( qtTranslations.isValid() )" optional_qt_translator_index)
 string(FIND "${main_window_contents}"
-  "if ( !appTranslations.isValid() || !mTranslator.load( appPath ) )"
+  "if ( !appTranslations.isValid() || !appCandidate->load( appPath ) )"
   required_app_translator_index)
 if(optional_qt_translator_index EQUAL -1 OR required_app_translator_index EQUAL -1)
   message(FATAL_ERROR
