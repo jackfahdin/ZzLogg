@@ -19,6 +19,7 @@
 #include <ZzCore/ZzErrorCode.h>
 #include <ZzFluentUI/ZzFluentTitleBar.h>
 #include <ZzFluentUI/ZzThemeController.h>
+#include <ZzFluentUI/ZzThemeSnapshot.h>
 #include <ZzFluentUI/ZzTitleBarMenuDisplayMode.h>
 #include <ZzWindowKit/ZzWindowAgent.h>
 #include <ZzWindowKit/ZzWindowCapability.h>
@@ -186,6 +187,13 @@ ZzLoggFluentShell::install( QMainWindow& window, ZzFluentUI::ZzThemeController& 
         titleBar = std::make_unique<ZzFluentUI::ZzFluentTitleBar>( &window );
         titleBar->setObjectName( QStringLiteral( "zzloggFluentTitleBar" ) );
         titleBar->setMenuDisplayMode( ZzFluentUI::ZzTitleBarMenuDisplayMode::Adaptive );
+        titleBar->setThemeInteractionMode(
+            ZzFluentUI::ZzTitleBarThemeInteractionMode::Toggle );
+        for ( QAction* action : titleBar->themeMenu()->actions() ) {
+            const auto mode = static_cast<ZzFluentUI::ZzThemeMode>( action->data().toInt() );
+            action->setVisible( mode == ZzFluentUI::ZzThemeMode::Light
+                                || mode == ZzFluentUI::ZzThemeMode::Dark );
+        }
         agent = std::make_unique<ZzWindowKit::ZzWindowAgent>();
         if ( !chromeConfigurator ) {
             chromeConfigurator = configureDefaultChrome;
@@ -214,6 +222,8 @@ ZzLoggFluentShell::install( QMainWindow& window, ZzFluentUI::ZzThemeController& 
             [ retainedShell ]( bool requested ) { retainedShell->setAlwaysOnTop( requested ); } );
         QObject::connect( retainedTitleBar, &ZzFluentUI::ZzFluentTitleBar::themeModeRequested,
                           retainedShell, &ZzLoggFluentShell::themeModeRequested );
+        QObject::connect( retainedTitleBar, &ZzFluentUI::ZzFluentTitleBar::themeToggleRequested,
+                          retainedShell, &ZzLoggFluentShell::requestThemeToggle );
         QObject::connect( &theme, &ZzFluentUI::ZzThemeController::snapshotChanged, retainedShell,
                           [ retainedShell ] { retainedShell->syncTheme(); } );
         retainedShell->setActiveDocumentName( {} );
@@ -296,6 +306,20 @@ void ZzLoggFluentShell::syncTheme()
     if ( !titleBar_.isNull() && !theme_.isNull() ) {
         titleBar_->setThemeMode( theme_->mode() );
     }
+}
+
+void ZzLoggFluentShell::requestThemeToggle()
+{
+    if ( theme_.isNull() ) {
+        return;
+    }
+    const auto snapshot = theme_->snapshot();
+    if ( !snapshot ) {
+        return;
+    }
+    Q_EMIT themeModeRequested( snapshot->mode() == ZzFluentUI::ZzThemeMode::Dark
+                                   ? ZzFluentUI::ZzThemeMode::Light
+                                   : ZzFluentUI::ZzThemeMode::Dark );
 }
 
 void ZzLoggFluentShell::setAlwaysOnTop( bool requested )

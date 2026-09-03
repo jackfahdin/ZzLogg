@@ -574,15 +574,40 @@ void verifySharedThemeObservationAndForwarding()
         QVERIFY( secondTitleBar );
         QCOMPARE( firstTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
         QCOMPARE( secondTitleBar->themeMode(), ZzFluentUI::ZzThemeMode::Light );
+        QCOMPARE( firstTitleBar->themeInteractionMode(),
+                  ZzFluentUI::ZzTitleBarThemeInteractionMode::Toggle );
+        QList<ZzFluentUI::ZzThemeMode> visibleModes;
+        for ( QAction* action : firstTitleBar->themeMenu()->actions() ) {
+            if ( action->isVisible() ) {
+                visibleModes.append(
+                    static_cast<ZzFluentUI::ZzThemeMode>( action->data().toInt() ) );
+            }
+        }
+        QCOMPARE( visibleModes,
+                  QList<ZzFluentUI::ZzThemeMode>( { ZzFluentUI::ZzThemeMode::Light,
+                                                    ZzFluentUI::ZzThemeMode::Dark } ) );
 
         QSignalSpy requestSpy( firstInstalled.value(), &ZzLoggFluentShell::themeModeRequested );
+        auto* button = firstTitleBar->findChild<QToolButton*>(
+            QStringLiteral( "zzTitleBarThemeButton" ) );
+        QVERIFY( button );
+        QTest::mouseClick( button, Qt::LeftButton );
+        QCOMPARE( requestSpy.takeFirst().at( 0 ).value<ZzFluentUI::ZzThemeMode>(),
+                  ZzFluentUI::ZzThemeMode::Dark );
+        QCOMPARE( theme.mode(), ZzFluentUI::ZzThemeMode::Light );
+
+        theme.setMode( ZzFluentUI::ZzThemeMode::Dark );
+        QTest::mouseClick( button, Qt::LeftButton );
+        QCOMPARE( requestSpy.takeFirst().at( 0 ).value<ZzFluentUI::ZzThemeMode>(),
+                  ZzFluentUI::ZzThemeMode::Light );
+
         QVERIFY( QMetaObject::invokeMethod(
             firstTitleBar, "themeModeRequested",
             Q_ARG( ZzFluentUI::ZzThemeMode, ZzFluentUI::ZzThemeMode::Dark ) ) );
         QCOMPARE( requestSpy.count(), 1 );
         QCOMPARE( requestSpy.at( 0 ).at( 0 ).value<ZzFluentUI::ZzThemeMode>(),
                   ZzFluentUI::ZzThemeMode::Dark );
-        QCOMPARE( theme.mode(), ZzFluentUI::ZzThemeMode::Light );
+        QCOMPARE( theme.mode(), ZzFluentUI::ZzThemeMode::Dark );
 
         const QColor before = ordinaryWidget.palette().color( QPalette::Window );
         theme.setMode( ZzFluentUI::ZzThemeMode::Dark );

@@ -53,6 +53,7 @@ private:
 
     void syncWindowState();
     void syncTheme();
+    void requestThemeToggle();
     void setAlwaysOnTop( bool requested );
 
     QPointer<QMainWindow> window_;
