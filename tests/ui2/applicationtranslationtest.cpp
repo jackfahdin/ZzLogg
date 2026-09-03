@@ -62,6 +62,7 @@ class ApplicationTranslationTest final : public QObject {
     void translatesBootstrapUi();
     void installsEnglishWithoutBundledQtTranslator();
     void rejectsMissingApplicationTranslator();
+    void failedLanguageSelectionRollsBackOptionsDialog();
     void retranslatesShortcutNamesAfterEnglishPrewarm();
     void retranslatesExistingOptionsDialog();
     void showsUnknownConfiguredShortcutAction();
@@ -167,7 +168,52 @@ void ApplicationTranslationTest::installsEnglishWithoutBundledQtTranslator()
 
 void ApplicationTranslationTest::rejectsMissingApplicationTranslator()
 {
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    StorageBootstrapDialog dialog;
+    const QString translatedTitle = dialog.windowTitle();
+    QCOMPARE( translatedTitle, QStringLiteral( "Choose where ZzLogg stores its data" ) );
+
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "missing" ) ), -1 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    QCOMPARE( dialog.windowTitle(), translatedTitle );
+    QCOMPARE( QApplication::translate( "StorageBootstrapDialog", "选择 ZzLogg 数据保存位置" ),
+              translatedTitle );
+}
+
+void ApplicationTranslationTest::failedLanguageSelectionRollsBackOptionsDialog()
+{
+    qApp->setProperty( "zzlogg.fluentUi", true );
+    auto& config = Configuration::get();
+    config.setLanguage( QStringLiteral( "en" ) );
+    const bool configuredBold = config.useBoldFont();
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+
+    OptionsDialog dialog;
+    auto* const languageCombo = child<QComboBox>( dialog, "languageComboBox" );
+    auto* const boldCheckBox = child<QCheckBox>( dialog, "boldFontCheckBox" );
+    auto* const themeCombo = child<QComboBox>( dialog, "themeModeComboBox" );
+    int englishIndex = languageCombo->findData( QStringLiteral( "en" ) );
+    if ( englishIndex < 0 ) {
+        languageCombo->addItem( QStringLiteral( "English" ), QStringLiteral( "en" ) );
+        englishIndex = languageCombo->count() - 1;
+    }
+    languageCombo->setCurrentIndex( englishIndex );
+    languageCombo->addItem( QStringLiteral( "Missing" ), QStringLiteral( "missing" ) );
+    languageCombo->setCurrentIndex( languageCombo->count() - 1 );
+    boldCheckBox->setChecked( !configuredBold );
+
+    bool updateSucceeded = true;
+    QVERIFY( QMetaObject::invokeMethod( &dialog, "updateConfigFromDialog", Qt::DirectConnection,
+                                        Q_RETURN_ARG( bool, updateSucceeded ) ) );
+
+    QVERIFY( !updateSucceeded );
+    QCOMPARE( config.language(), QStringLiteral( "en" ) );
+    QCOMPARE( config.useBoldFont(), configuredBold );
+    QCOMPARE( languageCombo->currentData().toString(), QStringLiteral( "en" ) );
+    QCOMPARE( themeCombo->itemText( themeCombo->findData( int( UiThemeMode::Light ) ) ),
+              QStringLiteral( "Light" ) );
 }
 
 void ApplicationTranslationTest::retranslatesExistingOptionsDialog()

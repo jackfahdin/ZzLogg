@@ -303,8 +303,8 @@ class MainWindow : public QMainWindow {
     // Multiplex signals to any of the CrawlerWidgets
     SignalMux signalMux_;
 
-    static QTranslator mTranslator;
-    static QTranslator mQtTranslator;
+    static std::unique_ptr<QTranslator> mTranslator;
+    static std::unique_ptr<QTranslator> mQtTranslator;
 
     // QuickFind widget
     QuickFindWidget quickFindWidget_;

@@ -115,8 +115,6 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     void retranslateDynamicUi();
     void retranslateShortcutTable();
 
-    int updateTranslate();
-
     void buildShortcutsTable(bool useDefaultsOnly);
 
     void updateDialogFromConfig();

@@ -536,15 +536,20 @@ void OptionsDialog::checkShortcutsOnDuplicate() const
     buttonBox->button( QDialogButtonBox::Apply )->setEnabled( !hasDuplicateShortcuts );
 }
 
-int OptionsDialog::updateTranslate()
-{
-    return MainWindow::installLanguage( languageComboBox->currentData().toString() );
-}
-
 bool OptionsDialog::updateConfigFromDialog()
 {
     bool restartAppMessage = false;
     auto& config = Configuration::get();
+    const QString requestedLanguage = languageComboBox->currentData().toString();
+    if ( MainWindow::installLanguage( requestedLanguage ) != 0 ) {
+        const int configuredLanguageIndex = languageComboBox->findData( config.language() );
+        if ( configuredLanguageIndex >= 0 ) {
+            const QSignalBlocker blocker{ languageComboBox };
+            languageComboBox->setCurrentIndex( configuredLanguageIndex );
+        }
+        retranslateDynamicUi();
+        return false;
+    }
 
     QFont font = QFont( fontFamilyBox->currentText(), ( fontSizeBox->currentText() ).toInt() );
     config.setMainFont( font );
@@ -637,9 +642,7 @@ bool OptionsDialog::updateConfigFromDialog()
     }
     config.setShortcuts( shortcuts );
 
-    // update translate when accept or apply clicked
-    updateTranslate();
-    config.setLanguage( languageComboBox->currentData().toString() );
+    config.setLanguage( requestedLanguage );
     retranslateDynamicUi();
 
     config.save();

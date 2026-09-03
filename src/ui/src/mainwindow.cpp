@@ -123,8 +123,8 @@ QString productName()
 
 } // namespace
 
-QTranslator MainWindow::mTranslator;
-QTranslator MainWindow::mQtTranslator;
+std::unique_ptr<QTranslator> MainWindow::mTranslator;
+std::unique_ptr<QTranslator> MainWindow::mQtTranslator;
 
 MainWindow::MainWindow( WindowSession session )
     : session_( std::move( session ) )
@@ -433,30 +433,49 @@ int MainWindow::installLanguage( QString lang )
         return -1;
     }
 
-    QApplication::removeTranslator( &mTranslator );
-    QApplication::removeTranslator( &mQtTranslator );
-
-    QString qtPath( ":/i18n/qt_" + lang + ".qm" );
-    QResource qtTranslations( qtPath );
-    if ( qtTranslations.isValid() ) {
-        if ( !mQtTranslator.load( qtPath ) ) {
-            LOG_WARNING << "Failed to load optional Qt translator" << qtPath;
-        }
-        else if ( !QApplication::installTranslator( &mQtTranslator ) ) {
-            LOG_WARNING << "Failed to install optional Qt translator" << qtPath;
-        }
-    }
-
     QString appPath( ":/i18n/" + lang + ".qm" );
     QResource appTranslations( appPath );
-    if ( !appTranslations.isValid() || !mTranslator.load( appPath ) ) {
+    auto appCandidate = std::make_unique<QTranslator>();
+    if ( !appTranslations.isValid() || !appCandidate->load( appPath ) ) {
         LOG_ERROR << "Failed to load application translator" << appPath;
         return -1;
     }
-    if ( !QApplication::installTranslator( &mTranslator ) ) {
+
+    auto qtCandidate = std::unique_ptr<QTranslator>{};
+    QString qtPath( ":/i18n/qt_" + lang + ".qm" );
+    QResource qtTranslations( qtPath );
+    if ( qtTranslations.isValid() ) {
+        qtCandidate = std::make_unique<QTranslator>();
+        if ( !qtCandidate->load( qtPath ) ) {
+            LOG_WARNING << "Failed to load optional Qt translator" << qtPath;
+            qtCandidate.reset();
+        }
+    }
+
+    bool qtCandidateInstalled = false;
+    if ( qtCandidate != nullptr ) {
+        qtCandidateInstalled = QApplication::installTranslator( qtCandidate.get() );
+        if ( !qtCandidateInstalled ) {
+            LOG_WARNING << "Failed to install optional Qt translator" << qtPath;
+            qtCandidate.reset();
+        }
+    }
+    if ( !QApplication::installTranslator( appCandidate.get() ) ) {
+        if ( qtCandidateInstalled ) {
+            QApplication::removeTranslator( qtCandidate.get() );
+        }
         LOG_ERROR << "Failed to install application translator" << appPath;
         return -1;
     }
+
+    if ( mTranslator != nullptr ) {
+        QApplication::removeTranslator( mTranslator.get() );
+    }
+    if ( mQtTranslator != nullptr ) {
+        QApplication::removeTranslator( mQtTranslator.get() );
+    }
+    mTranslator = std::move( appCandidate );
+    mQtTranslator = std::move( qtCandidate );
 
     return 0;
 }
