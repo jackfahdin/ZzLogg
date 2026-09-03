@@ -35,6 +35,37 @@
 class RuntimeContractTest final : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void migratesLegacySystemToExplicitMode()
+    {
+        auto& app = *qobject_cast<KloggApp*>( qApp );
+        auto& configuration = Configuration::getSynced();
+        configuration.setUiThemeMode( UiThemeMode::System );
+        configuration.save();
+
+        QString error;
+        auto runtime = ZzLoggUiRuntime::create( app, &error );
+        QVERIFY2( runtime, qPrintable( error ) );
+        auto* style = qobject_cast<ZzFluentUI::ZzFluentStyle*>( app.style() );
+        QVERIFY( style );
+
+        const auto resolvedMode = style->themeSnapshot()->mode();
+        QVERIFY( resolvedMode == ZzFluentUI::ZzThemeMode::Light
+                 || resolvedMode == ZzFluentUI::ZzThemeMode::Dark );
+        const auto expected = resolvedMode == ZzFluentUI::ZzThemeMode::Dark
+            ? UiThemeMode::Dark
+            : UiThemeMode::Light;
+        QCOMPARE( Configuration::getSynced().uiThemeMode(), expected );
+        QCOMPARE( uiThemeModeStorageValue( expected ),
+                  expected == UiThemeMode::Dark ? QStringLiteral( "dark" )
+                                                : QStringLiteral( "light" ) );
+        auto& settings = PersistentInfo::getSettings( app_settings{} );
+        settings.sync();
+        QCOMPARE( settings.value( QStringLiteral( "view.themeMode" ) ).toString(),
+                  expected == UiThemeMode::Dark ? QStringLiteral( "dark" )
+                                                : QStringLiteral( "light" ) );
+        runtime.reset();
+    }
+
     void decoratesRealWindowsAndRoutesSemanticState()
     {
         auto& app = *qobject_cast<KloggApp*>( qApp );

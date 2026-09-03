@@ -27,7 +27,7 @@ class ThemeConfigurationTest final : public QObject {
         QCOMPARE( loaded.uiThemeMode(), UiThemeMode::Dark );
     }
 
-    void normalizesInvalidValueImmediately()
+    void normalizesInvalidValueToLegacySystemForRuntimeMigration()
     {
         QTemporaryDir dir;
         QVERIFY( dir.isValid() );
@@ -40,6 +40,19 @@ class ThemeConfigurationTest final : public QObject {
         QCOMPARE( loaded.uiThemeMode(), UiThemeMode::System );
         QCOMPARE( settings.value( QStringLiteral( "view.themeMode" ) ).toString(),
                   QStringLiteral( "system" ) );
+    }
+
+    void treatsMissingValueAsLegacySystemSentinel()
+    {
+        QTemporaryDir dir;
+        QVERIFY( dir.isValid() );
+        QSettings settings( dir.filePath( QStringLiteral( "config.ini" ) ),
+                            QSettings::IniFormat );
+        QVERIFY( !settings.contains( QStringLiteral( "view.themeMode" ) ) );
+
+        Configuration loaded;
+        loaded.retrieveFromStorage( settings );
+        QCOMPARE( loaded.uiThemeMode(), UiThemeMode::System );
     }
 
     void readsEveryStableValue_data()

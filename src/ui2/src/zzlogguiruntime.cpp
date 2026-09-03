@@ -46,6 +46,19 @@ UiThemeMode fromZzThemeMode( ZzFluentUI::ZzThemeMode mode )
     }
 }
 
+UiThemeMode resolveExplicitThemeMode( UiThemeMode configuredMode,
+                                      ZzFluentUI::ZzThemeController& theme )
+{
+    if ( configuredMode != UiThemeMode::System ) {
+        return configuredMode;
+    }
+
+    theme.setMode( ZzFluentUI::ZzThemeMode::System );
+    return theme.resolvedMode() == ZzFluentUI::ZzThemeMode::Dark
+        ? UiThemeMode::Dark
+        : UiThemeMode::Light;
+}
+
 } // namespace
 
 ZzLoggUiRuntime::ZzLoggUiRuntime( KloggApp& app )
@@ -63,7 +76,15 @@ std::unique_ptr<ZzLoggUiRuntime> ZzLoggUiRuntime::create( KloggApp& app, QString
         auto runtime = std::unique_ptr<ZzLoggUiRuntime>( new ZzLoggUiRuntime( app ) );
         app.setProperty( "zzlogg.fluentUi", true );
         runtime->theme_ = std::make_unique<ZzFluentUI::ZzThemeController>();
-        runtime->theme_->setMode( toZzThemeMode( Configuration::get().uiThemeMode() ) );
+        auto& configuration = Configuration::get();
+        const UiThemeMode configuredMode = configuration.uiThemeMode();
+        const UiThemeMode explicitMode
+            = resolveExplicitThemeMode( configuredMode, *runtime->theme_ );
+        if ( configuredMode == UiThemeMode::System ) {
+            configuration.setUiThemeMode( explicitMode );
+            configuration.save();
+        }
+        runtime->theme_->setMode( toZzThemeMode( explicitMode ) );
         app.setStyle( new ZzFluentUI::ZzFluentStyle( runtime->theme_.get() ) );
         app.setWindowDecorator( [ runtimePtr = runtime.get() ]( MainWindow& window ) {
             runtimePtr->decorate( window );
