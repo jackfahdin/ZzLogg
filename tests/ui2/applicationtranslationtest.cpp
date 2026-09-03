@@ -85,6 +85,7 @@ class ApplicationTranslationTest final : public QObject {
     void changingOnlyLanguageDoesNotRequestRestart();
     void retranslatesOpenDocumentSearchAndQuickFindControls();
     void retranslatesCrawlerSemanticSearchStatus();
+    void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
 
@@ -723,6 +724,69 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
     QCOMPARE( searchEdit->currentText(), QStringLiteral( "matching" ) );
     QCOMPARE( loadingFinishedAfterLanguageChange.count(), 0 );
+}
+
+void ApplicationTranslationTest::resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange()
+{
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QTemporaryDir logs;
+    QVERIFY( logs.isValid() );
+    const QString firstPath = logs.filePath( QStringLiteral( "first-loading.log" ) );
+    const QString secondPath = logs.filePath( QStringLiteral( "second-loading.log" ) );
+    for ( const QString& path : { firstPath, secondPath } ) {
+        QFile log{ path };
+        QVERIFY( log.open( QIODevice::WriteOnly | QIODevice::Text ) );
+        QVERIFY( log.write( "first line\nsecond line\n" ) > 0 );
+    }
+
+    auto session = std::make_shared<Session>();
+    MainWindow window{ WindowSession{ session, QStringLiteral( "per-document-loading" ), 0 } };
+    window.show();
+    window.loadFileNonInteractive( firstPath );
+    window.loadFileNonInteractive( secondPath );
+
+    auto* const documentTabs
+        = window.findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
+    auto* const mainInfoLine
+        = window.findChild<InfoLine*>( QStringLiteral( "mainInfoLine" ) );
+    QVERIFY( documentTabs );
+    QVERIFY( mainInfoLine );
+    QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 2, 5000 );
+    auto* const firstCrawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 0 ) );
+    auto* const secondCrawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 1 ) );
+    QVERIFY( firstCrawler );
+    QVERIFY( secondCrawler );
+    QTRY_VERIFY_WITH_TIMEOUT( TranslationCrawlerAccess::loadingFinished( *firstCrawler ), 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( TranslationCrawlerAccess::loadingFinished( *secondCrawler ), 5000 );
+
+    documentTabs->setCurrentIndex( 0 );
+    QCoreApplication::processEvents();
+    QVERIFY( QMetaObject::invokeMethod( firstCrawler, "loadingProgressedHandler",
+                                        Qt::DirectConnection, Q_ARG( int, 23 ) ) );
+    QTRY_COMPARE( mainInfoLine->text(),
+                  QDir::toNativeSeparators( firstPath )
+                      + QStringLiteral( " - Indexing lines... (23 %)" ) );
+
+    documentTabs->setCurrentIndex( 1 );
+    QCoreApplication::processEvents();
+    QVERIFY( QMetaObject::invokeMethod( secondCrawler, "loadingProgressedHandler",
+                                        Qt::DirectConnection, Q_ARG( int, 67 ) ) );
+    QTRY_COMPARE( mainInfoLine->text(),
+                  QDir::toNativeSeparators( secondPath )
+                      + QStringLiteral( " - Indexing lines... (67 %)" ) );
+
+    documentTabs->setCurrentIndex( 0 );
+    QTRY_COMPARE( mainInfoLine->text(),
+                  QDir::toNativeSeparators( firstPath )
+                      + QStringLiteral( " - Indexing lines... (23 %)" ) );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+    QCOMPARE( documentTabs->currentWidget(), firstCrawler );
+    QTRY_COMPARE( mainInfoLine->text(),
+                  QDir::toNativeSeparators( firstPath )
+                      + QStringLiteral( " - 正在索引行... (23 %)" ) );
 }
 
 void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChangingDocumentState()

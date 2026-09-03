@@ -212,6 +212,7 @@ class CrawlerWidget : public QSplitter,
     // Mark a line that has been clicked on the filtered (bottom) view.
     void markLinesFromFiltered( const klogg::vector<LineNumber>& lines );
 
+    void loadingProgressedHandler( int progress );
     void loadingFinishedHandler( LoadingStatus status );
     // Manages the info lines to inform the user the file has changed.
     void fileChangedHandler( MonitoredFileStatus );
@@ -443,6 +444,7 @@ class CrawlerWidget : public QSplitter,
     // Until we have received confirmation loading is finished, we
     // should consider we are loading something.
     bool loadingInProgress_ = true;
+    int loadingProgress_ = 0;
     bool firstLoadDone_ = false;
 
     klogg::vector<LineNumber> savedMarkedLines_;

@@ -238,7 +238,9 @@ std::vector<QObject*> CrawlerWidget::doGetAllSearchables() const
 void CrawlerWidget::doSendAllStateSignals()
 {
     Q_EMIT newSelection( currentLineNumber_, 0_lcount, 0_lcol, 0_length );
-    if ( !loadingInProgress_ )
+    if ( loadingInProgress_ )
+        Q_EMIT loadingProgressed( loadingProgress_ );
+    else
         Q_EMIT loadingFinished( LoadingStatus::Successful );
 }
 
@@ -694,6 +696,13 @@ void CrawlerWidget::exitingQuickFind()
         qfSavedFocus_->setFocus();
 }
 
+void CrawlerWidget::loadingProgressedHandler( int progress )
+{
+    loadingInProgress_ = true;
+    loadingProgress_ = progress;
+    Q_EMIT loadingProgressed( progress );
+}
+
 void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
 {
     LOG_INFO << "file loading finished, status " << static_cast<int>( status );
@@ -739,6 +748,7 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
     }
 
     loadingInProgress_ = false;
+    loadingProgress_ = 0;
     Q_EMIT loadingFinished( status );
 }
 
@@ -1273,7 +1283,8 @@ void CrawlerWidget::setup()
              &CrawlerWidget::updateFilteredView, Qt::QueuedConnection );
 
     // Sent load file update to MainWindow (for status update)
-    connect( logData_.get(), &LogData::loadingProgressed, this, &CrawlerWidget::loadingProgressed );
+    connect( logData_.get(), &LogData::loadingProgressed, this,
+             &CrawlerWidget::loadingProgressedHandler );
     connect( logData_.get(), &LogData::loadingFinished, this,
              &CrawlerWidget::loadingFinishedHandler );
     connect( logData_.get(), &LogData::fileChanged, this, &CrawlerWidget::fileChangedHandler );
