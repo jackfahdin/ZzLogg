@@ -143,6 +143,7 @@ void LogFilteredData::interruptSearch()
 {
     LOG_DEBUG << "Entering interruptSearch";
 
+    interruptRequestCount_.fetch_add( 1, std::memory_order_relaxed );
     workerThread_.interrupt();
 }
 

@@ -39,6 +39,7 @@
 #ifndef LOGFILTEREDDATA_H
 #define LOGFILTEREDDATA_H
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -68,6 +69,7 @@ class QTimer;
 // This object should be constructed by a LogData.
 class LogFilteredData : public AbstractLogData {
     Q_OBJECT
+    Q_PROPERTY( quint64 interruptRequestCount READ interruptRequestCount )
 
   public:
     // Constructor used by LogData
@@ -87,6 +89,10 @@ class LogFilteredData : public AbstractLogData {
     // Interrupt the running search if one is in progress.
     // Nothing is done if no search is in progress.
     void interruptSearch();
+    quint64 interruptRequestCount() const noexcept
+    {
+        return interruptRequestCount_.load( std::memory_order_relaxed );
+    }
     // Clear the search and the list of results.
     void clearSearch( bool dropCache = false );
 
@@ -190,6 +196,7 @@ class LogFilteredData : public AbstractLogData {
     Visibility visibility_;
 
     LogFilteredDataWorker workerThread_;
+    std::atomic<quint64> interruptRequestCount_{ 0 };
 
     Mutex searchProgressMutex_;
     std::tuple<LinesCount, int, LineNumber> searchProgress_;

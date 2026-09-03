@@ -756,6 +756,10 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     const QWidget* const existingResults = filteredResultsTabs->currentWidget();
     LogFilteredData* const existingSearchObject
         = TranslationCrawlerAccess::searchObject( *crawler );
+    const QVariant initialInterruptCount
+        = existingSearchObject->property( "interruptRequestCount" );
+    QVERIFY( initialInterruptCount.isValid() );
+    QVERIFY( initialInterruptCount.toULongLong() > 0 );
     QSignalSpy searchProgressed{ existingSearchObject, &LogFilteredData::searchProgressed };
     TranslationCrawlerAccess::publishActiveSearchProgress( *crawler, 2_lcount, 37 );
     QTRY_COMPARE( searchInfo->text(),
@@ -778,6 +782,8 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
     QCOMPARE( searchEdit->currentText(), QStringLiteral( "matching" ) );
     QCOMPARE( TranslationCrawlerAccess::searchObject( *crawler ), existingSearchObject );
+    QCOMPARE( existingSearchObject->property( "interruptRequestCount" ).toULongLong(),
+              initialInterruptCount.toULongLong() );
     QCOMPARE( TranslationCrawlerAccess::searchState( *crawler ), activeSearchState );
     QCOMPARE( TranslationCrawlerAccess::stopButton( *crawler ), stopButton );
     QCOMPARE( TranslationCrawlerAccess::clearButton( *crawler ), clearButton );
