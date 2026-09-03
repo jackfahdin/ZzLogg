@@ -116,10 +116,21 @@ add_test(NAME zzlogg_ui2.application_translation_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationtranslationcontracttest.cmake")
+add_executable(zzlogg_runtime_translation_catalog_test
+  runtimecatalogcontracttest.cpp
+  runtimecatalogvalidator.cpp)
+target_link_libraries(zzlogg_runtime_translation_catalog_test PRIVATE
+  Qt6::Test Qt6::Core)
+target_compile_definitions(zzlogg_runtime_translation_catalog_test PRIVATE
+  ZZLOGG_SOURCE_ROOT="${PROJECT_SOURCE_DIR}")
+set_target_properties(zzlogg_runtime_translation_catalog_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.runtime_translation_catalog_contract
-  COMMAND "${CMAKE_COMMAND}"
-    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
-    -P "${CMAKE_CURRENT_SOURCE_DIR}/runtimecatalogcontracttest.cmake")
+  COMMAND zzlogg_runtime_translation_catalog_test)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.runtime_translation_catalog_contract APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()
 if(WIN32)
   set_property(TEST zzlogg_ui2.application_translation PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
