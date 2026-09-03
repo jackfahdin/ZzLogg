@@ -38,13 +38,11 @@
 
 #include "tbb/global_control.h"
 
-#include <QAction>
 #include <QComboBox>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QSettings>
-#include <QMenu>
 #include <QMessageBox>
 #include <QObject>
 #include <QPointer>
@@ -361,33 +359,22 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
                             QStringLiteral( "search result contract was not preserved" ) );
             return;
         }
-        auto* const themeMenu
-            = state->firstTitleBar->findChild<QMenu*>( QStringLiteral( "zzTitleBarThemeMenu" ) );
-        if ( themeMenu == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "theme menu is missing" ) );
-            return;
-        }
-        QAction* darkAction = nullptr;
-        for ( QAction* action : themeMenu->actions() ) {
-            if ( action->data().toInt() == static_cast<int>( UiThemeMode::Dark ) ) {
-                darkAction = action;
-                break;
-            }
-        }
-        if ( darkAction == nullptr ) {
+        auto* const themeButton = state->firstTitleBar->findChild<QToolButton*>(
+            QStringLiteral( "zzTitleBarThemeButton" ) );
+        if ( themeButton == nullptr ) {
             finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "Dark theme action is missing" ) );
+                            QStringLiteral( "theme toggle button is missing" ) );
             return;
         }
         if ( state->firstTitleBar->property( "themeMode" ).toInt()
-                 != static_cast<int>( UiThemeMode::System )
+                 != static_cast<int>( UiThemeMode::Light )
              || state->secondTitleBar->property( "themeMode" ).toInt()
-                    != static_cast<int>( UiThemeMode::System ) ) {
+                    != static_cast<int>( UiThemeMode::Light ) ) {
             finishUi2Smoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "theme did not begin in System mode" ) );
+                            QStringLiteral( "theme did not begin in Light mode" ) );
             return;
         }
-        darkAction->trigger();
+        themeButton->click();
         state->waitingFor = QStringLiteral( "the Dark theme to synchronize" );
         state->stage = Ui2SmokeStage::WaitForTheme;
         return;
@@ -575,7 +562,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
 
     if ( ui2Smoke.requested && !isManualIsolationSmokeMode( ui2Smoke.mode ) ) {
         auto& smokeConfiguration = Configuration::get();
-        smokeConfiguration.setUiThemeMode( UiThemeMode::System );
+        smokeConfiguration.setUiThemeMode( UiThemeMode::Light );
         smokeConfiguration.save();
     }
     if ( MainWindow::installLanguage( config.language() ) != 0 ) {
