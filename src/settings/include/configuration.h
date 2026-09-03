@@ -277,13 +277,22 @@ class Configuration final : public Persistable<Configuration> {
     {
         overviewVisible_ = isVisible;
     }
+    bool lineNumbersVisible() const
+    {
+        return lineNumbersVisible_;
+    }
+    void setLineNumbersVisible( bool visible )
+    {
+        lineNumbersVisible_ = visible;
+    }
+    // Temporary compatibility wrappers for callers migrated in a later task.
     bool mainLineNumbersVisible() const
     {
-        return lineNumbersVisibleInMain_;
+        return lineNumbersVisible_;
     }
     bool filteredLineNumbersVisible() const
     {
-        return lineNumbersVisibleInFiltered_;
+        return lineNumbersVisible_;
     }
     bool minimizeToTray() const
     {
@@ -295,11 +304,11 @@ class Configuration final : public Persistable<Configuration> {
     }
     void setMainLineNumbersVisible( bool lineNumbersVisible )
     {
-        lineNumbersVisibleInMain_ = lineNumbersVisible;
+        lineNumbersVisible_ = lineNumbersVisible;
     }
     void setFilteredLineNumbersVisible( bool lineNumbersVisible )
     {
-        lineNumbersVisibleInFiltered_ = lineNumbersVisible;
+        lineNumbersVisible_ = lineNumbersVisible;
     }
     void setMinimizeToTray( bool minimizeToTray )
     {
@@ -575,8 +584,7 @@ class Configuration final : public Persistable<Configuration> {
 
     // View settings
     bool overviewVisible_ = true;
-    bool lineNumbersVisibleInMain_ = false;
-    bool lineNumbersVisibleInFiltered_ = true;
+    bool lineNumbersVisible_ = true;
     bool minimizeToTray_ = false;
     QString style_;
     UiThemeMode uiThemeMode_ = UiThemeMode::System;

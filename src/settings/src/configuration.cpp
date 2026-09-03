@@ -289,14 +289,32 @@ void Configuration::retrieveFromStorage( QSettings& settings )
     // View settings
     overviewVisible_
         = settings.value( "view.overviewVisible", DefaultConfiguration.overviewVisible_ ).toBool();
-    lineNumbersVisibleInMain_ = settings
-                                    .value( "view.lineNumbersVisibleInMain",
-                                            DefaultConfiguration.lineNumbersVisibleInMain_ )
-                                    .toBool();
-    lineNumbersVisibleInFiltered_ = settings
-                                        .value( "view.lineNumbersVisibleInFiltered",
-                                                DefaultConfiguration.lineNumbersVisibleInFiltered_ )
-                                        .toBool();
+    constexpr auto newKey = "view.lineNumbersVisible";
+    constexpr auto oldMainKey = "view.lineNumbersVisibleInMain";
+    constexpr auto oldFilteredKey = "view.lineNumbersVisibleInFiltered";
+    if ( settings.contains( newKey ) ) {
+        lineNumbersVisible_ = settings.value( newKey ).toBool();
+    }
+    else {
+        const bool hasMain = settings.contains( oldMainKey );
+        const bool hasFiltered = settings.contains( oldFilteredKey );
+        if ( hasMain && hasFiltered ) {
+            lineNumbersVisible_ = settings.value( oldMainKey ).toBool()
+                                  || settings.value( oldFilteredKey ).toBool();
+        }
+        else if ( hasMain ) {
+            lineNumbersVisible_ = settings.value( oldMainKey ).toBool();
+        }
+        else if ( hasFiltered ) {
+            lineNumbersVisible_ = settings.value( oldFilteredKey ).toBool();
+        }
+        else {
+            lineNumbersVisible_ = true;
+        }
+    }
+    settings.setValue( newKey, lineNumbersVisible_ );
+    settings.remove( oldMainKey );
+    settings.remove( oldFilteredKey );
     minimizeToTray_
         = settings.value( "view.minimizeToTray", DefaultConfiguration.minimizeToTray_ ).toBool();
 
@@ -440,8 +458,9 @@ void Configuration::saveToStorage( QSettings& settings ) const
     settings.setValue( "net.verifySslPeers", verifySslPeers_ );
 
     settings.setValue( "view.overviewVisible", overviewVisible_ );
-    settings.setValue( "view.lineNumbersVisibleInMain", lineNumbersVisibleInMain_ );
-    settings.setValue( "view.lineNumbersVisibleInFiltered", lineNumbersVisibleInFiltered_ );
+    settings.setValue( "view.lineNumbersVisible", lineNumbersVisible_ );
+    settings.remove( "view.lineNumbersVisibleInMain" );
+    settings.remove( "view.lineNumbersVisibleInFiltered" );
     settings.setValue( "view.minimizeToTray", minimizeToTray_ );
     settings.setValue( "view.style", style_ );
     settings.setValue( "view.themeMode", uiThemeModeStorageValue( uiThemeMode_ ) );

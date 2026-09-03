@@ -4,6 +4,14 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_line_number_configuration_test
+  linenumberconfigurationtest.cpp)
+target_link_libraries(zzlogg_line_number_configuration_test PRIVATE
+  klogg_settings Qt6::Test Qt6::Core)
+set_target_properties(zzlogg_line_number_configuration_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.line_number_configuration
+  COMMAND zzlogg_line_number_configuration_test)
+
 add_executable(zzlogg_storage_context_test storagecontexttest.cpp)
 target_link_libraries(zzlogg_storage_context_test PRIVATE
   klogg_storage Qt6::Test Qt6::Core)
