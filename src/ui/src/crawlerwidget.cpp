@@ -245,6 +245,10 @@ void CrawlerWidget::changeEvent( QEvent* event )
 {
     QWidget::changeEvent( event );
 
+    if ( event->type() == QEvent::LanguageChange && searchButton_ != nullptr ) {
+        retranslateUi();
+    }
+
     const bool themeVisualChanged
         = event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange
           || event->type() == QEvent::ApplicationPaletteChange;
@@ -1050,6 +1054,7 @@ void CrawlerWidget::setup()
     searchInfoLine_->setContentsMargins( 2, 2, 2, 2 );
 
     matchCaseButton_ = new QToolButton();
+    matchCaseButton_->setObjectName( QStringLiteral( "matchCaseButton" ) );
     matchCaseButton_->setToolTip( tr( "Match case" ) );
     matchCaseButton_->setCheckable( true );
     matchCaseButton_->setFocusPolicy( Qt::NoFocus );
@@ -1074,6 +1079,7 @@ void CrawlerWidget::setup()
     booleanButton_->setContentsMargins( 2, 2, 2, 2 );
 
     searchRefreshButton_ = new QToolButton();
+    searchRefreshButton_->setObjectName( QStringLiteral( "searchRefreshButton" ) );
     searchRefreshButton_->setToolTip( tr( "Auto-refresh" ) );
     searchRefreshButton_->setCheckable( true );
     searchRefreshButton_->setFocusPolicy( Qt::NoFocus );
@@ -1091,21 +1097,25 @@ void CrawlerWidget::setup()
     searchLineEdit_->lineEdit()->setMaxLength( std::numeric_limits<int>::max() / 1024 );
     searchLineEdit_->setContentsMargins( 2, 2, 2, 2 );
 
-    QAction* clearSearchHistoryAction = new QAction( tr( "Clear search history" ), this );
-    QAction* editSearchHistoryAction = new QAction( tr( "Edit search history" ), this );
-    QAction* saveAsPredefinedFilterAction = new QAction( tr( "Save as Filter" ), this );
+    clearSearchHistoryAction_ = new QAction( tr( "Clear search history" ), this );
+    clearSearchHistoryAction_->setObjectName( QStringLiteral( "clearSearchHistoryAction" ) );
+    editSearchHistoryAction_ = new QAction( tr( "Edit search history" ), this );
+    editSearchHistoryAction_->setObjectName( QStringLiteral( "editSearchHistoryAction" ) );
+    saveAsPredefinedFilterAction_ = new QAction( tr( "Save as Filter" ), this );
+    saveAsPredefinedFilterAction_->setObjectName( QStringLiteral( "saveAsPredefinedFilterAction" ) );
 
     searchLineContextMenu_ = searchLineEdit_->lineEdit()->createStandardContextMenu();
     searchLineContextMenu_->addSeparator();
-    searchLineContextMenu_->addAction( saveAsPredefinedFilterAction );
+    searchLineContextMenu_->addAction( saveAsPredefinedFilterAction_ );
     searchLineContextMenu_->addSeparator();
-    searchLineContextMenu_->addAction( editSearchHistoryAction );
-    searchLineContextMenu_->addAction( clearSearchHistoryAction );
+    searchLineContextMenu_->addAction( editSearchHistoryAction_ );
+    searchLineContextMenu_->addAction( clearSearchHistoryAction_ );
     searchLineEdit_->setContextMenuPolicy( Qt::CustomContextMenu );
 
     setFocusProxy( searchLineEdit_ );
 
     clearButton_ = new QToolButton();
+    clearButton_->setObjectName( QStringLiteral( "clearSearchButton" ) );
     clearButton_->setText( tr( "Clear search text" ) );
     clearButton_->setAutoRaise( true );
     clearButton_->setContentsMargins( 2, 2, 2, 2 );
@@ -1130,6 +1140,7 @@ void CrawlerWidget::setup()
     stopButton_->setContentsMargins( 2, 2, 2, 2 );
 
     predefinedFilters_ = new PredefinedFiltersComboBox( this );
+    predefinedFilters_->setObjectName( QStringLiteral( "predefinedFilters" ) );
 
     auto* searchLineLayout = new QHBoxLayout;
     searchLineLayout->setContentsMargins( 2, 2, 2, 2 );
@@ -1198,11 +1209,11 @@ void CrawlerWidget::setup()
 
     connect( searchLineEdit_, &QWidget::customContextMenuRequested, this,
              &CrawlerWidget::showSearchContextMenu );
-    connect( saveAsPredefinedFilterAction, &QAction::triggered, this,
+    connect( saveAsPredefinedFilterAction_, &QAction::triggered, this,
              &CrawlerWidget::saveAsPredefinedFilter );
-    connect( clearSearchHistoryAction, &QAction::triggered, this,
+    connect( clearSearchHistoryAction_, &QAction::triggered, this,
              &CrawlerWidget::clearSearchHistory );
-    connect( editSearchHistoryAction, &QAction::triggered, this,
+    connect( editSearchHistoryAction_, &QAction::triggered, this,
              &CrawlerWidget::editSearchHistory );
     connect( searchButton_, &QToolButton::clicked, this, &CrawlerWidget::startNewSearch );
     connect( stopButton_, &QToolButton::clicked, this, &CrawlerWidget::stopSearch );
@@ -1707,6 +1718,43 @@ void CrawlerWidget::changeDataStatus( DataStatus status )
     }
 }
 
+void CrawlerWidget::retranslateUi()
+{
+    visibilityBox_->setItemText( 0, tr( "Marks and matches" ) );
+    visibilityBox_->setItemText( 1, tr( "Marks" ) );
+    visibilityBox_->setItemText( 2, tr( "Matches" ) );
+    matchCaseButton_->setToolTip( tr( "Match case" ) );
+    useRegexpButton_->setToolTip( tr( "Use regex" ) );
+    inverseButton_->setToolTip( tr( "Inverse match" ) );
+    booleanButton_->setToolTip( tr( "Enable regular expression logical combining" ) );
+    searchRefreshButton_->setToolTip( tr( "Auto-refresh" ) );
+    clearSearchHistoryAction_->setText( tr( "Clear search history" ) );
+    editSearchHistoryAction_->setText( tr( "Edit search history" ) );
+    saveAsPredefinedFilterAction_->setText( tr( "Save as Filter" ) );
+    searchButton_->setText( tr( "Search" ) );
+    clearButton_->setText( tr( "Clear search text" ) );
+    predefinedFilters_->retranslateUi();
+    printSearchInfoMessage( nbMatches_ );
+    updateEncodingText();
+}
+
+void CrawlerWidget::updateEncodingText()
+{
+    const QTextCodec* textCodec = [ this ]() {
+        QTextCodec* codec = nullptr;
+        if ( !encodingMib_ ) {
+            codec = logData_->getDetectedEncoding();
+        }
+        else {
+            codec = QTextCodec::codecForMib( *encodingMib_ );
+        }
+        return codec ? codec : QTextCodec::codecForLocale();
+    }();
+
+    const QString encodingPrefix = encodingMib_ ? tr( "Displayed as %1" ) : tr( "Detected as %1" );
+    encodingText_ = encodingPrefix.arg( textCodec->name().constData() );
+}
+
 // Determine the right encoding and set the views.
 void CrawlerWidget::updateEncoding()
 {
@@ -1721,8 +1769,7 @@ void CrawlerWidget::updateEncoding()
         return codec ? codec : QTextCodec::codecForLocale();
     }();
 
-    QString encodingPrefix = encodingMib_ ? tr( "Displayed as %1" ) : tr( "Detected as %1" );
-    encodingText_ = encodingPrefix.arg( textCodec->name().constData() );
+    updateEncodingText();
 
     logData_->interruptLoading();
 

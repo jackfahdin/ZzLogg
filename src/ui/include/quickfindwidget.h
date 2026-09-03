@@ -74,6 +74,9 @@ class QuickFindWidget : public QWidget
     // Clear the notification
     void clearNotification();
 
+  protected:
+    void changeEvent( QEvent* event ) override;
+
   private Q_SLOTS:
     void doSearchForward();
     void doSearchBackward();
@@ -97,6 +100,8 @@ class QuickFindWidget : public QWidget
     void searchNext();
 
   private:
+    void retranslateUi();
+
     QHBoxLayout* layout_;
 
     QToolButton* closeButton_;

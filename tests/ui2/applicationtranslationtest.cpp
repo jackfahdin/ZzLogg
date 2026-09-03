@@ -1,17 +1,28 @@
 #include "applicationlanguage.h"
 #include "configuration.h"
+#include "crawlerwidget.h"
+#include "infoline.h"
 #include "mainwindow.h"
 #include "optionsdialog.h"
+#include "predefinedfilterscombobox.h"
+#include "qfnotifications.h"
+#include "quickfindwidget.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
+#include "session.h"
 #include "shortcuts.h"
 #include "storagebootstrapdialog.h"
 #include "storagecontext.h"
 #include "storagelocationpage.h"
+#include "tabbedcrawlerwidget.h"
 
+#include <QAction>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QFile>
 #include <QFileSystemWatcher>
 #include <QLabel>
+#include <QLineEdit>
 #include <QLocale>
 #include <QMessageBox>
 #include <QPointer>
@@ -23,6 +34,7 @@
 #include <QTableWidget>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolButton>
 #include <QTranslator>
 #include <QTabWidget>
 #include <QtTest>
@@ -54,6 +66,7 @@ class ApplicationTranslationTest final : public QObject {
     void showsUnknownConfiguredShortcutAction();
     void changingLanguageDoesNotWriteProgramDirectory();
     void changingOnlyLanguageDoesNotRequestRestart();
+    void retranslatesOpenDocumentSearchAndQuickFindControls();
 };
 
 void ApplicationTranslationTest::choosesSupportedPreBootstrapLanguage_data()
@@ -380,6 +393,120 @@ void ApplicationTranslationTest::changingOnlyLanguageDoesNotRequestRestart()
     QVERIFY( QMetaObject::invokeMethod( &dialog, "updateConfigFromDialog", Qt::DirectConnection ) );
     QVERIFY( !restartWarningSeen );
     QCOMPARE( restartSpy.count(), 0 );
+}
+
+void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindControls()
+{
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QTemporaryDir logs;
+    QVERIFY( logs.isValid() );
+    const QString logPath = logs.filePath( QStringLiteral( "runtime-translation.log" ) );
+    QFile log{ logPath };
+    QVERIFY( log.open( QIODevice::WriteOnly | QIODevice::Text ) );
+    QVERIFY( log.write( "matching line\nsecond matching line\n" ) > 0 );
+    log.close();
+
+    auto session = std::make_shared<Session>();
+    MainWindow window{ WindowSession{ session, QStringLiteral( "runtime-translation" ), 0 } };
+    window.show();
+    window.loadFileNonInteractive( logPath );
+    auto* const documentTabs
+        = window.findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
+    QVERIFY( documentTabs );
+    QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
+    auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->widget( 0 ) );
+    QVERIFY( crawler );
+    QSignalSpy loadingFinished{ crawler, &CrawlerWidget::loadingFinished };
+    QTRY_VERIFY_WITH_TIMEOUT( loadingFinished.count() > 0, 5000 );
+    QTRY_VERIFY_WITH_TIMEOUT( crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) )
+                                  != nullptr,
+                              5000 );
+
+    auto* const searchEdit = child<QComboBox>( *crawler, "mainSearchEdit" );
+    auto* const searchButton = child<QToolButton>( *crawler, "mainSearchButton" );
+    auto* const clearButton = child<QToolButton>( *crawler, "clearSearchButton" );
+    auto* const matchCaseButton = child<QToolButton>( *crawler, "matchCaseButton" );
+    auto* const autoRefreshButton = child<QToolButton>( *crawler, "searchRefreshButton" );
+    auto* const predefinedFilters
+        = child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" );
+    auto* const clearHistory = child<QAction>( *crawler, "clearSearchHistoryAction" );
+    auto* const editHistory = child<QAction>( *crawler, "editSearchHistoryAction" );
+    auto* const saveFilter = child<QAction>( *crawler, "saveAsPredefinedFilterAction" );
+    auto* const searchInfo = crawler->findChild<InfoLine*>();
+    auto* const quickFind = child<QuickFindWidget>( window, "quickFindWidget" );
+
+    QVERIFY( searchEdit );
+    QVERIFY( searchButton );
+    QVERIFY( clearButton );
+    QVERIFY( matchCaseButton );
+    QVERIFY( autoRefreshButton );
+    QVERIFY( predefinedFilters );
+    QVERIFY( clearHistory );
+    QVERIFY( editHistory );
+    QVERIFY( saveFilter );
+    QVERIFY( searchInfo );
+    QVERIFY( quickFind );
+
+    auto* const ignoreCase = child<QCheckBox>( *quickFind, "ignoreCaseCheckBox" );
+    auto* const previous = child<QToolButton>( *quickFind, "previousButton" );
+    auto* const next = child<QToolButton>( *quickFind, "nextButton" );
+    auto* const quickFindEdit = child<QLineEdit>( *quickFind, "quickFindEdit" );
+    auto* const notification = child<QLabel>( *quickFind, "quickFindNotification" );
+
+    QVERIFY( ignoreCase );
+    QVERIFY( previous );
+    QVERIFY( next );
+    QVERIFY( quickFindEdit );
+    QVERIFY( notification );
+
+    searchEdit->setCurrentText( QStringLiteral( "matching" ) );
+    searchButton->click();
+    QTRY_COMPARE_WITH_TIMEOUT( searchInfo->text(), QStringLiteral( "2 matches found" ), 5000 );
+    const QString searchText = searchEdit->currentText();
+    const bool matchCaseChecked = matchCaseButton->isChecked();
+    const bool autoRefreshChecked = autoRefreshButton->isChecked();
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    QCOMPARE( searchButton->text(), QStringLiteral( "搜索" ) );
+    QCOMPARE( clearButton->text(), QStringLiteral( "清除搜索文本" ) );
+    QCOMPARE( matchCaseButton->toolTip(), QStringLiteral( "匹配大小写" ) );
+    QCOMPARE( predefinedFilters->itemText( 0 ), QStringLiteral( "预定义过滤器" ) );
+    QCOMPARE( ignoreCase->text(), QStringLiteral( "忽略大小写(&C)" ) );
+    QCOMPARE( previous->text(), QStringLiteral( "上一个" ) );
+    QCOMPARE( next->text(), QStringLiteral( "下一个" ) );
+    QCOMPARE( clearHistory->text(), QStringLiteral( "清除搜索历史" ) );
+    QCOMPARE( editHistory->text(), QStringLiteral( "编辑搜索历史" ) );
+    QCOMPARE( saveFilter->text(), QStringLiteral( "保存为过滤器" ) );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    QCOMPARE( child<QToolButton>( *crawler, "mainSearchButton" ), searchButton );
+    QCOMPARE( child<QToolButton>( *crawler, "clearSearchButton" ), clearButton );
+    QCOMPARE( child<QToolButton>( *crawler, "matchCaseButton" ), matchCaseButton );
+    QCOMPARE( child<PredefinedFiltersComboBox>( *crawler, "predefinedFilters" ), predefinedFilters );
+    QCOMPARE( child<QAction>( *crawler, "clearSearchHistoryAction" ), clearHistory );
+    QCOMPARE( child<QAction>( *crawler, "editSearchHistoryAction" ), editHistory );
+    QCOMPARE( child<QAction>( *crawler, "saveAsPredefinedFilterAction" ), saveFilter );
+    QCOMPARE( child<QuickFindWidget>( window, "quickFindWidget" ), quickFind );
+    QCOMPARE( child<QCheckBox>( *quickFind, "ignoreCaseCheckBox" ), ignoreCase );
+    QCOMPARE( child<QToolButton>( *quickFind, "previousButton" ), previous );
+    QCOMPARE( child<QToolButton>( *quickFind, "nextButton" ), next );
+    QCOMPARE( searchEdit->currentText(), searchText );
+    QCOMPARE( searchInfo->text(), QStringLiteral( "找到 2 個符合項目" ) );
+    QCOMPARE( matchCaseButton->isChecked(), matchCaseChecked );
+    QCOMPARE( autoRefreshButton->isChecked(), autoRefreshChecked );
+
+    quickFind->userActivate();
+    quickFindEdit->setFocus();
+    QTest::keyClicks( quickFindEdit, QStringLiteral( "not present" ) );
+    next->click();
+    QTRY_COMPARE_WITH_TIMEOUT( notification->text(),
+                               QStringLiteral( "已到達檔案末尾，未找到符合項目。" ), 5000 );
 }
 
 int main( int argc, char* argv[] )

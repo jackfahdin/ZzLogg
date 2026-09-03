@@ -40,6 +40,8 @@
 
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
+#include <QEvent>
+#include <QSignalBlocker>
 #include <qabstractitemview.h>
 
 #include "log.h"
@@ -118,6 +120,21 @@ void PredefinedFiltersComboBox::updateSearchPattern( const QString newSearchPatt
 {
     searchPattern_.newOne_ = newSearchPattern;
     searchPattern_.useLogicalCombining_ = useLogicalCombining;
+}
+
+void PredefinedFiltersComboBox::retranslateUi()
+{
+    const QSignalBlocker blocker{ model_ };
+    setItemText( 0, tr( "Predefined filters" ) );
+}
+
+void PredefinedFiltersComboBox::changeEvent( QEvent* event )
+{
+    QComboBox::changeEvent( event );
+
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi();
+    }
 }
 
 void PredefinedFiltersComboBox::showPopup()

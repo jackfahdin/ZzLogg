@@ -185,127 +185,140 @@
 <context>
     <name>CrawlerWidget</name>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="452"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="456"/>
         <source>Search history:</source>
         <translation>搜索历史：</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="508"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="512"/>
         <source>Search in progress (%1 %)...</source>
         <translation type="unfinished">正在搜索（%1 %）...</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="509"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="513"/>
         <source> %1 matches found so far.</source>
         <translation type="unfinished"> 已找到 %1 的匹配.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="511"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="515"/>
         <source> %1 match found so far.</source>
         <translation type="unfinished"> 已找到 %1 的匹配.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="995"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="999"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1723"/>
         <source>Marks and matches</source>
         <translation>标记和匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1000"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1004"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
         <source>Marks</source>
         <translation>仅标记</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1004"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1008"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1725"/>
         <source>Matches</source>
         <translation>仅匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1053"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1058"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1726"/>
         <source>Match case</source>
         <translation type="unfinished">匹配大小写</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1059"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1064"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1727"/>
         <source>Use regex</source>
         <translation type="unfinished">使用正则匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1065"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1070"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1728"/>
         <source>Inverse match</source>
         <translation type="unfinished">反转匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1071"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1076"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1729"/>
         <source>Enable regular expression logical combining</source>
         <translation type="unfinished">启用正则表达式逻辑组合</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1077"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1083"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1730"/>
         <source>Auto-refresh</source>
         <translation type="unfinished">自动刷新</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1094"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1100"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1731"/>
         <source>Clear search history</source>
-        <translation type="unfinished">清空搜索历史</translation>
+        <translation>清除搜索历史</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1095"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1102"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1732"/>
         <source>Edit search history</source>
         <translation type="unfinished">编辑搜索历史</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1096"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1104"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1733"/>
         <source>Save as Filter</source>
-        <translation type="unfinished">保存过滤器</translation>
+        <translation>保存为过滤器</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1109"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1119"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1735"/>
         <source>Clear search text</source>
-        <translation type="unfinished">清除正在搜索的文本</translation>
+        <translation>清除搜索文本</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1115"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1125"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1734"/>
         <source>Search</source>
         <translation>搜索</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1120"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1130"/>
         <source>Keep Results</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1122"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1132"/>
         <source>Keep these results and show subsequent results in a new window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1633"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1644"/>
         <source>Error in expression</source>
         <translation type="unfinished">表达式错误</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1684"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1695"/>
         <source>%1 matches found</source>
         <translation type="unfinished">找到%1个匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1685"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1696"/>
         <source>%1 match found</source>
         <translation type="unfinished">找到%1个匹配</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1689"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1700"/>
         <source>File truncated on disk</source>
         <translation type="unfinished">磁盘中文件被截断</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
         <source>Displayed as %1</source>
         <translation type="unfinished">转换至编码: %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/crawlerwidget.cpp" line="1724"/>
+        <location filename="../../ui/src/crawlerwidget.cpp" line="1754"/>
         <source>Detected as %1</source>
         <translation type="unfinished">检测到编码: %1</translation>
     </message>
@@ -648,7 +661,7 @@
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1310"/>
         <source>Ln:%1/%2</source>
-        <translation type="unfinished"></translation>
+        <translation>行：%1/%2</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1088"/>
@@ -658,7 +671,7 @@
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1315"/>
         <source>Ln:%1/%2 Col:%3 Sel:%4|%5</source>
-        <translation type="unfinished"></translation>
+        <translation>行：%1/%2 列：%3 选择：%4|%5</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1324"/>
@@ -1266,9 +1279,10 @@
 <context>
     <name>PredefinedFiltersComboBox</name>
     <message>
-        <location filename="../../ui/src/predefinedfilterscombobox.cpp" line="110"/>
+        <location filename="../../ui/src/predefinedfilterscombobox.cpp" line="112"/>
+        <location filename="../../ui/src/predefinedfilterscombobox.cpp" line="128"/>
         <source>Predefined filters</source>
-        <translation type="unfinished">预定义的过滤器</translation>
+        <translation>预定义过滤器</translation>
     </message>
 </context>
 <context>
@@ -1398,9 +1412,27 @@
     </message>
 </context>
 <context>
+    <name>QFNotification</name>
+    <message>
+        <location filename="../../ui/include/qfnotifications.h" line="53"/>
+        <source>Reached end of file, no occurrence found.</source>
+        <translation>已到达文件末尾，未找到匹配项。</translation>
+    </message>
+    <message>
+        <location filename="../../ui/include/qfnotifications.h" line="59"/>
+        <source>Reached beginning of file, no occurrence found.</source>
+        <translation>已到达文件开头，未找到匹配项。</translation>
+    </message>
+    <message>
+        <location filename="../../ui/include/qfnotifications.h" line="65"/>
+        <source>Search interrupted</source>
+        <translation>搜索已中断</translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
-        <location filename="../../ui/include/qfnotifications.h" line="86"/>
+        <location filename="../../ui/include/qfnotifications.h" line="100"/>
         <source>Searching (position %1 %)</source>
         <translation type="unfinished">查找 （位置 %1 %）</translation>
     </message>
@@ -1437,394 +1469,415 @@
     </message>
 </context>
 <context>
+    <name>QuickFindWidget</name>
+    <message>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="79"/>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="229"/>
+        <source>Ignore &amp;case</source>
+        <translation>忽略大小写(&amp;C)</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="85"/>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="230"/>
+        <source>Previous</source>
+        <translation>上一个</translation>
+    </message>
+    <message>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="91"/>
+        <location filename="../../ui/src/quickfindwidget.cpp" line="231"/>
+        <source>Next</source>
+        <translation>下一个</translation>
+    </message>
+</context>
+<context>
     <name>ShortcutAction</name>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="109"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="112"/>
         <source>Open new window</source>
         <translation>在新的窗口打开</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="116"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="119"/>
         <source>Open file</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="123"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="126"/>
         <source>Close file</source>
         <translation>关闭文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="130"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="133"/>
         <source>Close all files</source>
         <translation>关闭所有文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="137"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="140"/>
         <source>Select all</source>
         <translation>选择全部</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="144"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="147"/>
         <source>Copy selection to clipboard</source>
         <translation>拷贝选中内容到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="151"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="154"/>
         <source>Exit application</source>
         <translation>退出应用</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="158"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="161"/>
         <source>Full Screen</source>
         <translation>全屏</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="165"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="168"/>
         <source>Maximize window</source>
         <translation>最大化窗口</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="172"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="175"/>
         <source>Minimize Window</source>
         <translation>最小化窗口</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="179"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="182"/>
         <source>Preferences</source>
         <translation>首选项</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="186"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="189"/>
         <source>Open quick find</source>
         <translation>打开快速搜索</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="193"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="196"/>
         <source>Quick find forward</source>
         <translation>向前快速查找</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="200"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="203"/>
         <source>Quick find backward</source>
         <translation>向后快速查找</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="207"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="210"/>
         <source>Set focus to search input</source>
         <translation>聚焦到搜索框</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="214"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="217"/>
         <source>Clear file</source>
         <translation>清空文件内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="221"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="224"/>
         <source>Open containing folder</source>
         <translation>打开包含此文件的文件夹</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="228"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="231"/>
         <source>Open file in editor</source>
         <translation>在编辑器中打开</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="235"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="238"/>
         <source>Copy file path to clipboard</source>
         <translation>拷贝当前文件路径到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="242"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="245"/>
         <source>Paste text from clipboard</source>
         <translation>粘贴</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="249"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="252"/>
         <source>Open file from URL</source>
         <translation>打开URL作为日志文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="256"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="259"/>
         <source>Monitor file changes</source>
         <translation>文件变化时检测</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="264"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="267"/>
         <source>Toggle text wrap</source>
         <translation>切换自动换行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="271"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="274"/>
         <source>Reload file</source>
         <translation>重新加载文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="278"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="281"/>
         <source>Stop file loading</source>
         <translation>停止正在加载的文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="285"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="288"/>
         <source>Open scratchpad</source>
         <translation>打开暂存器</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="292"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="295"/>
         <source>Switch to file</source>
         <translation>切换到文件</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="299"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="302"/>
         <source>Change filtered lines visibility forward</source>
         <translation>向前切换筛选行可见性</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="306"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="309"/>
         <source>Change filtered lines visibility backward</source>
         <translation>向后切换筛选行可见性</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="313"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="316"/>
         <source>Change filtered lines visibility to marks and matches</source>
         <translation>将筛选行可见性设为标记和匹配项</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="320"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="323"/>
         <source>Change filtered lines visibility to marks</source>
         <translation>将筛选行可见性设为标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="327"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="330"/>
         <source>Change filtered lines visibility to matches</source>
         <translation>将筛选行可见性设为匹配项</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="334"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="337"/>
         <source>Increase main view</source>
         <translation>向下移动窗口分割线</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="341"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="344"/>
         <source>Decrease main view</source>
         <translation>向下移动窗口分割线</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="348"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="351"/>
         <source>Enable case matching</source>
         <translation>启用大小写匹配</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="355"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="358"/>
         <source>Enable regex</source>
         <translation>启用正则表达式</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="362"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="365"/>
         <source>Enable inverse matching</source>
         <translation>启用反向匹配</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="369"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="372"/>
         <source>Enable regex combining</source>
         <translation>启用正则表达式组合</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="376"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="379"/>
         <source>Enable auto refresh</source>
         <translation>启用自动刷新</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="383"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="386"/>
         <source>Keep search results</source>
         <translation>保留搜索结果</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="395"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="398"/>
         <source>Add line mark</source>
         <translation>标记当前行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="402"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="405"/>
         <source>Jump to next mark</source>
         <translation>跳转到下一处标记行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="409"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="412"/>
         <source>Jump to previous mark</source>
         <translation>跳转到上一处标记行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="416"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="419"/>
         <source>Move selection up</source>
         <translation>向上移动</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="423"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="426"/>
         <source>Move selection down</source>
         <translation>向下移动</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="431"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="434"/>
         <source>Scroll up</source>
         <translation>上一个标签页</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="438"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="441"/>
         <source>Scroll down</source>
         <translation>下一个标签页</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="445"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="448"/>
         <source>Scroll left</source>
         <translation>向左滚动</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="453"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="456"/>
         <source>Scroll right</source>
         <translation>向右滚动</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="461"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="464"/>
         <source>Jump to the beginning of the current line</source>
         <translation>跳转到行首</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="469"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="472"/>
         <source>Jump to the end start of the current line</source>
         <translation>跳转到行尾</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="476"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="479"/>
         <source>Jump to the right of the text</source>
         <translation>跳转到全文最右侧</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="483"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="486"/>
         <source>Jump to the bottom of the text</source>
         <translation>跳转到文本底部</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="490"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="493"/>
         <source>Jump to the top of the text</source>
         <translation>跳转到第一行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="497"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="500"/>
         <source>Jump to line</source>
         <translation>跳转到指定行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="504"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="507"/>
         <source>Main view: find next</source>
         <translation>主窗口：跳转到后一个选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="511"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="514"/>
         <source>Main view: find previous</source>
         <translation>主窗口: 跳转到前一个选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="517"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="520"/>
         <source>Set selection to QuickFind and find next</source>
         <translation>跳转到下一个选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="524"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="527"/>
         <source>Set selection to QuickFind and find previous</source>
         <translation>跳转到上一个选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="532"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="535"/>
         <source>Release focus from view</source>
         <translation>主窗口与结果窗焦点切换</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="539"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="542"/>
         <source>Highlight text with color 1</source>
         <translation>使用颜色标签1高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="546"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="549"/>
         <source>Highlight text with color 2</source>
         <translation>使用颜色标签2高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="553"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="556"/>
         <source>Highlight text with color 3</source>
         <translation>使用颜色标签3高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="560"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="563"/>
         <source>Highlight text with color 4</source>
         <translation>使用颜色标签4高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="567"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="570"/>
         <source>Highlight text with color 5</source>
         <translation>使用颜色标签5高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="574"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="577"/>
         <source>Highlight text with color 6</source>
         <translation>使用颜色标签6高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="581"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="584"/>
         <source>Highlight text with color 7</source>
         <translation>使用颜色标签7高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="588"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="591"/>
         <source>Highlight text with color 8</source>
         <translation>使用颜色标签8高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="595"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="598"/>
         <source>Highlight text with color 9</source>
         <translation>使用颜色标签9高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="602"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="605"/>
         <source>Highlight text with next color</source>
         <translation>使用下一个颜色标签标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="609"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="612"/>
         <source>Clear all color labels</source>
         <translation>清除所有手动高亮标记</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="616"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="619"/>
         <source>Send selection to scratchpad</source>
         <translation>追加选中内容到暂存器</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="623"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="626"/>
         <source>Replace scratchpad with selection</source>
         <translation>将暂存器内容替换为选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="630"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="633"/>
         <source>Add selection to search pattern</source>
         <translation>追加选中内容到搜索框</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="637"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="640"/>
         <source>Exclude selection from search pattern </source>
         <translation>从搜索中排除所选内容 </translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="644"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="647"/>
         <source>Replace search pattern with selection</source>
         <translation>将搜索框内容替换为选中内容</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="651"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="654"/>
         <source>Select lines down</source>
         <translation>向下选中多行</translation>
     </message>
     <message>
-        <location filename="../../settings/src/shortcuts.cpp" line="658"/>
+        <location filename="../../settings/src/shortcuts.cpp" line="661"/>
         <source>Select lines up</source>
         <translation>向上选中多行</translation>
     </message>

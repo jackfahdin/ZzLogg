@@ -60,8 +60,12 @@ class PredefinedFiltersComboBox final : public QComboBox {
 
     void populatePredefinedFilters();
     void updateSearchPattern( const QString newSearchPattern, bool useLogicalCombining );
+    void retranslateUi();
 
     virtual void showPopup();
+
+  protected:
+    void changeEvent( QEvent* event ) override;
 
   Q_SIGNALS:
     void filterChanged( const QList<PredefinedFilter>& selectedFilters);

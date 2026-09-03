@@ -71,6 +71,7 @@ class QuickFindPattern;
 class SavedSearches;
 class QStandardItemModel;
 class QCompleter;
+class QAction;
 class OverviewWidget;
 
 // Implements the central widget of the application.
@@ -330,7 +331,9 @@ class CrawlerWidget : public QSplitter,
     AbstractLogView* activeView() const;
     void printSearchInfoMessage( LinesCount nbMatches = 0_lcount );
     void changeDataStatus( DataStatus status );
+    void retranslateUi();
     void updateEncoding();
+    void updateEncodingText();
     void changeTopViewSize( int32_t delta );
     void updatePredefinedFiltersWidget();
 
@@ -373,27 +376,30 @@ class CrawlerWidget : public QSplitter,
 
     OverviewWidget* overviewWidget_;
 
-    QComboBox* visibilityBox_;
+    QComboBox* visibilityBox_ = nullptr;
     QStandardItemModel* visibilityModel_;
 
-    PredefinedFiltersComboBox* predefinedFilters_;
+    PredefinedFiltersComboBox* predefinedFilters_ = nullptr;
 
-    QComboBox* searchLineEdit_;
-    QMenu* searchLineContextMenu_;
-    QCompleter* searchLineCompleter_;
+    QComboBox* searchLineEdit_ = nullptr;
+    QMenu* searchLineContextMenu_ = nullptr;
+    QCompleter* searchLineCompleter_ = nullptr;
+    QAction* clearSearchHistoryAction_ = nullptr;
+    QAction* editSearchHistoryAction_ = nullptr;
+    QAction* saveAsPredefinedFilterAction_ = nullptr;
 
     InfoLine* searchInfoLine_ = nullptr;
 
-    QToolButton* clearButton_;
-    QToolButton* searchButton_;
+    QToolButton* clearButton_ = nullptr;
+    QToolButton* searchButton_ = nullptr;
     QToolButton* keepSearchResultsButton_;
     QToolButton* stopButton_;
 
-    QToolButton* matchCaseButton_;
-    QToolButton* useRegexpButton_;
-    QToolButton* inverseButton_;
-    QToolButton* booleanButton_;
-    QToolButton* searchRefreshButton_;
+    QToolButton* matchCaseButton_ = nullptr;
+    QToolButton* useRegexpButton_ = nullptr;
+    QToolButton* inverseButton_ = nullptr;
+    QToolButton* booleanButton_ = nullptr;
+    QToolButton* searchRefreshButton_ = nullptr;
 
     std::map<QString, QShortcut*> shortcuts_;
 

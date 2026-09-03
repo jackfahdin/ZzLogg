@@ -39,6 +39,7 @@
 #include "log.h"
 
 #include <QHBoxLayout>
+#include <QEvent>
 #include <QLabel>
 #include <QToolButton>
 #include <qcheckbox.h>
@@ -53,13 +54,10 @@
 
 static constexpr int NotificationTimeout = 5000;
 
-const QString QFNotification::REACHED_EOF = "Reached end of file, no occurrence found.";
-const QString QFNotification::REACHED_BOF = "Reached beginning of file, no occurrence found.";
-const QString QFNotification::INTERRUPTED = "Search interrupted";
-
 QuickFindWidget::QuickFindWidget( QWidget* parent )
     : QWidget( parent )
 {
+    setObjectName( QStringLiteral( "quickFindWidget" ) );
     // ui_.setupUi( this );
     // setFocusProxy(ui_.findEdit);
     // setProperty("topBorder", true);
@@ -73,25 +71,30 @@ QuickFindWidget::QuickFindWidget( QWidget* parent )
     layout->addWidget( closeButton_ );
 
     editQuickFind_ = new QLineEdit( this );
+    editQuickFind_->setObjectName( QStringLiteral( "quickFindEdit" ) );
     // FIXME: set MinimumSize might be to constraining
     editQuickFind_->setMinimumSize( QSize( 150, 0 ) );
     layout->addWidget( editQuickFind_ );
 
-    ignoreCaseCheck_ = new QCheckBox( "Ignore &case" );
+    ignoreCaseCheck_ = new QCheckBox( tr( "Ignore &case" ) );
+    ignoreCaseCheck_->setObjectName( QStringLiteral( "ignoreCaseCheckBox" ) );
     ignoreCaseCheck_->setChecked( Configuration::get().qfIgnoreCase() );
     layout->addWidget( ignoreCaseCheck_ );
 
     previousButton_
-        = setupToolButton( QLatin1String( "Previous" ), QLatin1String( ":/images/arrowup.png" ) );
+        = setupToolButton( tr( "Previous" ), QLatin1String( ":/images/arrowup.png" ) );
+    previousButton_->setObjectName( QStringLiteral( "previousButton" ) );
     previousButton_->setShortcut( QKeySequence::FindPrevious );
     layout->addWidget( previousButton_ );
 
     nextButton_
-        = setupToolButton( QLatin1String( "Next" ), QLatin1String( ":/images/arrowdown.png" ) );
+        = setupToolButton( tr( "Next" ), QLatin1String( ":/images/arrowdown.png" ) );
+    nextButton_->setObjectName( QStringLiteral( "nextButton" ) );
     nextButton_->setShortcut( QKeySequence::FindNext );
     layout->addWidget( nextButton_ );
 
     notificationText_ = new QLabel( "" );
+    notificationText_->setObjectName( QStringLiteral( "quickFindNotification" ) );
     // FIXME: set MinimumSize might be too constraining
     int width = QFNotification::maxWidth( notificationText_ );
     notificationText_->setMinimumSize( width, 0 );
@@ -117,6 +120,15 @@ QuickFindWidget::QuickFindWidget( QWidget* parent )
     notificationTimer_ = new QTimer( this );
     notificationTimer_->setSingleShot( true );
     connect( notificationTimer_, SIGNAL( timeout() ), this, SLOT( notificationTimeout() ) );
+}
+
+void QuickFindWidget::changeEvent( QEvent* event )
+{
+    QWidget::changeEvent( event );
+
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi();
+    }
 }
 
 void QuickFindWidget::userActivate()
@@ -212,6 +224,13 @@ void QuickFindWidget::textChanged()
 //
 // Private functions
 //
+void QuickFindWidget::retranslateUi()
+{
+    ignoreCaseCheck_->setText( tr( "Ignore &case" ) );
+    previousButton_->setText( tr( "Previous" ) );
+    nextButton_->setText( tr( "Next" ) );
+}
+
 QToolButton* QuickFindWidget::setupToolButton( const QString& text, const QString& icon )
 {
     auto* toolButton = new QToolButton( this );

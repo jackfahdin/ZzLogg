@@ -21,6 +21,7 @@
 #define QFNOTIFICATIONS_H
 
 #include <QFontMetrics>
+#include <QCoreApplication>
 #include <QObject>
 #include <QWidget>
 
@@ -42,14 +43,27 @@ class QFNotification {
     static int maxWidth( const QWidget* widget )
     {
         QFontMetrics fm = widget->fontMetrics();
-        return qMax( fm.size( Qt::TextSingleLine, REACHED_BOF ).width(),
-                     fm.size( Qt::TextSingleLine, REACHED_EOF ).width() );
+        return qMax( fm.size( Qt::TextSingleLine, reachedBeginningOfFileText() ).width(),
+                     fm.size( Qt::TextSingleLine, reachedEndOfFileText() ).width() );
     }
 
   protected:
-    static const QString REACHED_EOF;
-    static const QString REACHED_BOF;
-    static const QString INTERRUPTED;
+    static QString reachedEndOfFileText()
+    {
+        return QCoreApplication::translate(
+            "QFNotification", "Reached end of file, no occurrence found." );
+    }
+
+    static QString reachedBeginningOfFileText()
+    {
+        return QCoreApplication::translate(
+            "QFNotification", "Reached beginning of file, no occurrence found." );
+    }
+
+    static QString interruptedText()
+    {
+        return QCoreApplication::translate( "QFNotification", "Search interrupted" );
+    }
 
   private:
     QString message_;
@@ -58,7 +72,7 @@ class QFNotification {
 class QFNotificationReachedEndOfFile : public QFNotification {
   public:
     QFNotificationReachedEndOfFile()
-        : QFNotification( REACHED_EOF )
+        : QFNotification( reachedEndOfFileText() )
     {
     }
 };
@@ -66,7 +80,7 @@ class QFNotificationReachedEndOfFile : public QFNotification {
 class QFNotificationReachedBegininningOfFile : public QFNotification {
   public:
     QFNotificationReachedBegininningOfFile()
-        : QFNotification( REACHED_BOF )
+        : QFNotification( reachedBeginningOfFileText() )
     {
     }
 };
@@ -74,7 +88,7 @@ class QFNotificationReachedBegininningOfFile : public QFNotification {
 class QFNotificationInterrupted : public QFNotification {
   public:
     QFNotificationInterrupted()
-        : QFNotification( INTERRUPTED )
+        : QFNotification( interruptedText() )
     {
     }
 };
