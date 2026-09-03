@@ -57,6 +57,7 @@
 #include "configuration.h"
 #include "logger.h"
 #include "mainwindow.h"
+#include "persistentinfo.h"
 #include "storagebootstrapdialog.h"
 #include "storagelocator.h"
 #include "styles.h"
@@ -389,6 +390,15 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         const QVariant secondTheme = state->secondTitleBar->property( "themeMode" );
         if ( Configuration::get().uiThemeMode() != UiThemeMode::Dark || firstTheme != secondTheme
              || firstTheme.toInt() != static_cast<int>( UiThemeMode::Dark ) ) {
+            return;
+        }
+        auto& settings = PersistentInfo::getSettings( app_settings{} );
+        settings.sync();
+        if ( settings.status() != QSettings::NoError
+             || settings.value( QStringLiteral( "view.themeMode" ) ).toString()
+                    != QStringLiteral( "dark" ) ) {
+            finishUi2Smoke( *state, EXIT_FAILURE,
+                            QStringLiteral( "theme toggle did not persist Dark mode" ) );
             return;
         }
         finishUi2Smoke( *state, EXIT_SUCCESS );
