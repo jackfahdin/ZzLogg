@@ -169,6 +169,9 @@ git commit -m "feat: unify line number configuration"
 - Modify: `src/ui/src/mainwindow.cpp`
 - Modify: `src/ui/include/abstractlogview.h`
 - Modify: `src/ui/src/crawlerwidget.cpp`
+- Modify: `src/app/i18n/en.ts`
+- Modify: `src/app/i18n/zh_CN.ts`
+- Modify: `src/app/i18n/zh_TW.ts`
 
 - [ ] **步骤 1：写出单一动作和双视图同步的失败测试**
 
@@ -233,7 +236,7 @@ connect( lineNumbersVisibleAction, &QAction::toggled, this, [this]( bool visible
 ```cpp
 const bool visible = config.lineNumbersVisible();
 logMainView_->setLineNumbersVisible( visible );
-logFilteredView_->setLineNumbersVisible( visible );
+filteredView_->setLineNumbersVisible( visible );
 ```
 
 `AbstractLogView` 增加无副作用查询：
@@ -244,9 +247,12 @@ bool lineNumbersVisible() const { return lineNumbersVisible_; }
 
 为两个视图设置测试也可使用的稳定 `objectName`，不暴露内部实现指针。
 
-- [ ] **步骤 4：确认 GREEN 并检查旧 API 已清除**
+- [ ] **步骤 4：更新本任务翻译、确认 GREEN 并检查旧 API 已清除**
+
+先更新翻译目录，把 `Line &numbers` 补成简体 `显示行号(&N)`、繁体 `顯示行號(&N)`，英文保持源文本：
 
 ```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_line_number_ui_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.line_number_ui$' --output-on-failure
 rg -n "mainLineNumbersVisible|filteredLineNumbersVisible|setMainLineNumbersVisible|setFilteredLineNumbersVisible|lineNumbersVisibleInMainAction|lineNumbersVisibleInFilteredAction" src tests
@@ -257,7 +263,7 @@ rg -n "mainLineNumbersVisible|filteredLineNumbersVisible|setMainLineNumbersVisib
 - [ ] **步骤 5：提交**
 
 ```powershell
-git add src/settings src/ui tests/ui2
+git add src/settings src/ui src/app/i18n tests/ui2
 git commit -m "feat: unify line number visibility action"
 ```
 
@@ -270,6 +276,9 @@ git commit -m "feat: unify line number visibility action"
 - Modify: `src/ui/src/optionsdialog.cpp`
 - Modify: `src/ui/include/storagelocationpage.h`
 - Modify: `src/ui/src/storagelocationpage.cpp`
+- Modify: `src/app/i18n/en.ts`
+- Modify: `src/app/i18n/zh_CN.ts`
+- Modify: `src/app/i18n/zh_TW.ts`
 
 - [ ] **步骤 1：为“先构造、后切换语言”写失败测试**
 
@@ -400,9 +409,12 @@ void StorageLocationPage::retranslateUi()
 
 该函数不修改 `mode_`、路径文本、`commandLineManaged_` 或选择状态。
 
-- [ ] **步骤 5：构建并运行翻译测试**
+- [ ] **步骤 5：更新本任务翻译并运行翻译测试**
+
+先运行 `lupdate`，补齐本任务涉及的 Storage 标签、Light/Dark、正则类型/引擎、Auto 编码、快捷键表头、设置对话框动态文案的简体和繁体翻译；英文保持源文本。随后构建测试资源：
 
 ```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_application_translation_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.application_translation$' --output-on-failure
 ```
@@ -410,7 +422,7 @@ void StorageLocationPage::retranslateUi()
 - [ ] **步骤 6：提交**
 
 ```powershell
-git add src/ui/include/optionsdialog.h src/ui/src/optionsdialog.cpp src/ui/include/storagelocationpage.h src/ui/src/storagelocationpage.cpp tests/ui2/applicationtranslationtest.cpp
+git add src/ui/include/optionsdialog.h src/ui/src/optionsdialog.cpp src/ui/include/storagelocationpage.h src/ui/src/storagelocationpage.cpp src/app/i18n tests/ui2/applicationtranslationtest.cpp
 git commit -m "fix: refresh settings language at runtime"
 ```
 
@@ -422,6 +434,9 @@ git commit -m "fix: refresh settings language at runtime"
 - Modify: `src/settings/include/shortcuts.h`
 - Modify: `src/settings/src/shortcuts.cpp`
 - Modify: `src/ui/src/optionsdialog.cpp`
+- Modify: `src/app/i18n/en.ts`
+- Modify: `src/app/i18n/zh_CN.ts`
+- Modify: `src/app/i18n/zh_TW.ts`
 
 - [ ] **步骤 1：添加先预热英文、再切中文的失败测试**
 
@@ -483,12 +498,15 @@ QString ShortcutAction::displayName( const std::string& action )
 
 `OptionsDialog::retranslateShortcutTable()` 遍历现有行，从 `Qt::UserRole` 取稳定 action key，仅更新第 0 列名称与表头；不得重建 cell widget。
 
-- [ ] **步骤 4：确认 GREEN 并提交**
+- [ ] **步骤 4：更新本任务翻译、确认 GREEN 并提交**
+
+运行 `lupdate` 后，把迁移到 `ShortcutAction` 上下文的动作名称补齐英文、简体和繁体翻译，再构建测试资源：
 
 ```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_application_translation_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.application_translation$' --output-on-failure
-git add src/settings/include/shortcuts.h src/settings/src/shortcuts.cpp src/ui/src/optionsdialog.cpp tests/ui2/applicationtranslationtest.cpp
+git add src/settings/include/shortcuts.h src/settings/src/shortcuts.cpp src/ui/src/optionsdialog.cpp src/app/i18n tests/ui2/applicationtranslationtest.cpp
 git commit -m "fix: translate shortcut names on demand"
 ```
 
@@ -504,6 +522,9 @@ git commit -m "fix: translate shortcut names on demand"
 - Modify: `src/ui/include/quickfindwidget.h`
 - Modify: `src/ui/src/quickfindwidget.cpp`
 - Modify: `src/ui/include/qfnotifications.h`
+- Modify: `src/app/i18n/en.ts`
+- Modify: `src/app/i18n/zh_CN.ts`
+- Modify: `src/app/i18n/zh_TW.ts`
 
 - [ ] **步骤 1：为存活的文档控件写失败测试**
 
@@ -588,12 +609,15 @@ static QString interruptedText()
 
 这样通知生成时总使用当前 translator，不保留首次调用时的旧文本。
 
-- [ ] **步骤 5：确认 GREEN 并提交**
+- [ ] **步骤 5：更新本任务翻译、确认 GREEN 并提交**
+
+运行 `lupdate` 后，补齐本任务新增或从裸字符串转为 `tr()` 的 Crawler、Predefined Filters、Quick Find 与通知文案翻译，再构建测试资源：
 
 ```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_application_translation_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.application_translation$' --output-on-failure
-git add src/ui/include/crawlerwidget.h src/ui/src/crawlerwidget.cpp src/ui/include/predefinedfilterscombobox.h src/ui/src/predefinedfilterscombobox.cpp src/ui/include/quickfindwidget.h src/ui/src/quickfindwidget.cpp src/ui/include/qfnotifications.h tests/ui2/applicationtranslationtest.cpp
+git add src/ui/include/crawlerwidget.h src/ui/src/crawlerwidget.cpp src/ui/include/predefinedfilterscombobox.h src/ui/src/predefinedfilterscombobox.cpp src/ui/include/quickfindwidget.h src/ui/src/quickfindwidget.cpp src/ui/include/qfnotifications.h src/app/i18n tests/ui2/applicationtranslationtest.cpp
 git commit -m "fix: retranslate open document controls"
 ```
 
@@ -605,6 +629,9 @@ git commit -m "fix: retranslate open document controls"
 - Modify: `src/ui/include/mainwindow.h`
 - Modify: `src/ui/src/mainwindow.cpp`
 - Modify: `src/ui/include/encodings.h`
+- Modify: `src/app/i18n/en.ts`
+- Modify: `src/app/i18n/zh_CN.ts`
+- Modify: `src/app/i18n/zh_TW.ts`
 
 - [ ] **步骤 1：写出主窗口残留项失败测试**
 
@@ -668,12 +695,15 @@ static void retranslate( QMenu* encodingsMenu )
 
 `generate()` 在创建 system action 时把 codec 名存入 `encodingName` property。`retranslate()` 只修改显示文本，不清空 menu，不创建新的 QAction，不改变 `QActionGroup::checkedAction()`。
 
-- [ ] **步骤 5：确认 GREEN 并提交**
+- [ ] **步骤 5：更新本任务翻译、确认 GREEN 并提交**
+
+运行 `lupdate` 后，补齐 Open Recent、Encoding、Auto、System、托盘 Open/Quit、scratchpad 及当前标题/状态文案的简体和繁体翻译，再构建测试资源：
 
 ```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_application_translation_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.application_translation$' --output-on-failure
-git add src/ui/include/mainwindow.h src/ui/src/mainwindow.cpp src/ui/include/encodings.h tests/ui2/applicationtranslationtest.cpp
+git add src/ui/include/mainwindow.h src/ui/src/mainwindow.cpp src/ui/include/encodings.h src/app/i18n tests/ui2/applicationtranslationtest.cpp
 git commit -m "fix: complete main window runtime translation"
 ```
 
@@ -684,11 +714,17 @@ git commit -m "fix: complete main window runtime translation"
 - Modify: `src/app/i18n/en.ts`
 - Modify: `src/app/i18n/zh_CN.ts`
 - Modify: `src/app/i18n/zh_TW.ts`
-- Modify: `tests/ui2/applicationtranslationcontracttest.cmake`
 
-- [ ] **步骤 1：更新 TS 源文本并补齐本次涉及的翻译**
+- [ ] **步骤 1：运行最终 lupdate 并检查目录差异**
 
-运行项目已有翻译更新目标或明确的 `lupdate` 命令，让新增 `tr()`、`QT_TRANSLATE_NOOP` 和合并后的 `Line &numbers` 进入三个 TS 文件。删除旧的两个行号动作条目或让 `lupdate` 将其标记为 vanished。
+各功能任务已经同步补齐自己的翻译。再次运行项目的 `lupdate` 目标，确认没有遗漏的新增源文本：
+
+```powershell
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target lupdate
+git diff -- src/app/i18n/en.ts src/app/i18n/zh_CN.ts src/app/i18n/zh_TW.ts
+```
+
+检查 diff 中本次新增或移动上下文的条目；如果 `lupdate` 新产生条目，立即补齐英文、简体和繁体翻译。旧的两个行号动作不再作为有效消息存在。
 
 本次至少确保下列映射是 finished 状态：
 
@@ -704,35 +740,23 @@ git commit -m "fix: complete main window runtime translation"
 
 所有 Task 3–6 新增的源文本均在简体和繁体 TS 中有非空翻译；英文 TS 保留源文本。
 
-- [ ] **步骤 2：强化翻译资源契约测试并先确认 RED**
+- [ ] **步骤 2：重建翻译资源并运行行为测试集合**
 
-扩充 `applicationtranslationcontracttest.cmake`，解析三份 TS，检查：
-
-- 仅存在一个当前行号 action 源文本；
-- 本次列出的 source 在简体/繁体中存在且不是 `unfinished`；
-- `ShortcutAction`、`OptionsDialog`、`StorageLocationPage`、`CrawlerWidget`、`QuickFindWidget`、`MainWindow` 的新增文本上下文存在。
-
-在补齐 TS 前先运行一次并确认失败：
-
-```powershell
-& 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.application_translation_contract$' --output-on-failure
-```
-
-- [ ] **步骤 3：重建翻译资源并运行相关测试集合**
+实际构建 QM 并运行存活控件的语言切换测试，以用户可观察行为验证翻译，而不是匹配 TS 或 C++ 源码文本：
 
 ```powershell
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_application_translation_test zzlogg_line_number_configuration_test zzlogg_line_number_ui_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.(application_translation|application_translation_contract|line_number_configuration|line_number_ui|storage_location_ui|options_theme)$' --output-on-failure
 ```
 
-- [ ] **步骤 4：提交翻译资源**
+- [ ] **步骤 3：提交最终目录整理**
 
 ```powershell
-git add src/app/i18n tests/ui2/applicationtranslationcontracttest.cmake
+git add src/app/i18n
 git commit -m "i18n: complete runtime UI translations"
 ```
 
-- [ ] **步骤 5：运行全量构建与 CTest**
+- [ ] **步骤 4：运行全量构建与 CTest**
 
 ```powershell
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build --preset windows-vs2026-ui-relwithdebinfo --parallel 8
@@ -741,7 +765,7 @@ git commit -m "i18n: complete runtime UI translations"
 
 预期所有目标编译成功，CTest 退出码为 0。若新增测试后总数高于基线 53，以实际测试数为准并记录通过数。
 
-- [ ] **步骤 6：检查变更边界与提交历史**
+- [ ] **步骤 5：检查变更边界与提交历史**
 
 ```powershell
 git status --short
