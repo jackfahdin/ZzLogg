@@ -62,6 +62,37 @@ struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
     {
         return !crawler.loadingInProgress_;
     }
+
+    static void publishActiveSearchProgress( CrawlerWidget& crawler, LinesCount matches,
+                                             int progress )
+    {
+        crawler.searchState_.startSearch();
+        crawler.stopButton_->setEnabled( true );
+        crawler.stopButton_->show();
+        crawler.searchButton_->hide();
+        crawler.clearButton_->hide();
+        Q_EMIT crawler.logFilteredData_->searchProgressed( matches, progress, 0_lnum );
+    }
+
+    static LogFilteredData* searchObject( const CrawlerWidget& crawler )
+    {
+        return crawler.logFilteredData_.get();
+    }
+
+    static int searchState( const CrawlerWidget& crawler )
+    {
+        return static_cast<int>( crawler.searchState_.getState() );
+    }
+
+    static QToolButton* stopButton( const CrawlerWidget& crawler )
+    {
+        return crawler.stopButton_;
+    }
+
+    static QToolButton* clearButton( const CrawlerWidget& crawler )
+    {
+        return crawler.clearButton_;
+    }
 };
 
 using TranslationCrawlerAccess = CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess>;
@@ -718,12 +749,21 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     searchButton->click();
     QTRY_COMPARE_WITH_TIMEOUT( searchInfo->text(), QStringLiteral( "2 matches found" ), 5000 );
     const QWidget* const existingResults = filteredResultsTabs->currentWidget();
-    QVERIFY( QMetaObject::invokeMethod(
-        crawler, "updateFilteredView", Qt::DirectConnection,
-        Q_ARG( LinesCount, LinesCount( 2 ) ), Q_ARG( int, 37 ),
-        Q_ARG( LineNumber, LineNumber( 0 ) ) ) );
-    QCOMPARE( searchInfo->text(),
-              QStringLiteral( "Search in progress (37 %)... 2 matches found so far." ) );
+    LogFilteredData* const existingSearchObject
+        = TranslationCrawlerAccess::searchObject( *crawler );
+    QSignalSpy searchProgressed{ existingSearchObject, &LogFilteredData::searchProgressed };
+    TranslationCrawlerAccess::publishActiveSearchProgress( *crawler, 2_lcount, 37 );
+    QTRY_COMPARE( searchInfo->text(),
+                  QStringLiteral( "Search in progress (37 %)... 2 matches found so far." ) );
+    const int activeSearchState = TranslationCrawlerAccess::searchState( *crawler );
+    QToolButton* const stopButton = TranslationCrawlerAccess::stopButton( *crawler );
+    QToolButton* const clearButton = TranslationCrawlerAccess::clearButton( *crawler );
+    QVERIFY( stopButton->isVisible() );
+    QVERIFY( stopButton->isEnabled() );
+    QVERIFY( searchButton->isHidden() );
+    QVERIFY( clearButton->isHidden() );
+    QCOMPARE( searchProgressed.count(), 1 );
+    searchProgressed.clear();
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
     QCoreApplication::sendPostedEvents();
@@ -732,6 +772,15 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
                   QStringLiteral( "正在搜尋（37 %）... 到目前為止已找到 2 個符合項目。" ) );
     QCOMPARE( filteredResultsTabs->currentWidget(), existingResults );
     QCOMPARE( searchEdit->currentText(), QStringLiteral( "matching" ) );
+    QCOMPARE( TranslationCrawlerAccess::searchObject( *crawler ), existingSearchObject );
+    QCOMPARE( TranslationCrawlerAccess::searchState( *crawler ), activeSearchState );
+    QCOMPARE( TranslationCrawlerAccess::stopButton( *crawler ), stopButton );
+    QCOMPARE( TranslationCrawlerAccess::clearButton( *crawler ), clearButton );
+    QVERIFY( stopButton->isVisible() );
+    QVERIFY( stopButton->isEnabled() );
+    QVERIFY( searchButton->isHidden() );
+    QVERIFY( clearButton->isHidden() );
+    QCOMPARE( searchProgressed.count(), 0 );
     QCOMPARE( loadingFinishedAfterLanguageChange.count(), 0 );
 }
 
