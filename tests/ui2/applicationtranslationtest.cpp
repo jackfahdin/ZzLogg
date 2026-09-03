@@ -63,6 +63,11 @@ struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
         return !crawler.loadingInProgress_;
     }
 
+    static void publishLoadingProgress( CrawlerWidget& crawler, int progress )
+    {
+        Q_EMIT crawler.logData_->loadingProgressed( progress );
+    }
+
     static void publishActiveSearchProgress( CrawlerWidget& crawler, LinesCount matches,
                                              int progress )
     {
@@ -819,32 +824,40 @@ void ApplicationTranslationTest::resendsPerDocumentLoadingStateAfterTabSwitchAnd
 
     documentTabs->setCurrentIndex( 0 );
     QCoreApplication::processEvents();
-    QVERIFY( QMetaObject::invokeMethod( firstCrawler, "loadingProgressedHandler",
-                                        Qt::DirectConnection, Q_ARG( int, 23 ) ) );
+    QSignalSpy firstProgress{ firstCrawler, &CrawlerWidget::loadingProgressed };
+    TranslationCrawlerAccess::publishLoadingProgress( *firstCrawler, 23 );
+    QCOMPARE( firstProgress.count(), 1 );
     QTRY_COMPARE( mainInfoLine->text(),
                   QDir::toNativeSeparators( firstPath )
                       + QStringLiteral( " - Indexing lines... (23 %)" ) );
 
     documentTabs->setCurrentIndex( 1 );
     QCoreApplication::processEvents();
-    QVERIFY( QMetaObject::invokeMethod( secondCrawler, "loadingProgressedHandler",
-                                        Qt::DirectConnection, Q_ARG( int, 67 ) ) );
-    QTRY_COMPARE( mainInfoLine->text(),
-                  QDir::toNativeSeparators( secondPath )
-                      + QStringLiteral( " - Indexing lines... (67 %)" ) );
+    QSignalSpy secondProgress{ secondCrawler, &CrawlerWidget::loadingProgressed };
+    TranslationCrawlerAccess::publishLoadingProgress( *secondCrawler, 0 );
+    QCOMPARE( secondProgress.count(), 1 );
+    QTRY_COMPARE_WITH_TIMEOUT( mainInfoLine->text(),
+                               QDir::toNativeSeparators( secondPath )
+                                   + QStringLiteral( " - Indexing lines... (0 %)" ),
+                               1000 );
 
     documentTabs->setCurrentIndex( 0 );
     QTRY_COMPARE( mainInfoLine->text(),
                   QDir::toNativeSeparators( firstPath )
                       + QStringLiteral( " - Indexing lines... (23 %)" ) );
 
+    documentTabs->setCurrentIndex( 1 );
+    QTRY_COMPARE( mainInfoLine->text(),
+                  QDir::toNativeSeparators( secondPath )
+                      + QStringLiteral( " - Indexing lines... (0 %)" ) );
+
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
     QCoreApplication::sendPostedEvents();
     QCoreApplication::processEvents();
-    QCOMPARE( documentTabs->currentWidget(), firstCrawler );
+    QCOMPARE( documentTabs->currentWidget(), secondCrawler );
     QTRY_COMPARE( mainInfoLine->text(),
-                  QDir::toNativeSeparators( firstPath )
-                      + QStringLiteral( " - 正在索引行... (23 %)" ) );
+                  QDir::toNativeSeparators( secondPath )
+                      + QStringLiteral( " - 正在索引行... (0 %)" ) );
 }
 
 void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChangingDocumentState()

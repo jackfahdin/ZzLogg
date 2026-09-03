@@ -1404,9 +1404,9 @@ void MainWindow::updateLoadingProgress( int progress )
 {
     LOG_DEBUG << "Loading progress: " << progress;
 
-    // We ignore 0% and 100% to avoid a flash when the file (or update)
-    // is very short.
-    if ( progress > 0 && progress < 100 ) {
+    // Zero is still a loading state owned by the current document. Completion
+    // is reported separately through loadingFinished().
+    if ( progress >= 0 && progress < 100 ) {
         infoDisplayState_ = InfoDisplayState::Loading;
         loadingProgress_ = progress;
         updateInfoLine();
