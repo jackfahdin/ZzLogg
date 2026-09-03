@@ -12,7 +12,7 @@
 
 ## 文件结构与职责
 
-- `src/settings/include/configuration.h`：删除两套行号 API/字段，提供单一 `lineNumbersVisible()` / `setLineNumbersVisible(bool)`。
+- `src/settings/include/configuration.h`：提供单一 `lineNumbersVisible()` / `setLineNumbersVisible(bool)` 和单一字段；Task 1 暂留映射到该字段的兼容 wrapper，Task 2 更新全部调用点后删除旧 API。
 - `src/settings/src/configuration.cpp`：读取新键、执行旧键迁移、保存新键并清理旧键。
 - `src/settings/include/shortcuts.h`、`src/settings/src/shortcuts.cpp`：把快捷键稳定元数据与当前语言的显示名称分离，消除静态容器冻结翻译的问题。
 - `src/ui/include/mainwindowtext.h`、`src/ui/src/mainwindowtext.cpp`：把两个行号动作源文本收敛为一个 `Line &numbers`。
@@ -106,13 +106,15 @@ add_test(NAME zzlogg_ui2.line_number_configuration
 
 - [ ] **步骤 4：实现单一字段和确定性迁移**
 
-头文件只保留：
+头文件改用单一存储字段和新 API：
 
 ```cpp
 bool lineNumbersVisible() const { return lineNumbersVisible_; }
 void setLineNumbersVisible( bool visible ) { lineNumbersVisible_ = visible; }
 bool lineNumbersVisible_ = true;
 ```
+
+为保证 Task 1 提交仍可完整编译，暂时保留四个旧方法作为直接映射到同一字段的兼容 wrapper：两个旧 getter 都返回 `lineNumbersVisible_`，两个旧 setter 都写 `lineNumbersVisible_`。不得保留两个旧字段。Task 2 更新所有 UI 调用点后删除这些 wrapper。
 
 读取配置时按以下顺序实现，不依赖旧默认值：
 
@@ -153,6 +155,8 @@ settings.remove( oldFilteredKey );
 ```powershell
 & 'D:\SoftWare\CMake\bin\cmake.exe' --build out/ui-vs --config RelWithDebInfo --target zzlogg_line_number_configuration_test --parallel 8
 & 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo -R '^zzlogg_ui2\.line_number_configuration$' --output-on-failure
+& 'D:\SoftWare\CMake\bin\cmake.exe' --build --preset windows-vs2026-ui-relwithdebinfo --parallel 8
+& 'D:\SoftWare\CMake\bin\ctest.exe' --test-dir out/ui-vs -C RelWithDebInfo --output-on-failure
 git add src/settings/include/configuration.h src/settings/src/configuration.cpp tests/ui2/CMakeLists.txt tests/ui2/linenumberconfigurationtest.cpp
 git commit -m "feat: unify line number configuration"
 ```
@@ -231,7 +235,7 @@ connect( lineNumbersVisibleAction, &QAction::toggled, this, [this]( bool visible
 } );
 ```
 
-删除两个旧动作、两个旧槽和旧菜单项。在 `CrawlerWidget::applyConfiguration()` 中对主视图及过滤视图调用同一个值：
+删除两个旧动作、两个旧槽和旧菜单项；所有调用点更新后，删除 Task 1 暂留的四个旧配置 wrapper。在 `CrawlerWidget::applyConfiguration()` 中对主视图及过滤视图调用同一个值：
 
 ```cpp
 const bool visible = config.lineNumbersVisible();
