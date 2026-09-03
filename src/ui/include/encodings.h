@@ -12,6 +12,7 @@
 
 #include <QActionGroup>
 #include <QApplication>
+#include <QCoreApplication>
 #include <QMenu>
 #include <QString>
 #include <QTextCodec>
@@ -51,9 +52,11 @@ class EncodingMenu {
         using namespace klogg::mainwindow;
         QMenu* encodingsMenu = new QMenu(
             QApplication::translate( "klogg::mainwindow::menu", menu::encodingTitle ) );
+        encodingsMenu->setObjectName( QStringLiteral( "encodingMenu" ) );
 
         auto autoEncoding = encodingsMenu->addAction(
             QApplication::translate( "klogg::mainwindow::action", action::autoEncodingText ) );
+        autoEncoding->setObjectName( QStringLiteral( "encodingAutoAction" ) );
         autoEncoding->setStatusTip(
             QApplication::translate( "klogg::mainwindow::action", action::autoEncodingStatusTip ) );
         autoEncoding->setCheckable( true );
@@ -77,6 +80,8 @@ class EncodingMenu {
             = QApplication::tr( "System (%1)" ).arg( systemCodec->name().constData() );
 
         auto systemEncoding = encodingsMenu->addAction( systemEncodingName );
+        systemEncoding->setObjectName( QStringLiteral( "encodingSystemAction" ) );
+        systemEncoding->setProperty( "encodingName", QString::fromLatin1( systemCodec->name() ) );
         systemEncoding->setCheckable( true );
         systemEncoding->setActionGroup( actionGroup );
         systemEncoding->setData( systemCodec->mibEnum() );
@@ -98,6 +103,26 @@ class EncodingMenu {
         }
 
         return encodingsMenu;
+    }
+
+    static void retranslate( QMenu* encodingsMenu )
+    {
+        using namespace klogg::mainwindow;
+        encodingsMenu->setTitle(
+            QApplication::translate( "klogg::mainwindow::menu", menu::encodingTitle ) );
+
+        auto* const autoEncoding
+            = encodingsMenu->findChild<QAction*>( QStringLiteral( "encodingAutoAction" ) );
+        auto* const systemEncoding
+            = encodingsMenu->findChild<QAction*>( QStringLiteral( "encodingSystemAction" ) );
+        Q_ASSERT( autoEncoding != nullptr );
+        Q_ASSERT( systemEncoding != nullptr );
+
+        autoEncoding->setText(
+            QApplication::translate( "klogg::mainwindow::action", action::autoEncodingText ) );
+        systemEncoding->setText(
+            QCoreApplication::translate( "EncodingMenu", "System (%1)" )
+                .arg( systemEncoding->property( "encodingName" ).toString() ) );
     }
 };
 

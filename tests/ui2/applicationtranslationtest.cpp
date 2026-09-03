@@ -15,6 +15,7 @@
 #include "storagecontext.h"
 #include "storagelocationpage.h"
 #include "tabbedcrawlerwidget.h"
+#include "tabbedscratchpad.h"
 
 #include <QAction>
 #include <QCheckBox>
@@ -67,6 +68,7 @@ class ApplicationTranslationTest final : public QObject {
     void changingLanguageDoesNotWriteProgramDirectory();
     void changingOnlyLanguageDoesNotRequestRestart();
     void retranslatesOpenDocumentSearchAndQuickFindControls();
+    void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
 
 void ApplicationTranslationTest::choosesSupportedPreBootstrapLanguage_data()
@@ -518,6 +520,130 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     next->click();
     QTRY_COMPARE_WITH_TIMEOUT( notification->text(),
                                QStringLiteral( "已到達檔案末尾，未找到符合項目。" ), 5000 );
+}
+
+void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChangingDocumentState()
+{
+    // This catches an implementation that only retranslates controls created after the
+    // translator is installed, or rebuilds the encoding menu and loses its selection.
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QTemporaryDir logs;
+    QVERIFY( logs.isValid() );
+    const QString logPath = logs.filePath( QStringLiteral( "main-window-translation.log" ) );
+    QFile log{ logPath };
+    QVERIFY( log.open( QIODevice::WriteOnly | QIODevice::Text ) );
+    QVERIFY( log.write( "matching line\nsecond matching line\n" ) > 0 );
+    log.close();
+
+    auto session = std::make_shared<Session>();
+    MainWindow window{ WindowSession{ session, QStringLiteral( "main-window-translation" ), 0 } };
+    window.show();
+    window.loadFileNonInteractive( logPath );
+
+    auto* const documentTabs
+        = window.findChild<TabbedCrawlerWidget*>( QStringLiteral( "documentTabs" ) );
+    QVERIFY( documentTabs );
+    QTRY_COMPARE_WITH_TIMEOUT( documentTabs->count(), 1, 5000 );
+    auto* const crawler = qobject_cast<CrawlerWidget*>( documentTabs->currentWidget() );
+    QVERIFY( crawler );
+    QSignalSpy loadingFinished{ crawler, &CrawlerWidget::loadingFinished };
+    QTRY_VERIFY_WITH_TIMEOUT( loadingFinished.count() > 0, 5000 );
+
+    auto* const searchEdit = child<QComboBox>( *crawler, "mainSearchEdit" );
+    auto* const searchButton = child<QToolButton>( *crawler, "mainSearchButton" );
+    auto* const searchInfo = crawler->findChild<InfoLine*>();
+    QVERIFY( searchInfo );
+    searchEdit->setCurrentText( QStringLiteral( "matching" ) );
+    searchButton->click();
+    QTRY_COMPARE_WITH_TIMEOUT( searchInfo->text(), QStringLiteral( "2 matches found" ), 5000 );
+
+    auto* const recentFilesMenu = window.findChild<QMenu*>( QStringLiteral( "recentFilesMenu" ) );
+    auto* const encodingMenu = window.findChild<QMenu*>( QStringLiteral( "encodingMenu" ) );
+    auto* const trayOpenAction = window.findChild<QAction*>( QStringLiteral( "trayOpenAction" ) );
+    auto* const trayQuitAction = window.findChild<QAction*>( QStringLiteral( "trayQuitAction" ) );
+    auto* const showScratchPadAction
+        = window.findChild<QAction*>( QStringLiteral( "showScratchPadAction" ) );
+    auto* const dateField = window.findChild<QLabel*>( QStringLiteral( "dateField" ) );
+
+    QVERIFY( recentFilesMenu );
+    QVERIFY( encodingMenu );
+    QVERIFY( trayOpenAction );
+    QVERIFY( trayQuitAction );
+    QVERIFY( showScratchPadAction );
+    QVERIFY( dateField );
+
+    auto* const encodingAutoAction
+        = encodingMenu->findChild<QAction*>( QStringLiteral( "encodingAutoAction" ) );
+    auto* const encodingSystemAction
+        = encodingMenu->findChild<QAction*>( QStringLiteral( "encodingSystemAction" ) );
+    QVERIFY( encodingAutoAction );
+    QVERIFY( encodingSystemAction );
+
+    QCOMPARE( recentFilesMenu->title(), QStringLiteral( "Open Recent" ) );
+    QCOMPARE( QString{ encodingMenu->title() }.remove( '&' ), QStringLiteral( "Encoding" ) );
+    QCOMPARE( encodingAutoAction->text(), QStringLiteral( "Auto" ) );
+    QVERIFY( encodingSystemAction->text().startsWith( QStringLiteral( "System (" ) ) );
+    QCOMPARE( trayOpenAction->text(), QStringLiteral( "Open window" ) );
+    QCOMPARE( trayQuitAction->text(), QStringLiteral( "Quit" ) );
+    QVERIFY( dateField->text().startsWith( QStringLiteral( "modified on " ) ) );
+
+    showScratchPadAction->trigger();
+    TabbedScratchPad* scratchPad = nullptr;
+    for ( QWidget* topLevelWidget : QApplication::topLevelWidgets() ) {
+        if ( auto* candidate = qobject_cast<TabbedScratchPad*>( topLevelWidget ) ) {
+            scratchPad = candidate;
+            break;
+        }
+    }
+    QVERIFY( scratchPad );
+
+    const int currentTab = documentTabs->currentIndex();
+    const QWidget* const currentDocument = documentTabs->currentWidget();
+    const QString currentSearchText = searchEdit->currentText();
+    const QString currentSearchStatus = searchInfo->text();
+    const QString currentTitle = window.windowTitle();
+    const bool autoEncodingChecked = encodingAutoAction->isChecked();
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    QCOMPARE( recentFilesMenu->title(), QStringLiteral( "最近打开文件" ) );
+    // The existing Chinese menu translation retains a mnemonic suffix ("(&E)").
+    QVERIFY( encodingMenu->title().startsWith( QStringLiteral( "编码" ) ) );
+    QCOMPARE( encodingAutoAction->text(), QStringLiteral( "自动" ) );
+    QVERIFY( encodingSystemAction->text().startsWith( QStringLiteral( "跟随系统（" ) ) );
+    QCOMPARE( trayOpenAction->text(), QStringLiteral( "打开窗口" ) );
+    QCOMPARE( trayQuitAction->text(), QStringLiteral( "退出" ) );
+    QCOMPARE( scratchPad->windowTitle(), QStringLiteral( "ZzLogg - 暂存器" ) );
+    QVERIFY( window.windowTitle().contains( QStringLiteral( "ZzLogg" ) ) );
+    QVERIFY( dateField->text().startsWith( QStringLiteral( "修改于 " ) ) );
+    QCOMPARE( documentTabs->currentIndex(), currentTab );
+    QCOMPARE( documentTabs->currentWidget(), currentDocument );
+    QCOMPARE( searchEdit->currentText(), currentSearchText );
+    QCOMPARE( searchInfo->text(), QStringLiteral( "找到2个匹配" ) );
+    QCOMPARE( encodingAutoAction->isChecked(), autoEncodingChecked );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+
+    QCOMPARE( child<QMenu>( window, "recentFilesMenu" ), recentFilesMenu );
+    QCOMPARE( child<QMenu>( window, "encodingMenu" ), encodingMenu );
+    QCOMPARE( child<QAction>( *encodingMenu, "encodingAutoAction" ), encodingAutoAction );
+    QCOMPARE( child<QAction>( *encodingMenu, "encodingSystemAction" ), encodingSystemAction );
+    QCOMPARE( child<QAction>( window, "trayOpenAction" ), trayOpenAction );
+    QCOMPARE( child<QAction>( window, "trayQuitAction" ), trayQuitAction );
+    QVERIFY( encodingMenu->title().startsWith( QStringLiteral( "編碼" ) ) );
+    QCOMPARE( scratchPad->windowTitle(), QStringLiteral( "ZzLogg - 便條" ) );
+    QCOMPARE( documentTabs->currentIndex(), currentTab );
+    QCOMPARE( documentTabs->currentWidget(), currentDocument );
+    QCOMPARE( searchEdit->currentText(), currentSearchText );
+    QCOMPARE( searchInfo->text(), QStringLiteral( "找到 2 個符合項目" ) );
+    QCOMPARE( encodingAutoAction->isChecked(), autoEncodingChecked );
+    QVERIFY( window.windowTitle().contains( QFileInfo{ logPath }.fileName() ) );
+    QVERIFY( window.windowTitle() != currentTitle );
+    QVERIFY( currentSearchStatus == QStringLiteral( "2 matches found" ) );
 }
 
 int main( int argc, char* argv[] )

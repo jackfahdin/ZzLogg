@@ -239,6 +239,7 @@ class MainWindow : public QMainWindow {
     HighlightersMenu* highlightersMenu;
     QMenu* openedFilesMenu;
     QMenu* helpMenu;
+    QMenu* encodingMenu;
 
     PathLine* infoLine;
     QLabel* lineNbField;
@@ -285,6 +286,8 @@ class MainWindow : public QMainWindow {
     QAction* removeFromFavoritesAction;
     QAction* selectOpenFileAction;
     QAction* recentFilesCleanup;
+    QAction* trayOpenAction;
+    QAction* trayQuitAction;
     QActionGroup* favoritesGroup;
     QActionGroup* openedFilesGroup;
     QActionGroup* highlightersActionGroup = nullptr;

@@ -305,6 +305,8 @@ void MainWindow::reTranslateUI()
     highlightersMenu->setTitle( transMenu( menu::highlightersTitle ) );
     favoritesMenu->setTitle( transMenu( menu::favoritesTitle ) );
     helpMenu->setTitle( transMenu( menu::helpTitle ) );
+    recentFilesMenu->setTitle( tr( "Open Recent" ) );
+    EncodingMenu::retranslate( encodingMenu );
 
     // toolbar
     toolBar->setToolTip(
@@ -411,9 +413,18 @@ void MainWindow::reTranslateUI()
         transAction( action::predefinedFiltersDialogStatusTip ) );
 
     // trayIcon
+    trayOpenAction->setText( tr( "Open window" ) );
+    trayQuitAction->setText( tr( "Quit" ) );
     trayIcon_->setToolTip( QApplication::translate( "klogg::mainwindow::trayicon",
                                                     klogg::mainwindow::trayicon::trayiconTip )
                                .arg( productName() ) );
+
+    scratchPad_.setWindowTitle( tr( "%1 - scratchpad" ).arg( productName() ) );
+    auto* const crawler = currentCrawlerWidget();
+    updateTitleBar( crawler ? session_.getFilename( crawler ) : QString{} );
+    if ( crawler != nullptr ) {
+        updateInfoLine();
+    }
 }
 
 int MainWindow::installLanguage( QString lang )
@@ -609,6 +620,7 @@ void MainWindow::createActions()
              [ this ]( auto ) { this->generateDump(); } );
 
     showScratchPadAction = new QAction( tr( action::showScratchPadText ), this );
+    showScratchPadAction->setObjectName( QStringLiteral( "showScratchPadAction" ) );
     showScratchPadAction->setStatusTip( tr( action::showScratchPadStatusTip ) );
     connect( showScratchPadAction, &QAction::triggered, this,
              [ this ]( auto ) { this->showScratchPad(); } );
@@ -732,6 +744,7 @@ void MainWindow::createMenus()
     fileMenu->addAction( openClipboardAction );
     fileMenu->addAction( openUrlAction );
     recentFilesMenu = fileMenu->addMenu( tr( "Open Recent" ) );
+    recentFilesMenu->setObjectName( QStringLiteral( "recentFilesMenu" ) );
     for ( auto i = 0u; i < recentFileActions.size(); ++i ) {
         recentFilesMenu->addAction( recentFileActions[ i ] );
     }
@@ -794,7 +807,9 @@ void MainWindow::createMenus()
     toolsMenu->addSeparator();
     toolsMenu->addAction( showScratchPadAction );
 
-    menuBar()->addMenu( EncodingMenu::generate( encodingGroup ) );
+    encodingMenu = EncodingMenu::generate( encodingGroup );
+    encodingMenu->setParent( menuBar() );
+    menuBar()->addMenu( encodingMenu );
     menuBar()->addSeparator();
 
     favoritesMenu = menuBar()->addMenu( tr( menu::favoritesTitle ) );
@@ -823,6 +838,7 @@ void MainWindow::createToolBars()
     sizeField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
     dateField = new QLabel();
+    dateField->setObjectName( QStringLiteral( "dateField" ) );
     dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
     encodingField = new QLabel();
@@ -864,14 +880,16 @@ void MainWindow::createTrayIcon()
     trayIcon_ = new QSystemTrayIcon( this );
 
     QMenu* trayMenu = new QMenu( this );
-    QAction* openWindowAction = new QAction( tr( "Open window" ), this );
-    QAction* quitAction = new QAction( tr( "Quit" ), this );
+    trayOpenAction = new QAction( tr( "Open window" ), this );
+    trayOpenAction->setObjectName( QStringLiteral( "trayOpenAction" ) );
+    trayQuitAction = new QAction( tr( "Quit" ), this );
+    trayQuitAction->setObjectName( QStringLiteral( "trayQuitAction" ) );
 
-    trayMenu->addAction( openWindowAction );
-    trayMenu->addAction( quitAction );
+    trayMenu->addAction( trayOpenAction );
+    trayMenu->addAction( trayQuitAction );
 
-    connect( openWindowAction, &QAction::triggered, this, &QMainWindow::show );
-    connect( quitAction, &QAction::triggered, [ this ] {
+    connect( trayOpenAction, &QAction::triggered, this, &QMainWindow::show );
+    connect( trayQuitAction, &QAction::triggered, [ this ] {
         this->isCloseFromTray_ = true;
         this->close();
     } );

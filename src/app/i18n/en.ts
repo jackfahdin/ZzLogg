@@ -326,6 +326,14 @@
     </message>
 </context>
 <context>
+    <name>EncodingMenu</name>
+    <message>
+        <location filename="../../ui/include/encodings.h" line="124"/>
+        <source>System (%1)</source>
+        <translation>System (%1)</translation>
+    </message>
+</context>
+<context>
     <name>HighlighterEdit</name>
     <message>
         <location filename="../../ui/include/highlighteredit.ui" line="14"/>
@@ -524,214 +532,218 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1142"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1160"/>
         <source>Open URL as log file</source>
         <translation>Open URL as log file</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="867"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="416"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="883"/>
         <source>Open window</source>
         <translation>Open window</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="197"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="422"/>
         <source>%1 - scratchpad</source>
         <translation>%1 - scratchpad</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="734"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="308"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="746"/>
         <source>Open Recent</source>
         <translation>Open Recent</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="868"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="417"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="885"/>
         <source>Quit</source>
         <translation>Quit</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="920"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="938"/>
         <source>Open file</source>
         <translation>Open file</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="920"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="1703"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="938"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1721"/>
         <source>All files (*)</source>
         <translation>All files (*)</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="943"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="961"/>
         <source>Downloading %1</source>
         <translation>Downloading %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="962"/>
-        <location filename="../../ui/src/mainwindow.cpp" line="967"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="980"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="985"/>
         <source>%1 - File download</source>
         <translation>%1 - File download</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="968"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="986"/>
         <source>Failed to create temp file</source>
         <translation>Failed to create temp file</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="993"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1011"/>
         <source>%1 - remove from recent</source>
         <translation>%1 - remove from recent</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="994"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1012"/>
         <source>Could not read file %1. Remove it from recent files?</source>
         <translation>Could not read file %1. Remove it from recent files?</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1015"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1033"/>
         <source>%1 - remove from favorites</source>
         <translation>%1 - remove from favorites</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1016"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1034"/>
         <source>Could not read file %1. Remove it from favorites?</source>
         <translation>Could not read file %1. Remove it from favorites?</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1087"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1105"/>
         <source>%1 - clear file</source>
         <translation>%1 - clear file</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1088"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1106"/>
         <source>Clear file %1? File content will be removed from disk, this is irreversible</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1142"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1160"/>
         <source>URL to download:</source>
         <translation>URL to download:</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1202"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1220"/>
         <source>About %1</source>
         <translation>About %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1203"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1221"/>
         <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
         <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1221"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1239"/>
         <source>About Qt</source>
         <translation>About Qt</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1234"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1252"/>
         <source>%1 documentation</source>
         <translation>%1 documentation</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1310"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1328"/>
         <source>Ln:%1/%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1315"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1333"/>
         <source>Ln:%1/%2 Col:%3 Sel:%4|%5</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1324"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1342"/>
         <source>Ln:%1/%2 Sel:%4|%5</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1352"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1370"/>
         <source> - Indexing lines... (%1 %)</source>
         <translation> - Indexing lines... (%1 %)</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1385"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1403"/>
         <source>Not enough memory.</source>
         <translation>Not enough memory.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1387"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1405"/>
         <source>The system does not have enough memory to hold the index for this file. The file will now be closed.</source>
         <translation>The system does not have enough memory to hold the index for this file. The file will now be closed.</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1649"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1667"/>
         <source>Extract archive to temp folder?</source>
         <translation>Extract archive to temp folder?</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1661"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1679"/>
         <source>Extracting %1</source>
         <translation>Extracting %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1689"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1707"/>
         <source>Failed to decompress %1</source>
         <translation>Failed to decompress %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1703"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1721"/>
         <source>Open file from archive</source>
         <translation>Open file from archive</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1714"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1732"/>
         <source>Failed to extract %1</source>
         <translation>Failed to extract %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1826"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1844"/>
         <source>Untitled</source>
         <translation>Untitled</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1836"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1854"/>
         <source>%1 - %2%3</source>
         <translation>%1 - %2%3</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1837"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1855"/>
         <source> (build </source>
         <translation> (build </translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1864"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1882"/>
         <source>&amp;%1 %2</source>
         <translation>&amp;%1 %2</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1935"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="1953"/>
         <source>modified on %1</source>
         <translation>modified on %1</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2061"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2079"/>
         <source>Remove from favorites</source>
         <translation>Remove from favorites</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2062"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2080"/>
         <source>Select item to remove from favorites</source>
         <translation>Select item to remove from favorites</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2107"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2125"/>
         <source>%1 -- switch to file</source>
         <translation>%1 -- switch to file</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2259"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2277"/>
         <source>%1 - generate crash dump</source>
         <translation>%1 - generate crash dump</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2260"/>
+        <location filename="../../ui/src/mainwindow.cpp" line="2278"/>
         <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
         <translation>This will shut down %1 and generate a diagnostic crash dump. Continue?</translation>
     </message>
@@ -1363,7 +1375,7 @@
 <context>
     <name>QApplication</name>
     <message>
-        <location filename="../../ui/include/encodings.h" line="77"/>
+        <location filename="../../ui/include/encodings.h" line="80"/>
         <source>System (%1)</source>
         <translation>System (%1)</translation>
     </message>
