@@ -27,6 +27,8 @@
 #include <QLineEdit>
 #include <QLocale>
 #include <QMessageBox>
+#include <QMenu>
+#include <QMenuBar>
 #include <QPointer>
 #include <QPushButton>
 #include <QRadioButton>
@@ -122,6 +124,7 @@ class ApplicationTranslationTest final : public QObject {
     void retranslatesOpenDocumentSearchAndQuickFindControls();
     void retranslatesCrawlerSemanticSearchStatus();
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
+    void opensEncodingMenuFromMenuBar();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
 
@@ -1045,6 +1048,39 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
                   nativeLogPath + QStringLiteral( " - 正在索引行... (37 %)" ) );
     QCOMPARE( documentTabs->currentWidget(), currentDocument );
     QCOMPARE( searchEdit->currentText(), currentSearchText );
+}
+
+void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
+{
+    // This catches reparenting the encoding QMenu as a regular child widget, which exposes its
+    // checked "Auto" action in the window and prevents the top-level menu from opening.
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    auto session = std::make_shared<Session>();
+    MainWindow window{ WindowSession{ session, QStringLiteral( "encoding-menu-popup" ), 0 } };
+    window.resize( 1600, 900 );
+    window.show();
+    QTRY_VERIFY( window.isVisible() );
+
+    auto* const encodingMenu = child<QMenu>( window, "encodingMenu" );
+    auto* const encodingAutoAction
+        = child<QAction>( *encodingMenu, "encodingAutoAction" );
+    QMenuBar* const mainMenuBar = window.menuBar();
+    QAction* const encodingMenuAction = encodingMenu->menuAction();
+
+    QVERIFY( mainMenuBar->actions().contains( encodingMenuAction ) );
+    QVERIFY( !mainMenuBar->actions().contains( encodingAutoAction ) );
+    QVERIFY( encodingMenu->actions().contains( encodingAutoAction ) );
+    QVERIFY( !encodingMenu->isVisible() );
+
+    const QRect encodingActionGeometry = mainMenuBar->actionGeometry( encodingMenuAction );
+    QVERIFY( encodingActionGeometry.isValid() );
+    QTest::mouseClick( mainMenuBar, Qt::LeftButton, Qt::NoModifier,
+                       encodingActionGeometry.center() );
+
+    QTRY_VERIFY( encodingMenu->isVisible() );
+    QVERIFY( encodingMenu->isWindow() );
+    QCOMPARE( encodingMenu->windowType(), Qt::Popup );
+    encodingMenu->hide();
 }
 
 int main( int argc, char* argv[] )

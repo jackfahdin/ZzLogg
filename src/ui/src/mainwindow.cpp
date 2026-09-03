@@ -831,8 +831,7 @@ void MainWindow::createMenus()
     toolsMenu->addSeparator();
     toolsMenu->addAction( showScratchPadAction );
 
-    encodingMenu = EncodingMenu::generate( encodingGroup );
-    encodingMenu->setParent( menuBar() );
+    encodingMenu = EncodingMenu::generate( encodingGroup, menuBar() );
     menuBar()->addMenu( encodingMenu );
     menuBar()->addSeparator();
 

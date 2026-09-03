@@ -44,14 +44,14 @@ class EncodingMenu {
         };
     }
 
-    static QMenu* generate( QActionGroup* actionGroup )
+    static QMenu* generate( QActionGroup* actionGroup, QWidget* parent )
     {
         const auto supportedEncodings = EncodingMenu::supportedEncodings();
         const auto defaultEncodingMib = Configuration::get().defaultEncodingMib();
 
         using namespace klogg::mainwindow;
         QMenu* encodingsMenu = new QMenu(
-            QApplication::translate( "klogg::mainwindow::menu", menu::encodingTitle ) );
+            QApplication::translate( "klogg::mainwindow::menu", menu::encodingTitle ), parent );
         encodingsMenu->setObjectName( QStringLiteral( "encodingMenu" ) );
 
         auto autoEncoding = encodingsMenu->addAction(
