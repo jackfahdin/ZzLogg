@@ -208,7 +208,6 @@ void OptionsDialog::retranslateDynamicUi()
     replaceText( regexpEngineComboBox, int( RegexpEngine::QRegularExpression ), tr( "Qt" ) );
     replaceText( encodingComboBox, -1, tr( "Auto" ) );
     retranslateShortcutTable();
-    storageLocationPage_->retranslateUi();
 }
 
 void OptionsDialog::retranslateShortcutTable()

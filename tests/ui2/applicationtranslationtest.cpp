@@ -9,6 +9,7 @@
 #include "storagelocationpage.h"
 
 #include <QComboBox>
+#include <QFileSystemWatcher>
 #include <QLabel>
 #include <QLocale>
 #include <QMessageBox>
@@ -48,6 +49,7 @@ class ApplicationTranslationTest final : public QObject {
     void installsEnglishWithoutBundledQtTranslator();
     void rejectsMissingApplicationTranslator();
     void retranslatesExistingOptionsDialog();
+    void changingLanguageDoesNotWriteProgramDirectory();
     void changingOnlyLanguageDoesNotRequestRestart();
 };
 
@@ -233,6 +235,49 @@ void ApplicationTranslationTest::retranslatesExistingOptionsDialog()
     QCOMPARE( encoding->currentData(), selectedEncodingData );
     QVERIFY( editedShortcut );
     QCOMPARE( editedShortcut->keySequence(), unsavedShortcut );
+}
+
+void ApplicationTranslationTest::changingLanguageDoesNotWriteProgramDirectory()
+{
+    QTemporaryDir temporaryDirectory;
+    QVERIFY( temporaryDirectory.isValid() );
+    const QString applicationDirectory = temporaryDirectory.filePath( QStringLiteral( "program" ) );
+    const QString userDataDirectory = temporaryDirectory.filePath( QStringLiteral( "user-data" ) );
+    QVERIFY( QDir{}.mkpath( QDir{ applicationDirectory }.filePath( QStringLiteral( "data" ) ) ) );
+    QVERIFY( QDir{}.mkpath( userDataDirectory ) );
+
+    qApp->setProperty( "zzlogg.test.applicationDirectory", applicationDirectory );
+    qApp->setProperty( "zzlogg.test.appConfigDirectory",
+                       temporaryDirectory.filePath( QStringLiteral( "config" ) ) );
+    qApp->setProperty( "zzlogg.test.userDataDirectory", userDataDirectory );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+
+    {
+        OptionsDialog dialog;
+        auto* storagePage = child<StorageLocationPage>( dialog, "storageLocationPage" );
+        storagePage->setLocation( { StorageMode::ProgramDirectory, {}, {}, false } );
+        QVERIFY2( storagePage->isSelectionValid(), qPrintable( storagePage->validationError() ) );
+        const StorageLocation selectedLocation = storagePage->location();
+        const bool selectionValid = storagePage->isSelectionValid();
+
+        QFileSystemWatcher watcher;
+        QVERIFY( watcher.addPath( applicationDirectory ) );
+        QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
+
+        QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+        QCoreApplication::sendPostedEvents();
+        QCoreApplication::processEvents();
+        QTest::qWait( 200 );
+
+        QCOMPARE( directoryChanged.count(), 0 );
+        QCOMPARE( storagePage->location().mode, selectedLocation.mode );
+        QCOMPARE( storagePage->location().dataRoot, selectedLocation.dataRoot );
+        QCOMPARE( storagePage->isSelectionValid(), selectionValid );
+    }
+
+    qApp->setProperty( "zzlogg.test.applicationDirectory", {} );
+    qApp->setProperty( "zzlogg.test.appConfigDirectory", {} );
+    qApp->setProperty( "zzlogg.test.userDataDirectory", {} );
 }
 
 void ApplicationTranslationTest::changingOnlyLanguageDoesNotRequestRestart()

@@ -145,7 +145,7 @@ void StorageLocationPage::retranslateUi()
     dataDirectoryLabel_->setText( tr( "数据目录：" ) );
     browseStorageButton_->setText( tr( "浏览…" ) );
     openStorageDirectoryButton_->setText( tr( "打开目录" ) );
-    refreshValidation( false );
+    refreshValidation( false, false );
 }
 
 void StorageLocationPage::setApplicationDirectory( QString path )
@@ -212,8 +212,19 @@ QString StorageLocationPage::rootForSelection() const
     return {};
 }
 
-void StorageLocationPage::refreshValidation( bool normalizeCustomPath )
+void StorageLocationPage::refreshValidation( bool normalizeCustomPath, bool validateStorage )
 {
+    if ( !validateStorage ) {
+        if ( programLocatorValidationError_ != ProgramLocatorValidationError::None ) {
+            validationError_ = programLocatorValidationErrorText();
+            storageValidationLabel_->setText( validationError_ );
+        }
+        storageValidationLabel_->setStyleSheet( validationError_.isEmpty()
+                                                    ? QString{}
+                                                    : QStringLiteral( "color: #b00020;" ) );
+        return;
+    }
+
     const QString root = rootForSelection();
     storagePathPreview_->setText( root );
     openStorageDirectoryButton_->setEnabled( !root.isEmpty() );
@@ -221,6 +232,8 @@ void StorageLocationPage::refreshValidation( bool normalizeCustomPath )
     const auto result = StorageValidator::validate( root, true );
     bool valid = result.valid;
     QString error = result.error;
+    programLocatorValidationError_ = ProgramLocatorValidationError::None;
+    programLocatorProbePath_.clear();
     if ( valid && mode_ == StorageMode::ProgramDirectory
          && !validateProgramLocatorDirectory( &error ) ) {
         valid = false;
@@ -240,6 +253,24 @@ void StorageLocationPage::refreshValidation( bool normalizeCustomPath )
     }
 }
 
+QString StorageLocationPage::programLocatorValidationErrorText() const
+{
+    switch ( programLocatorValidationError_ ) {
+    case ProgramLocatorValidationError::None:
+        return {};
+    case ProgramLocatorValidationError::CannotCreateDirectory:
+        return tr( "无法创建程序目录以验证存储位置：%1" ).arg( applicationDirectory_ );
+    case ProgramLocatorValidationError::CannotRemoveProbe:
+        return tr( "无法清理存储定位文件写入探针：%1" ).arg( programLocatorProbePath_ );
+    case ProgramLocatorValidationError::CannotWriteProbe:
+        return tr( "无法在程序目录旁原子写入存储定位文件：%1" ).arg( applicationDirectory_ );
+    case ProgramLocatorValidationError::CannotReadProbe:
+        return tr( "写入后无法完整读回存储定位文件探针：%1" )
+            .arg( programLocatorProbePath_ );
+    }
+    return {};
+}
+
 void StorageLocationPage::updateEditControls()
 {
     const bool editable = !commandLineManaged_;
@@ -251,27 +282,28 @@ void StorageLocationPage::updateEditControls()
     browseStorageButton_->setEnabled( customEditable );
 }
 
-bool StorageLocationPage::validateProgramLocatorDirectory( QString* error ) const
+bool StorageLocationPage::validateProgramLocatorDirectory( QString* error )
 {
     const QFileInfo applicationDirectoryInfo{ applicationDirectory_ };
     if ( applicationDirectory_.isEmpty() || !applicationDirectoryInfo.isAbsolute()
          || !QDir{}.mkpath( applicationDirectory_ ) ) {
-        *error = tr( "无法创建程序目录以验证存储位置：%1" ).arg( applicationDirectory_ );
+        programLocatorValidationError_ = ProgramLocatorValidationError::CannotCreateDirectory;
+        *error = programLocatorValidationErrorText();
         return false;
     }
 
-    const QString probePath = QDir{ applicationDirectory_ }.filePath(
+    programLocatorProbePath_ = QDir{ applicationDirectory_ }.filePath(
         QStringLiteral( ".zzlogg-locator-probe-%1" )
             .arg( QUuid::createUuid().toString( QUuid::WithoutBraces ) ) );
     const QByteArray probeBytes{ "zzlogg-locator-atomic-write-check" };
     bool probeCommitted = false;
     bool probeWrittenAndReadable = false;
     {
-        QSaveFile probe{ probePath };
+        QSaveFile probe{ programLocatorProbePath_ };
         if ( probe.open( QIODevice::WriteOnly ) && probe.write( probeBytes ) == probeBytes.size()
              && probe.commit() ) {
             probeCommitted = true;
-            QFile readback{ probePath };
+            QFile readback{ programLocatorProbePath_ };
             if ( readback.open( QIODevice::ReadOnly ) ) {
                 const QByteArray readBytes = readback.readAll();
                 probeWrittenAndReadable
@@ -283,20 +315,24 @@ bool StorageLocationPage::validateProgramLocatorDirectory( QString* error ) cons
         }
     }
 
-    const bool finalProbeRemoved = !QFile::exists( probePath ) || QFile::remove( probePath );
+    const bool finalProbeRemoved = !QFile::exists( programLocatorProbePath_ )
+                                  || QFile::remove( programLocatorProbePath_ );
     const QStringList remainingProbeFiles = QDir{ applicationDirectory_ }.entryList(
-        { QFileInfo{ probePath }.fileName() + QStringLiteral( "*" ) },
+        { QFileInfo{ programLocatorProbePath_ }.fileName() + QStringLiteral( "*" ) },
         QDir::Files | QDir::Hidden | QDir::System );
     if ( !finalProbeRemoved || !remainingProbeFiles.isEmpty() ) {
-        *error = tr( "无法清理存储定位文件写入探针：%1" ).arg( probePath );
+        programLocatorValidationError_ = ProgramLocatorValidationError::CannotRemoveProbe;
+        *error = programLocatorValidationErrorText();
         return false;
     }
     if ( !probeCommitted ) {
-        *error = tr( "无法在程序目录旁原子写入存储定位文件：%1" ).arg( applicationDirectory_ );
+        programLocatorValidationError_ = ProgramLocatorValidationError::CannotWriteProbe;
+        *error = programLocatorValidationErrorText();
         return false;
     }
     if ( !probeWrittenAndReadable ) {
-        *error = tr( "写入后无法完整读回存储定位文件探针：%1" ).arg( probePath );
+        programLocatorValidationError_ = ProgramLocatorValidationError::CannotReadProbe;
+        *error = programLocatorValidationErrorText();
         return false;
     }
     return true;

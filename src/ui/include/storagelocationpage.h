@@ -33,10 +33,19 @@ Q_SIGNALS:
     void changeEvent( QEvent* event ) override;
 
 private:
+    enum class ProgramLocatorValidationError {
+        None,
+        CannotCreateDirectory,
+        CannotRemoveProbe,
+        CannotWriteProbe,
+        CannotReadProbe,
+    };
+
     QString rootForSelection() const;
-    void refreshValidation( bool normalizeCustomPath = true );
+    void refreshValidation( bool normalizeCustomPath = true, bool validateStorage = true );
+    QString programLocatorValidationErrorText() const;
     void updateEditControls();
-    bool validateProgramLocatorDirectory( QString* error ) const;
+    bool validateProgramLocatorDirectory( QString* error );
 
     QRadioButton* userStorageRadio_ = nullptr;
     QRadioButton* programStorageRadio_ = nullptr;
@@ -54,4 +63,7 @@ private:
     bool commandLineManaged_ = false;
     bool selectionValid_ = false;
     QString validationError_;
+    ProgramLocatorValidationError programLocatorValidationError_
+        = ProgramLocatorValidationError::None;
+    QString programLocatorProbePath_;
 };
