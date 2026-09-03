@@ -232,31 +232,31 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1056"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1757"/>
         <source>Match case</source>
-        <translation type="unfinished">匹配大小写</translation>
+        <translation>匹配大小写</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1062"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Use regex</source>
-        <translation type="unfinished">使用正则匹配</translation>
+        <translation>使用正则匹配</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1068"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1759"/>
         <source>Inverse match</source>
-        <translation type="unfinished">反转匹配</translation>
+        <translation>反转匹配</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1074"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1760"/>
         <source>Enable regular expression logical combining</source>
-        <translation type="unfinished">启用正则表达式逻辑组合</translation>
+        <translation>启用正则表达式逻辑组合</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1081"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1761"/>
         <source>Auto-refresh</source>
-        <translation type="unfinished">自动刷新</translation>
+        <translation>自动刷新</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1098"/>
@@ -268,7 +268,7 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1100"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1763"/>
         <source>Edit search history</source>
-        <translation type="unfinished">编辑搜索历史</translation>
+        <translation>编辑搜索历史</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1102"/>
@@ -303,17 +303,17 @@
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1701"/>
         <source>%1 matches found</source>
-        <translation type="unfinished">找到%1个匹配</translation>
+        <translation>找到%1个匹配</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1702"/>
         <source>%1 match found</source>
-        <translation type="unfinished">找到%1个匹配</translation>
+        <translation>找到%1个匹配</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1705"/>
         <source>File truncated on disk</source>
-        <translation type="unfinished">磁盘中文件被截断</translation>
+        <translation>磁盘中文件被截断</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1714"/>

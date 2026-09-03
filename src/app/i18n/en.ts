@@ -298,7 +298,7 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1131"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1769"/>
         <source>Keep these results and show subsequent results in a new window</source>
-        <translation type="unfinished"></translation>
+        <translation>Keep these results and show subsequent results in a new window</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1701"/>

@@ -116,6 +116,10 @@ add_test(NAME zzlogg_ui2.application_translation_contract
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/applicationtranslationcontracttest.cmake")
+add_test(NAME zzlogg_ui2.runtime_translation_catalog_contract
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/runtimecatalogcontracttest.cmake")
 if(WIN32)
   set_property(TEST zzlogg_ui2.application_translation PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
