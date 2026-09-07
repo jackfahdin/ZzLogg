@@ -27,6 +27,7 @@
 #include <numeric>
 #include <qapplication.h>
 #include <stack>
+#include <stdexcept>
 
 #include <QApplication>
 #include <vector>
@@ -140,6 +141,17 @@ class KloggApp : public QApplication {
     }
 
     using WindowDecorator = std::function<void( MainWindow& )>;
+    using MainWindowFactory = std::function<MainWindow*(WindowSession)>;
+    void setMainWindowFactory(MainWindowFactory factory) {
+        mainWindowFactory_ = std::move(factory);
+    }
+    // Final teardown after the event loop, before releasing the shared theme.
+    void destroyMainWindows() {
+        const auto windows = mainWindows();
+        mainWindows_.clear();
+        activeWindows_ = {};
+        for (auto* window : windows) delete window;
+    }
     void setWindowDecorator( WindowDecorator decorator )
     {
         windowDecorator_ = std::move( decorator );
@@ -255,7 +267,11 @@ class KloggApp : public QApplication {
   private:
     MainWindow* newWindow( WindowSession&& session )
     {
-        mainWindows_.emplace_back( session, new MainWindow( session ) );
+        std::unique_ptr<MainWindow> created(mainWindowFactory_
+            ? mainWindowFactory_(session) : new MainWindow(session));
+        if (!created) throw std::runtime_error("Main window factory returned null");
+        mainWindows_.emplace_back(session, created.get());
+        created.release();
 
         auto& window = mainWindows_.back().second;
         if ( windowDecorator_ ) {
@@ -418,6 +434,7 @@ class KloggApp : public QApplication {
     std::list<std::pair<WindowSession, MainWindow*>> mainWindows_;
     std::stack<QPointer<MainWindow>> activeWindows_;
     WindowDecorator windowDecorator_;
+    MainWindowFactory mainWindowFactory_;
 
     VersionChecker versionChecker_;
     bool restartInProgress_ = false;

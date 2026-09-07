@@ -472,7 +472,7 @@ add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
-  zzlogg_ui2_runtime klogg_ui klogg_logdata klogg_versioncheck
+  zzlogg_ui_runtime klogg_ui klogg_logdata klogg_versioncheck
   klogg_crash_handler roaring kdsingleapp Qt6::Test Qt6::Widgets)
 target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")

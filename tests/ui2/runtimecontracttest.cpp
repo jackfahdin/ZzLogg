@@ -7,10 +7,10 @@
 #include "persistentinfo.h"
 #include "storagecontext.h"
 #include "tabbedcrawlerwidget.h"
-#include "zzloggfluentshell.h"
+#include "windowchrome.h"
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
-#include "zzlogguiruntime.h"
+#include "uiruntime.h"
 #include <algorithm>
 #include <QComboBox>
 #include <QDir>
@@ -35,6 +35,28 @@
 class RuntimeContractTest final : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void tearsDownWindowsBeforeThemeAndClearsFactory()
+    {
+        auto& app = *qobject_cast<KloggApp*>(qApp);
+        Configuration::getSynced();
+        QString error;
+        auto runtime = UiRuntime::create(app, &error);
+        QVERIFY2(runtime, qPrintable(error));
+        QPointer<MainWindow> window = app.newWindow();
+        QPointer<WindowChrome> chrome = window->windowChrome();
+        QPointer<QWidget> title = window->menuWidget();
+        QVERIFY(chrome);
+        QVERIFY(title);
+        runtime.reset();
+        QVERIFY(window.isNull());
+        QVERIFY(chrome.isNull());
+        QVERIFY(title.isNull());
+        QVERIFY(app.mainWindows().isEmpty());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        auto* native = app.newWindow();
+        QVERIFY(!native->windowChrome());
+        app.destroyMainWindows();
+    }
     void migratesLegacySystemToExplicitMode()
     {
         auto& app = *qobject_cast<KloggApp*>( qApp );
@@ -43,7 +65,7 @@ private Q_SLOTS:
         configuration.save();
 
         QString error;
-        auto runtime = ZzLoggUiRuntime::create( app, &error );
+        auto runtime = UiRuntime::create( app, &error );
         QVERIFY2( runtime, qPrintable( error ) );
         auto* style = qobject_cast<ZzFluentUI::ZzFluentStyle*>( app.style() );
         QVERIFY( style );
@@ -66,7 +88,7 @@ private Q_SLOTS:
         runtime.reset();
     }
 
-    void decoratesRealWindowsAndRoutesSemanticState()
+    void constructsRealWindowsAndRoutesSemanticState()
     {
         auto& app = *qobject_cast<KloggApp*>( qApp );
         QCOMPARE( app.applicationName(), QStringLiteral( "ZzLogg" ) );
@@ -89,41 +111,19 @@ private Q_SLOTS:
                   qPrintable( settingsPath ) );
         QVERIFY( QFileInfo::exists( settings.fileName() ) );
         QString error;
-        auto runtime = ZzLoggUiRuntime::create( app, &error );
+        auto runtime = UiRuntime::create( app, &error );
         QVERIFY2( runtime, qPrintable( error ) );
         QVERIFY( app.property( "zzlogg.fluentUi" ).toBool() );
         auto* style = qobject_cast<ZzFluentUI::ZzFluentStyle*>( app.style() );
         QVERIFY( style );
 
-        int warningCount = 0;
-        auto failureSession = std::make_shared<Session>();
-        MainWindow failureWindow(
-            WindowSession( failureSession, QStringLiteral( "runtime-install-failure" ), 0 ) );
-        auto* const customMenuWidget = new QWidget( &failureWindow );
-        failureWindow.setMenuWidget( customMenuWidget );
-        runtime->decorate( failureWindow );
-        QTimer::singleShot( 0, &app, [ &warningCount ] {
-            for ( QWidget* widget : QApplication::topLevelWidgets() ) {
-                if ( auto* warning = qobject_cast<QMessageBox*>( widget ) ) {
-                    ++warningCount;
-                    warning->accept();
-                }
-            }
-        } );
-        QCoreApplication::processEvents();
-        QCOMPARE( warningCount, 1 );
-        QCOMPARE( failureWindow.menuWidget(), customMenuWidget );
-        QVERIFY( !failureWindow.property( "zzlogg.fluentShellInstalled" ).toBool() );
-        QVERIFY(
-            !failureWindow.findChild<ZzLoggFluentShell*>( QString(), Qt::FindDirectChildrenOnly ) );
-
         MainWindow* const first = app.newWindow();
         MainWindow* const second = app.newWindow();
         QVERIFY( !first->windowIcon().isNull() );
         QCOMPARE( first->windowIcon().cacheKey(), app.windowIcon().cacheKey() );
-        QVERIFY( first->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) ) );
+        QVERIFY( first->windowChrome() );
         auto* const secondShell
-            = second->findChild<ZzLoggFluentShell*>( QStringLiteral( "zzloggFluentShell" ) );
+            = second->windowChrome();
         QVERIFY( secondShell );
 
         auto* const mainToolBar = first->findChild<QToolBar*>();

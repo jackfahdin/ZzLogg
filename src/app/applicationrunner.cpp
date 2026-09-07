@@ -57,6 +57,7 @@
 #include "configuration.h"
 #include "logger.h"
 #include "mainwindow.h"
+#include "windowchrome.h"
 #include "persistentinfo.h"
 #include "storagebootstrapdialog.h"
 #include "storagelocator.h"
@@ -143,8 +144,8 @@ QWidget* validateFluentWindow( MainWindow* window, QString* error )
         *error = QStringLiteral( "main window is missing" );
         return nullptr;
     }
-    if ( !window->property( "zzlogg.fluentShellInstalled" ).toBool() ) {
-        *error = QStringLiteral( "Fluent shell was not installed" );
+    if ( !window->windowChrome() || window->windowChrome()->usesNativeFallback() ) {
+        *error = QStringLiteral( "Fluent window chrome was not constructed" );
         return nullptr;
     }
     if ( window->centralWidget() == nullptr ) {

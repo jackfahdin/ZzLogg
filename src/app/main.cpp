@@ -9,7 +9,7 @@
 #include <ZzWindowKit/ZzWindowKitBootstrap.h>
 
 #include "applicationrunner.h"
-#include "zzlogguiruntime.h"
+#include "uiruntime.h"
 
 int main( int argc, char* argv[] )
 {
@@ -28,7 +28,7 @@ int main( int argc, char* argv[] )
     }
     else {
         options.createUiRuntime
-            = []( KloggApp& app, QString* error ) { return ZzLoggUiRuntime::create( app, error ); };
+            = []( KloggApp& app, QString* error ) { return UiRuntime::create( app, error ); };
     }
     const int result = runKloggApplication( argc, argv, std::move( options ) );
     if ( result != ZzLoggRestartExitCode ) {
