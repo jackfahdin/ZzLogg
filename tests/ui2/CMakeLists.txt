@@ -4,6 +4,10 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_test(NAME zzlogg_ui2.release_preset_contract
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_ROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/releasepresetcontracttest.cmake)
+
 add_executable(zzlogg_line_number_ui_test linenumberuitest.cpp)
 target_link_libraries(zzlogg_line_number_ui_test PRIVATE
   klogg_ui klogg_storage Qt6::Test Qt6::Widgets)

@@ -180,6 +180,34 @@ desktop entry remain ZzLogg.
 
 ## Verification boundaries
 
+### Windows Release UI acceptance
+
+From a configured developer environment (or with Qt supplied explicitly):
+
+```powershell
+cmake --preset windows-vs2026-ui -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64
+cmake --build --preset windows-vs2026-ui-release --parallel 8
+ctest --preset windows-vs2026-ui-release
+cmake --build --preset windows-vs2026-ui-release --target zzlogg_runtime_folder
+```
+
+The corresponding `windows-vs2026-ui-release` workflow runs configure, build,
+and test. Supply your Qt path through the environment or a local user preset
+when using workflows. The Release test preset runs all registered tests,
+including `klogg_smoke`. Its runtime folder is
+`out/ui-vs/runtime/Release/ZzLogg-runtime/`; run `ZzLogg.exe` from that folder,
+not the build output directory without dependencies. No ZIP is required.
+
+### Compatibility names
+
+Application UI implementation is in `src/ui`, not `src/ui2`. The `tests/ui2`
+directory, `zzlogg_ui2.*` CTest names, old `*-ui2-*` preset aliases and smoke
+protocol names remain compatibility interfaces for existing scripts and CI.
+They do not enable a second GUI or a second UI framework. Use the `*-ui-*`
+presets for new commands; do not rename the legacy interfaces in isolation.
+
+### Platform limits
+
 The CTest presets exercise tests available on the current host. Windows
 interactive DPI, theme, high-contrast, and multi-monitor checks, together with
 Linux and macOS real-host packaging checks, must be run on their corresponding
