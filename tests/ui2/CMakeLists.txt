@@ -436,6 +436,19 @@ if(WIN32)
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
 
+add_executable(zzlogg_document_workspace_test documentworkspacetest.cpp)
+target_link_libraries(zzlogg_document_workspace_test PRIVATE klogg_ui Qt6::Test Qt6::Widgets)
+set_target_properties(zzlogg_document_workspace_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui2.document_workspace
+  COMMAND zzlogg_document_workspace_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui2.document_workspace PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui2.document_workspace APPEND PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_executable(zzlogg_document_tab_close_test documenttabclosetest.cpp)
 target_link_libraries(zzlogg_document_tab_close_test PRIVATE
   klogg_ui Qt6::Test Qt6::Widgets)
