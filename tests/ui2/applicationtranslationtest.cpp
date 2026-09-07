@@ -288,6 +288,14 @@ class ApplicationTranslationTest final : public QObject {
             QCoreApplication::processEvents();
             QCOMPARE(dialog.wrapTextCheckBox->isChecked(), !wrap);
             QCOMPARE(dialog.logicalCombiningCheckBox->isChecked(), !logical);
+            QCOMPARE(dialog.caseSensitiveCheckBox->text(), QStringLiteral("区分大小写"));
+            QCOMPARE(dialog.logicalCombiningCheckBox->text(), QStringLiteral("逻辑组合"));
+            QCOMPARE(dialog.autoRefreshCheckBox->text(), QStringLiteral("自动刷新"));
+            QCOMPARE(MainWindow::installLanguage("zh_TW"), 0);
+            QCoreApplication::processEvents();
+            QCOMPARE(dialog.caseSensitiveCheckBox->text(), QStringLiteral("區分大小寫"));
+            QCOMPARE(dialog.logicalCombiningCheckBox->text(), QStringLiteral("邏輯組合"));
+            QCOMPARE(dialog.autoRefreshCheckBox->text(), QStringLiteral("自動重新整理"));
             QCOMPARE(MainWindow::installLanguage("en"), 0);
             dialog.reject();
         }

@@ -805,17 +805,17 @@
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="146"/>
         <source>Case sensitive</source>
-        <translation type="unfinished"></translation>
+        <translation>区分大小写</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="153"/>
         <source>Logical combining</source>
-        <translation type="unfinished"></translation>
+        <translation>逻辑组合</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="160"/>
         <source>Auto refresh</source>
-        <translation type="unfinished"></translation>
+        <translation>自动刷新</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="172"/>
