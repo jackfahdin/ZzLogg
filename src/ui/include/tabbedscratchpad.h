@@ -24,26 +24,31 @@
 #include <QTabWidget>
 #include <QWidget>
 
+class QLabel;
+
 class TabbedScratchPad : public QWidget {
     Q_OBJECT
-  public:
+public:
     explicit TabbedScratchPad( QWidget* parent = nullptr );
 
     ~TabbedScratchPad() = default;
     TabbedScratchPad( const TabbedScratchPad& ) = delete;
     TabbedScratchPad& operator=( const TabbedScratchPad& ) = delete;
 
-  public Q_SLOTS:
+public Q_SLOTS:
     void addData( QString data );
     void replaceData( QString data );
 
-  protected:
+protected:
     void keyPressEvent( QKeyEvent* event ) override;
+    void changeEvent( QEvent* event ) override;
 
-  private:
+private:
     void addTab();
+    void closeTab( int index );
+    QLabel* instructions_;
 
-  private:
+private:
     QTabWidget* tabWidget_{ nullptr };
     int tabCounter_{};
 };

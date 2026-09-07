@@ -2466,4 +2466,82 @@
         <translation>%1 日誌檢視器</translation>
     </message>
 </context>
+<context>
+    <name>ScratchPad</name>
+    <message>
+        <source>From base64</source>
+        <translation>從 Base64 解碼</translation>
+    </message>
+    <message>
+        <source>To base64</source>
+        <translation>編碼為 Base64</translation>
+    </message>
+    <message>
+        <source>From hex</source>
+        <translation>從十六進位解碼</translation>
+    </message>
+    <message>
+        <source>To hex</source>
+        <translation>編碼為十六進位</translation>
+    </message>
+    <message>
+        <source>Decode url</source>
+        <translation>URL 解碼</translation>
+    </message>
+    <message>
+        <source>Format json</source>
+        <translation>格式化 JSON</translation>
+    </message>
+    <message>
+        <source>Format xml</source>
+        <translation>格式化 XML</translation>
+    </message>
+    <message>
+        <source>CRC32 hex</source>
+        <translation>CRC32（十六進位）</translation>
+    </message>
+    <message>
+        <source>CRC32 dec</source>
+        <translation>CRC32（十進位）</translation>
+    </message>
+    <message>
+        <source>File time</source>
+        <translation>檔案時間</translation>
+    </message>
+    <message>
+        <source>Dec-&gt;Hex</source>
+        <translation>十進位→十六進位</translation>
+    </message>
+    <message>
+        <source>Hex-&gt;Dec</source>
+        <translation>十六進位→十進位</translation>
+    </message>
+    <message>
+        <source>Time</source>
+        <translation>時間</translation>
+    </message>
+    <message>
+        <source>TimeZone</source>
+        <translation>時區</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>已複製到剪貼簿</translation>
+    </message>
+    <message>
+        <source>Empty transformation</source>
+        <translation>轉換結果為空</translation>
+    </message>
+</context>
+<context>
+    <name>TabbedScratchPad</name>
+    <message>
+        <source>Scratchpad %1</source>
+        <translation>草稿 %1</translation>
+    </message>
+    <message>
+        <source>You can add tabs by pressing &lt;b&gt;"+"&lt;/b&gt; or Ctrl+N</source>
+        <translation>可點擊 &lt;b&gt;"+"&lt;/b&gt; 或按 Ctrl+N 新增分頁</translation>
+    </message>
+</context>
 </TS>

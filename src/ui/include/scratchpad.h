@@ -28,6 +28,8 @@
 class QPlainTextEdit;
 class QStatusBar;
 class QLineEdit;
+class QAction;
+class QFormLayout;
 
 namespace klogg {
 class DateTimeBox;
@@ -35,28 +37,31 @@ class DateTimeBox;
 
 class ScratchPad : public QWidget {
     Q_OBJECT
-  public:
+public:
     explicit ScratchPad( QWidget* parent = nullptr );
 
     ~ScratchPad() = default;
     ScratchPad( const ScratchPad& ) = delete;
     ScratchPad& operator=( const ScratchPad& ) = delete;
 
-  public Q_SLOTS:
+public Q_SLOTS:
     void addData( QString data );
     void replaceData( QString data );
 
-  Q_SIGNALS:
+Q_SIGNALS:
     void updateTransformation();
 
-  private Q_SLOTS:
+protected:
+    void changeEvent( QEvent* event ) override;
+
+private Q_SLOTS:
     void crc32Hex();
     void crc32Dec();
     void fileTime();
     void decToHex();
     void hexToDec();
 
-  private:
+private:
     void decodeBase64();
     void encodeBase64();
 
@@ -72,7 +77,17 @@ class ScratchPad : public QWidget {
 
     void transformTextInPlace( const std::function<QString( QString )>& transform );
 
-  private:
+private:
+    void retranslateUi();
+    QFormLayout* transformations_;
+    bool lastTransformationSucceeded_ = false;
+    QAction* decodeBase64Action_;
+    QAction* encodeBase64Action_;
+    QAction* decodeHexAction_;
+    QAction* encodeHexAction_;
+    QAction* decodeUrlAction_;
+    QAction* formatJsonAction_;
+    QAction* formatXmlAction_;
     QPlainTextEdit* textEdit_;
     QStatusBar* statusBar_;
 

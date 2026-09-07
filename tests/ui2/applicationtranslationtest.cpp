@@ -20,6 +20,9 @@
 #include "storagelocationpage.h"
 #include "tabbedcrawlerwidget.h"
 #include "tabbedscratchpad.h"
+#include "scratchpad.h"
+#include <QPlainTextEdit>
+#include <QToolBar>
 #include "uithemecontext.h"
 #include "windowchrome.h"
 #include <ZzFluentUI/ZzFluentTitleBar.h>
@@ -133,6 +136,46 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void scratchpadLanguagePreservesTextAndUndo()
+    {
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        TabbedScratchPad scratch;
+        auto* tabs = scratch.findChild<QTabWidget*>();
+        QVERIFY(tabs);
+        auto* pad = qobject_cast<ScratchPad*>(tabs->currentWidget());
+        QVERIFY(pad);
+        auto* edit = pad->findChild<QPlainTextEdit*>();
+        QVERIFY(edit);
+        edit->setPlainText("draft");
+        edit->moveCursor(QTextCursor::End);
+        edit->insertPlainText(" suffix");
+        const auto title = tabs->tabText(tabs->currentIndex());
+        const auto actionText = pad->findChild<QToolBar*>()->actions().front()->text();
+        QCOMPARE(MainWindow::installLanguage("zh_CN"), 0);
+        QTRY_VERIFY(tabs->tabText(tabs->currentIndex()) != title);
+        QTRY_VERIFY(pad->findChild<QToolBar*>()->actions().front()->text() != actionText);
+        QCOMPARE(edit->toPlainText(), QString("draft suffix"));
+        QVERIFY(edit->document()->isUndoAvailable());
+        edit->undo();
+        QCOMPARE(edit->toPlainText(), QString("draft"));
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+    }
+
+    void closingScratchpadReleasesPageAndKeepsAddTab()
+    {
+        TabbedScratchPad scratch;
+        auto* tabs = scratch.findChild<QTabWidget*>();
+        QVERIFY(tabs);
+        QPointer<QWidget> page = tabs->currentWidget();
+        Q_EMIT tabs->tabCloseRequested(tabs->currentIndex());
+        QTRY_VERIFY(page.isNull());
+        QCOMPARE(tabs->count(), 1);
+        QTest::keyClick(&scratch, Qt::Key_W, Qt::ControlModifier);
+        QCOMPARE(tabs->count(), 1);
+        QTest::keyClick(&scratch, Qt::Key_N, Qt::ControlModifier);
+        QCOMPARE(tabs->count(), 2);
+        QVERIFY(qobject_cast<ScratchPad*>(tabs->currentWidget()));
+    }
     void destroyingAuxiliaryDialogsCancelsQueuedWork()
     {
         auto* filters = new PredefinedFiltersDialog;
@@ -267,6 +310,7 @@ class ApplicationTranslationTest final : public QObject {
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
     void rendersLayoutsAcrossThemesAndLanguages();
+    void rendersAuxiliaryLayoutsAcrossThemesAndLanguages();
     void closesLastDocumentAndReopensThroughWorkspace();
     void activatesExistingDocumentInItsOwningWindow();
     void opensAndSearchesLargeLog();
@@ -1381,6 +1425,50 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
                     .arg(mode == ZzFluentUI::ZzThemeMode::Dark ? "dark" : "light", language)
                     .arg(width);
                 QVERIFY(window.grab().save(QDir(captureDir).filePath(name)));
+            }
+        }
+    }
+}
+
+void ApplicationTranslationTest::rendersAuxiliaryLayoutsAcrossThemesAndLanguages()
+{
+    auto* previousStyle = QApplication::style();
+    const auto previousPalette = QApplication::palette();
+    previousStyle->setParent(nullptr);
+    auto restore = qScopeGuard([&] {
+        QApplication::setStyle(previousStyle);
+        QApplication::setPalette(previousPalette);
+        MainWindow::installLanguage("en");
+    });
+    auto& theme = testTheme();
+    QApplication::setStyle(new ZzFluentUI::ZzFluentStyle(&theme));
+    const QString captureDir = QDir(QStringLiteral(ZZLOGG_UI_CAPTURE_DIR))
+        .filePath(QGuiApplication::platformName());
+    QVERIFY(QDir().mkpath(captureDir));
+    OptionsDialog options;
+    HighlightersDialog highlighters;
+    PredefinedFiltersDialog filters;
+    TabbedScratchPad scratch;
+    const QList<QPair<QString, QWidget*>> windows {
+        {"options", &options}, {"highlighters", &highlighters},
+        {"filters", &filters}, {"scratch", &scratch}
+    };
+    for (auto mode : {ZzFluentUI::ZzThemeMode::Light, ZzFluentUI::ZzThemeMode::Dark}) {
+        theme.setMode(mode);
+        for (const QString& language : {QStringLiteral("en"), QStringLiteral("zh_CN")}) {
+            QCOMPARE(MainWindow::installLanguage(language), 0);
+            for (const auto& entry : windows) {
+                auto* window = entry.second;
+                window->resize(1000, 680);
+                window->show();
+                QTest::qWait(50);
+                QVERIFY(window->isVisible());
+                QVERIFY(window->palette().color(QPalette::Text)
+                        != window->palette().color(QPalette::Base));
+                const auto name = QString("aux-%1-%2-%3.png").arg(entry.first,
+                    mode == ZzFluentUI::ZzThemeMode::Dark ? "dark" : "light", language);
+                QVERIFY(window->grab().save(QDir(captureDir).filePath(name)));
+                window->hide();
             }
         }
     }
