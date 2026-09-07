@@ -20,6 +20,9 @@
 #include "windowchrome.h"
 #include <ZzFluentUI/ZzFluentTitleBar.h>
 #include <ZzFluentUI/ZzThemeController.h>
+#include <ZzFluentUI/ZzFluentStyle.h>
+#include <QScopeGuard>
+#include <QStyle>
 
 #include <QAction>
 #include <QAbstractItemModel>
@@ -141,6 +144,7 @@ class ApplicationTranslationTest final : public QObject {
     void retranslatesCrawlerSemanticSearchStatus();
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
+    void rendersLayoutsAcrossThemesAndLanguages();
     void destroyingWindowCancelsPendingVisualRefresh();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
@@ -1115,6 +1119,62 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
     QVERIFY( encodingMenu->isWindow() );
     QCOMPARE( encodingMenu->windowType(), Qt::Popup );
     encodingMenu->hide();
+}
+
+void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
+{
+    // Exercise the real widgets/style, not a mockup, and retain images for visual inspection.
+    auto* previousStyle = QApplication::style();
+    const auto previousPalette = QApplication::palette();
+    const auto previousFluent = qApp->property("zzlogg.fluentUi");
+    previousStyle->setParent(nullptr);
+    auto restore = qScopeGuard([&] {
+        QApplication::setStyle(previousStyle);
+        QApplication::setPalette(previousPalette);
+        qApp->setProperty("zzlogg.fluentUi", previousFluent);
+    });
+    auto& theme = testTheme();
+    qApp->setProperty("zzlogg.fluentUi", true);
+    QApplication::setStyle(new ZzFluentUI::ZzFluentStyle(&theme));
+    QTemporaryDir logs;
+    QVERIFY(logs.isValid());
+    const auto path = logs.filePath("example.log");
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("2026-09-07 INFO Application started\n2026-09-07 WARN Retry connection\n2026-09-07 ERROR Connection refused\n");
+    file.close();
+    const QString captureDir = QDir(QStringLiteral(ZZLOGG_UI_CAPTURE_DIR))
+        .filePath(QGuiApplication::platformName());
+    QVERIFY(QDir().mkpath(captureDir));
+    for (auto mode : {ZzFluentUI::ZzThemeMode::Light, ZzFluentUI::ZzThemeMode::Dark}) {
+        theme.setMode(mode);
+        for (const QString& language : {QStringLiteral("en"), QStringLiteral("zh_CN")}) {
+            QCOMPARE(MainWindow::installLanguage(language), 0);
+            auto session = std::make_shared<Session>();
+            MainWindow window(WindowSession(session, "layout-capture", 0), {theme});
+            window.loadFileNonInteractive(path);
+            window.show();
+            auto* tabs = window.findChild<TabbedCrawlerWidget*>("documentTabs");
+            QVERIFY(tabs);
+            QTRY_COMPARE(tabs->count(), 1);
+            auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
+            QVERIFY(crawler);
+            QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*crawler), 5000);
+            for (int width : {1400, 800}) {
+                window.resize(width, 780);
+                QTest::qWait(50);
+                auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
+                QVERIFY(title);
+                QVERIFY(title->isVisible());
+                QVERIFY(window.centralWidget()->isVisible());
+                QCOMPARE(title->title(), window.windowTitle());
+                const QString name = QString("%1-%2-%3.png")
+                    .arg(mode == ZzFluentUI::ZzThemeMode::Dark ? "dark" : "light", language)
+                    .arg(width);
+                QVERIFY(window.grab().save(QDir(captureDir).filePath(name)));
+            }
+        }
+    }
 }
 
 int main( int argc, char* argv[] )

@@ -110,6 +110,8 @@ target_include_directories(zzlogg_application_translation_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 set_target_properties(zzlogg_application_translation_test PROPERTIES
   AUTOMOC ON AUTORCC ON)
+target_compile_definitions(zzlogg_application_translation_test PRIVATE
+  ZZLOGG_UI_CAPTURE_DIR="${CMAKE_CURRENT_BINARY_DIR}/ui-captures")
 add_test(NAME zzlogg_ui2.application_translation
   COMMAND zzlogg_application_translation_test -platform offscreen)
 add_test(NAME zzlogg_ui2.application_translation_contract
