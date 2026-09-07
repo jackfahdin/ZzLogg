@@ -141,3 +141,6 @@ target_link_libraries(
 if(WIN32)
   target_link_libraries(klogg_ui PUBLIC user32)
 endif()
+target_sources(klogg_ui PRIVATE
+  include/windowchrome.h include/uithemecontext.h src/windowchrome.cpp)
+target_link_libraries(klogg_ui PUBLIC Zz::FluentUI Zz::FluentFoundation Zz::WindowKit)
