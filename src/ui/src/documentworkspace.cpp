@@ -25,7 +25,8 @@ DocumentWorkspace::~DocumentWorkspace()
     quickFind_.registerSelector( nullptr );
     // The session can outlive this workspace. Remove its view registrations
     // without delivering current-document notifications to a tearing-down host.
-    disconnect( this, nullptr, nullptr, nullptr );
+    disconnect( this, &QTabWidget::currentChanged, this,
+                &DocumentWorkspace::activateCurrentDocument );
     while ( count() > 0 )
         closeDocument( 0 );
 }

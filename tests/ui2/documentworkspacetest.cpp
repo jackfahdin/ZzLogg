@@ -134,12 +134,16 @@ private Q_SLOTS:
         SignalMux mux;
         QuickFindMux quickFind( window.getQuickFindPattern() );
         QPointer<CrawlerWidget> document;
+        int destroyedNotifications = 0;
         {
             DocumentWorkspace workspace( window, mux, quickFind );
+            connect(&workspace, &QObject::destroyed, this,
+                    [&] { ++destroyedNotifications; });
             document = workspace.openDocument( path );
             QVERIFY( document );
         }
         QVERIFY( document.isNull() );
+        QCOMPARE(destroyedNotifications, 1);
         QVERIFY( !session->getViewIfOpen( path ) );
         QVERIFY( window.openedFiles().empty() );
         quickFind.searchForward();
