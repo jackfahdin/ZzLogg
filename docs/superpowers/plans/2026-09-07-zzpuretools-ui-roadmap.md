@@ -97,4 +97,4 @@ ZzPureTools 已提供 `ZzFluentTitleBar::menuBar()`，返回框架拥有的 `QMe
 
 ## 7. 计划状态
 
-阶段一代码已在 `codex/zzpuretools-ui-refactor` 实现并分步提交，Release 构建与 57 项自动测试通过；运行目录和学习指南已更新。尚缺的人工窗口操作与旧版性能对照证据见 [阶段一执行记录](2026-09-07-zzpuretools-window-phase1.md#11-执行记录)。阶段二至五尚未实施，原主工作区的未提交内容保留，未合并或推送。
+阶段一、二代码已在 `codex/zzpuretools-ui-refactor` 实现并分步提交，最新 Release 构建与 58 项自动测试通过；运行目录和学习指南已更新。阶段二的工作区接口、测试和验收见 [文件工作区计划](2026-09-07-document-workspace-phase2.md)。尚缺的人工窗口操作与旧版性能对照证据仍见 [阶段一执行记录](2026-09-07-zzpuretools-window-phase1.md#11-执行记录)。阶段三至五尚未实施，原主工作区的未提交内容保留，未合并或推送。

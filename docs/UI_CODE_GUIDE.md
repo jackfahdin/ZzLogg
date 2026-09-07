@@ -1,6 +1,6 @@
 # ZzLogg UI 代码学习指南
 
-本文对应 `codex/zzpuretools-ui-refactor` 的阶段一实现。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口现在直接组合 ZzPureTools 标题栏、菜单和共享主题，不再经过 `src/ui2` 装饰层。
+本文对应 `codex/zzpuretools-ui-refactor` 的阶段一、二实现。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过 `src/ui2` 装饰层。
 
 ## 1. 建议阅读顺序
 
@@ -10,7 +10,8 @@
 4. [mainwindow.cpp](../src/ui/src/mainwindow.cpp)：窗口构造与文件/搜索业务协调。
 5. [windowchrome.cpp](../src/ui/src/windowchrome.cpp)：标题栏、窗口按钮、原生回退。
 6. [mainwindowmenus.cpp](../src/ui/src/mainwindowmenus.cpp)、[mainwindowtoolbar.cpp](../src/ui/src/mainwindowtoolbar.cpp)：菜单与工具栏。
-7. [crawlerwidget.cpp](../src/ui/src/crawlerwidget.cpp)：每份日志的主视图、过滤视图与搜索交互。
+7. [documentworkspace.cpp](../src/ui/src/documentworkspace.cpp)：文件标签、当前文档路由、有序会话保存恢复。
+8. [crawlerwidget.cpp](../src/ui/src/crawlerwidget.cpp)：每份日志的主视图、过滤视图与搜索交互。
 
 ## 2. 目录与分层
 
@@ -46,12 +47,27 @@
 
 构造顺序：选择标题栏/菜单容器 → 创建动作 → 创建菜单 → 创建工具栏 → 接入文件标签和快速查找。
 
-- 文件标签：[tabbedcrawlerwidget.cpp](../src/ui/src/tabbedcrawlerwidget.cpp)。
+- 文件工作区：[documentworkspace.cpp](../src/ui/src/documentworkspace.cpp)，继承 [TabbedCrawlerWidget](../src/ui/src/tabbedcrawlerwidget.cpp)，沿用原标签样式、拖动和菜单。
 - 中央日志页面：[crawlerwidget.cpp](../src/ui/src/crawlerwidget.cpp)。
 - 快速查找：[quickfindwidget.cpp](../src/ui/src/quickfindwidget.cpp)、[quickfindmux.cpp](../src/ui/src/quickfindmux.cpp)。
 - 暂存器：[tabbedscratchpad.cpp](../src/ui/src/tabbedscratchpad.cpp)。
 
 本阶段不增加导航栏、不改变主/过滤视图的排列，也不拆换日志渲染器。
+
+### 4.1 文件工作区的责任边界
+
+[documentworkspace.h](../src/ui/include/documentworkspace.h) 提供文档级入口：
+
+- `openDocument()` 创建页面、应用旧视图上下文并选中新标签。
+- `closeDocument()` 停止加载、移除标签、注销会话并延迟释放页面；无效索引不操作。
+- `restoreDocuments()` 按现有会话顺序恢复文件，沿用原先的活动页选择规则。
+- `saveDocuments()` 按当前标签顺序保存 ViewContext 和窗口几何信息，不改变配置格式。
+- `currentDocumentChanged()` 在动作和快速查找路由更新之后通知 MainWindow；空工作区传入空指针，宿主清空标题、状态并禁用编辑菜单。
+- `refreshQuickFindSelector()` 在过滤结果页变化后重新绑定快速查找。
+
+工作区借用 `WindowSession`、`SignalMux` 和 `QuickFindMux`，所以 MainWindow 将工作区成员声明在它们之后，保证先销毁工作区。直接析构时也注销剩余文档，不留下已释放页面的会话登记；这个清理不覆盖已保存的恢复列表。
+
+打开对话框、压缩包处理、最近文件/收藏、跨窗口激活、退出策略仍在 MainWindow。要学习“关闭一个文件”的流程，按 `MainWindow::closeTab()` → `DocumentWorkspace::closeDocument()` → `WindowSession::close()` 阅读。
 
 ## 5. 标题栏与菜单
 
@@ -117,7 +133,9 @@
 - [applicationtranslationtest.cpp](../tests/ui2/applicationtranslationtest.cpp)：真实框架窗口的语言切换、编码弹出菜单、搜索状态。
 - [runtimecontracttest.cpp](../tests/ui2/runtimecontracttest.cpp)：工厂、多窗口主题、日志颜色及运行时销毁。
 - [documenttabclosetest.cpp](../tests/ui2/documenttabclosetest.cpp)：最后一个文件关闭和延迟刷新生命周期。
+- [documentworkspacetest.cpp](../tests/ui2/documentworkspacetest.cpp)：工作区关闭重开、非空析构、当前页动作路由、拖动排序与视图上下文恢复。
 
 添加菜单项先改主窗口动作，再放入菜单/工具栏；修改主题入口先看 UiRuntime；改日志字体、选择或绘制先看 AbstractLogView；改窗口标题和系统按钮先看 WindowChrome。
 
 阶段一的具体范围与验证记录见 [实施计划](superpowers/plans/2026-09-07-zzpuretools-window-phase1.md)。
+阶段二的具体范围与验证记录见 [文件工作区计划](superpowers/plans/2026-09-07-document-workspace-phase2.md)。
