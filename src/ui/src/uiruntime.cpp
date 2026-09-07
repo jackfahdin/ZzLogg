@@ -111,6 +111,7 @@ UiRuntime::~UiRuntime()
     if ( app_ != nullptr ) {
         app_->setMainWindowFactory( {} );
         app_->destroyMainWindows();
+        app_->setProperty("zzlogg.fluentUi", QVariant{});
         app_->setStyle( QStyleFactory::create( QStringLiteral( "Fusion" ) ) );
     }
     theme_.reset();

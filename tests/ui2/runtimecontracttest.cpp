@@ -35,6 +35,24 @@
 class RuntimeContractTest final : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void closesAndDestroysWindowBeforeRuntimeShutdown()
+    {
+        auto& app = *qobject_cast<KloggApp*>(qApp);
+        Configuration::getSynced().setMinimizeToTray(false);
+        QString error;
+        auto runtime = UiRuntime::create(app, &error);
+        QVERIFY2(runtime, qPrintable(error));
+        QPointer<MainWindow> window = app.newWindow();
+        QPointer<WindowChrome> chrome = window->windowChrome();
+        window->show();
+        QVERIFY(window->closeForApplicationExit());
+        QVERIFY(app.mainWindows().isEmpty());
+        runtime.reset();
+        QVERIFY(window.isNull());
+        QVERIFY(chrome.isNull());
+        QVERIFY(!app.property("zzlogg.fluentUi").toBool());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
     void tearsDownWindowsBeforeThemeAndClearsFactory()
     {
         auto& app = *qobject_cast<KloggApp*>(qApp);

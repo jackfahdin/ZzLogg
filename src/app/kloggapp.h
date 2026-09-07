@@ -146,10 +146,11 @@ class KloggApp : public QApplication {
     }
     // Final teardown after the event loop, before releasing the shared theme.
     void destroyMainWindows() {
-        const auto windows = mainWindows();
+        const auto windows = ownedWindows_;
+        ownedWindows_.clear();
         mainWindows_.clear();
         activeWindows_ = {};
-        for (auto* window : windows) delete window;
+        for (const auto& window : windows) delete window.data();
     }
     QList<MainWindow*> mainWindows() const
     {
@@ -266,6 +267,8 @@ class KloggApp : public QApplication {
             ? mainWindowFactory_(session) : new MainWindow(session));
         if (!created) throw std::runtime_error("Main window factory returned null");
         mainWindows_.emplace_back(session, created.get());
+        ownedWindows_.removeIf([](const auto& window) { return window.isNull(); });
+        ownedWindows_.append(created.get());
         created.release();
 
         auto& window = mainWindows_.back().second;
@@ -299,6 +302,7 @@ class KloggApp : public QApplication {
 
         if ( w != mainWindows_.end() ) {
             mainWindows_.erase( w );
+            window.deleteLater();
         }
     }
 
@@ -424,6 +428,7 @@ class KloggApp : public QApplication {
     std::shared_ptr<Session> session_;
 
     std::list<std::pair<WindowSession, MainWindow*>> mainWindows_;
+    QList<QPointer<MainWindow>> ownedWindows_;
     std::stack<QPointer<MainWindow>> activeWindows_;
     MainWindowFactory mainWindowFactory_;
 
