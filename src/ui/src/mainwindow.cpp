@@ -81,6 +81,7 @@
 #include <QWindow>
 
 #include "mainwindow.h"
+#include "windowchrome.h"
 
 #include "clipboard.h"
 #include "crawlerwidget.h"
@@ -127,6 +128,14 @@ std::unique_ptr<QTranslator> MainWindow::mTranslator;
 std::unique_ptr<QTranslator> MainWindow::mQtTranslator;
 
 MainWindow::MainWindow( WindowSession session )
+    : MainWindow(std::move(session), static_cast<const UiThemeContext*>(nullptr)) {}
+
+MainWindow::MainWindow(WindowSession session, UiThemeContext context)
+    : MainWindow(std::move(session), &context) {}
+
+MainWindow::~MainWindow() { chrome_.reset(); }
+
+MainWindow::MainWindow(WindowSession session, const UiThemeContext* context)
     : session_( std::move( session ) )
     , mainIcon_()
     , iconLoader_( this )
@@ -135,8 +144,13 @@ MainWindow::MainWindow( WindowSession session )
     , mainTabWidget_()
     , tempDir_( QDir::temp().filePath( "klogg_temp_" ) )
 {
+    if (context) {
+        chrome_ = std::make_unique<WindowChrome>(*this, *context);
+        connect(this, &MainWindow::activeDocumentNameChanged,
+                chrome_.get(), &WindowChrome::setDocumentName);
+    }
     createActions();
-    createMenus();
+    createMenus(chrome_ ? chrome_->commandMenuBar() : *menuBar());
     createToolBars();
 
     setAcceptDrops( true );
@@ -757,150 +771,6 @@ void MainWindow::loadIcons()
     addToFavoritesMenuAction->setIcon( iconLoader_.load( favoriteIconName ) );
 }
 
-void MainWindow::createMenus()
-{
-    using namespace klogg::mainwindow;
-
-    fileMenu = menuBar()->addMenu( tr( menu::fileTitle ) );
-    fileMenu->setToolTipsVisible( true );
-    fileMenu->addAction( newWindowAction );
-    fileMenu->addAction( openAction );
-    fileMenu->addAction( openClipboardAction );
-    fileMenu->addAction( openUrlAction );
-    recentFilesMenu = fileMenu->addMenu( tr( "Open Recent" ) );
-    recentFilesMenu->setObjectName( QStringLiteral( "recentFilesMenu" ) );
-    for ( auto i = 0u; i < recentFileActions.size(); ++i ) {
-        recentFilesMenu->addAction( recentFileActions[ i ] );
-    }
-    recentFilesMenu->addSeparator();
-    recentFilesMenu->addAction( recentFilesCleanup );
-    recentFilesMenu->setEnabled( false );
-    fileMenu->addSeparator();
-
-    fileMenu->addAction( closeAction );
-    fileMenu->addAction( closeAllAction );
-    fileMenu->addSeparator();
-
-    fileMenu->addAction( optionsAction );
-    fileMenu->addSeparator();
-
-    fileMenu->addSeparator();
-    fileMenu->addAction( exitAction );
-
-    editMenu = menuBar()->addMenu( tr( menu::editTitle ) );
-    editMenu->addAction( copyAction );
-    editMenu->addAction( selectAllAction );
-    editMenu->addSeparator();
-    editMenu->addAction( findAction );
-    editMenu->addSeparator();
-    editMenu->addAction( goToLineAction );
-    editMenu->addSeparator();
-    editMenu->addAction( copyPathToClipboardAction );
-    editMenu->addAction( openContainingFolderAction );
-    editMenu->addSeparator();
-    editMenu->addAction( openInEditorAction );
-    editMenu->addAction( clearLogAction );
-    editMenu->setEnabled( false );
-
-    viewMenu = menuBar()->addMenu( tr( menu::viewTitle ) );
-    openedFilesMenu = viewMenu->addMenu( tr( menu::openedFilesTitle ) );
-    viewMenu->addSeparator();
-    viewMenu->addAction( overviewVisibleAction );
-    viewMenu->addSeparator();
-    viewMenu->addAction( lineNumbersVisibleAction );
-    viewMenu->addSeparator();
-    viewMenu->addAction( textWrapAction );
-    viewMenu->addSeparator();
-    viewMenu->addAction( followAction );
-    viewMenu->addSeparator();
-    viewMenu->addAction( reloadAction );
-
-    toolsMenu = menuBar()->addMenu( tr( menu::toolsTitle ) );
-
-    highlightersMenu = new HighlightersMenu( tr( menu::highlightersTitle ), menuBar() );
-    menuBar()->addMenu( highlightersMenu );
-    highlightersMenu->setApplyChange( [ this ]() {
-        auto crawler = currentCrawlerWidget();
-        if ( crawler != nullptr ) {
-            crawler->applyConfiguration();
-        }
-    } );
-
-    toolsMenu->addAction( predefinedFiltersDialogAction );
-
-    toolsMenu->addSeparator();
-    toolsMenu->addAction( showScratchPadAction );
-
-    encodingMenu = EncodingMenu::generate( encodingGroup, menuBar() );
-    menuBar()->addMenu( encodingMenu );
-    menuBar()->addSeparator();
-
-    favoritesMenu = menuBar()->addMenu( tr( menu::favoritesTitle ) );
-    favoritesMenu->setToolTipsVisible( true );
-
-    helpMenu = menuBar()->addMenu( tr( menu::helpTitle ) );
-    helpMenu->addAction( showDocumentationAction );
-    helpMenu->addSeparator();
-    helpMenu->addAction( reportIssueAction );
-    helpMenu->addSeparator();
-    helpMenu->addAction( generateDumpAction );
-    helpMenu->addSeparator();
-    helpMenu->addAction( aboutQtAction );
-    helpMenu->addAction( aboutAction );
-}
-
-void MainWindow::createToolBars()
-{
-    infoLine = new PathLine();
-    infoLine->setObjectName( QStringLiteral( "mainInfoLine" ) );
-    infoLine->setFrameStyle( QFrame::StyledPanel );
-    infoLine->setFrameShadow( QFrame::Sunken );
-    infoLine->setLineWidth( 0 );
-    infoLine->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Minimum );
-
-    sizeField = new QLabel();
-    sizeField->setObjectName( QStringLiteral( "sizeField" ) );
-    sizeField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    dateField = new QLabel();
-    dateField->setObjectName( QStringLiteral( "dateField" ) );
-    dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    encodingField = new QLabel();
-    encodingField->setObjectName( QStringLiteral( "encodingField" ) );
-    dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    lineNbField = new QLabel();
-    lineNbField->setObjectName( QStringLiteral( "lineNumberField" ) );
-    lineNbField->setAlignment( Qt::AlignRight | Qt::AlignVCenter );
-    lineNbField->setContentsMargins( 2, 0, 2, 0 );
-
-    toolBar = addToolBar( QApplication::translate( "klogg::mainwindow::toolbar",
-                                                   klogg::mainwindow::toolbar::toolbarTitle ) );
-    toolBar->setIconSize( QSize( 16, 16 ) );
-    toolBar->setMovable( false );
-    toolBar->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Minimum );
-    toolBar->addAction( openAction );
-    toolBar->addAction( reloadAction );
-    toolBar->addAction( followAction );
-    toolBar->addAction( addToFavoritesAction );
-    toolBar->addWidget( infoLine );
-    toolBar->addAction( stopAction );
-
-    infoToolbarSeparators.reserve( 5 );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( sizeField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( dateField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( encodingField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( lineNbField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addAction( showScratchPadAction );
-
-    showInfoLabels( false );
-}
 
 void MainWindow::createTrayIcon()
 {

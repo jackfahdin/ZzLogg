@@ -16,6 +16,10 @@
 #include "storagelocationpage.h"
 #include "tabbedcrawlerwidget.h"
 #include "tabbedscratchpad.h"
+#include "uithemecontext.h"
+#include "windowchrome.h"
+#include <ZzFluentUI/ZzFluentTitleBar.h>
+#include <ZzFluentUI/ZzThemeController.h>
 
 #include <QAction>
 #include <QAbstractItemModel>
@@ -44,6 +48,18 @@
 #include <QtTest>
 
 namespace {
+
+ZzFluentUI::ZzThemeController& testTheme()
+{
+    static auto* theme = new ZzFluentUI::ZzThemeController(qApp);
+    return *theme;
+}
+
+QMenuBar* commandMenuBar(MainWindow& window)
+{
+    auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
+    return title ? title->menuBar() : window.menuBar();
+}
 
 template <typename T>
 T* child( QWidget& widget, const char* objectName )
@@ -562,7 +578,7 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
     log.close();
 
     auto session = std::make_shared<Session>();
-    MainWindow window{ WindowSession{ session, QStringLiteral( "runtime-translation" ), 0 } };
+    MainWindow window{ WindowSession{ session, QStringLiteral( "runtime-translation" ), 0 }, UiThemeContext{testTheme()} };
     window.show();
     window.loadFileNonInteractive( logPath );
     auto* const documentTabs
@@ -706,7 +722,7 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     log.close();
 
     auto session = std::make_shared<Session>();
-    MainWindow window{ WindowSession{ session, QStringLiteral( "semantic-search-status" ), 0 } };
+    MainWindow window{ WindowSession{ session, QStringLiteral( "semantic-search-status" ), 0 }, UiThemeContext{testTheme()} };
     window.show();
     window.loadFileNonInteractive( logPath );
     auto* const documentTabs
@@ -813,7 +829,7 @@ void ApplicationTranslationTest::resendsPerDocumentLoadingStateAfterTabSwitchAnd
     }
 
     auto session = std::make_shared<Session>();
-    MainWindow window{ WindowSession{ session, QStringLiteral( "per-document-loading" ), 0 } };
+    MainWindow window{ WindowSession{ session, QStringLiteral( "per-document-loading" ), 0 }, UiThemeContext{testTheme()} };
     window.show();
     window.loadFileNonInteractive( firstPath );
     window.loadFileNonInteractive( secondPath );
@@ -884,7 +900,7 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     log.close();
 
     auto session = std::make_shared<Session>();
-    MainWindow window{ WindowSession{ session, QStringLiteral( "main-window-translation" ), 0 } };
+    MainWindow window{ WindowSession{ session, QStringLiteral( "main-window-translation" ), 0 }, UiThemeContext{testTheme()} };
     window.show();
     window.loadFileNonInteractive( logPath );
 
@@ -1036,7 +1052,7 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
     QTRY_COMPARE( lineNumberField->text(), QStringLiteral( "行數：1/2 選取：4|2" ) );
     QCOMPARE( mainInfoLine->text(), nativeLogPath );
     QVERIFY( window.windowTitle().contains( QFileInfo{ logPath }.fileName() ) );
-    QVERIFY( window.windowTitle() != currentTitle );
+    QCOMPARE( window.windowTitle(), currentTitle );
 
     QVERIFY( QMetaObject::invokeMethod( &window, "updateLoadingProgress", Qt::DirectConnection,
                                         Q_ARG( int, 37 ) ) );
@@ -1073,7 +1089,7 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
     // checked "Auto" action in the window and prevents the top-level menu from opening.
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
     auto session = std::make_shared<Session>();
-    MainWindow window{ WindowSession{ session, QStringLiteral( "encoding-menu-popup" ), 0 } };
+    MainWindow window{ WindowSession{ session, QStringLiteral( "encoding-menu-popup" ), 0 }, UiThemeContext{testTheme()} };
     window.resize( 1600, 900 );
     window.show();
     QTRY_VERIFY( window.isVisible() );
@@ -1081,7 +1097,8 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
     auto* const encodingMenu = child<QMenu>( window, "encodingMenu" );
     auto* const encodingAutoAction
         = child<QAction>( *encodingMenu, "encodingAutoAction" );
-    QMenuBar* const mainMenuBar = window.menuBar();
+    QMenuBar* const mainMenuBar = commandMenuBar(window);
+    QVERIFY(qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget()));
     QAction* const encodingMenuAction = encodingMenu->menuAction();
 
     QVERIFY( mainMenuBar->actions().contains( encodingMenuAction ) );

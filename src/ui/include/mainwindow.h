@@ -50,6 +50,9 @@
 #include <mutex>
 
 #include "configuration.h"
+#include "uithemecontext.h"
+
+class WindowChrome;
 #include "crawlerwidget.h"
 #include "downloader.h"
 #include "iconloader.h"
@@ -74,6 +77,9 @@ class MainWindow : public QMainWindow {
 
   public:
     explicit MainWindow( WindowSession session );
+    MainWindow(WindowSession session, UiThemeContext context);
+    ~MainWindow() override;
+    WindowChrome* windowChrome() const { return chrome_.get(); }
 
     // Re-install the geometry stored in config file
     // (should be done before 'Widget::show()')
@@ -107,6 +113,8 @@ class MainWindow : public QMainWindow {
 
   private:
     enum class ActionInitiator { User, App };
+    MainWindow(WindowSession session, const UiThemeContext* context);
+    std::unique_ptr<WindowChrome> chrome_;
     enum class InfoDisplayState { Normal, Loading };
 
   private Q_SLOTS:
@@ -201,7 +209,7 @@ class MainWindow : public QMainWindow {
   private:
     void createActions();
     void loadIcons();
-    void createMenus();
+    void createMenus(QMenuBar& container);
     void createToolBars();
     void createTrayIcon();
     void readSettings();
