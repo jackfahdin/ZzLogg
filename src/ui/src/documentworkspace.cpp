@@ -23,6 +23,11 @@ DocumentWorkspace::~DocumentWorkspace()
     // Stop routing before Qt destroys the document children.
     mux_.setCurrentDocument( nullptr );
     quickFind_.registerSelector( nullptr );
+    // The session can outlive this workspace. Remove its view registrations
+    // without delivering current-document notifications to a tearing-down host.
+    disconnect( this, nullptr, nullptr, nullptr );
+    while ( count() > 0 )
+        closeDocument( 0 );
 }
 
 CrawlerWidget* DocumentWorkspace::currentDocument() const

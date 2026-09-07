@@ -91,6 +91,28 @@ private Q_SLOTS:
         QCOMPARE( secondFollow.count(), 1 );
     }
 
+    void destroyingNonemptyWorkspaceUnregistersDocuments()
+    {
+        QTemporaryDir files;
+        const auto path = makeLog(files, "destruction.log");
+        auto session = std::make_shared<Session>();
+        WindowSession window(session, "destroy-workspace", 0);
+        SignalMux mux;
+        QuickFindMux quickFind(window.getQuickFindPattern());
+        QPointer<CrawlerWidget> document;
+        {
+            DocumentWorkspace workspace(window, mux, quickFind);
+            document = workspace.openDocument(path);
+            QVERIFY(document);
+        }
+        QVERIFY(document.isNull());
+        QVERIFY(!session->getViewIfOpen(path));
+        QVERIFY(window.openedFiles().empty());
+        quickFind.searchForward();
+        DocumentWorkspace next(window, mux, quickFind);
+        QVERIFY(next.openDocument(path));
+    }
+
     void preservesReorderedSession()
     {
         QTemporaryDir files;
