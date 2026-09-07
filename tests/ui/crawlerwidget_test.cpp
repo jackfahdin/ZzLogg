@@ -108,40 +108,40 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
 
     void setSearchPattern( const QString& pattern )
     {
-        QTest::keyClicks( crawler->searchLineEdit_, pattern );
+        QTest::keyClicks( crawler->searchPanel_->searchLineEdit(), pattern );
     }
 
     void enableCaseSensitiveSearch()
     {
-        if ( !crawler->matchCaseButton_->isChecked() ) {
-            QTest::mouseClick( crawler->matchCaseButton_, Qt::LeftButton );
+        if ( !crawler->searchPanel_->matchCaseButton()->isChecked() ) {
+            QTest::mouseClick( crawler->searchPanel_->matchCaseButton(), Qt::LeftButton );
             QTest::qWait( 100 );
         }
     }
 
     void enableInverseMatch()
     {
-        if ( !crawler->inverseButton_->isChecked() ) {
-            QTest::mouseClick( crawler->inverseButton_, Qt::LeftButton );
+        if ( !crawler->searchPanel_->inverseButton()->isChecked() ) {
+            QTest::mouseClick( crawler->searchPanel_->inverseButton(), Qt::LeftButton );
             QTest::qWait( 100 );
         }
     }
 
     void enableBooleanCombinationMode()
     {
-        if ( !crawler->booleanButton_->isChecked() ) {
-            QTest::mouseClick( crawler->booleanButton_, Qt::LeftButton );
+        if ( !crawler->searchPanel_->booleanButton()->isChecked() ) {
+            QTest::mouseClick( crawler->searchPanel_->booleanButton(), Qt::LeftButton );
             QTest::qWait( 100 );
         }
     }
 
     void runSearch()
     {
-        QTest::mouseClick( crawler->searchButton_, Qt::LeftButton );
+        QTest::mouseClick( crawler->searchPanel_->searchButton(), Qt::LeftButton );
 
         QTest::qWait( 100 );
 
-        waitUiState( [ & ]() { return crawler->stopButton_->isHidden(); } );
+        waitUiState( [ & ]() { return crawler->searchPanel_->stopButton()->isHidden(); } );
     }
 
     void render()

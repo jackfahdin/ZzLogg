@@ -43,13 +43,14 @@
 #include <cstddef>
 #include <optional>
 
+#include "logpage.h"
+#include "searchpanel.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
-#include <QSplitter>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -77,13 +78,13 @@ class OverviewWidget;
 // Implements the central widget of the application.
 // It includes both windows, the search line, the info
 // lines and various buttons.
-class CrawlerWidget : public QSplitter,
+class CrawlerWidget : public LogPage,
                       public QuickFindMuxSelectorInterface,
                       public ViewInterface,
                       public MuxableDocumentInterface {
     Q_OBJECT
 
-  public:
+public:
     CrawlerWidget( QWidget* parent = nullptr );
 
     // Get the line number of the first line displayed.
@@ -113,7 +114,7 @@ class CrawlerWidget : public QSplitter,
 
     void registerShortcuts();
 
-  public Q_SLOTS:
+public Q_SLOTS:
     // Stop the asynchoronous loading of the file if one is in progress
     // The file is identified by the view attached to it.
     void stopLoading();
@@ -128,11 +129,11 @@ class CrawlerWidget : public QSplitter,
     // Instructs the widget to reconfigure itself because Config() has changed.
     void applyConfiguration();
 
-  public:
+public:
     template <class T>
     struct access_by;
 
-  protected:
+protected:
     // Implementation of the ViewInterface functions
     void doSetData( std::shared_ptr<LogData> logData,
                     std::shared_ptr<LogFilteredData> filteredData ) override;
@@ -151,7 +152,7 @@ class CrawlerWidget : public QSplitter,
 
     void changeEvent( QEvent* event ) override;
 
-  Q_SIGNALS:
+Q_SIGNALS:
     // Sent to signal the client load has progressed,
     // passing the completion percentage.
     void loadingProgressed( int progress );
@@ -188,7 +189,7 @@ class CrawlerWidget : public QSplitter,
     // Sent after display-only text owned by the crawler has been retranslated.
     void languageDisplayChanged();
 
-  private Q_SLOTS:
+private Q_SLOTS:
     // Instructs the widget to start a search using the current search line.
     void startNewSearch();
     // Stop the currently ongoing search (if one exists)
@@ -271,15 +272,15 @@ class CrawlerWidget : public QSplitter,
     void addNextColorLabelToSelection();
     void clearColorLabels();
 
-    void changeFilteredView(int tabIndex);
-    void closeFilteredView(int tabIndex);
-    void filteredViewDestroyed(QObject* view);
+    void changeFilteredView( int tabIndex );
+    void closeFilteredView( int tabIndex );
+    void filteredViewDestroyed( QObject* view );
 
-  private:
+private:
     // State machine holding the state of the search, used to allow/disallow
     // auto-refresh and inform the user via the info line.
     class SearchState {
-      public:
+    public:
         enum State {
             NoSearch,
             Static,
@@ -322,7 +323,7 @@ class CrawlerWidget : public QSplitter,
             return ( state_ == FileTruncated || state_ == TruncatedAutorefreshing );
         }
 
-      private:
+    private:
         State state_;
         bool autoRefreshRequested_;
     };
@@ -362,7 +363,7 @@ class CrawlerWidget : public QSplitter,
 
     void updateColorLabels( const ColorLabelsManager::QuickHighlightersCollection& labels );
 
-    void connectAllFilteredViewSlots( FilteredView* view);
+    void connectAllFilteredViewSlots( FilteredView* view );
 
     void saveSplitterSizes() const;
 
@@ -390,30 +391,7 @@ class CrawlerWidget : public QSplitter,
 
     OverviewWidget* overviewWidget_;
 
-    QComboBox* visibilityBox_ = nullptr;
-    QStandardItemModel* visibilityModel_;
-
-    PredefinedFiltersComboBox* predefinedFilters_ = nullptr;
-
-    QComboBox* searchLineEdit_ = nullptr;
-    QMenu* searchLineContextMenu_ = nullptr;
-    QCompleter* searchLineCompleter_ = nullptr;
-    QAction* clearSearchHistoryAction_ = nullptr;
-    QAction* editSearchHistoryAction_ = nullptr;
-    QAction* saveAsPredefinedFilterAction_ = nullptr;
-
-    InfoLine* searchInfoLine_ = nullptr;
-
-    QToolButton* clearButton_ = nullptr;
-    QToolButton* searchButton_ = nullptr;
-    QToolButton* keepSearchResultsButton_;
-    QToolButton* stopButton_;
-
-    QToolButton* matchCaseButton_ = nullptr;
-    QToolButton* useRegexpButton_ = nullptr;
-    QToolButton* inverseButton_ = nullptr;
-    QToolButton* booleanButton_ = nullptr;
-    QToolButton* searchRefreshButton_ = nullptr;
+    SearchPanel* searchPanel_ = nullptr;
 
     std::map<QString, QShortcut*> shortcuts_;
 

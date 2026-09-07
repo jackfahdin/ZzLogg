@@ -10,6 +10,7 @@
 #include "quickfindwidget.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
+#include "searchpanel.h"
 #include "session.h"
 #include "shortcuts.h"
 #include "storagebootstrapdialog.h"
@@ -95,10 +96,10 @@ struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
                                              int progress )
     {
         crawler.searchState_.startSearch();
-        crawler.stopButton_->setEnabled( true );
-        crawler.stopButton_->show();
-        crawler.searchButton_->hide();
-        crawler.clearButton_->hide();
+        crawler.searchPanel_->stopButton()->setEnabled( true );
+        crawler.searchPanel_->stopButton()->show();
+        crawler.searchPanel_->searchButton()->hide();
+        crawler.searchPanel_->clearButton()->hide();
         Q_EMIT crawler.logFilteredData_->searchProgressed( matches, progress, 0_lnum );
     }
 
@@ -114,12 +115,12 @@ struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
 
     static QToolButton* stopButton( const CrawlerWidget& crawler )
     {
-        return crawler.stopButton_;
+        return crawler.searchPanel_->stopButton();
     }
 
     static QToolButton* clearButton( const CrawlerWidget& crawler )
     {
-        return crawler.clearButton_;
+        return crawler.searchPanel_->clearButton();
     }
 };
 
@@ -150,6 +151,19 @@ class ApplicationTranslationTest final : public QObject {
     void closesLastDocumentAndReopensThroughWorkspace();
     void activatesExistingDocumentInItsOwningWindow();
     void opensAndSearchesLargeLog();
+    void searchesThroughExtractedPanel_data();
+    void searchesThroughExtractedPanel();
+    void acceptsThemeEventsBeforeDataBinding()
+    {
+        CrawlerWidget crawler;
+        for (auto type : {QEvent::StyleChange, QEvent::PaletteChange,
+                          QEvent::ApplicationPaletteChange, QEvent::LanguageChange}) {
+            QEvent event(type);
+            QCoreApplication::sendEvent(&crawler, &event);
+        }
+        QCoreApplication::processEvents();
+        QVERIFY(!crawler.findChild<SearchPanel*>());
+    }
     void destroyingWindowCancelsPendingVisualRefresh();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
@@ -1232,6 +1246,10 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
             auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
             QVERIFY(crawler);
             QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*crawler), 5000);
+            auto* panel = crawler->findChild<SearchPanel*>("searchPanel");
+            QVERIFY(panel);
+            QVERIFY(!panel->searchButton()->icon().isNull());
+            QVERIFY(!panel->matchCaseButton()->icon().isNull());
             for (int width : {1400, 800}) {
                 window.resize(width, 780);
                 QTest::qWait(50);
@@ -1247,6 +1265,105 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
             }
         }
     }
+}
+
+void ApplicationTranslationTest::searchesThroughExtractedPanel_data()
+{
+    QTest::addColumn<QString>("pattern");
+    QTest::addColumn<bool>("regex");
+    QTest::addColumn<bool>("boolean");
+    QTest::addColumn<bool>("inverse");
+    QTest::addColumn<int>("matches");
+    QTest::addColumn<bool>("tailMatches");
+    QTest::newRow("plain") << QString("ERROR") << false << false << false << 1 << false;
+    QTest::newRow("regex") << QString("^(ERROR|WARN)") << true << false << false << 2 << false;
+    QTest::newRow("boolean") << QString("\"ERROR\" or \"WARN\"") << true << true << false << 2 << false;
+    QTest::newRow("inverse") << QString("ERROR") << false << false << true << 3 << false;
+    QTest::newRow("known-tail-recount") << QString("ERROR") << false << false << false << 1 << true;
+}
+
+void ApplicationTranslationTest::searchesThroughExtractedPanel()
+{
+    QFETCH(QString, pattern);
+    QFETCH(bool, regex);
+    QFETCH(bool, boolean);
+    QFETCH(bool, inverse);
+    QFETCH(int, matches);
+    QFETCH(bool, tailMatches);
+    QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
+    QTemporaryDir logs;
+    QVERIFY(logs.isValid());
+    QFile file(logs.filePath("search.log"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    const QByteArray data = tailMatches
+        ? QByteArray("ERROR alpha\nINFO beta\nerror gamma\nWARN alpha\n")
+        : QByteArray("ERROR alpha\nWARN alpha\nerror gamma\nINFO beta\n");
+    QCOMPARE(file.write(data), qint64(data.size()));
+    file.close();
+    auto session = std::make_shared<Session>();
+    MainWindow window(WindowSession(session, "panel-search", 0), UiThemeContext{testTheme()});
+    window.show();
+    window.loadFileNonInteractive(file.fileName());
+    auto* tabs = window.findChild<TabbedCrawlerWidget*>("documentTabs");
+    QVERIFY(tabs);
+    QTRY_COMPARE(tabs->count(), 1);
+    auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
+    QVERIFY(crawler);
+    QTRY_VERIFY(TranslationCrawlerAccess::loadingFinished(*crawler));
+    auto* panel = crawler->findChild<SearchPanel*>("searchPanel");
+    QVERIFY(panel);
+    QCOMPARE(crawler->orientation(), Qt::Vertical);
+    QCOMPARE(crawler->count(), 2);
+    panel->searchRefreshButton()->setChecked(false);
+    panel->matchCaseButton()->setChecked(true);
+    panel->useRegexpButton()->setChecked(regex);
+    panel->booleanButton()->setChecked(boolean);
+    panel->inverseButton()->setChecked(inverse);
+    panel->searchLineEdit()->setEditText(pattern);
+    QSignalSpy requests(panel, &SearchPanel::searchRequested);
+    QTest::keyClick(panel->searchLineEdit(), Qt::Key_Return);
+    QCOMPARE(requests.count(), 1);
+    QTRY_COMPARE(panel->searchInfoLine()->text(),
+                 matches == 1 ? QString("1 match found") : QString("%1 matches found").arg(matches));
+    auto* results = crawler->resultsTabs();
+    QCOMPARE(results->count(), 1);
+    QPointer<QWidget> original = results->currentWidget();
+    panel->keepSearchResultsButton()->setChecked(true);
+    panel->booleanButton()->setChecked(false);
+    panel->inverseButton()->setChecked(false);
+    panel->useRegexpButton()->setChecked(false);
+    panel->searchLineEdit()->setEditText("alpha");
+    panel->searchButton()->click();
+    QCOMPARE(requests.count(), 2);
+    QTRY_COMPARE(panel->searchInfoLine()->text(), QString("2 matches found"));
+    QCOMPARE(results->count(), 2);
+    results->setCurrentIndex(0);
+    QCOMPARE(results->currentWidget(), original.data());
+    results->setCurrentIndex(1);
+    Q_EMIT results->tabCloseRequested(0);
+    QTRY_VERIFY(original.isNull());
+    QTRY_COMPARE(results->count(), 1);
+    panel->clearButton()->click();
+    QVERIFY(panel->searchLineEdit()->currentText().isEmpty());
+    QCOMPARE(requests.count(), 2);
+    QCOMPARE(panel->searchInfoLine()->text(), QString("2 matches found"));
+    panel->searchRefreshButton()->setChecked(true);
+    panel->searchLineEdit()->setEditText("alpha");
+    panel->searchButton()->click();
+    QTRY_COMPARE(panel->searchInfoLine()->text(), QString("2 matches found"));
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Append));
+    QCOMPARE(file.write("ERROR alpha\n"), qint64(12));
+    file.close();
+    QTRY_COMPARE_WITH_TIMEOUT(TranslationCrawlerAccess::searchObject(*crawler)->getNbLine().get(), 3, 10000);
+    // The worker updates data before its queued UI notification is delivered.
+    QTRY_VERIFY(panel->searchInfoLine()->text().endsWith("matches found")
+                && panel->searchInfoLine()->text() != QString("2 matches found"));
+    if (tailMatches) {
+        QVERIFY(panel->searchInfoLine()->text() == QString("3 matches found")
+                || panel->searchInfoLine()->text() == QString("4 matches found"));
+        QEXPECT_FAIL("", "Baseline SearchData::deleteMatch does not decrement nbMatches when rescanning the last line; see phase 3 execution record.", Continue);
+    }
+    QCOMPARE(panel->searchInfoLine()->text(), QString("3 matches found"));
 }
 
 void ApplicationTranslationTest::opensAndSearchesLargeLog()
@@ -1276,6 +1393,7 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     QVERIFY(crawler);
     QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*crawler), 60000);
     const auto openMs = timer.elapsed();
+    QVERIFY(crawler->findChild<SearchPanel*>("searchPanel"));
     auto* edit = crawler->findChild<QComboBox*>("mainSearchEdit");
     auto* button = crawler->findChild<QToolButton*>("mainSearchButton");
     auto* info = crawler->findChild<InfoLine*>();
@@ -1289,6 +1407,17 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     qInfo("Large log: bytes=%lld, lines=2097152, open_ms=%lld, search_ms=%lld",
           static_cast<long long>(bytes), static_cast<long long>(openMs),
           static_cast<long long>(timer.elapsed()));
+    auto* panel = crawler->findChild<SearchPanel*>("searchPanel");
+    QSignalSpy stops(panel, &SearchPanel::stopRequested);
+    edit->setCurrentText("response");
+    button->click();
+    QVERIFY(panel->stopButton()->isEnabled());
+    panel->stopButton()->click();
+    QCOMPARE(stops.count(), 1);
+    QTRY_VERIFY_WITH_TIMEOUT(panel->stopButton()->isHidden(), 60000);
+    edit->setCurrentText("ERROR");
+    button->click();
+    QTRY_COMPARE_WITH_TIMEOUT(info->text(), QStringLiteral("2048 matches found"), 60000);
 }
 
 int main( int argc, char* argv[] )

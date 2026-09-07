@@ -101,6 +101,7 @@ add_app_translations_resource(ZZLOGG_TRANSLATION_TEST_APP_RES
 add_qt_translations_resource(ZZLOGG_TRANSLATION_TEST_QT_RES zh_CN zh_TW)
 add_executable(zzlogg_application_translation_test
   applicationtranslationtest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc"
   "${PROJECT_SOURCE_DIR}/src/app/applicationlanguage.cpp"
   ${ZZLOGG_TRANSLATION_TEST_APP_RES}
   ${ZZLOGG_TRANSLATION_TEST_QT_RES})
