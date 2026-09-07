@@ -19,7 +19,7 @@
 | [src/app](../src/app) | 启动、IPC、多窗口、会话恢复、退出 |
 | [src/ui/include](../src/ui/include) | UI 类接口 |
 | [src/ui/src](../src/ui/src) | UI 组件与交互实现 |
-| [src/ui/ui](../src/ui/ui) | Qt Designer 的 .ui 表单 |
+| [src/ui/include](../src/ui/include) 中的 `.ui` 文件 | Qt Designer 的表单（与头文件同目录） |
 | [src/settings](../src/settings) | 应用配置与持久化 |
 | [src/logdata](../src/logdata) | 日志读取、索引、过滤数据，不属于界面外观 |
 | [ZzPureTools](../3rdparty/vendor/ZzPureTools) | 上游标题栏、样式、主题与窗口平台适配 |
