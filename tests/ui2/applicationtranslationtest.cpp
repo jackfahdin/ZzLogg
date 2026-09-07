@@ -1,6 +1,7 @@
 #include "applicationlanguage.h"
 #include "configuration.h"
 #include "crawlerwidget.h"
+#include "documentworkspace.h"
 #include "infoline.h"
 #include "mainwindow.h"
 #include "optionsdialog.h"
@@ -146,6 +147,8 @@ class ApplicationTranslationTest final : public QObject {
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
     void rendersLayoutsAcrossThemesAndLanguages();
+    void closesLastDocumentAndReopensThroughWorkspace();
+    void activatesExistingDocumentInItsOwningWindow();
     void opensAndSearchesLargeLog();
     void destroyingWindowCancelsPendingVisualRefresh();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
@@ -1121,6 +1124,65 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
     QVERIFY( encodingMenu->isWindow() );
     QCOMPARE( encodingMenu->windowType(), Qt::Popup );
     encodingMenu->hide();
+}
+
+void ApplicationTranslationTest::closesLastDocumentAndReopensThroughWorkspace()
+{
+    QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
+    QTemporaryDir logs;
+    const QString path = logs.filePath("workspace.log");
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QVERIFY(file.write("one line\n") > 0);
+    file.close();
+    auto session = std::make_shared<Session>();
+    MainWindow window(WindowSession(session, "workspace-integration", 0), {testTheme()});
+    window.show();
+    auto* workspace = window.findChild<DocumentWorkspace*>("documentTabs");
+    QVERIFY(workspace);
+    window.loadFileNonInteractive(path);
+    QTRY_COMPARE(workspace->count(), 1);
+    QPointer<CrawlerWidget> document = workspace->currentDocument();
+    QVERIFY(document);
+    QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*document), 5000);
+    Q_EMIT workspace->tabCloseRequested(0);
+    QCOMPARE(workspace->count(), 0);
+    QVERIFY(!session->getViewIfOpen(path));
+    QCOMPARE(window.windowTitle(), QStringLiteral("ZzLogg"));
+    auto* edit = commandMenuBar(window)->actions().at(1)->menu();
+    QVERIFY(edit);
+    QVERIFY(!edit->isEnabled());
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    QVERIFY(document.isNull());
+    window.loadFileNonInteractive(path);
+    QTRY_COMPARE(workspace->count(), 1);
+    QVERIFY(edit->isEnabled());
+    QVERIFY(window.windowTitle().contains("workspace.log"));
+}
+
+void ApplicationTranslationTest::activatesExistingDocumentInItsOwningWindow()
+{
+    QTemporaryDir logs;
+    const QString path = logs.filePath("shared.log");
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QVERIFY(file.write("shared log\n") > 0);
+    file.close();
+    auto session = std::make_shared<Session>();
+    MainWindow first(WindowSession(session, "workspace-owner", 0), {testTheme()});
+    MainWindow second(WindowSession(session, "workspace-other", 1), {testTheme()});
+    auto* owner = first.findChild<DocumentWorkspace*>("documentTabs");
+    auto* other = second.findChild<DocumentWorkspace*>("documentTabs");
+    QVERIFY(owner);
+    QVERIFY(other);
+    first.loadFileNonInteractive(path);
+    QTRY_COMPARE(owner->count(), 1);
+    auto* original = owner->currentDocument();
+    second.loadFileNonInteractive(path);
+    QCOMPARE(owner->count(), 1);
+    QCOMPARE(other->count(), 0);
+    QCOMPARE(owner->currentDocument(), original);
+    QCOMPARE(session->getViewIfOpen(path), static_cast<ViewInterface*>(original));
 }
 
 void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()

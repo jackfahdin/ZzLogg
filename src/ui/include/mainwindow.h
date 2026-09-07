@@ -61,7 +61,7 @@ class WindowChrome;
 #include "quickfindwidget.h"
 #include "session.h"
 #include "signalmux.h"
-#include "tabbedcrawlerwidget.h"
+#include "documentworkspace.h"
 #include "tabbedscratchpad.h"
 
 class QAction;
@@ -179,7 +179,7 @@ class MainWindow : public QMainWindow {
     // Close the tab with the passed index
     void closeTab( int index, ActionInitiator initiator );
     // Setup the tab with current index for view
-    void currentTabChanged( int index );
+    void currentDocumentChanged( CrawlerWidget* document );
 
     // Instructs the widget to change the pattern in the QuickFind widget
     // and confirm it.
@@ -326,7 +326,7 @@ class MainWindow : public QMainWindow {
     QuickFindMux quickFindMux_;
 
     // The main widget
-    TabbedCrawlerWidget mainTabWidget_;
+    DocumentWorkspace workspace_;
 
     TabbedScratchPad scratchPad_;
 

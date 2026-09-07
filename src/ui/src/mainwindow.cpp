@@ -141,7 +141,7 @@ MainWindow::MainWindow(WindowSession session, const UiThemeContext* context)
     , iconLoader_( this )
     , signalMux_()
     , quickFindMux_( session_.getQuickFindPattern() )
-    , mainTabWidget_()
+    , workspace_( session_, signalMux_, quickFindMux_ )
     , tempDir_( QDir::temp().filePath( "klogg_temp_" ) )
 {
     if (context) {
@@ -202,20 +202,13 @@ MainWindow::MainWindow(WindowSession session, const UiThemeContext* context)
     signalMux_.connect( SIGNAL( languageDisplayChanged() ), this,
                         SLOT( retranslateStatusUi() ) );
 
-    // Configure the main tabbed widget
-    mainTabWidget_.setObjectName( QStringLiteral( "documentTabs" ) );
-    mainTabWidget_.setDocumentMode( true );
-    mainTabWidget_.setMovable( true );
-    // mainTabWidget_.setTabShape( QTabWidget::Triangular );
-    mainTabWidget_.setTabsClosable( true );
-
     scratchPad_.setWindowIcon( mainIcon_ );
     scratchPad_.setWindowTitle( tr( "%1 - scratchpad" ).arg( productName() ) );
 
-    connect( &mainTabWidget_, &TabbedCrawlerWidget::tabCloseRequested, this,
+    connect( &workspace_, &TabbedCrawlerWidget::tabCloseRequested, this,
              [ this ]( int index ) { this->closeTab( index, ActionInitiator::User ); } );
-    connect( &mainTabWidget_, &TabbedCrawlerWidget::currentChanged, this,
-             &MainWindow::currentTabChanged );
+    connect( &workspace_, &DocumentWorkspace::currentDocumentChanged, this,
+             &MainWindow::currentDocumentChanged );
 
     // Establish the QuickFindWidget and mux ( to send requests from the
     // QFWidget to the right window )
@@ -244,7 +237,7 @@ MainWindow::MainWindow(WindowSession session, const UiThemeContext* context)
     QWidget* central_widget = new QWidget();
     auto* main_layout = new QVBoxLayout();
     main_layout->setContentsMargins( 0, 0, 0, 0 );
-    main_layout->addWidget( &mainTabWidget_ );
+    main_layout->addWidget( &workspace_ );
     main_layout->addWidget( &quickFindWidget_ );
     central_widget->setLayout( main_layout );
 
@@ -268,29 +261,12 @@ void MainWindow::reloadSession()
     const auto& config = Configuration::get();
     const auto followFileOnLoad = config.followFileOnLoad() && config.anyFileWatchEnabled();
 
-    int current_file_index = -1;
-    const auto openedFiles
-        = session_.restore( [] { return new CrawlerWidget(); }, &current_file_index );
-
-    for ( const auto& open_file : openedFiles ) {
-        QString file_name = { open_file.first };
-        auto* crawler_widget = static_cast<CrawlerWidget*>( open_file.second );
-
-        if ( crawler_widget ) {
-            mainTabWidget_.addCrawler( crawler_widget, file_name );
-
-            if ( followFileOnLoad ) {
-                signalCrawlerToFollowFile( crawler_widget );
-            }
-        }
-    }
-
-    if ( current_file_index >= 0 ) {
-        mainTabWidget_.setCurrentIndex( current_file_index );
-
-        if ( followFileOnLoad ) {
+    const auto documents = workspace_.restoreDocuments();
+    if ( followFileOnLoad ) {
+        for ( auto* document : documents )
+            signalCrawlerToFollowFile( document );
+        if ( !documents.isEmpty() )
             followAction->setChecked( true );
-        }
     }
 
     updateOpenedFilesMenu();
@@ -597,9 +573,9 @@ void MainWindow::createActions()
         auto& config = Configuration::get();
         config.setLineNumbersVisible( visible );
         config.save();
-        for ( int index = 0; index < mainTabWidget_.count(); ++index ) {
+        for ( int index = 0; index < workspace_.count(); ++index ) {
             auto* const crawler
-                = qobject_cast<CrawlerWidget*>( mainTabWidget_.widget( index ) );
+                = qobject_cast<CrawlerWidget*>( workspace_.widget( index ) );
             if ( crawler != nullptr ) {
                 crawler->applyConfiguration();
             }
@@ -940,7 +916,7 @@ void MainWindow::openFileFromFavorites( QAction* action )
 // Close current tab
 void MainWindow::closeTab( ActionInitiator initiator )
 {
-    int currentIndex = mainTabWidget_.currentIndex();
+    int currentIndex = workspace_.currentIndex();
 
     if ( currentIndex >= 0 ) {
         closeTab( currentIndex, initiator );
@@ -953,7 +929,7 @@ void MainWindow::closeTab( ActionInitiator initiator )
 // Close all tabs
 void MainWindow::closeAll( ActionInitiator initiator )
 {
-    while ( mainTabWidget_.count() ) {
+    while ( workspace_.count() ) {
         closeTab( 0, initiator );
     }
 }
@@ -1317,50 +1293,30 @@ void MainWindow::handleLoadingFinished( LoadingStatus status )
             alertBox.exec();
         }
 
-        closeTab( mainTabWidget_.currentIndex(), ActionInitiator::App );
+        closeTab( workspace_.currentIndex(), ActionInitiator::App );
     }
 
-    // mainTabWidget_.setEnabled( true );
+    // workspace_.setEnabled( true );
 }
 
 void MainWindow::handleFilteredViewChanged()
 {
-    int currentIndex = mainTabWidget_.currentIndex();
-    if ( currentIndex >= 0 ) {
-        auto* crawler_widget = static_cast<CrawlerWidget*>( mainTabWidget_.widget( currentIndex ) );
-        quickFindMux_.registerSelector( crawler_widget );
-    }
+    workspace_.refreshQuickFindSelector();
 }
 
 void MainWindow::closeTab( int index, ActionInitiator initiator )
 {
-    auto widget = qobject_cast<CrawlerWidget*>( mainTabWidget_.widget( index ) );
-
-    assert( widget );
-
-    widget->stopLoading();
-    mainTabWidget_.removeCrawler( index );
-
-    if ( initiator == ActionInitiator::User ) {
-        addRecentFile( session_.getFilename( widget ) );
-    }
-
-    session_.close( widget );
-
+    const QString path = workspace_.closeDocument( index );
+    if ( !path.isEmpty() && initiator == ActionInitiator::User )
+        addRecentFile( path );
     updateOpenedFilesMenu();
-
-    widget->deleteLater();
 }
 
-void MainWindow::currentTabChanged( int index )
+void MainWindow::currentDocumentChanged( CrawlerWidget* crawler_widget )
 {
-    LOG_DEBUG << "currentTabChanged";
+    LOG_DEBUG << "currentDocumentChanged";
 
-    if ( index >= 0 ) {
-        auto* crawler_widget = static_cast<CrawlerWidget*>( mainTabWidget_.widget( index ) );
-        signalMux_.setCurrentDocument( crawler_widget );
-        quickFindMux_.registerSelector( crawler_widget );
-
+    if ( crawler_widget ) {
         // New tab is set up with fonts etc...
         Q_EMIT optionsChanged();
 
@@ -1372,9 +1328,6 @@ void MainWindow::currentTabChanged( int index )
     }
     else {
         // No tab left
-        signalMux_.setCurrentDocument( nullptr );
-        quickFindMux_.registerSelector( nullptr );
-
         infoLine->hideGauge();
         infoLine->clear();
         showInfoLabels( false );
@@ -1657,7 +1610,7 @@ bool MainWindow::loadFile( const QString& fileName, bool followFile )
 
     if ( existing_crawler ) {
         auto* crawlerWindow = qobject_cast<MainWindow*>( existing_crawler->window() );
-        crawlerWindow->mainTabWidget_.setCurrentWidget( existing_crawler );
+        crawlerWindow->workspace_.setCurrentWidget( existing_crawler );
         crawlerWindow->activateWindow();
         return true;
     }
@@ -1686,31 +1639,12 @@ bool MainWindow::loadFile( const QString& fileName, bool followFile )
                 return QString{};
             }();
 
-            CrawlerWidget* crawler_widget = static_cast<CrawlerWidget*>(
-                session_.open( fileName, []() { return new CrawlerWidget(); } ) );
+            auto* crawler_widget = workspace_.openDocument( fileName, previousViewContext );
 
             if ( !crawler_widget ) {
                 LOG_ERROR << "Can't create crawler for " << fileName.toStdString();
                 return false;
             }
-
-            // We won't show the widget until the file is fully loaded
-            crawler_widget->hide();
-
-            if ( !previousViewContext.isEmpty() ) {
-                LOG_INFO << "Found existing context";
-                crawler_widget->setViewContext( previousViewContext );
-            }
-
-            // We disable the tab widget to avoid having someone switch
-            // tab during loading. (maybe FIXME)
-            // mainTabWidget_.setEnabled( false );
-
-            int index = mainTabWidget_.addCrawler( crawler_widget, fileName );
-
-            // Setting the new tab, the user will see a blank page for the duration
-            // of the loading, with no way to switch to another tab
-            mainTabWidget_.setCurrentIndex( index );
 
             addRecentFile( fileName );
             updateOpenedFilesMenu();
@@ -1742,9 +1676,7 @@ QString MainWindow::strippedName( const QString& fullFileName ) const
 // Return the currently active CrawlerWidget, or NULL if none
 CrawlerWidget* MainWindow::currentCrawlerWidget() const
 {
-    auto current = qobject_cast<CrawlerWidget*>( mainTabWidget_.currentWidget() );
-
-    return current;
+    return workspace_.currentDocument();
 }
 
 // Update the title bar.
@@ -2133,16 +2065,7 @@ void MainWindow::showInfoLabels( bool show )
 // Write settings to permanent storage
 void MainWindow::writeSettings()
 {
-    // Save the session
-    // Generate the ordered list of widgets and their topLine
-    std::vector<
-        std::tuple<const ViewInterface*, uint64_t, std::shared_ptr<const ViewContextInterface>>>
-        widget_list;
-    for ( int i = 0; i < mainTabWidget_.count(); ++i ) {
-        auto view = qobject_cast<const CrawlerWidget*>( mainTabWidget_.widget( i ) );
-        widget_list.emplace_back( view, 0UL, view->context() );
-    }
-    session_.save( widget_list, saveGeometry() );
+    workspace_.saveDocuments( saveGeometry() );
 }
 
 // Read settings from permanent storage
