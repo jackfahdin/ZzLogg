@@ -1,5 +1,7 @@
 add_library(
   klogg_ui STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/searchpanel.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/searchpanel.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/documentworkspace.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/documentworkspace.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/abstractlogview.h
