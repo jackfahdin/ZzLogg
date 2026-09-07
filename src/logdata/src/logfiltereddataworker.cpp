@@ -127,7 +127,8 @@ PartialSearchResults filterLines( const PatternMatcher& matcher, const LogData::
 SearchResults SearchData::takeCurrentResults() const
 {
     UniqueLock lock( dataMutex_ );
-    return SearchResults{ std::exchange( newMatches_, {} ), maxLength_, nbLinesProcessed_ };
+    return SearchResults{ std::exchange( newMatches_, {} ),
+                          std::exchange( removedMatches_, {} ), maxLength_, nbLinesProcessed_ };
 }
 
 void SearchData::addAll( LineLength length, const SearchResultArray& matches,
@@ -162,6 +163,7 @@ void SearchData::deleteMatch( LineNumber line )
     UniqueLock lock( dataMutex_ );
     if ( matches_.removeChecked( line.get() ) ) {
         --nbMatches_;
+        removedMatches_.add( line.get() );
     }
     newMatches_.remove( line.get() );
 }
@@ -175,6 +177,7 @@ void SearchData::clear()
     nbMatches_ = LinesCount( 0 );
     matches_ = {};
     newMatches_ = {};
+    removedMatches_ = {};
 }
 
 LogFilteredDataWorker::LogFilteredDataWorker( const LogData& sourceLogData )

@@ -87,6 +87,7 @@ using SearchResultArray = roaring::Roaring64Map;
 
 struct SearchResults {
     SearchResultArray newMatches;
+    SearchResultArray removedMatches;
     LineLength maxLength;
     LinesCount processedLines;
 };
@@ -121,6 +122,7 @@ private:
 
     SearchResultArray matches_;
     mutable SearchResultArray newMatches_;
+    mutable SearchResultArray removedMatches_;
     LineLength maxLength_{ 0 };
     LinesCount nbLinesProcessed_{ 0 };
     LinesCount nbMatches_{ 0 };

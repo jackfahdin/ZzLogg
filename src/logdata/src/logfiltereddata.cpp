@@ -402,6 +402,10 @@ void LogFilteredData::handleSearchProgressed( LinesCount nbMatches, int progress
 
     const auto searchResults = workerThread_.getSearchResults();
 
+    // Remove invalidated tail matches before adding their rescanned replacements.
+    // A user mark remains visible even when the same line no longer matches.
+    matching_lines_ -= searchResults.removedMatches;
+    marks_and_matches_ -= searchResults.removedMatches - marks_;
     matching_lines_ |= searchResults.newMatches;
     marks_and_matches_ |= searchResults.newMatches;
 

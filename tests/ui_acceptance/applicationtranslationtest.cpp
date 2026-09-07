@@ -137,6 +137,68 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void removesTailResultAfterAppend_data()
+    {
+        QTest::addColumn<bool>("markedTail");
+        QTest::newRow("unmarked-tail") << false;
+        QTest::newRow("marked-tail") << true;
+    }
+
+    void removesTailResultAfterAppend()
+    {
+        QFETCH(bool, markedTail);
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        QTemporaryDir logs;
+        QVERIFY(logs.isValid());
+        QFile file(logs.filePath("tail.log"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write("ERROR\nERROR"), qint64(11));
+        file.close();
+        auto session = std::make_shared<Session>();
+        MainWindow window(WindowSession(session, "tail-removal", 0), UiThemeContext{testTheme()});
+        window.show();
+        window.loadFileNonInteractive(file.fileName());
+        auto* tabs = window.findChild<TabbedCrawlerWidget*>("documentTabs");
+        QVERIFY(tabs);
+        QTRY_COMPARE(tabs->count(), 1);
+        auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
+        QVERIFY(crawler);
+        QTRY_VERIFY(TranslationCrawlerAccess::loadingFinished(*crawler));
+        auto* panel = crawler->findChild<SearchPanel*>("searchPanel");
+        QVERIFY(panel);
+        panel->searchRefreshButton()->setChecked(true);
+        panel->matchCaseButton()->setChecked(true);
+        panel->useRegexpButton()->setChecked(false);
+        panel->booleanButton()->setChecked(false);
+        panel->inverseButton()->setChecked(true);
+        panel->searchLineEdit()->setEditText("extra");
+        panel->searchButton()->click();
+        QTRY_COMPARE(panel->searchInfoLine()->text(), QString("2 matches found"));
+        auto* filtered = TranslationCrawlerAccess::searchObject(*crawler);
+        QCOMPARE(filtered->getNbLine().get(), 2);
+        if (markedTail)
+            filtered->addMark(1_lnum);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Append));
+        QCOMPARE(file.write(" extra"), qint64(6));
+        file.close();
+        QTRY_COMPARE_WITH_TIMEOUT(panel->searchInfoLine()->text(), QString("1 match found"), 10000);
+        QCOMPARE(filtered->getNbMatches().get(), 1);
+        filtered->setVisibility(LogFilteredData::VisibilityFlags::Matches);
+        QCOMPARE(filtered->getNbLine().get(), 1);
+        QCOMPARE(filtered->getLineString(0_lnum), QString("ERROR"));
+        filtered->setVisibility(LogFilteredData::VisibilityFlags::Matches
+                                | LogFilteredData::VisibilityFlags::Marks);
+        QCOMPARE(filtered->getNbLine().get(), markedTail ? 2 : 1);
+        QCOMPARE(filtered->getNbMarks().get(), markedTail ? 1 : 0);
+        // A later matching line must be added normally after the stale tail is removed.
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Append));
+        QCOMPARE(file.write("\nERROR\n"), qint64(7));
+        file.close();
+        QTRY_COMPARE_WITH_TIMEOUT(panel->searchInfoLine()->text(), QString("2 matches found"), 10000);
+        QCOMPARE(filtered->getNbMatches().get(), 2);
+        QCOMPARE(filtered->getNbLine().get(), markedTail ? 3 : 2);
+    }
+
     void removingSearchMatchKeepsCountConsistent_data()
     {
         QTest::addColumn<bool>("drainResults");
@@ -156,7 +218,10 @@ class ApplicationTranslationTest final : public QObject {
             data.takeCurrentResults();
         data.deleteMatch(2_lnum);
         QCOMPARE(data.getNbMatches().get(), 1);
-        QVERIFY(!data.takeCurrentResults().newMatches.contains(uint64_t{2}));
+        const auto removed = data.takeCurrentResults();
+        QVERIFY(!removed.newMatches.contains(uint64_t{2}));
+        QVERIFY(removed.removedMatches.contains(uint64_t{2}));
+        QVERIFY(data.takeCurrentResults().removedMatches.isEmpty());
         data.deleteMatch(2_lnum);
         data.deleteMatch(1_lnum);
         QCOMPARE(data.getNbMatches().get(), 1);
@@ -165,13 +230,17 @@ class ApplicationTranslationTest final : public QObject {
             tail.add(uint64_t{2});
             data.addAll(LineLength{10}, tail, 1_lcount, 3_lcount);
             QCOMPARE(data.getNbMatches().get(), 2);
-            data.takeCurrentResults();
+            const auto rescanned = data.takeCurrentResults();
+            QVERIFY(rescanned.newMatches.contains(uint64_t{2}));
+            if (i > 0)
+                QVERIFY(rescanned.removedMatches.contains(uint64_t{2}));
             data.deleteMatch(2_lnum);
             QCOMPARE(data.getNbMatches().get(), 1);
         }
         data.clear();
         data.deleteMatch(0_lnum);
         QCOMPARE(data.getNbMatches().get(), 0);
+        QVERIFY(data.takeCurrentResults().removedMatches.isEmpty());
     }
 
     void destroyingQuickFindCancelsQueuedNotification()
