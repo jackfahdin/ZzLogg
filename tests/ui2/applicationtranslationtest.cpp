@@ -10,6 +10,7 @@
 #include "predefinedfilterscombobox.h"
 #include "qfnotifications.h"
 #include "quickfindwidget.h"
+#include "quickfind.h"
 #include "recentfiles.h"
 #include "savedsearches.h"
 #include "searchpanel.h"
@@ -136,6 +137,24 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void destroyingQuickFindCancelsQueuedNotification()
+    {
+        LogData data;
+        auto* finder = new QuickFind(data);
+        QSignalSpy delivered(finder, &QuickFind::notify);
+        const QFNotification notification = QFNotificationInterrupted{};
+        QVERIFY(QMetaObject::invokeMethod(finder, "sendNotification", Qt::DirectConnection,
+                                         Q_ARG(QFNotification, notification)));
+        // Pending notifications must belong to the finder, so its destruction cancels them.
+        QCoreApplication::sendPostedEvents(finder, QEvent::MetaCall);
+        QCOMPARE(delivered.count(), 1);
+        QVERIFY(QMetaObject::invokeMethod(finder, "sendNotification", Qt::DirectConnection,
+                                         Q_ARG(QFNotification, notification)));
+        delete finder;
+        QCoreApplication::processEvents();
+        QCOMPARE(delivered.count(), 1);
+    }
+
     void scratchpadLanguagePreservesTextAndUndo()
     {
         QCOMPARE(MainWindow::installLanguage("en"), 0);

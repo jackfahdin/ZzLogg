@@ -459,5 +459,5 @@ void QuickFind::resetLimits()
 
 void QuickFind::sendNotification( QFNotification notification )
 {
-    dispatchToMainThread( [ this, notification ]() { notify( notification ); } );
+    dispatchToObject( [ this, notification ]() { notify( notification ); }, this );
 }
