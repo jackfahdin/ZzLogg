@@ -97,6 +97,14 @@
 
 [CrawlerWidget](../src/ui/include/crawlerwidget.h) 协调一份日志的读取、搜索状态和视图。
 
+阶段三将页面构造分为三层，阅读时建议按这个顺序：
+
+1. [LogPage](../src/ui/src/logpage.cpp)：垂直分割、主视图与底部搜索/结果区域的布局，不负责数据读取。
+2. [SearchPanel](../src/ui/src/searchpanel.cpp)：搜索输入、选项、历史菜单、信息行和图标；只发出用户操作信号，不执行过滤任务。翻译保留原 `CrawlerWidget` 上下文。
+3. [CrawlerWidget::setup](../src/ui/src/crawlerwidget.cpp)：组合页面并连接面板意图；搜索状态机、结果数据映射、自动刷新、快速查找与快捷键仍在此处。
+
+调整控件排列或文案优先看前两层；调整搜索规则则继续追踪 CrawlerWidget 到 LogFilteredData，避免在 SearchPanel 中加入数据任务。
+
 | 文件 | 学习重点 |
 | --- | --- |
 | [abstractlogview.cpp](../src/ui/src/abstractlogview.cpp) | 自绘文本、选择、滚动、调色板与缓存刷新 |
