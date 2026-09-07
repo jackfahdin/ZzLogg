@@ -52,6 +52,7 @@
 #include <QTranslator>
 #include <QTabWidget>
 #include <QtTest>
+#include <QValidator>
 
 namespace {
 
@@ -130,6 +131,39 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void optionsOwnValidatorAndPreserveApplyCancel()
+    {
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        const bool wrap = Configuration::get().useTextWrap();
+        const bool logical = Configuration::get().isSearchLogicalCombiningDefault();
+        QPointer<const QValidator> validator;
+        {
+            OptionsDialog dialog;
+            validator = dialog.pollIntervalLineEdit->validator();
+            QVERIFY(validator);
+            dialog.wrapTextCheckBox->setChecked(!wrap);
+            dialog.logicalCombiningCheckBox->setChecked(!logical);
+            dialog.reject();
+        }
+        QVERIFY(validator.isNull());
+        QCOMPARE(Configuration::get().useTextWrap(), wrap);
+        QCOMPARE(Configuration::get().isSearchLogicalCombiningDefault(), logical);
+        {
+            OptionsDialog dialog;
+            QCOMPARE(dialog.wrapTextCheckBox->isChecked(), wrap);
+            dialog.wrapTextCheckBox->setChecked(!wrap);
+            dialog.logicalCombiningCheckBox->setChecked(!logical);
+            dialog.buttonBox->button(QDialogButtonBox::Apply)->click();
+        }
+        {
+            OptionsDialog dialog;
+            QCOMPARE(dialog.wrapTextCheckBox->isChecked(), !wrap);
+            QCOMPARE(dialog.logicalCombiningCheckBox->isChecked(), !logical);
+            dialog.wrapTextCheckBox->setChecked(wrap);
+            dialog.logicalCombiningCheckBox->setChecked(logical);
+            dialog.buttonBox->button(QDialogButtonBox::Apply)->click();
+        }
+    }
     void choosesSupportedPreBootstrapLanguage_data();
     void choosesSupportedPreBootstrapLanguage();
     void translatesBootstrapUi_data();
