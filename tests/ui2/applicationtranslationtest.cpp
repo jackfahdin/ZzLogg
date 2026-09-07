@@ -29,6 +29,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFile>
+#include <QElapsedTimer>
 #include <QFileSystemWatcher>
 #include <QLabel>
 #include <QLineEdit>
@@ -145,6 +146,7 @@ class ApplicationTranslationTest final : public QObject {
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
     void rendersLayoutsAcrossThemesAndLanguages();
+    void opensAndSearchesLargeLog();
     void destroyingWindowCancelsPendingVisualRefresh();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
@@ -1175,6 +1177,48 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
             }
         }
     }
+}
+
+void ApplicationTranslationTest::opensAndSearchesLargeLog()
+{
+    QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
+    QTemporaryDir logs;
+    QVERIFY(logs.isValid());
+    const QString path = logs.filePath("large.log");
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    const QByteArray block = QByteArray("2026-09-07 ERROR connection refused request=1234567890 service=sample\n")
+        + QByteArray("2026-09-07 INFO normal response request=1234567890 service=sample\n").repeated(1023);
+    for (int i = 0; i < 2048; ++i)
+        QCOMPARE(file.write(block), qint64(block.size()));
+    const qint64 bytes = file.size();
+    file.close();
+    auto session = std::make_shared<Session>();
+    MainWindow window(WindowSession(session, "large-log", 0), UiThemeContext{testTheme()});
+    window.show();
+    QElapsedTimer timer;
+    timer.start();
+    window.loadFileNonInteractive(path);
+    auto* tabs = window.findChild<TabbedCrawlerWidget*>("documentTabs");
+    QVERIFY(tabs);
+    QTRY_COMPARE_WITH_TIMEOUT(tabs->count(), 1, 60000);
+    auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
+    QVERIFY(crawler);
+    QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*crawler), 60000);
+    const auto openMs = timer.elapsed();
+    auto* edit = crawler->findChild<QComboBox*>("mainSearchEdit");
+    auto* button = crawler->findChild<QToolButton*>("mainSearchButton");
+    auto* info = crawler->findChild<InfoLine*>();
+    QVERIFY(edit);
+    QVERIFY(button);
+    QVERIFY(info);
+    edit->setCurrentText("ERROR");
+    timer.restart();
+    button->click();
+    QTRY_COMPARE_WITH_TIMEOUT(info->text(), QStringLiteral("2048 matches found"), 60000);
+    qInfo("Large log: bytes=%lld, lines=2097152, open_ms=%lld, search_ms=%lld",
+          static_cast<long long>(bytes), static_cast<long long>(openMs),
+          static_cast<long long>(timer.elapsed()));
 }
 
 int main( int argc, char* argv[] )
