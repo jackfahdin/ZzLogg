@@ -37,6 +37,7 @@
  */
 
 #include "predefinedfiltersdialog.h"
+#include <QEvent>
 
 #include <QDialogButtonBox>
 #include <QFileDialog>
@@ -53,7 +54,7 @@
 #include "predefinedfilters.h"
 
 class CenteredCheckbox : public QWidget {
-  public:
+public:
     explicit CenteredCheckbox( QWidget* parent = nullptr )
         : QWidget( parent )
     {
@@ -62,10 +63,6 @@ class CenteredCheckbox : public QWidget {
         checkbox_ = new QCheckBox;
         layout->addWidget( checkbox_ );
         this->setLayout( layout );
-
-        QPalette palette = this->palette();
-        palette.setColor( QPalette::Base, palette.color( QPalette::Window ) );
-        checkbox_->setPalette( palette );
     }
 
     bool isChecked() const
@@ -78,7 +75,7 @@ class CenteredCheckbox : public QWidget {
         checkbox_->setChecked( isChecked );
     }
 
-  private:
+private:
     QCheckBox* checkbox_;
 };
 
@@ -105,14 +102,7 @@ PredefinedFiltersDialog::PredefinedFiltersDialog( QWidget* parent )
     connect( filtersTableWidget, &QTableWidget::currentCellChanged, this,
              &PredefinedFiltersDialog::onCurrentCellChanged );
 
-    dispatchToMainThread( [ this ] {
-        IconLoader iconLoader( this );
-
-        addFilterButton->setIcon( iconLoader.load( "icons8-plus-16" ) );
-        removeFilterButton->setIcon( iconLoader.load( "icons8-minus-16" ) );
-        upButton->setIcon( iconLoader.load( "icons8-up-16" ) );
-        downButton->setIcon( iconLoader.load( "icons8-down-arrow-16" ) );
-    } );
+    dispatchToObject( [ this ] { loadIcons(); }, this );
 }
 
 PredefinedFiltersDialog::PredefinedFiltersDialog( const QString& newFilter, QWidget* parent )
@@ -169,7 +159,8 @@ void PredefinedFiltersDialog::populateFiltersTable(
         filterIndex++;
     }
 
-    filtersTableWidget->horizontalHeader()->setSectionResizeMode( 0, QHeaderView::ResizeToContents );
+    filtersTableWidget->horizontalHeader()->setSectionResizeMode( 0,
+                                                                  QHeaderView::ResizeToContents );
     filtersTableWidget->horizontalHeader()->setSectionResizeMode( 1, QHeaderView::Stretch );
     filtersTableWidget->verticalHeader()->setSectionResizeMode( QHeaderView::ResizeToContents );
     filtersTableWidget->setWordWrap( false );
@@ -259,29 +250,31 @@ void PredefinedFiltersDialog::moveFilterDown()
 
 void PredefinedFiltersDialog::swapFilters( int currentRow, int newRow, int selectedColumn )
 {
-    dispatchToMainThread( [ this, currentRow, newRow, selectedColumn ] {
-        for ( int column = 0; column < filtersTableWidget->columnCount(); ++column ) {
-            auto currentUseRegex = static_cast<CenteredCheckbox*>(
-                filtersTableWidget->cellWidget( currentRow, column ) );
-            auto newUseRegex = static_cast<CenteredCheckbox*>(
-                filtersTableWidget->cellWidget( newRow, column ) );
+    dispatchToObject(
+        [ this, currentRow, newRow, selectedColumn ] {
+            for ( int column = 0; column < filtersTableWidget->columnCount(); ++column ) {
+                auto currentUseRegex = static_cast<CenteredCheckbox*>(
+                    filtersTableWidget->cellWidget( currentRow, column ) );
+                auto newUseRegex = static_cast<CenteredCheckbox*>(
+                    filtersTableWidget->cellWidget( newRow, column ) );
 
-            if ( currentUseRegex && newUseRegex ) {
-                const auto currentCheckState = currentUseRegex->isChecked();
-                const auto newCheckState = newUseRegex->isChecked();
-                currentUseRegex->setChecked( newCheckState );
-                newUseRegex->setChecked( currentCheckState );
-            }
-            else {
-                auto currentItem = filtersTableWidget->takeItem( currentRow, column );
-                auto newItem = filtersTableWidget->takeItem( newRow, column );
+                if ( currentUseRegex && newUseRegex ) {
+                    const auto currentCheckState = currentUseRegex->isChecked();
+                    const auto newCheckState = newUseRegex->isChecked();
+                    currentUseRegex->setChecked( newCheckState );
+                    newUseRegex->setChecked( currentCheckState );
+                }
+                else {
+                    auto currentItem = filtersTableWidget->takeItem( currentRow, column );
+                    auto newItem = filtersTableWidget->takeItem( newRow, column );
 
-                filtersTableWidget->setItem( newRow, column, currentItem );
-                filtersTableWidget->setItem( currentRow, column, newItem );
+                    filtersTableWidget->setItem( newRow, column, currentItem );
+                    filtersTableWidget->setItem( currentRow, column, newItem );
+                }
             }
-        }
-        filtersTableWidget->setCurrentCell( newRow, selectedColumn );
-    } );
+            filtersTableWidget->setCurrentCell( newRow, selectedColumn );
+        },
+        this );
 }
 
 void PredefinedFiltersDialog::importFilters()
@@ -347,4 +340,27 @@ void PredefinedFiltersDialog::resolveStandardButton( QAbstractButton* button )
     }
 
     Q_EMIT optionsChanged();
+}
+void PredefinedFiltersDialog::loadIcons()
+{
+    IconLoader iconLoader( this );
+
+    addFilterButton->setIcon( iconLoader.load( "icons8-plus-16" ) );
+    removeFilterButton->setIcon( iconLoader.load( "icons8-minus-16" ) );
+    upButton->setIcon( iconLoader.load( "icons8-up-16" ) );
+    downButton->setIcon( iconLoader.load( "icons8-down-arrow-16" ) );
+}
+
+void PredefinedFiltersDialog::changeEvent( QEvent* event )
+{
+    QDialog::changeEvent( event );
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi( this );
+        filtersTableWidget->setHorizontalHeaderLabels(
+            { tr( "Name" ), tr( "Pattern" ), tr( "Regex" ) } );
+    }
+    if ( event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange
+         || event->type() == QEvent::StyleChange ) {
+        dispatchToObject( [ this ] { loadIcons(); }, this );
+    }
 }

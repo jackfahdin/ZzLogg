@@ -5,6 +5,8 @@
 #include "infoline.h"
 #include "mainwindow.h"
 #include "optionsdialog.h"
+#include "highlightersdialog.h"
+#include "predefinedfiltersdialog.h"
 #include "predefinedfilterscombobox.h"
 #include "qfnotifications.h"
 #include "quickfindwidget.h"
@@ -131,6 +133,83 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void destroyingAuxiliaryDialogsCancelsQueuedWork()
+    {
+        auto* filters = new PredefinedFiltersDialog;
+        auto* highlighters = new HighlightersDialog;
+        delete filters;
+        delete highlighters;
+        QCoreApplication::processEvents();
+    }
+
+    void filterDraftsApplyButCancelDoesNotSave()
+    {
+        auto& collection = PredefinedFiltersCollection::getSynced();
+        const auto original = collection.getFilters();
+        auto restore = qScopeGuard([&] { collection.saveToStorage(original); });
+        collection.saveToStorage({{"original", "ERROR", false}});
+        {
+            PredefinedFiltersDialog dialog;
+            dialog.filtersTableWidget->item(0, 1)->setText("cancelled");
+            dialog.reject();
+        }
+        QCOMPARE(PredefinedFiltersCollection::getSynced().getFilters().at(0).pattern, QString("ERROR"));
+        {
+            PredefinedFiltersDialog dialog;
+            dialog.filtersTableWidget->item(0, 1)->setText("applied");
+            dialog.buttonBox->button(QDialogButtonBox::Apply)->click();
+        }
+        QCOMPARE(PredefinedFiltersCollection::getSynced().getFilters().at(0).pattern, QString("applied"));
+    }
+    void auxiliaryDialogsRetranslateWithoutLosingDrafts()
+    {
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        PredefinedFiltersDialog filters;
+        HighlightersDialog highlighters;
+        filters.filtersTableWidget->setRowCount(1);
+        filters.filtersTableWidget->setItem(0, 0, new QTableWidgetItem("draft name"));
+        filters.filtersTableWidget->setItem(0, 1, new QTableWidgetItem("draft pattern"));
+        const auto filterTitle = filters.windowTitle();
+        const auto highlighterTitle = highlighters.windowTitle();
+        auto* editor = highlighters.findChild<HighlighterEdit*>();
+        QVERIFY(editor);
+        editor->setHighlighter(Highlighter{"draft", false, false, QColor("#123456"), QColor("#abcdef")});
+        const auto regexpLabel = editor->patternTypeComboBox->itemText(0);
+        QSignalSpy changes(editor, &HighlighterEdit::changed);
+        QCOMPARE(MainWindow::installLanguage("zh_CN"), 0);
+        QTRY_VERIFY(filters.windowTitle() != filterTitle);
+        QTRY_VERIFY(highlighters.windowTitle() != highlighterTitle);
+        QTRY_VERIFY(editor->patternTypeComboBox->itemText(0) != regexpLabel);
+        QCOMPARE(filters.filtersTableWidget->item(0, 1)->text(), QString("draft pattern"));
+        QCOMPARE(editor->highlighter().pattern(), QString("draft"));
+        QCOMPARE(editor->highlighter().foreColor(), QColor("#123456"));
+        QCOMPARE(changes.count(), 0);
+        filters.reject();
+        highlighters.reject();
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+    }
+
+    void auxiliaryIconsFollowPalette()
+    {
+        PredefinedFiltersDialog filters;
+        HighlightersDialog highlighters;
+        auto* setEditor = highlighters.findChild<HighlighterSetEdit*>();
+        QVERIFY(setEditor);
+        QPalette light;
+        light.setColor(QPalette::Window, Qt::white);
+        filters.setPalette(light);
+        highlighters.setPalette(light);
+        QCoreApplication::processEvents();
+        const auto before = filters.addFilterButton->icon().pixmap(16, 16).toImage();
+        const auto beforeSet = setEditor->addHighlighterButton->icon().pixmap(16, 16).toImage();
+        QVERIFY(!before.isNull());
+        QPalette dark;
+        dark.setColor(QPalette::Window, Qt::black);
+        filters.setPalette(dark);
+        highlighters.setPalette(dark);
+        QTRY_VERIFY(filters.addFilterButton->icon().pixmap(16, 16).toImage() != before);
+        QTRY_VERIFY(setEditor->addHighlighterButton->icon().pixmap(16, 16).toImage() != beforeSet);
+    }
     void optionsOwnValidatorAndPreserveApplyCancel()
     {
         QCOMPARE(MainWindow::installLanguage("en"), 0);
@@ -143,6 +222,11 @@ class ApplicationTranslationTest final : public QObject {
             QVERIFY(validator);
             dialog.wrapTextCheckBox->setChecked(!wrap);
             dialog.logicalCombiningCheckBox->setChecked(!logical);
+            QCOMPARE(MainWindow::installLanguage("zh_CN"), 0);
+            QCoreApplication::processEvents();
+            QCOMPARE(dialog.wrapTextCheckBox->isChecked(), !wrap);
+            QCOMPARE(dialog.logicalCombiningCheckBox->isChecked(), !logical);
+            QCOMPARE(MainWindow::installLanguage("en"), 0);
             dialog.reject();
         }
         QVERIFY(validator.isNull());
@@ -155,6 +239,7 @@ class ApplicationTranslationTest final : public QObject {
             dialog.logicalCombiningCheckBox->setChecked(!logical);
             dialog.buttonBox->button(QDialogButtonBox::Apply)->click();
         }
+        Configuration::getSynced();
         {
             OptionsDialog dialog;
             QCOMPARE(dialog.wrapTextCheckBox->isChecked(), !wrap);

@@ -53,6 +53,11 @@ class PredefinedFiltersDialog : public QDialog, public Ui::PredefinedFiltersDial
     PredefinedFiltersDialog( QWidget* parent = nullptr );
     PredefinedFiltersDialog( const QString& newFilter, QWidget* parent = nullptr );
 
+  protected:
+    void changeEvent(QEvent* event) override;
+
+  private:
+    void loadIcons();
   private Q_SLOTS:
     void addFilter();
     void removeFilter();

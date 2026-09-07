@@ -41,6 +41,10 @@ class HighlighterEdit : public QWidget, public Ui::HighlighterEdit {
   Q_SIGNALS:
     void changed();
 
+  protected:
+    void changeEvent(QEvent* event) override;
+
+  private:
   private Q_SLOTS:
     void changeForeColor();
     void changeBackColor();

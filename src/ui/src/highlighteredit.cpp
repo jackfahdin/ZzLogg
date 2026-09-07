@@ -18,6 +18,7 @@
  */
 
 #include "highlighteredit.h"
+#include <QEvent>
 
 #include <QCheckBox>
 #include <QColorDialog>
@@ -57,7 +58,7 @@ void HighlighterEdit::reset()
 {
     patternEdit->clear();
     patternEdit->setEnabled( false );
-    patternTypeComboBox->setEnabled(false);
+    patternTypeComboBox->setEnabled( false );
 
     ignoreCaseCheckBox->setEnabled( false );
     onlyMatchCheckBox->setEnabled( false );
@@ -196,4 +197,13 @@ void HighlighterEdit::setPatternType( int index )
 {
     highlighter_.setUseRegex( index == 0 );
     Q_EMIT changed();
+}
+void HighlighterEdit::changeEvent( QEvent* event )
+{
+    QWidget::changeEvent( event );
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi( this );
+        patternTypeComboBox->setItemText( 0, tr( "Extended Regexp" ) );
+        patternTypeComboBox->setItemText( 1, tr( "Fixed Strings" ) );
+    }
 }

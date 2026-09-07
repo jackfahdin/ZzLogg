@@ -61,6 +61,11 @@ class HighlighterSetEdit : public QWidget, public Ui::HighlighterSetEdit {
   Q_SIGNALS:
     void changed();
 
+  protected:
+    void changeEvent(QEvent* event) override;
+
+  private:
+    void loadIcons();
   private Q_SLOTS:
     void setName( const QString& name );
 

@@ -57,6 +57,11 @@ class HighlightersDialog : public QDialog, public Ui::HighlightersDialog {
     // Is emitted when new settings must be used
     void optionsChanged();
 
+  protected:
+    void changeEvent(QEvent* event) override;
+
+  private:
+    void loadIcons();
   private Q_SLOTS:
     void addHighlighterSet();
     void removeHighlighterSet();

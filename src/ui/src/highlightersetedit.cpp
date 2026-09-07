@@ -37,6 +37,7 @@
  */
 
 #include <QColorDialog>
+#include <QEvent>
 #include <QTimer>
 
 #include <utility>
@@ -93,14 +94,7 @@ HighlighterSetEdit::HighlighterSetEdit( QWidget* parent )
     connect( highlighterEdit_, &HighlighterEdit::changed, this,
              &HighlighterSetEdit::updateHighlighterProperties );
 
-    dispatchToMainThread( [ this ] {
-        IconLoader iconLoader( this );
-
-        addHighlighterButton->setIcon( iconLoader.load( "icons8-plus-16" ) );
-        removeHighlighterButton->setIcon( iconLoader.load( "icons8-minus-16" ) );
-        upHighlighterButton->setIcon( iconLoader.load( "icons8-up-16" ) );
-        downHighlighterButton->setIcon( iconLoader.load( "icons8-down-arrow-16" ) );
-    } );
+    dispatchToObject( [ this ] { loadIcons(); }, this );
 
     reset();
 }
@@ -113,7 +107,7 @@ void HighlighterSetEdit::reset()
     downHighlighterButton->setEnabled( false );
 
     nameEdit->clear();
-    nameEdit->setEnabled(false);
+    nameEdit->setEnabled( false );
     highlighterListWidget->clear();
 
     highlighterEdit_->reset();
@@ -133,9 +127,9 @@ void HighlighterSetEdit::setHighlighters( HighlighterSet set )
         setCurrentRow( 0 );
     }
 
-    nameEdit->setEnabled(true);
+    nameEdit->setEnabled( true );
     nameEdit->setText( highlighterSet_.name() );
-    addHighlighterButton->setEnabled(true);
+    addHighlighterButton->setEnabled( true );
 }
 
 void HighlighterSetEdit::setName( const QString& name )
@@ -169,19 +163,21 @@ void HighlighterSetEdit::removeHighlighter()
         setCurrentRow( -1 );
         highlighterSet_.highlighterList_.removeAt( index );
 
-        dispatchToMainThread( [ this, index ] {
-            delete highlighterListWidget->takeItem( index );
+        dispatchToObject(
+            [ this, index ] {
+                delete highlighterListWidget->takeItem( index );
 
-            int count = highlighterListWidget->count();
-            if ( index < count ) {
-                // Select the new item at the same index
-                setCurrentRow( index );
-            }
-            else {
-                // or the previous index if it is at the end
-                setCurrentRow( count - 1 );
-            }
-        } );
+                int count = highlighterListWidget->count();
+                if ( index < count ) {
+                    // Select the new item at the same index
+                    setCurrentRow( index );
+                }
+                else {
+                    // or the previous index if it is at the end
+                    setCurrentRow( count - 1 );
+                }
+            },
+            this );
 
         Q_EMIT changed();
     }
@@ -195,12 +191,14 @@ void HighlighterSetEdit::moveHighlighterUp()
     if ( index > 0 ) {
         highlighterSet_.highlighterList_.move( index, index - 1 );
 
-        dispatchToMainThread( [ this, index ] {
-            QListWidgetItem* item = highlighterListWidget->takeItem( index );
-            highlighterListWidget->insertItem( index - 1, item );
+        dispatchToObject(
+            [ this, index ] {
+                QListWidgetItem* item = highlighterListWidget->takeItem( index );
+                highlighterListWidget->insertItem( index - 1, item );
 
-            setCurrentRow( index - 1 );
-        } );
+                setCurrentRow( index - 1 );
+            },
+            this );
 
         Q_EMIT changed();
     }
@@ -214,12 +212,14 @@ void HighlighterSetEdit::moveHighlighterDown()
     if ( ( index >= 0 ) && ( index < ( highlighterListWidget->count() - 1 ) ) ) {
         highlighterSet_.highlighterList_.move( index, index + 1 );
 
-        dispatchToMainThread( [ this, index ] {
-            QListWidgetItem* item = highlighterListWidget->takeItem( index );
-            highlighterListWidget->insertItem( index + 1, item );
+        dispatchToObject(
+            [ this, index ] {
+                QListWidgetItem* item = highlighterListWidget->takeItem( index );
+                highlighterListWidget->insertItem( index + 1, item );
 
-            setCurrentRow( index + 1 );
-        } );
+                setCurrentRow( index + 1 );
+            },
+            this );
 
         Q_EMIT changed();
     }
@@ -228,7 +228,7 @@ void HighlighterSetEdit::moveHighlighterDown()
 void HighlighterSetEdit::setCurrentRow( int row )
 {
     // ugly hack for mac
-    dispatchToMainThread( [ this, row ]() { highlighterListWidget->setCurrentRow( row ); } );
+    dispatchToObject( [ this, row ]() { highlighterListWidget->setCurrentRow( row ); }, this );
 }
 
 void HighlighterSetEdit::updatePropertyFields()
@@ -251,7 +251,7 @@ void HighlighterSetEdit::updatePropertyFields()
     }
     else {
         highlighterEdit_->reset();
-        
+
         removeHighlighterButton->setEnabled( false );
         upHighlighterButton->setEnabled( false );
         downHighlighterButton->setEnabled( false );
@@ -288,5 +288,26 @@ void HighlighterSetEdit::populateHighlighterList()
         new_item->setForeground( QBrush( highlighter.foreColor() ) );
         new_item->setBackground( QBrush( highlighter.backColor() ) );
         highlighterListWidget->addItem( new_item );
+    }
+}
+void HighlighterSetEdit::loadIcons()
+{
+    IconLoader iconLoader( this );
+
+    addHighlighterButton->setIcon( iconLoader.load( "icons8-plus-16" ) );
+    removeHighlighterButton->setIcon( iconLoader.load( "icons8-minus-16" ) );
+    upHighlighterButton->setIcon( iconLoader.load( "icons8-up-16" ) );
+    downHighlighterButton->setIcon( iconLoader.load( "icons8-down-arrow-16" ) );
+}
+
+void HighlighterSetEdit::changeEvent( QEvent* event )
+{
+    QWidget::changeEvent( event );
+    if ( event->type() == QEvent::LanguageChange ) {
+        retranslateUi( this );
+    }
+    if ( event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange
+         || event->type() == QEvent::StyleChange ) {
+        dispatchToObject( [ this ] { loadIcons(); }, this );
     }
 }
