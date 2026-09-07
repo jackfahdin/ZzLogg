@@ -60,7 +60,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install --yes gcc-13 g++-13
         cmake "-DCOMPILER_VERSION=$(gcc-13 -dumpfullversion)" \
-          -P tests/ui2/compilerversioncontracttest.cmake
+          -P tests/ui_acceptance/compilerversioncontracttest.cmake
 
     - uses: ./.github/actions/agent-setup
 

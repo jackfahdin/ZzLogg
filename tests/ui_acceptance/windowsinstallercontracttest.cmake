@@ -118,7 +118,7 @@ if(NOT EXISTS "${manifest_generator}")
 endif()
 
 set(manifest_test_root
-  "${BUILD_DIRECTORY}/tests/ui2/windows-installer-manifest-contract/${CONFIG}")
+  "${BUILD_DIRECTORY}/tests/ui_acceptance/windows-installer-manifest-contract/${CONFIG}")
 set(manifest_staging "${manifest_test_root}/release")
 file(REMOVE_RECURSE "${manifest_test_root}")
 file(MAKE_DIRECTORY "${manifest_staging}")

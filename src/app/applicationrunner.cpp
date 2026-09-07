@@ -73,7 +73,7 @@
 
 namespace {
 
-enum class Ui2SmokeStage {
+enum class UiSmokeStage {
     PrepareWindows,
     WaitForDocuments,
     VerifyFirstTitle,
@@ -82,10 +82,10 @@ enum class Ui2SmokeStage {
     WaitForTheme,
 };
 
-void reportUi2SmokeSetupFailure( const QString& error )
+void reportUiSmokeSetupFailure( const QString& error )
 {
     const QByteArray diagnostic
-        = QStringLiteral( "UI2 smoke setup failure: %1\n" ).arg( error ).toLocal8Bit();
+        = QStringLiteral( "UI smoke setup failure: %1\n" ).arg( error ).toLocal8Bit();
     std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
     std::fflush( stderr );
 }
@@ -105,7 +105,7 @@ void reportStorageBootstrapFailure( const QString& error, bool showDialog )
     }
 }
 
-struct Ui2SmokeState {
+struct UiSmokeState {
     KloggApp* app = nullptr;
     QPointer<QTimer> timer;
     QPointer<MainWindow> firstWindow;
@@ -120,17 +120,17 @@ struct Ui2SmokeState {
     QString mode;
     QString waitingFor = QStringLiteral( "the first window" );
     int deadlineMs = 0;
-    Ui2SmokeStage stage = Ui2SmokeStage::PrepareWindows;
+    UiSmokeStage stage = UiSmokeStage::PrepareWindows;
 };
 
-void finishUi2Smoke( Ui2SmokeState& state, int exitCode, const QString& message = {} )
+void finishUiSmoke( UiSmokeState& state, int exitCode, const QString& message = {} )
 {
     if ( !message.isEmpty() ) {
         const QByteArray diagnostic
-            = QStringLiteral( "UI2 smoke failure: %1\n" ).arg( message ).toLocal8Bit();
+            = QStringLiteral( "UI smoke failure: %1\n" ).arg( message ).toLocal8Bit();
         std::fwrite( diagnostic.constData(), 1, static_cast<size_t>( diagnostic.size() ), stderr );
         std::fflush( stderr );
-        LOG_ERROR << "UI2 smoke failure: " << message;
+        LOG_ERROR << "UI smoke failure: " << message;
     }
     if ( state.timer ) {
         state.timer->stop();
@@ -166,18 +166,18 @@ bool hasExpectedDocumentTitle( const MainWindow& window, const QString& fileName
            && window.windowTitle().endsWith( QStringLiteral( " \u2014 ZzLogg" ) );
 }
 
-void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
+void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
 {
     if ( state->elapsed.elapsed() >= state->deadlineMs ) {
-        finishUi2Smoke( *state, EXIT_FAILURE,
+        finishUiSmoke( *state, EXIT_FAILURE,
                         QStringLiteral( "timed out waiting for %1" ).arg( state->waitingFor ) );
         return;
     }
 
     switch ( state->stage ) {
-    case Ui2SmokeStage::PrepareWindows: {
+    case UiSmokeStage::PrepareWindows: {
         if ( !state->app->property( "zzlogg.fluentUi" ).toBool() ) {
-            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "Fluent UI runtime fell back" ) );
+            finishUiSmoke( *state, EXIT_FAILURE, QStringLiteral( "Fluent UI runtime fell back" ) );
             return;
         }
 
@@ -190,7 +190,7 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         QString error;
         state->firstTitleBar = validateFluentWindow( state->firstWindow, &error );
         if ( state->firstTitleBar == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "first window: %1" ).arg( error ) );
             return;
         }
@@ -202,19 +202,19 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             }
             for ( MainWindow* window : windows ) {
                 if ( validateFluentWindow( window, &error ) == nullptr ) {
-                    finishUi2Smoke( *state, EXIT_FAILURE,
+                    finishUiSmoke( *state, EXIT_FAILURE,
                                     QStringLiteral( "restored window: %1" ).arg( error ) );
                     return;
                 }
             }
-            finishUi2Smoke( *state, EXIT_SUCCESS );
+            finishUiSmoke( *state, EXIT_SUCCESS );
             return;
         }
 
         state->secondWindow = state->app->newWindow();
         state->secondTitleBar = validateFluentWindow( state->secondWindow, &error );
         if ( state->secondTitleBar == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "new window before first show: %1" ).arg( error ) );
             return;
         }
@@ -225,27 +225,27 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             if ( snapshot.size() < 2
                  || !QMetaObject::invokeMethod( state->firstWindow, "exitRequested",
                                                 Qt::DirectConnection ) ) {
-                finishUi2Smoke( *state, EXIT_FAILURE,
+                finishUiSmoke( *state, EXIT_FAILURE,
                                 QStringLiteral( "could not enter session-saving close path" ) );
                 return;
             }
-            finishUi2Smoke( *state, EXIT_SUCCESS );
+            finishUiSmoke( *state, EXIT_SUCCESS );
             return;
         }
 
         state->documentTabs
             = state->firstWindow->findChild<QTabWidget*>( QStringLiteral( "documentTabs" ) );
         if ( state->documentTabs == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "documentTabs is missing" ) );
+            finishUiSmoke( *state, EXIT_FAILURE, QStringLiteral( "documentTabs is missing" ) );
             return;
         }
         state->waitingFor = QStringLiteral( "two document tabs" );
-        state->stage = Ui2SmokeStage::WaitForDocuments;
+        state->stage = UiSmokeStage::WaitForDocuments;
         return;
     }
-    case Ui2SmokeStage::WaitForDocuments:
+    case UiSmokeStage::WaitForDocuments:
         if ( state->documentTabs == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "documentTabs disappeared while waiting for documents" ) );
             return;
@@ -255,36 +255,36 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         }
         state->documentTabs->setCurrentIndex( 0 );
         state->waitingFor = QStringLiteral( "the first document title" );
-        state->stage = Ui2SmokeStage::VerifyFirstTitle;
+        state->stage = UiSmokeStage::VerifyFirstTitle;
         return;
-    case Ui2SmokeStage::VerifyFirstTitle:
+    case UiSmokeStage::VerifyFirstTitle:
         if ( state->firstWindow == nullptr || state->documentTabs == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "window or documentTabs disappeared before first title" ) );
             return;
         }
-        if ( !hasExpectedDocumentTitle( *state->firstWindow, QStringLiteral( "ui2-first.log" ) ) ) {
+        if ( !hasExpectedDocumentTitle( *state->firstWindow, QStringLiteral( "ui-first.log" ) ) ) {
             return;
         }
         state->documentTabs->setCurrentIndex( 1 );
         state->waitingFor = QStringLiteral( "the second document title" );
-        state->stage = Ui2SmokeStage::VerifySecondTitle;
+        state->stage = UiSmokeStage::VerifySecondTitle;
         return;
-    case Ui2SmokeStage::VerifySecondTitle: {
+    case UiSmokeStage::VerifySecondTitle: {
         if ( state->firstWindow == nullptr || state->documentTabs == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "window or documentTabs disappeared before second title" ) );
             return;
         }
         if ( !hasExpectedDocumentTitle( *state->firstWindow,
-                                        QStringLiteral( "ui2-second.log" ) ) ) {
+                                        QStringLiteral( "ui-second.log" ) ) ) {
             return;
         }
         QWidget* const crawler = state->documentTabs->currentWidget();
         if ( crawler == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "current crawler is missing" ) );
+            finishUiSmoke( *state, EXIT_FAILURE, QStringLiteral( "current crawler is missing" ) );
             return;
         }
         state->searchEdit = crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
@@ -294,13 +294,13 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             = crawler->findChild<QTabWidget*>( QStringLiteral( "filteredResultsTabs" ) );
         if ( state->searchEdit == nullptr || state->searchButton == nullptr
              || state->filteredResultsTabs == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE, QStringLiteral( "search controls are missing" ) );
+            finishUiSmoke( *state, EXIT_FAILURE, QStringLiteral( "search controls are missing" ) );
             return;
         }
         state->searchEdit->setEditText( QStringLiteral( "ERROR" ) );
         state->searchButton->click();
         if ( state->searchButton->isVisible() ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "search did not enter the asynchronous state" ) );
             return;
         }
@@ -309,7 +309,7 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         }
         else if ( state->mode == QStringLiteral( "close-second-window-during-search" ) ) {
             if ( state->secondWindow == nullptr ) {
-                finishUi2Smoke(
+                finishUiSmoke(
                     *state, EXIT_FAILURE,
                     QStringLiteral( "second window disappeared before close regression" ) );
                 return;
@@ -318,36 +318,36 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
             state->secondWindow->close();
         }
         state->waitingFor = QStringLiteral( "the search to finish" );
-        state->stage = Ui2SmokeStage::WaitForSearch;
+        state->stage = UiSmokeStage::WaitForSearch;
         return;
     }
-    case Ui2SmokeStage::WaitForSearch: {
+    case UiSmokeStage::WaitForSearch: {
         if ( state->firstTitleBar == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "first title bar disappeared while waiting for search" ) );
             return;
         }
         if ( state->secondTitleBar == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "second title bar disappeared while waiting for search" ) );
             return;
         }
         if ( state->searchEdit == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "mainSearchEdit disappeared while waiting for search" ) );
             return;
         }
         if ( state->searchButton == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "mainSearchButton disappeared while waiting for search" ) );
             return;
         }
         if ( state->filteredResultsTabs == nullptr ) {
-            finishUi2Smoke(
+            finishUiSmoke(
                 *state, EXIT_FAILURE,
                 QStringLiteral( "filteredResultsTabs disappeared while waiting for search" ) );
             return;
@@ -357,14 +357,14 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         }
         if ( state->searchEdit->currentText() != QStringLiteral( "ERROR" )
              || state->filteredResultsTabs->count() < 1 ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "search result contract was not preserved" ) );
             return;
         }
         auto* const themeButton = state->firstTitleBar->findChild<QToolButton*>(
             QStringLiteral( "zzTitleBarThemeButton" ) );
         if ( themeButton == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "theme toggle button is missing" ) );
             return;
         }
@@ -372,18 +372,18 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
                  != static_cast<int>( UiThemeMode::Light )
              || state->secondTitleBar->property( "themeMode" ).toInt()
                     != static_cast<int>( UiThemeMode::Light ) ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "theme did not begin in Light mode" ) );
             return;
         }
         themeButton->click();
         state->waitingFor = QStringLiteral( "the Dark theme to synchronize" );
-        state->stage = Ui2SmokeStage::WaitForTheme;
+        state->stage = UiSmokeStage::WaitForTheme;
         return;
     }
-    case Ui2SmokeStage::WaitForTheme: {
+    case UiSmokeStage::WaitForTheme: {
         if ( state->firstTitleBar == nullptr || state->secondTitleBar == nullptr ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "title bar disappeared while waiting for theme" ) );
             return;
         }
@@ -398,34 +398,34 @@ void pollUi2Smoke( const std::shared_ptr<Ui2SmokeState>& state )
         if ( settings.status() != QSettings::NoError
              || settings.value( QStringLiteral( "view.themeMode" ) ).toString()
                     != QStringLiteral( "dark" ) ) {
-            finishUi2Smoke( *state, EXIT_FAILURE,
+            finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "theme toggle did not persist Dark mode" ) );
             return;
         }
-        finishUi2Smoke( *state, EXIT_SUCCESS );
+        finishUiSmoke( *state, EXIT_SUCCESS );
         return;
     }
     }
 }
 
-void startUi2SmokeProbe( KloggApp& app, int deadlineMs, QString mode )
+void startUiSmokeProbe( KloggApp& app, int deadlineMs, QString mode )
 {
     app.setQuitOnLastWindowClosed( false );
-    auto state = std::make_shared<Ui2SmokeState>();
+    auto state = std::make_shared<UiSmokeState>();
     state->app = &app;
     state->deadlineMs = deadlineMs;
     state->mode = std::move( mode );
     state->timer = new QTimer( &app );
     state->timer->setInterval( 50 );
     state->elapsed.start();
-    QObject::connect( state->timer, &QTimer::timeout, &app, [ state ] { pollUi2Smoke( state ); } );
+    QObject::connect( state->timer, &QTimer::timeout, &app, [ state ] { pollUiSmoke( state ); } );
     state->timer->start();
 }
 
-void startUi2ManualIsolationDeadline( KloggApp& app, int deadlineMs )
+void startUiManualIsolationDeadline( KloggApp& app, int deadlineMs )
 {
     QTimer::singleShot( deadlineMs, &app, [ &app ] {
-        reportUi2SmokeSetupFailure(
+        reportUiSmokeSetupFailure(
             QStringLiteral( "manual isolation deadline expired" ) );
         app.exit( EXIT_FAILURE );
     } );
@@ -494,10 +494,10 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     }
 
     const auto startupPlan = planApplicationSmokeStartup(
-        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MS" ),
-        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_MODE" ),
+        qEnvironmentVariable( "ZZLOGG_UI_SMOKE_MS" ),
+        qEnvironmentVariable( "ZZLOGG_UI_SMOKE_MODE" ),
         static_cast<bool>( options.createUiRuntime ) );
-    const ApplicationSmokeRequest& ui2Smoke = startupPlan.smokeRequest;
+    const ApplicationSmokeRequest& uiSmoke = startupPlan.smokeRequest;
 
     QString iconError;
     if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
@@ -512,9 +512,9 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
 
     const QString applicationDirectory = QCoreApplication::applicationDirPath();
     const auto smokeStoragePaths = resolveApplicationSmokeStoragePaths(
-        ui2Smoke.requested,
-        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR" ),
-        qEnvironmentVariable( "ZZLOGG_UI2_SMOKE_USER_DATA_DIR" ), [] {
+        uiSmoke.requested,
+        qEnvironmentVariable( "ZZLOGG_UI_SMOKE_APP_CONFIG_DIR" ),
+        qEnvironmentVariable( "ZZLOGG_UI_SMOKE_USER_DATA_DIR" ), [] {
             const QSettings legacySettings{
                 QSettings::IniFormat, QSettings::UserScope,
                 QString::fromLatin1( zzlogg::brand::SettingsOrganization ),
@@ -526,7 +526,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
                 QFileInfo{ legacySettings.fileName() }.absolutePath(), {}, false };
         } );
     const bool showStorageBootstrapFailureDialog
-        = shouldShowStorageBootstrapFailureDialog( ui2Smoke.requested, ui2Smoke.mode );
+        = shouldShowStorageBootstrapFailureDialog( uiSmoke.requested, uiSmoke.mode );
     const QString appConfigDirectory = smokeStoragePaths.appConfigDirectory;
     const QString userDataDirectory = smokeStoragePaths.userDataDirectory;
     const QString legacyUserSettingsDirectory
@@ -571,7 +571,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         }
     }
 
-    if ( ui2Smoke.requested && !isManualIsolationSmokeMode( ui2Smoke.mode ) ) {
+    if ( uiSmoke.requested && !isManualIsolationSmokeMode( uiSmoke.mode ) ) {
         auto& smokeConfiguration = Configuration::get();
         smokeConfiguration.setUiThemeMode( UiThemeMode::Light );
         smokeConfiguration.save();
@@ -655,12 +655,12 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
 
     app.startBackgroundTasks();
 
-    if ( ui2Smoke.requested ) {
-        if ( isManualIsolationSmokeMode( ui2Smoke.mode ) ) {
-            startUi2ManualIsolationDeadline( app, ui2Smoke.deadlineMs );
+    if ( uiSmoke.requested ) {
+        if ( isManualIsolationSmokeMode( uiSmoke.mode ) ) {
+            startUiManualIsolationDeadline( app, uiSmoke.deadlineMs );
         }
         else {
-            startUi2SmokeProbe( app, ui2Smoke.deadlineMs, ui2Smoke.mode );
+            startUiSmokeProbe( app, uiSmoke.deadlineMs, uiSmoke.mode );
         }
     }
 

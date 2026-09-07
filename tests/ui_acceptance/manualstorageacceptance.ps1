@@ -207,10 +207,10 @@ $environmentNames = @(
   'LOCALAPPDATA',
   'XDG_CONFIG_HOME',
   'XDG_DATA_HOME',
-  'ZZLOGG_UI2_SMOKE_MS',
-  'ZZLOGG_UI2_SMOKE_MODE',
-  'ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR',
-  'ZZLOGG_UI2_SMOKE_USER_DATA_DIR',
+  'ZZLOGG_UI_SMOKE_MS',
+  'ZZLOGG_UI_SMOKE_MODE',
+  'ZZLOGG_UI_SMOKE_APP_CONFIG_DIR',
+  'ZZLOGG_UI_SMOKE_USER_DATA_DIR',
   'QT_QPA_PLATFORM'
 )
 $savedEnvironment = @{}
@@ -237,10 +237,10 @@ try {
   Set-ProcessEnvironment -Name 'LOCALAPPDATA' -Value $isolatedLocalAppData
   Set-ProcessEnvironment -Name 'XDG_CONFIG_HOME' -Value $isolatedXdgConfig
   Set-ProcessEnvironment -Name 'XDG_DATA_HOME' -Value $isolatedXdgData
-  Set-ProcessEnvironment -Name 'ZZLOGG_UI2_SMOKE_MS' -Value '1800000'
-  Set-ProcessEnvironment -Name 'ZZLOGG_UI2_SMOKE_MODE' -Value 'manual-isolation'
-  Set-ProcessEnvironment -Name 'ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR' -Value $appConfigRoot
-  Set-ProcessEnvironment -Name 'ZZLOGG_UI2_SMOKE_USER_DATA_DIR' -Value $userDataRoot
+  Set-ProcessEnvironment -Name 'ZZLOGG_UI_SMOKE_MS' -Value '1800000'
+  Set-ProcessEnvironment -Name 'ZZLOGG_UI_SMOKE_MODE' -Value 'manual-isolation'
+  Set-ProcessEnvironment -Name 'ZZLOGG_UI_SMOKE_APP_CONFIG_DIR' -Value $appConfigRoot
+  Set-ProcessEnvironment -Name 'ZZLOGG_UI_SMOKE_USER_DATA_DIR' -Value $userDataRoot
   Set-ProcessEnvironment -Name 'QT_QPA_PLATFORM' -Value $null
 
   $process = Start-Process -FilePath $executable -ArgumentList '--multi' -WorkingDirectory (Split-Path -Parent $executable) -PassThru
@@ -248,10 +248,10 @@ try {
   Write-Output "Scenario=$Scenario"
   Write-Output "ContinueScenario=$ContinueScenario"
   Write-Output "Runtime=$executable"
-  Write-Output 'ZZLOGG_UI2_SMOKE_MS=1800000'
-  Write-Output 'ZZLOGG_UI2_SMOKE_MODE=manual-isolation'
-  Write-Output "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=$appConfigRoot"
-  Write-Output "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=$userDataRoot"
+  Write-Output 'ZZLOGG_UI_SMOKE_MS=1800000'
+  Write-Output 'ZZLOGG_UI_SMOKE_MODE=manual-isolation'
+  Write-Output "ZZLOGG_UI_SMOKE_APP_CONFIG_DIR=$appConfigRoot"
+  Write-Output "ZZLOGG_UI_SMOKE_USER_DATA_DIR=$userDataRoot"
   Write-Output "APPDATA=$isolatedAppData"
   Write-Output "LOCALAPPDATA=$isolatedLocalAppData"
   Write-Output "CustomRoot=$customRoot"

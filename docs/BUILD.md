@@ -198,13 +198,13 @@ including `klogg_smoke`. Its runtime folder is
 `out/ui-vs/runtime/Release/ZzLogg-runtime/`; run `ZzLogg.exe` from that folder,
 not the build output directory without dependencies. No ZIP is required.
 
-### Compatibility names
+### UI test entry points
 
-Application UI implementation is in `src/ui`, not `src/ui2`. The `tests/ui2`
-directory, `zzlogg_ui2.*` CTest names, old `*-ui2-*` preset aliases and smoke
-protocol names remain compatibility interfaces for existing scripts and CI.
-They do not enable a second GUI or a second UI framework. Use the `*-ui-*`
-presets for new commands; do not rename the legacy interfaces in isolation.
+Application UI implementation is in `src/ui`. UI acceptance tests are in
+`tests/ui_acceptance`, registered as `zzlogg_ui.*`; the existing core integration
+tests remain in `tests/ui`. Use `KLOGG_BUILD_UI_TESTS` and the `*-ui-*` presets.
+The former UI2 option and preset aliases have been removed; update local scripts
+to these current entry points. No second GUI or UI framework is enabled.
 
 ### Platform limits
 

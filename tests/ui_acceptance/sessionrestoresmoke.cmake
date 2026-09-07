@@ -39,7 +39,7 @@ zzlogg_run_isolated_smoke_process(
   OUTPUT_VARIABLE seed_stdout
   ERROR_VARIABLE seed_stderr
   TIMEOUT 15
-  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=seed-session"
+  ENVIRONMENT ${config_env} "ZZLOGG_UI_SMOKE_MODE=seed-session"
   COMMAND "${smoke_app}" --multi --new-session --data-dir "${data_root}")
 zzlogg_assert_output_isolated(
   "session seed smoke" "${TEST_CONFIG_DIR}" "${seed_stdout}" "${seed_stderr}")
@@ -47,12 +47,12 @@ zzlogg_assert_no_locator_or_probe(
   "${TEST_CONFIG_DIR}/runtime" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT seed_result EQUAL 0)
   message(FATAL_ERROR
-    "UI2 session seed failed: ${seed_result}\n${seed_stdout}\n${seed_stderr}")
+    "UI session seed failed: ${seed_result}\n${seed_stdout}\n${seed_stderr}")
 endif()
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
         session/ZzLogg_session.ini logs crashes)
   if(NOT EXISTS "${data_root}/${storage_entry}")
-    message(FATAL_ERROR "UI2 session smoke storage entry missing: ${data_root}/${storage_entry}")
+    message(FATAL_ERROR "UI session smoke storage entry missing: ${data_root}/${storage_entry}")
   endif()
 endforeach()
 
@@ -66,7 +66,7 @@ zzlogg_run_isolated_smoke_process(
   OUTPUT_VARIABLE restore_stdout
   ERROR_VARIABLE restore_stderr
   TIMEOUT 15
-  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=verify-restored"
+  ENVIRONMENT ${config_env} "ZZLOGG_UI_SMOKE_MODE=verify-restored"
   COMMAND "${smoke_app}" --multi --load-session --data-dir "${data_root}")
 zzlogg_assert_output_isolated(
   "session restore smoke" "${TEST_CONFIG_DIR}" "${restore_stdout}" "${restore_stderr}")
@@ -74,5 +74,5 @@ zzlogg_assert_no_locator_or_probe(
   "${TEST_CONFIG_DIR}/runtime" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT restore_result EQUAL 0)
   message(FATAL_ERROR
-    "UI2 session restore failed: ${restore_result}\n${restore_stdout}\n${restore_stderr}")
+    "UI session restore failed: ${restore_result}\n${restore_stdout}\n${restore_stderr}")
 endif()

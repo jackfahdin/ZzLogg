@@ -7,7 +7,7 @@ file(READ "${SOURCE_ROOT}/src/app/applicationrunner.cpp" runner_contents)
 file(READ "${SOURCE_ROOT}/src/app/applicationsmokepaths.cpp" smoke_paths_contents)
 file(READ "${SOURCE_ROOT}/src/ui/src/optionsdialog.cpp" options_contents)
 set(manual_script
-  "${SOURCE_ROOT}/tests/ui2/manualstorageacceptance.ps1")
+  "${SOURCE_ROOT}/tests/ui_acceptance/manualstorageacceptance.ps1")
 if(NOT EXISTS "${manual_script}")
   message(FATAL_ERROR "Task 10 manual acceptance launcher is missing")
 endif()
@@ -24,7 +24,7 @@ endif()
 foreach(required_startup_plan_fragment IN ITEMS
     "planApplicationSmokeStartup("
     "static_cast<bool>( options.createUiRuntime )"
-    "const ApplicationSmokeRequest& ui2Smoke = startupPlan.smokeRequest"
+    "const ApplicationSmokeRequest& uiSmoke = startupPlan.smokeRequest"
     "if ( startupPlan.createUiRuntime )")
   string(FIND "${runner_contents}" "${required_startup_plan_fragment}" required_index)
   if(required_index EQUAL -1)
@@ -63,9 +63,9 @@ if(isolated_legacy_path_index EQUAL -1)
 endif()
 
 foreach(required_manual_fragment IN ITEMS
-    "isManualIsolationSmokeMode( ui2Smoke.mode )"
-    "ui2Smoke.requested && !isManualIsolationSmokeMode( ui2Smoke.mode )"
-    "startUi2ManualIsolationDeadline( app, ui2Smoke.deadlineMs )")
+    "isManualIsolationSmokeMode( uiSmoke.mode )"
+    "uiSmoke.requested && !isManualIsolationSmokeMode( uiSmoke.mode )"
+    "startUiManualIsolationDeadline( app, uiSmoke.deadlineMs )")
   string(FIND "${runner_contents}" "${required_manual_fragment}" required_index)
   if(required_index EQUAL -1)
     message(FATAL_ERROR

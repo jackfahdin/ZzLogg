@@ -40,7 +40,7 @@ zzlogg_run_isolated_smoke_process(
   OUTPUT_VARIABLE lifetime_stdout
   ERROR_VARIABLE lifetime_stderr
   TIMEOUT 15
-  ENVIRONMENT ${config_env} "ZZLOGG_UI2_SMOKE_MODE=close-second-window-during-search"
+  ENVIRONMENT ${config_env} "ZZLOGG_UI_SMOKE_MODE=close-second-window-during-search"
   COMMAND "${smoke_app}" --multi --new-session --data-dir "${data_root}"
           "${FIRST_LOG}" "${SECOND_LOG}")
 zzlogg_assert_output_isolated(
@@ -48,17 +48,17 @@ zzlogg_assert_output_isolated(
 zzlogg_assert_no_locator_or_probe(
   "${TEST_ROOT}/runtime" "${TEST_ROOT}/config" "${data_root}")
 if(lifetime_result EQUAL 0)
-  message(FATAL_ERROR "UI2 smoke accepted a closed second window during search")
+  message(FATAL_ERROR "UI smoke accepted a closed second window during search")
 endif()
 string(FIND "${lifetime_stderr}"
   "second title bar disappeared while waiting for search" diagnostic_index)
 if(diagnostic_index EQUAL -1)
   message(FATAL_ERROR
-    "UI2 smoke did not report the closed window title bar: ${lifetime_stderr}")
+    "UI smoke did not report the closed window title bar: ${lifetime_stderr}")
 endif()
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
         session/ZzLogg_session.ini logs crashes)
   if(NOT EXISTS "${data_root}/${storage_entry}")
-    message(FATAL_ERROR "UI2 titlebar lifetime smoke storage entry missing: ${data_root}/${storage_entry}")
+    message(FATAL_ERROR "UI titlebar lifetime smoke storage entry missing: ${data_root}/${storage_entry}")
   endif()
 endforeach()

@@ -44,7 +44,7 @@ zzlogg_assert_output_isolated(
 zzlogg_assert_no_locator_or_probe(
   "${TEST_ROOT}/runtime" "${TEST_ROOT}/config" "${TEST_ROOT}")
 if(diagnostic_result EQUAL 0)
-  message(FATAL_ERROR "UI2 smoke accepted relative --data-dir")
+  message(FATAL_ERROR "UI smoke accepted relative --data-dir")
 endif()
 set(expected_diagnostic
   "ZzLogg storage bootstrap failure: command-line storage root must be an absolute path: ${relative_data_root}")

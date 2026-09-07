@@ -1,6 +1,6 @@
 # ZzLogg UI 代码学习指南
 
-本文对应 `codex/zzpuretools-ui-refactor` 的阶段一至四实现。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过 `src/ui2` 装饰层。
+本文对应 `codex/zzpuretools-ui-refactor` 的阶段一至四实现及第五阶段命名清理。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过创建后的装饰层。
 
 ## 1. 建议阅读顺序
 
@@ -24,7 +24,7 @@
 | [src/settings](../src/settings) | 应用配置与持久化 |
 | [src/logdata](../src/logdata) | 日志读取、索引、过滤数据，不属于界面外观 |
 | [ZzPureTools](../3rdparty/vendor/ZzPureTools) | 上游标题栏、样式、主题与窗口平台适配 |
-| [tests/ui2](../tests/ui2) | 保留兼容目录名的 UI 测试，不是第二套生产 UI |
+| [tests/ui_acceptance](../tests/ui_acceptance) | 当前 UI 验收测试，CTest 名称统一为 `zzlogg_ui.*` |
 
 构建中 `klogg_ui` 包含窗口和业务 UI，`zzlogg_ui_runtime` 是依赖它的独立目标。运行时不能反向放进 `klogg_ui`，否则会与应用窗口工厂形成依赖环。
 
@@ -150,12 +150,12 @@
 
 ## 11. 测试与常见修改入口
 
-- [windowchrometest.cpp](../tests/ui2/windowchrometest.cpp)：直接菜单容器、失败回退、异常与销毁。
-- [windowchromebehaviortest.cpp](../tests/ui2/windowchromebehaviortest.cpp)：窗口按钮、图标、置顶与标题同步。
-- [applicationtranslationtest.cpp](../tests/ui2/applicationtranslationtest.cpp)：真实框架窗口的语言切换、编码弹出菜单、搜索状态。
-- [runtimecontracttest.cpp](../tests/ui2/runtimecontracttest.cpp)：工厂、多窗口主题、日志颜色及运行时销毁。
-- [documenttabclosetest.cpp](../tests/ui2/documenttabclosetest.cpp)：最后一个文件关闭和延迟刷新生命周期。
-- [documentworkspacetest.cpp](../tests/ui2/documentworkspacetest.cpp)：工作区关闭重开、非空析构、当前页动作路由、拖动排序与视图上下文恢复。
+- [windowchrometest.cpp](../tests/ui_acceptance/windowchrometest.cpp)：直接菜单容器、失败回退、异常与销毁。
+- [windowchromebehaviortest.cpp](../tests/ui_acceptance/windowchromebehaviortest.cpp)：窗口按钮、图标、置顶与标题同步。
+- [applicationtranslationtest.cpp](../tests/ui_acceptance/applicationtranslationtest.cpp)：真实框架窗口的语言切换、编码弹出菜单、搜索状态。
+- [runtimecontracttest.cpp](../tests/ui_acceptance/runtimecontracttest.cpp)：工厂、多窗口主题、日志颜色及运行时销毁。
+- [documenttabclosetest.cpp](../tests/ui_acceptance/documenttabclosetest.cpp)：最后一个文件关闭和延迟刷新生命周期。
+- [documentworkspacetest.cpp](../tests/ui_acceptance/documentworkspacetest.cpp)：工作区关闭重开、非空析构、当前页动作路由、拖动排序与视图上下文恢复。
 
 添加菜单项先改主窗口动作，再放入菜单/工具栏；修改主题入口先看 UiRuntime；改日志字体、选择或绘制先看 AbstractLogView；改窗口标题和系统按钮先看 WindowChrome。
 

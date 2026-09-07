@@ -50,12 +50,12 @@ zzlogg_assert_output_isolated(
 zzlogg_assert_no_locator_or_probe("${TEST_RUNTIME_DIR}" "${TEST_CONFIG_DIR}" "${data_root}")
 if(NOT smoke_result EQUAL 0)
   message(FATAL_ERROR
-    "UI2 application smoke failed: ${smoke_result}\n${smoke_stdout}\n${smoke_stderr}")
+    "UI application smoke failed: ${smoke_result}\n${smoke_stdout}\n${smoke_stderr}")
 endif()
 
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
         session/ZzLogg_session.ini logs crashes)
   if(NOT EXISTS "${data_root}/${storage_entry}")
-    message(FATAL_ERROR "UI2 application smoke storage entry missing: ${data_root}/${storage_entry}")
+    message(FATAL_ERROR "UI application smoke storage entry missing: ${data_root}/${storage_entry}")
   endif()
 endforeach()

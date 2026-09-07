@@ -75,9 +75,9 @@ jobs:
       - name: Verify CMake toolchain floor
         run: |
           cmake --version
-          cmake -P tests/ui2/cmakeversioncontracttest.cmake
+          cmake -P tests/ui_acceptance/cmakeversioncontracttest.cmake
           cmake "-DCOMPILER_VERSION=$(gcc-13 -dumpfullversion)" \
-            -P tests/ui2/compilerversioncontracttest.cmake
+            -P tests/ui_acceptance/compilerversioncontracttest.cmake
       - name: Verify GNU runtime license provenance
         run: |
           mkdir -p "$ZZ_GNU_RUNTIME_LICENSE_DIR"

@@ -205,7 +205,7 @@ zzlogg_run_isolated_smoke_process(
   OUTPUT_VARIABLE user_seed_stdout
   ERROR_VARIABLE user_seed_stderr
   TIMEOUT 15
-  ENVIRONMENT ${user_env} "ZZLOGG_UI2_SMOKE_MODE=seed-session"
+  ENVIRONMENT ${user_env} "ZZLOGG_UI_SMOKE_MODE=seed-session"
   COMMAND "${user_app}" --multi --new-session)
 if(NOT user_seed_result EQUAL 0)
   zzlogg_record_failure(
@@ -226,7 +226,7 @@ zzlogg_run_isolated_smoke_process(
   OUTPUT_VARIABLE user_restore_stdout
   ERROR_VARIABLE user_restore_stderr
   TIMEOUT 15
-  ENVIRONMENT ${user_env} "ZZLOGG_UI2_SMOKE_MODE=verify-restored"
+  ENVIRONMENT ${user_env} "ZZLOGG_UI_SMOKE_MODE=verify-restored"
   COMMAND "${user_app}" --multi --load-session)
 if(NOT user_restore_result EQUAL 0)
   zzlogg_record_failure(

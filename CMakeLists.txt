@@ -26,16 +26,7 @@ set(IDENTIFIER "${ZZLOGG_IDENTIFIER}")
 set(PROJECT_DESCRIPTION "${ZZLOGG_PRODUCT_DESCRIPTION}")
 
 option(KLOGG_BUILD_TESTS "Build tests" ON)
-set(_klogg_build_ui_tests_default OFF)
-if(DEFINED KLOGG_BUILD_UI2_TESTS)
-  message(DEPRECATION
-    "KLOGG_BUILD_UI2_TESTS is deprecated; use KLOGG_BUILD_UI_TESTS instead")
-  if(NOT DEFINED KLOGG_BUILD_UI_TESTS)
-    set(_klogg_build_ui_tests_default "${KLOGG_BUILD_UI2_TESTS}")
-  endif()
-endif()
-option(KLOGG_BUILD_UI_TESTS "Build tests for the ZzLogg UI" ${_klogg_build_ui_tests_default})
-unset(_klogg_build_ui_tests_default)
+option(KLOGG_BUILD_UI_TESTS "Build tests for the ZzLogg UI" OFF)
 option(ZZLOGG_BUILD_ICON_TOOL "Build the ZzLogg icon asset generator" OFF)
 option(KLOGG_USE_LTO "Use link time optimization" ON)
 option(KLOGG_USE_SENTRY "Use Sentry" OFF)
@@ -247,7 +238,7 @@ if(NOT ZZLOGG_GIT_EXECUTABLE)
   message(FATAL_ERROR "Git executable is required for dependency layout verification")
 endif()
 add_test(
-  NAME zzlogg_ui2.dependency_layout
+  NAME zzlogg_ui.dependency_layout
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     "-DGIT_EXECUTABLE=${ZZLOGG_GIT_EXECUTABLE}"
@@ -255,7 +246,7 @@ add_test(
 )
 
 add_test(
-  NAME zzlogg_ui2.brand_external_files
+  NAME zzlogg_ui.brand_external_files
   COMMAND ${CMAKE_COMMAND}
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     -P "${PROJECT_SOURCE_DIR}/cmake/VerifyExternalBrand.cmake"
@@ -281,7 +272,7 @@ endif()
 
 if(KLOGG_BUILD_UI_TESTS)
   find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
-  add_subdirectory(tests/ui2)
+  add_subdirectory(tests/ui_acceptance)
 endif()
 
 if(ZZ_BUNDLE_GNU_RUNTIME)

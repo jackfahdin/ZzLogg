@@ -28,7 +28,7 @@ file(WRITE "${runtime_dir}/qt.conf" "[Paths]\nPrefix=.\nPlugins=.\n")
 foreach(expected_plugin IN LISTS expected_plugins)
   if(NOT EXISTS "${runtime_dir}/${expected_plugin}")
     message(FATAL_ERROR
-      "Local UI2 runtime is missing expected Qt plugin: ${expected_plugin}")
+      "Local UI runtime is missing expected Qt plugin: ${expected_plugin}")
   endif()
 endforeach()
 
@@ -61,15 +61,15 @@ zzlogg_run_isolated_smoke_process(
     "XDG_CACHE_HOME=${TEST_ROOT}/xdg/cache"
     "PATH=${runtime_dir}"
   COMMAND "${runtime_app}" --multi --new-session --data-dir "${TEST_ROOT}/storage"
-          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-first.log"
-          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui2-second.log")
+          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui-first.log"
+          "${CMAKE_CURRENT_LIST_DIR}/fixtures/ui-second.log")
 zzlogg_assert_output_isolated(
   "local runtime smoke" "${TEST_ROOT}" "${smoke_stdout}" "${smoke_stderr}")
 zzlogg_assert_no_locator_or_probe(
   "${runtime_dir}" "${TEST_ROOT}" "${TEST_ROOT}/storage")
 if(NOT smoke_result EQUAL 0)
   message(FATAL_ERROR
-    "UI2 local runtime smoke failed: ${smoke_result}\n${smoke_stdout}\n${smoke_stderr}")
+    "UI local runtime smoke failed: ${smoke_result}\n${smoke_stdout}\n${smoke_stderr}")
 endif()
 
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini

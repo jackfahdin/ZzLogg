@@ -101,4 +101,4 @@ ZzPureTools 已提供 `ZzFluentTitleBar::menuBar()`，返回框架拥有的 `QMe
 
 阶段四已完成设置展示与保存职责拆分、辅助窗口动态语言/主题适配、草稿标签释放，并修复原生验收发现的快速查找通知悬挂回调。最终 Windows Release 构建及 59 项 CTest 通过，Windows 原生应用测试 44 项通过（保留上述已知末行计数 XFAIL）。详见 [阶段四实施与验收](2026-09-07-settings-auxiliary-phase4.md)。
 
-阶段五部分完成：补齐 Windows UI Release build/test/workflow 预设及契约测试，确认旧 UI 装饰实现已移除，保留测试/烟测/预设兼容名称。新预设构建成功，60 项 CTest 与 44 项原生应用测试通过；详见 [阶段五执行记录](2026-09-07-cleanup-acceptance-phase5.md)。Linux WSL 缺少 CMake、Ninja、Qt，当前无 macOS 主机；跨平台实机、人工多屏和旧版性能对照尚未验收，不宣称整个阶段完成。运行目录已更新，原主工作区的未提交内容保留，未合并或推送。
+阶段五已完成 Windows Release 入口及命名清理：按用户最新要求删除旧 UI2 预设和构建开关兼容，验收目录改为 `tests/ui_acceptance`，CTest 名称统一为 `zzlogg_ui.*`，CI 与烟测引用同步。Windows Release 构建与 60 项 CTest 通过。跨平台测试按用户要求暂停，不作为当前交付阻塞；人工多屏和旧版性能对照尚未验收。详见 [阶段五执行记录](2026-09-07-cleanup-acceptance-phase5.md)。原主工作区的未提交内容保留，未合并或推送。

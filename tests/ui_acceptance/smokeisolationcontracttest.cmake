@@ -1,8 +1,8 @@
-if(NOT DEFINED UI2_TEST_SOURCE_DIR)
-  message(FATAL_ERROR "UI2_TEST_SOURCE_DIR is required")
+if(NOT DEFINED UI_TEST_SOURCE_DIR)
+  message(FATAL_ERROR "UI_TEST_SOURCE_DIR is required")
 endif()
 
-set(cmake_lists "${UI2_TEST_SOURCE_DIR}/CMakeLists.txt")
+set(cmake_lists "${UI_TEST_SOURCE_DIR}/CMakeLists.txt")
 file(READ "${cmake_lists}" cmake_contents)
 
 set(smoke_contracts
@@ -20,17 +20,17 @@ foreach(smoke_contract IN LISTS smoke_contracts)
   list(GET smoke_fields 1 script_name)
   list(GET smoke_fields 2 expected_helper_calls)
 
-  string(FIND "${cmake_contents}" "NAME zzlogg_ui2.${test_name}" test_index)
+  string(FIND "${cmake_contents}" "NAME zzlogg_ui.${test_name}" test_index)
   if(test_index EQUAL -1)
-    message(FATAL_ERROR "Missing CTest registration: zzlogg_ui2.${test_name}")
+    message(FATAL_ERROR "Missing CTest registration: zzlogg_ui.${test_name}")
   endif()
   string(FIND "${cmake_contents}" "${script_name}" script_registration_index)
   if(script_registration_index EQUAL -1)
     message(FATAL_ERROR
-      "CTest zzlogg_ui2.${test_name} does not invoke ${script_name}")
+      "CTest zzlogg_ui.${test_name} does not invoke ${script_name}")
   endif()
 
-  set(script_path "${UI2_TEST_SOURCE_DIR}/${script_name}")
+  set(script_path "${UI_TEST_SOURCE_DIR}/${script_name}")
   file(READ "${script_path}" script_contents)
   string(FIND "${script_contents}" "execute_process(" raw_process_index)
   if(NOT raw_process_index EQUAL -1)
@@ -58,12 +58,12 @@ foreach(smoke_contract IN LISTS smoke_contracts)
   endforeach()
 endforeach()
 
-file(READ "${UI2_TEST_SOURCE_DIR}/smokeisolationcheck.cmake" helper_contents)
+file(READ "${UI_TEST_SOURCE_DIR}/smokeisolationcheck.cmake" helper_contents)
 foreach(required_helper_fragment IN ITEMS
     "function(zzlogg_run_isolated_smoke_process)"
-    "ZZLOGG_UI2_SMOKE_MS=\${SMOKE_SMOKE_MS}"
-    "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=\${SMOKE_APP_CONFIG_DIR}"
-    "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=\${SMOKE_USER_DATA_DIR}")
+    "ZZLOGG_UI_SMOKE_MS=\${SMOKE_SMOKE_MS}"
+    "ZZLOGG_UI_SMOKE_APP_CONFIG_DIR=\${SMOKE_APP_CONFIG_DIR}"
+    "ZZLOGG_UI_SMOKE_USER_DATA_DIR=\${SMOKE_USER_DATA_DIR}")
   string(FIND "${helper_contents}" "${required_helper_fragment}" helper_fragment_index)
   if(helper_fragment_index EQUAL -1)
     message(FATAL_ERROR
@@ -83,7 +83,7 @@ foreach(forbidden_host_access IN ITEMS
 endforeach()
 
 foreach(helper_registration_fragment IN ITEMS
-    "NAME zzlogg_ui2.smoke_isolation_helper_contract"
+    "NAME zzlogg_ui.smoke_isolation_helper_contract"
     "smokeisolationhelpercontracttest.cmake")
   string(FIND "${cmake_contents}" "${helper_registration_fragment}"
     helper_contract_index)
@@ -92,7 +92,7 @@ foreach(helper_registration_fragment IN ITEMS
       "Missing centralized helper regression coverage: ${helper_registration_fragment}")
   endif()
 endforeach()
-file(READ "${UI2_TEST_SOURCE_DIR}/smokeisolationhelpercontracttest.cmake"
+file(READ "${UI_TEST_SOURCE_DIR}/smokeisolationhelpercontracttest.cmake"
   helper_contract_contents)
 string(FIND "${helper_contract_contents}" "smokeisolationmissingoverridefixture.cmake"
   missing_override_fixture_index)
@@ -100,7 +100,7 @@ if(missing_override_fixture_index EQUAL -1)
   message(FATAL_ERROR "The helper contract lacks a missing-override negative fixture")
 endif()
 
-cmake_path(GET UI2_TEST_SOURCE_DIR PARENT_PATH tests_directory)
+cmake_path(GET UI_TEST_SOURCE_DIR PARENT_PATH tests_directory)
 cmake_path(GET tests_directory PARENT_PATH project_source_directory)
 set(application_runner "${project_source_directory}/src/app/applicationrunner.cpp")
 set(smoke_paths_source "${project_source_directory}/src/app/applicationsmokepaths.cpp")
@@ -108,7 +108,7 @@ file(READ "${application_runner}" application_runner_contents)
 file(READ "${smoke_paths_source}" smoke_paths_contents)
 
 string(FIND "${application_runner_contents}"
-  "qEnvironmentVariable( \"ZZLOGG_UI2_SMOKE_USER_DATA_DIR\" ), [] {"
+  "qEnvironmentVariable( \"ZZLOGG_UI_SMOKE_USER_DATA_DIR\" ), [] {"
   lazy_provider_index)
 if(lazy_provider_index EQUAL -1)
   message(FATAL_ERROR
@@ -116,7 +116,7 @@ if(lazy_provider_index EQUAL -1)
 endif()
 
 string(FIND "${application_runner_contents}"
-  "ui2Smoke.requested,\n        QStandardPaths::writableLocation"
+  "uiSmoke.requested,\n        QStandardPaths::writableLocation"
   eager_provider_index)
 if(NOT eager_provider_index EQUAL -1)
   message(FATAL_ERROR

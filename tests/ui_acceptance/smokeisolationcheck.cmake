@@ -61,7 +61,7 @@ function(zzlogg_run_isolated_smoke_process)
 
   foreach(environment_entry IN LISTS SMOKE_ENVIRONMENT)
     if(environment_entry MATCHES
-       "^ZZLOGG_UI2_SMOKE_(MS|APP_CONFIG_DIR|USER_DATA_DIR)=")
+       "^ZZLOGG_UI_SMOKE_(MS|APP_CONFIG_DIR|USER_DATA_DIR)=")
       message(FATAL_ERROR
         "${SMOKE_LABEL}: reserved smoke isolation variable supplied by caller: ${environment_entry}")
     endif()
@@ -70,9 +70,9 @@ function(zzlogg_run_isolated_smoke_process)
   file(MAKE_DIRECTORY "${SMOKE_APP_CONFIG_DIR}" "${SMOKE_USER_DATA_DIR}")
   execute_process(
     COMMAND "${CMAKE_COMMAND}" -E env ${SMOKE_ENVIRONMENT}
-      "ZZLOGG_UI2_SMOKE_MS=${SMOKE_SMOKE_MS}"
-      "ZZLOGG_UI2_SMOKE_APP_CONFIG_DIR=${SMOKE_APP_CONFIG_DIR}"
-      "ZZLOGG_UI2_SMOKE_USER_DATA_DIR=${SMOKE_USER_DATA_DIR}"
+      "ZZLOGG_UI_SMOKE_MS=${SMOKE_SMOKE_MS}"
+      "ZZLOGG_UI_SMOKE_APP_CONFIG_DIR=${SMOKE_APP_CONFIG_DIR}"
+      "ZZLOGG_UI_SMOKE_USER_DATA_DIR=${SMOKE_USER_DATA_DIR}"
       ${SMOKE_COMMAND}
     RESULT_VARIABLE process_result
     OUTPUT_VARIABLE process_stdout
