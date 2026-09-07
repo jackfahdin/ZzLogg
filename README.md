@@ -27,6 +27,8 @@ The current source repository is
 
 See the [user documentation](docs/DOCUMENTATION.md) for usage details.
 
+For UI development, see the [UI code guide](docs/UI_CODE_GUIDE.md).
+
 ## Build
 
 Clone the repository together with its submodules:

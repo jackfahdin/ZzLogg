@@ -450,13 +450,11 @@ if(WIN32)
 endif()
 
 add_executable(zzlogg_fluent_shell_test
-  windowkittestmain.cpp fluentshelltest.cpp)
+  windowkittestmain.cpp windowchromebehaviortest.cpp)
 target_link_libraries(zzlogg_fluent_shell_test PRIVATE
-  zzlogg_ui2_shell Qt6::Test Qt6::Widgets)
-target_include_directories(zzlogg_fluent_shell_test PRIVATE
-  "${PROJECT_SOURCE_DIR}/src/ui2/src")
+  klogg_ui Qt6::Test Qt6::Widgets)
 set_target_properties(zzlogg_fluent_shell_test PROPERTIES AUTOMOC ON)
-klogg_copy_ui2_runtime_dlls(zzlogg_fluent_shell_test)
+klogg_copy_ui_runtime_dlls(zzlogg_fluent_shell_test)
 add_test(NAME zzlogg_ui2.fluent_shell
          COMMAND zzlogg_fluent_shell_test)
 if(WIN32)
@@ -483,7 +481,7 @@ set_target_properties(zzlogg_runtime_contract_test PROPERTIES
 add_test(NAME zzlogg_ui2.runtime_contract
          COMMAND zzlogg_runtime_contract_test)
 if(WIN32)
-  klogg_copy_ui2_runtime_dlls(zzlogg_runtime_contract_test)
+  klogg_copy_ui_runtime_dlls(zzlogg_runtime_contract_test)
   set_property(TEST zzlogg_ui2.runtime_contract PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/..")
 endif()
@@ -594,7 +592,7 @@ target_link_libraries(zzlogg_window_chrome_test PRIVATE klogg_ui Zz::FluentUI Zz
 set_target_properties(zzlogg_window_chrome_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui2.window_chrome COMMAND zzlogg_window_chrome_test -platform offscreen)
 if(WIN32)
-  klogg_copy_ui2_runtime_dlls(zzlogg_window_chrome_test)
+  klogg_copy_ui_runtime_dlls(zzlogg_window_chrome_test)
   set_property(TEST zzlogg_ui2.window_chrome PROPERTY ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
   set_property(TEST zzlogg_ui2.window_chrome PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()

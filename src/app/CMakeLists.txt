@@ -98,7 +98,7 @@ endif()
 
 target_compile_features(klogg PRIVATE cxx_std_20)
 target_link_libraries(klogg PUBLIC ${MAIN_LIBS} klogg_ui zzlogg_ui_runtime)
-klogg_copy_ui2_runtime_dlls(klogg)
+klogg_copy_ui_runtime_dlls(klogg)
 target_link_libraries(klogg_grep PUBLIC ${MAIN_LIBS})
 
 if(WIN32)

@@ -140,7 +140,6 @@ class KloggApp : public QApplication {
         crashHandler_ = std::make_unique<CrashHandler>();
     }
 
-    using WindowDecorator = std::function<void( MainWindow& )>;
     using MainWindowFactory = std::function<MainWindow*(WindowSession)>;
     void setMainWindowFactory(MainWindowFactory factory) {
         mainWindowFactory_ = std::move(factory);
@@ -151,10 +150,6 @@ class KloggApp : public QApplication {
         mainWindows_.clear();
         activeWindows_ = {};
         for (auto* window : windows) delete window;
-    }
-    void setWindowDecorator( WindowDecorator decorator )
-    {
-        windowDecorator_ = std::move( decorator );
     }
     QList<MainWindow*> mainWindows() const
     {
@@ -274,9 +269,6 @@ class KloggApp : public QApplication {
         created.release();
 
         auto& window = mainWindows_.back().second;
-        if ( windowDecorator_ ) {
-            windowDecorator_( *window );
-        }
 
         activeWindows_.push( QPointer<MainWindow>( window ) );
 
@@ -433,7 +425,6 @@ class KloggApp : public QApplication {
 
     std::list<std::pair<WindowSession, MainWindow*>> mainWindows_;
     std::stack<QPointer<MainWindow>> activeWindows_;
-    WindowDecorator windowDecorator_;
     MainWindowFactory mainWindowFactory_;
 
     VersionChecker versionChecker_;

@@ -55,7 +55,7 @@ function(klogg_add_zzpuretools)
   endif()
 endfunction()
 
-function(klogg_copy_ui2_runtime_dlls target)
+function(klogg_copy_ui_runtime_dlls target)
   if(WIN32)
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different

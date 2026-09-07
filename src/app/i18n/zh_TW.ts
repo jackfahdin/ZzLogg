@@ -1483,7 +1483,6 @@
     </message>
     <message>
         <location filename="../applicationrunner.cpp" line="676"/>
-        <location filename="../../ui2/src/zzlogguiruntime.cpp" line="130"/>
         <source>ZzLogg UI</source>
         <translation type="unfinished"></translation>
     </message>
