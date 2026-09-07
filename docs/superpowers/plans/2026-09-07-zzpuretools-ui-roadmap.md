@@ -99,4 +99,6 @@ ZzPureTools 已提供 `ZzFluentTitleBar::menuBar()`，返回框架拥有的 `QMe
 
 阶段一至三代码已在 `codex/zzpuretools-ui-refactor` 实现并分步提交，Windows Release 构建及 59 项 CTest 通过。阶段三将日志页面布局迁入 LogPage，搜索控件迁入 SearchPanel，保留 CrawlerWidget 的数据和搜索状态机职责。详见 [阶段三实施与验收](2026-09-07-log-page-search-panel-phase3.md)，其中明确记录一个原有增量搜索计数缺陷及预期失败用例，未将其视为已修复。
 
-阶段四、五尚未实施；人工窗口操作、跨平台实机和旧版性能对照仍待后续验收。运行目录和学习指南已更新，原主工作区的未提交内容保留，未合并或推送。
+阶段四已完成设置展示与保存职责拆分、辅助窗口动态语言/主题适配、草稿标签释放，并修复原生验收发现的快速查找通知悬挂回调。最终 Windows Release 构建及 59 项 CTest 通过，Windows 原生应用测试 44 项通过（保留上述已知末行计数 XFAIL）。详见 [阶段四实施与验收](2026-09-07-settings-auxiliary-phase4.md)。
+
+阶段五尚未实施；人工窗口操作、跨平台实机和旧版性能对照仍待后续验收。运行目录和学习指南已更新，原主工作区的未提交内容保留，未合并或推送。

@@ -1,6 +1,6 @@
 # ZzLogg UI 代码学习指南
 
-本文对应 `codex/zzpuretools-ui-refactor` 的阶段一、二实现。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过 `src/ui2` 装饰层。
+本文对应 `codex/zzpuretools-ui-refactor` 的阶段一至四实现。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过 `src/ui2` 装饰层。
 
 ## 1. 建议阅读顺序
 
@@ -126,7 +126,8 @@
 
 ## 9. 设置和多语言
 
-- [optionsdialog.cpp](../src/ui/src/optionsdialog.cpp)：设置交互。
+- [optionsdialog.cpp](../src/ui/src/optionsdialog.cpp)：设置按钮事务、配置保存、存储迁移及快捷键校验。
+- [optionsdialogpages.cpp](../src/ui/src/optionsdialogpages.cpp)：设置页初始化、配置回填、字体/颜色展示与动态翻译；仍为同一个 OptionsDialog，不新增保存入口。
 - [storagelocationpage.cpp](../src/ui/src/storagelocationpage.cpp)：数据目录选择。
 - [storagebootstrapdialog.cpp](../src/ui/src/storagebootstrapdialog.cpp)：首次启动引导。
 - [mainwindowtext.cpp](../src/ui/src/mainwindowtext.cpp)：菜单/动作文案上下文。
@@ -134,7 +135,20 @@
 
 动态切换语言依靠 `LanguageChange` 与 `reTranslateUI()` 等入口更新已存在的对象，不重新创建菜单或日志页面，以保留选择、搜索与编码状态。
 
-## 10. 测试与常见修改入口
+## 10. 高亮、过滤与草稿窗口
+
+- [highlightersdialog.cpp](../src/ui/src/highlightersdialog.cpp)：高亮集合及快速高亮设置；编辑副本，Apply/OK 时保存。
+- [highlightersetedit.cpp](../src/ui/src/highlightersetedit.cpp)：单个高亮集合的名称和规则列表。
+- [highlighteredit.cpp](../src/ui/src/highlighteredit.cpp)：单条规则、正则选项和自定义颜色。
+- [predefinedfiltersdialog.cpp](../src/ui/src/predefinedfiltersdialog.cpp)：预定义过滤表格和保存事务。
+- [scratchpad.cpp](../src/ui/src/scratchpad.cpp)：正文编辑器、转换动作及时间/进制结果展示。
+- [tabbedscratchpad.cpp](../src/ui/src/tabbedscratchpad.cpp)：草稿标签、快捷键、稳定编号与关闭释放。
+
+这些窗口通过 `changeEvent(LanguageChange)` 原地更新静态文案，不重新加载用户草稿。带图标的高亮/过滤窗口在样式或调色板变化后调用 `loadIcons()`；排队回调使用 `dispatchToObject(..., this)`，窗口销毁后不再执行。自定义高亮颜色不随全局主题重置。
+
+草稿动作由工具栏拥有；关闭按钮和快捷键统一调用 `closeTab()`，从标签中移除后 `deleteLater()`，加号说明页始终保留。修改语言文案不要调用 `setPlainText()`，否则会破坏正文和撤销栈。
+
+## 11. 测试与常见修改入口
 
 - [windowchrometest.cpp](../tests/ui2/windowchrometest.cpp)：直接菜单容器、失败回退、异常与销毁。
 - [windowchromebehaviortest.cpp](../tests/ui2/windowchromebehaviortest.cpp)：窗口按钮、图标、置顶与标题同步。
@@ -147,3 +161,5 @@
 
 阶段一的具体范围与验证记录见 [实施计划](superpowers/plans/2026-09-07-zzpuretools-window-phase1.md)。
 阶段二的具体范围与验证记录见 [文件工作区计划](superpowers/plans/2026-09-07-document-workspace-phase2.md)。
+阶段三见 [日志页面与搜索面板计划](superpowers/plans/2026-09-07-log-page-search-panel-phase3.md)。
+阶段四见 [设置与辅助窗口计划](superpowers/plans/2026-09-07-settings-auxiliary-phase4.md)；应用集成测试覆盖设置 Apply/Cancel、语言切换保留草稿、主题图标刷新和草稿页面释放。
