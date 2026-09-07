@@ -1178,8 +1178,16 @@ void ApplicationTranslationTest::activatesExistingDocumentInItsOwningWindow()
     first.loadFileNonInteractive(path);
     QTRY_COMPARE(owner->count(), 1);
     auto* original = owner->currentDocument();
+    const QString otherPath = logs.filePath("other.log");
+    QFile otherFile(otherPath);
+    QVERIFY(otherFile.open(QIODevice::WriteOnly));
+    QVERIFY(otherFile.write("another document\n") > 0);
+    otherFile.close();
+    first.loadFileNonInteractive(otherPath);
+    QTRY_COMPARE(owner->count(), 2);
+    QVERIFY(owner->currentDocument() != original);
     second.loadFileNonInteractive(path);
-    QCOMPARE(owner->count(), 1);
+    QCOMPARE(owner->count(), 2);
     QCOMPARE(other->count(), 0);
     QCOMPARE(owner->currentDocument(), original);
     QCOMPARE(session->getViewIfOpen(path), static_cast<ViewInterface*>(original));

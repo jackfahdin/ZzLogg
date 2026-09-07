@@ -1,6 +1,7 @@
 #include <QFile>
 #include <QPointer>
 #include <QTemporaryDir>
+#include <QToolButton>
 #include <QtTest>
 
 #include "configuration.h"
@@ -91,26 +92,59 @@ private Q_SLOTS:
         QCOMPARE( secondFollow.count(), 1 );
     }
 
+    void notifiesHostAfterActionRouting()
+    {
+        QTemporaryDir files;
+        auto session = std::make_shared<Session>();
+        WindowSession window( session, "notify-workspace", 0 );
+        SignalMux mux;
+        QuickFindMux quickFind( window.getQuickFindPattern() );
+        DocumentWorkspace workspace( window, mux, quickFind );
+        mux.connect( this, SIGNAL( followRequested( bool ) ), SIGNAL( followSet( bool ) ) );
+        auto* first = workspace.openDocument( makeLog( files, "a.log" ) );
+        auto* second = workspace.openDocument( makeLog( files, "b.log" ) );
+        QVERIFY( first );
+        QVERIFY( second );
+        QSignalSpy firstFollow( first, &CrawlerWidget::followSet );
+        QSignalSpy secondFollow( second, &CrawlerWidget::followSet );
+        int notifications = 0;
+        connect( &workspace, &DocumentWorkspace::currentDocumentChanged, this,
+                 [ & ]( CrawlerWidget* document ) {
+                     QCOMPARE( document, workspace.currentDocument() );
+                     ++notifications;
+                     Q_EMIT followRequested( true );
+                 } );
+        workspace.setCurrentIndex( 0 );
+        QCOMPARE( firstFollow.count(), 1 );
+        QCOMPARE( secondFollow.count(), 0 );
+        workspace.closeDocument( 0 );
+        QCOMPARE( firstFollow.count(), 1 );
+        QCOMPARE( secondFollow.count(), 1 );
+        workspace.closeDocument( 0 );
+        QCOMPARE( notifications, 3 );
+        QCOMPARE( secondFollow.count(), 1 );
+    }
+
     void destroyingNonemptyWorkspaceUnregistersDocuments()
     {
         QTemporaryDir files;
-        const auto path = makeLog(files, "destruction.log");
+        const auto path = makeLog( files, "destruction.log" );
         auto session = std::make_shared<Session>();
-        WindowSession window(session, "destroy-workspace", 0);
+        WindowSession window( session, "destroy-workspace", 0 );
         SignalMux mux;
-        QuickFindMux quickFind(window.getQuickFindPattern());
+        QuickFindMux quickFind( window.getQuickFindPattern() );
         QPointer<CrawlerWidget> document;
         {
-            DocumentWorkspace workspace(window, mux, quickFind);
-            document = workspace.openDocument(path);
-            QVERIFY(document);
+            DocumentWorkspace workspace( window, mux, quickFind );
+            document = workspace.openDocument( path );
+            QVERIFY( document );
         }
-        QVERIFY(document.isNull());
-        QVERIFY(!session->getViewIfOpen(path));
-        QVERIFY(window.openedFiles().empty());
+        QVERIFY( document.isNull() );
+        QVERIFY( !session->getViewIfOpen( path ) );
+        QVERIFY( window.openedFiles().empty() );
         quickFind.searchForward();
-        DocumentWorkspace next(window, mux, quickFind);
-        QVERIFY(next.openDocument(path));
+        DocumentWorkspace next( window, mux, quickFind );
+        QVERIFY( next.openDocument( path ) );
     }
 
     void preservesReorderedSession()
@@ -125,8 +159,16 @@ private Q_SLOTS:
             SignalMux mux;
             QuickFindMux quickFind( window.getQuickFindPattern() );
             DocumentWorkspace workspace( window, mux, quickFind );
-            QVERIFY( workspace.openDocument( a ) );
-            QVERIFY( workspace.openDocument( b ) );
+            auto* first = workspace.openDocument( a );
+            auto* second = workspace.openDocument( b );
+            QVERIFY( first );
+            QVERIFY( second );
+            auto* firstCase = first->findChild<QToolButton*>( "matchCaseButton" );
+            auto* secondCase = second->findChild<QToolButton*>( "matchCaseButton" );
+            QVERIFY( firstCase );
+            QVERIFY( secondCase );
+            firstCase->setChecked( false );
+            secondCase->setChecked( true );
             workspace.findChild<CrawlerTabBar*>()->moveTab( 1, 0 );
             workspace.saveDocuments( QByteArray( "geometry" ) );
             const auto saved = SessionInfo::get().openFiles( id );
@@ -144,6 +186,10 @@ private Q_SLOTS:
         QCOMPARE( workspace.restoreDocuments().size(), qsizetype( 2 ) );
         QCOMPARE( window.getFilename( qobject_cast<CrawlerWidget*>( workspace.widget( 0 ) ) ), b );
         QCOMPARE( window.getFilename( qobject_cast<CrawlerWidget*>( workspace.widget( 1 ) ) ), a );
+        QCOMPARE( window.getFilename( workspace.currentDocument() ), a );
+        auto* restoredCase = workspace.widget( 0 )->findChild<QToolButton*>( "matchCaseButton" );
+        QVERIFY( restoredCase );
+        QVERIFY( restoredCase->isChecked() );
         workspace.closeDocument( 0 );
         workspace.closeDocument( 0 );
     }
