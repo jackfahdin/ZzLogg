@@ -137,6 +137,43 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void removingSearchMatchKeepsCountConsistent_data()
+    {
+        QTest::addColumn<bool>("drainResults");
+        QTest::newRow("pending-results") << false;
+        QTest::newRow("delivered-results") << true;
+    }
+
+    void removingSearchMatchKeepsCountConsistent()
+    {
+        QFETCH(bool, drainResults);
+        SearchData data;
+        SearchResultArray matches;
+        matches.add(uint64_t{0});
+        matches.add(uint64_t{2});
+        data.addAll(LineLength{10}, matches, 2_lcount, 3_lcount);
+        if (drainResults)
+            data.takeCurrentResults();
+        data.deleteMatch(2_lnum);
+        QCOMPARE(data.getNbMatches().get(), 1);
+        QVERIFY(!data.takeCurrentResults().newMatches.contains(uint64_t{2}));
+        data.deleteMatch(2_lnum);
+        data.deleteMatch(1_lnum);
+        QCOMPARE(data.getNbMatches().get(), 1);
+        for (int i = 0; i < 3; ++i) {
+            SearchResultArray tail;
+            tail.add(uint64_t{2});
+            data.addAll(LineLength{10}, tail, 1_lcount, 3_lcount);
+            QCOMPARE(data.getNbMatches().get(), 2);
+            data.takeCurrentResults();
+            data.deleteMatch(2_lnum);
+            QCOMPARE(data.getNbMatches().get(), 1);
+        }
+        data.clear();
+        data.deleteMatch(0_lnum);
+        QCOMPARE(data.getNbMatches().get(), 0);
+    }
+
     void destroyingQuickFindCancelsQueuedNotification()
     {
         LogData data;
@@ -1513,7 +1550,7 @@ void ApplicationTranslationTest::searchesThroughExtractedPanel_data()
     QTest::newRow("regex") << QString("^(ERROR|WARN)") << true << false << false << 2 << false;
     QTest::newRow("boolean") << QString("\"ERROR\" or \"WARN\"") << true << true << false << 2 << false;
     QTest::newRow("inverse") << QString("ERROR") << false << false << true << 3 << false;
-    QTest::newRow("known-tail-recount") << QString("ERROR") << false << false << false << 1 << true;
+    QTest::newRow("matching-tail-recount") << QString("ERROR") << false << false << false << 1 << true;
 }
 
 void ApplicationTranslationTest::searchesThroughExtractedPanel()
@@ -1592,11 +1629,6 @@ void ApplicationTranslationTest::searchesThroughExtractedPanel()
     // The worker updates data before its queued UI notification is delivered.
     QTRY_VERIFY(panel->searchInfoLine()->text().endsWith("matches found")
                 && panel->searchInfoLine()->text() != QString("2 matches found"));
-    if (tailMatches) {
-        QVERIFY(panel->searchInfoLine()->text() == QString("3 matches found")
-                || panel->searchInfoLine()->text() == QString("4 matches found"));
-        QEXPECT_FAIL("", "Baseline SearchData::deleteMatch does not decrement nbMatches when rescanning the last line; see phase 3 execution record.", Continue);
-    }
     QCOMPARE(panel->searchInfoLine()->text(), QString("3 matches found"));
 }
 

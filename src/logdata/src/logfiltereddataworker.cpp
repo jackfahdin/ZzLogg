@@ -139,6 +139,9 @@ void SearchData::addAll( LineLength length, const SearchResultArray& matches,
     nbLinesProcessed_ = qMax( nbLinesProcessed_, processedLines );
     nbMatches_ += matchedLines;
 
+    // Keep membership after the UI consumes newMatches_, so a tail rescan
+    // can remove its previous contribution exactly once.
+    matches_ |= matches;
     newMatches_ |= matches;
 }
 
@@ -157,7 +160,10 @@ LineNumber SearchData::getLastProcessedLine() const
 void SearchData::deleteMatch( LineNumber line )
 {
     UniqueLock lock( dataMutex_ );
-    matches_.remove( line.get() );
+    if ( matches_.removeChecked( line.get() ) ) {
+        --nbMatches_;
+    }
+    newMatches_.remove( line.get() );
 }
 
 void SearchData::clear()
