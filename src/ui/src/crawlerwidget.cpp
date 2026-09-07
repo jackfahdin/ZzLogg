@@ -260,7 +260,7 @@ void CrawlerWidget::changeEvent( QEvent* event )
         if ( searchInfoLine_ != nullptr ) {
             searchInfoLine_->refreshGaugePalette( palette() );
         }
-        dispatchToMainThread( [ this ] { loadIcons(); } );
+        dispatchToObject( [ this ] { loadIcons(); }, this );
     }
 }
 

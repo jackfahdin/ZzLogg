@@ -20,6 +20,7 @@ class DocumentTabCloseTest final : public QObject {
     void initTestCase();
     void oneDocumentShowsCloseableTab();
     void closingOneOfTwoKeepsRemainingTabVisible();
+    void destroyingTabsCancelsPendingIconRefresh();
 
   private:
     QTemporaryDir settingsRoot_;
@@ -74,6 +75,20 @@ void DocumentTabCloseTest::closingOneOfTwoKeepsRemainingTabVisible()
 
     QCOMPARE( tabs.count(), 1 );
     QTRY_VERIFY( tabBar->isVisible() );
+}
+
+void DocumentTabCloseTest::destroyingTabsCancelsPendingIconRefresh()
+{
+    // A queued icon refresh must not dereference a tab widget destroyed before delivery.
+    auto* tabs = new TabbedCrawlerWidget;
+    QEvent paletteChange{ QEvent::PaletteChange };
+    QCoreApplication::sendEvent( tabs, &paletteChange );
+    delete tabs;
+    bool queueDrained = false;
+    QMetaObject::invokeMethod( qApp, [ &queueDrained ] { queueDrained = true; },
+                               Qt::QueuedConnection );
+    QCoreApplication::sendPostedEvents( nullptr, QEvent::MetaCall );
+    QVERIFY( queueDrained );
 }
 
 QTEST_MAIN( DocumentTabCloseTest )

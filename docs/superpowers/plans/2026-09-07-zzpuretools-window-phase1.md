@@ -220,4 +220,14 @@ cmake --build out/ui-vs --config Release --target zzlogg_runtime_folder
 - [ ] 提供可运行预览和更新后的学习文档。
 - [ ] 未经要求不推送；提交时只包含阶段相关文件，不捆入用户图片或其他任务改动。
 
-本计划当前仅完成编写和代码核对，以上实施复选框均未执行。
+## 11. 执行记录
+
+### 2026-09-07：隔离工作区与基线崩溃排查
+
+- 已从计划提交 `f66e9d12` 创建 `codex/zzpuretools-ui-refactor`，目录为 `.worktrees/zzpuretools-ui-refactor`；子仓库使用指定版本 `d6b90f1`。原工作区未提交内容保持不变。
+- 现有构建的 7 项基线中，6 项通过，`application_translation` 在处理延迟事件时发生访问冲突。用户确认先修复此问题再重构。
+- 独立工作区重新配置、编译后，新增的标签页销毁和主窗口销毁回归均复现 `QObject::parent → QStyleOption::initFrom` 崩溃，排除仅由旧构建产物导致的可能。
+- 根因：图标/样式刷新用 `dispatchToMainThread` 投递到全局事件分发器，捕获的窗口指针在窗口销毁后仍可能被使用。改用已有的 `dispatchToObject(callback, this)`，保持异步执行，并让窗口销毁自动取消待处理回调。
+- 修复后 `application_translation`、`document_tab_close` 各连续运行 5 次通过；另一次包含 `options_theme`、`theme_configuration` 的 4 项检查全部通过。独立代码审查无阻塞问题。
+- 独立工作区完整 Release 构建通过；完整 CTest **56/56 通过**（39.37 秒），包括框架外观、应用启动、会话恢复及异步对象/标题栏生命周期测试。此处 Linux 相关用例是构建规则检查，不代表已在 Linux 实机运行。
+- 此记录仅表示基线问题的修复进度，不代表 WindowChrome 接入、`src/ui2` 删除或阶段一整体完成。

@@ -125,6 +125,7 @@ class ApplicationTranslationTest final : public QObject {
     void retranslatesCrawlerSemanticSearchStatus();
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
+    void destroyingWindowCancelsPendingVisualRefresh();
     void retranslatesExistingMainWindowChromeWithoutChangingDocumentState();
 };
 
@@ -1048,6 +1049,22 @@ void ApplicationTranslationTest::retranslatesExistingMainWindowChromeWithoutChan
                   nativeLogPath + QStringLiteral( " - 正在索引行... (37 %)" ) );
     QCOMPARE( documentTabs->currentWidget(), currentDocument );
     QCOMPARE( searchEdit->currentText(), currentSearchText );
+}
+
+void ApplicationTranslationTest::destroyingWindowCancelsPendingVisualRefresh()
+{
+    // Closing a window must cancel its queued style/icon work, not leave it for the next window.
+    auto session = std::make_shared<Session>();
+    auto* window = new MainWindow(
+        WindowSession{ session, QStringLiteral( "pending-visual-refresh" ), 0 } );
+    QEvent styleChange{ QEvent::StyleChange };
+    QCoreApplication::sendEvent( window, &styleChange );
+    delete window;
+    bool queueDrained = false;
+    QMetaObject::invokeMethod( qApp, [ &queueDrained ] { queueDrained = true; },
+                               Qt::QueuedConnection );
+    QCoreApplication::sendPostedEvents( nullptr, QEvent::MetaCall );
+    QVERIFY( queueDrained );
 }
 
 void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()

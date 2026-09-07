@@ -1632,16 +1632,16 @@ void MainWindow::changeEvent( QEvent* event )
         }
     }
     else if ( event->type() == QEvent::StyleChange ) {
-        dispatchToMainThread( [ this ] {
+        dispatchToObject( [ this ] {
             loadIcons();
             updateOpenedFilesMenu();
             updateFavoritesMenu();
             updateHighlightersMenu();
-        } );
+        }, this );
     }
     else if ( event->type() == QEvent::PaletteChange
               || event->type() == QEvent::ApplicationPaletteChange ) {
-        dispatchToMainThread( [ this ] { loadIcons(); } );
+        dispatchToObject( [ this ] { loadIcons(); }, this );
     }
     else if ( event->type() == QEvent::LanguageChange ) {
         reTranslateUI();
