@@ -537,6 +537,7 @@ void CrawlerWidget::updateFilteredView( LinesCount nbMatches, int progress,
         }
 
         // Also update the top window for the coloured bullets.
+        logMainView_->forceRefresh();
         update();
     }
 

@@ -24,6 +24,7 @@ $OutputDirectory = (Resolve-Path -LiteralPath $OutputDirectory).Path
     Runs = $Runs
     ScrollSettleMs = $env:ZZLOGG_SCROLL_SETTLE_MS
     ScrollSteps = $env:ZZLOGG_SCROLL_STEPS
+    ScrollMotion = $env:ZZLOGG_SCROLL_MOTION
     Note = 'Warm file cache; QTRY timings include approximately 50 ms polling granularity; process peak includes fixture generation.'
 } | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'manifest.json')
 $previousPath = $env:PATH

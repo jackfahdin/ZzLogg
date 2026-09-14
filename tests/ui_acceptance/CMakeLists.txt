@@ -4,6 +4,19 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_text_cache_test textcachetest.cpp)
+target_link_libraries(zzlogg_text_cache_test PRIVATE
+  klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
+set_target_properties(zzlogg_text_cache_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.text_cache COMMAND zzlogg_text_cache_test -platform offscreen)
+if(WIN32)
+  set_property(TEST zzlogg_ui.text_cache PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_ui.text_cache PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_test(NAME zzlogg_ui.release_preset_contract
   COMMAND ${CMAKE_COMMAND} -DSOURCE_ROOT=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/releasepresetcontracttest.cmake)

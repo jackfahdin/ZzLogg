@@ -459,6 +459,11 @@ void AbstractLogView::changeEvent( QEvent* changeEvent )
 {
     QAbstractScrollArea::changeEvent( changeEvent );
 
+    if ( changeEvent->type() == QEvent::FontChange ) {
+        pixmapFontMetrics_ = pixmapFontMetrics( font() );
+        updateDisplaySize();
+    }
+
     if ( changeEvent->type() == QEvent::PaletteChange
          || changeEvent->type() == QEvent::ApplicationPaletteChange
          || changeEvent->type() == QEvent::StyleChange ) {
@@ -1010,7 +1015,13 @@ bool AbstractLogView::event( QEvent* e )
         }
     }
 
-    return QAbstractScrollArea::event( e );
+    const bool handled = QAbstractScrollArea::event( e );
+    if ( e->type() == QEvent::DevicePixelRatioChange ) {
+        pixmapFontMetrics_ = pixmapFontMetrics( font() );
+        updateDisplaySize();
+        viewport()->update();
+    }
+    return handled;
 }
 
 int AbstractLogView::lineNumberToVerticalScroll( LineNumber line ) const
@@ -1073,6 +1084,11 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
     const QRect invalidRect = paintEvent->rect();
     if ( ( invalidRect.isEmpty() ) || ( logData_ == nullptr ) )
         return;
+
+    if ( textAreaCache_.pixmap_.devicePixelRatio() != viewport()->devicePixelRatio() ) {
+        pixmapFontMetrics_ = pixmapFontMetrics( font() );
+        updateDisplaySize();
+    }
 
     LOG_DEBUG << "paintEvent received, firstLine_=" << firstLine_
               << " lastLineAligned_=" << lastLineAligned_ << " rect: " << invalidRect.topLeft().x()
@@ -1239,6 +1255,7 @@ void AbstractLogView::setQuickFindResult( bool hasMatch, const Portion& portion 
     else if ( !hasMatch ) {
         selection_.clear();
     }
+    forceRefresh();
 }
 
 void AbstractLogView::searchForward()
@@ -1264,6 +1281,7 @@ void AbstractLogView::incrementallySearchBackward()
 void AbstractLogView::incrementalSearchAbort()
 {
     selection_ = quickFind_->incrementalSearchAbort();
+    forceRefresh();
     Q_EMIT changeQuickFind( "", QuickFindMux::Forward );
 }
 
@@ -1272,6 +1290,7 @@ void AbstractLogView::incrementalSearchStop()
     auto oldSelection = quickFind_->incrementalSearchStop();
     if ( selection_.isEmpty() ) {
         selection_ = oldSelection;
+        forceRefresh();
     }
 }
 
@@ -1731,7 +1750,10 @@ void AbstractLogView::jumpToLine( LineNumber line )
 
 void AbstractLogView::setLineNumbersVisible( bool lineNumbersVisible )
 {
+    if ( lineNumbersVisible_ == lineNumbersVisible )
+        return;
     lineNumbersVisible_ = lineNumbersVisible;
+    forceRefresh();
 }
 
 void AbstractLogView::forceRefresh()
@@ -1860,12 +1882,9 @@ FilePosition AbstractLogView::convertCoordToFilePos( const QPoint& pos ) const
 // Doing so, it will throw itself a scrollContents event.
 void AbstractLogView::displayLine( LineNumber line )
 {
-    // If the line is already the screen
-    if ( ( line >= firstLine_ ) && ( line < ( firstLine_ + getNbVisibleLines() ) ) ) {
-        // Invalidate our cache
-        forceRefresh();
-    }
-    else {
+    // Callers change the selection; overlapping cached rows must not retain it.
+    forceRefresh();
+    if ( line < firstLine_ || line >= firstLine_ + getNbVisibleLines() ) {
         jumpToLine( line );
     }
 
@@ -2211,22 +2230,48 @@ void AbstractLogView::updateScrollBars()
 
 void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 {
+    // Retain overlapping rows only when both pages are complete and pixels align.
+    // Otherwise keep the full redraw path (including wrapping and fractional steps).
+    const auto rowDelta = static_cast<qint64>( textAreaCache_.first_line_.get() )
+                          - static_cast<qint64>( firstLine_.get() );
+    const auto visibleRows = static_cast<qint64>( getNbVisibleLines().get() );
+    const auto totalRows = static_cast<qint64>( logData_->getNbLine().get() );
+    const double physicalDelta = rowDelta * charHeight_ * viewport()->devicePixelRatio();
+    const bool reuse = !useTextWrap_ && !textAreaCache_.invalid_
+        && textAreaCache_.first_column_ == firstCol_
+        && rowDelta != 0 && qAbs( rowDelta ) < visibleRows
+        && static_cast<qint64>( firstLine_.get() ) + visibleRows <= totalRows
+        && static_cast<qint64>( textAreaCache_.first_line_.get() ) + visibleRows <= totalRows
+        && qAbs( physicalDelta - std::round( physicalDelta ) ) < 0.00001;
+    QRect exposed;
+    if ( reuse ) {
+        textAreaCache_.pixmap_.scroll( 0, static_cast<int>( std::round( physicalDelta ) ),
+                                      textAreaCache_.pixmap_.rect() );
+        const int height = static_cast<int>( visibleRows ) * charHeight_;
+        const int moved = static_cast<int>( qAbs( rowDelta ) ) * charHeight_;
+        // One logical pixel removes antialiased separator endpoints moved into the overlap.
+        exposed = QRect( 0, rowDelta > 0 ? 0 : height - moved - 1,
+                         static_cast<int>( std::ceil( textAreaCache_.pixmap_.width()
+                                                       / viewport()->devicePixelRatio() ) ),
+                         moved + ( rowDelta > 0 ? 1 : 2 ) );
+    }
     // LOG_DEBUG << "devicePixelRatio: " << viewport()->devicePixelRatio();
     // LOG_DEBUG << "viewport size: " << viewport()->size().width();
     // LOG_DEBUG << "pixmap size: " << textPixmap.width();
     // Repaint the viewport
     auto painter = pixmapPainter( paintDevice, this->font() );
+    if ( reuse )
+        painter->setClipRect( exposed );
     // LOG_DEBUG << "font: " << viewport()->font().family().toStdString();
     // LOG_DEBUG << "font painter: " << painter->font().family().toStdString();
 
     const int fontHeight = charHeight_;
     const int fontAscent = painter->fontMetrics().ascent();
-    const LineLength nbVisibleCols = getNbVisibleCols();
 
     const int paintDeviceHeight
-        = static_cast<int>( std::floor( paintDevice->height() / viewport()->devicePixelRatio() ) );
+        = static_cast<int>( std::ceil( paintDevice->height() / viewport()->devicePixelRatio() ) );
     const int paintDeviceWidth
-        = static_cast<int>( std::floor( paintDevice->width() / viewport()->devicePixelRatio() ) );
+        = static_cast<int>( std::ceil( paintDevice->width() / viewport()->devicePixelRatio() ) );
 
     const QPalette& palette = viewport()->palette();
     const HighlighterSet& highlighterSet = HighlighterSetCollection::get().currentActiveSet();
@@ -2305,6 +2350,8 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
     // This is the total width of the 'margin' (including line number if any)
     // used for mouse calculation etc...
     leftMarginPx_ = contentStartPosX + SeparatorWidth;
+    // Line-number visibility and font changes alter the margin on this redraw.
+    const LineLength nbVisibleCols = getNbVisibleCols();
 
     const auto searchStartIndex = lineIndex( searchStart_ );
     const auto searchEndIndex = [ this ] {
@@ -2461,6 +2508,13 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
         const WrappedString wrappedLineView{ expandedLine, wrappedLineLength };
         const auto finalLineHeight
             = fontHeight * static_cast<int>( wrappedLineView.wrappedLinesCount() );
+        if ( reuse
+             && !exposed.intersects( QRect( 0, yPos, viewport()->width(), finalLineHeight ) ) ) {
+            // Rebuild hit-testing metadata even when reusing the row's pixels.
+            wrappedLinesInfo_.emplace_back( WrappedLineData{ lineNumber, 0, wrappedLineView } );
+            yPos += finalLineHeight;
+            continue;
+        }
         // LOG_INFO << "Draw line " << lineNumber << ": " << expandedLine;
 
         painter->fillRect( xPos - ContentMarginWidth, yPos, viewport()->width(), finalLineHeight,

@@ -1837,9 +1837,16 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     const int requestedSteps = qEnvironmentVariableIntValue("ZZLOGG_SCROLL_STEPS");
     const int scrollSteps = requestedSteps == 0 ? 100 : requestedSteps;
     QVERIFY(scrollSteps >= 100 && scrollSteps <= 10000);
+    const auto motion = qEnvironmentVariable("ZZLOGG_SCROLL_MOTION", "jump");
+    QVERIFY(motion == "jump" || motion == "line");
+    QVERIFY(scroll->maximum() > scrollSteps);
+    scroll->setValue(0);
+    mainView->viewport()->repaint();
+    QApplication::processEvents();
     if (settleMs > 0)
         QTest::qWait(settleMs);
     qInfo("Scroll probe: settle_ms=%d, steps=%d", settleMs, scrollSteps);
+    qInfo("Scroll motion: %s", qPrintable(motion));
     struct PaintCounter final : QObject {
         int count = 0;
         bool eventFilter(QObject*, QEvent* event) override
@@ -1855,7 +1862,8 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     timer.restart();
     for (int i = 1; i <= scrollSteps; ++i) {
         segmentTimer.start();
-        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
+        scroll->setValue(motion == "line" ? i
+            : static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
         setValueNs += segmentTimer.nsecsElapsed();
         segmentTimer.restart();
         mainView->viewport()->repaint();
