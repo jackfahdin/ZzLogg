@@ -103,7 +103,7 @@ ZzPureTools 已提供 `ZzFluentTitleBar::menuBar()`，返回框架拥有的 `QMe
 
 阶段一至四代码改造以及阶段五 Windows 清理已完成，已合并到 master。两项末行增量搜索问题分别在 6bc9d7dd、f04d6b6d 修复，回归测试已移除旧计数 XFAIL；详见 [搜索修复记录](2026-09-07-tail-match-count-fix.md)。ZzPureTools 在 45f7fd2d 更新到 5a3ea3c，Windows Release 构建与 60 项 CTest 通过，运行目录已部署；这是 2026-09-08 的验证结果，不代表后续重新测试。
 
-旧新版单文件大日志对照已完成两组测量，详见 [性能记录](../../performance/2026-09-14/README.md)。发现新版离散滚动重绘略慢，尚需剖析，不能宣称性能全面无退化。Windows 人工多屏/DPI/拖动吸附仍待验收；Linux/macOS 实机测试继续按用户要求暂停。执行记录见 [验收收尾计划](2026-09-14-ui-acceptance-followup.md)。未将更新子仓库等同于自动接入其新增多窗口功能。
+旧新版单文件大日志对照已完成两组测量，详见 [性能记录](../../performance/2026-09-14/README.md)。发现新版离散滚动重绘略慢，尚需剖析，不能宣称性能全面无退化。Windows 人工多屏/缩放/拖动吸附已由用户确认通过；Linux/macOS 实机测试继续按用户要求暂停。执行记录见 [验收收尾计划](2026-09-14-ui-acceptance-followup.md)。未将更新子仓库等同于自动接入其新增多窗口功能。
 
 ### 历史实施记录（保留当时状态）
 
