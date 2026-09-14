@@ -4,6 +4,7 @@ namespace zzlogg::brand {
 inline constexpr char ProductName[] = "@ZZLOGG_PRODUCT_NAME@";
 inline constexpr char ProductDescription[] = "@ZZLOGG_PRODUCT_DESCRIPTION@";
 inline constexpr char Vendor[] = "@ZZLOGG_VENDOR@";
+inline constexpr char PathOrganization[] = "@ZZLOGG_PATH_ORGANIZATION@";
 inline constexpr char HomepageUrl[] = "@ZZLOGG_HOMEPAGE_URL@";
 inline constexpr char ApplicationIdentifier[] = "@ZZLOGG_IDENTIFIER@";
 inline constexpr char SettingsOrganization[] = "@ZZLOGG_SETTINGS_ORGANIZATION@";

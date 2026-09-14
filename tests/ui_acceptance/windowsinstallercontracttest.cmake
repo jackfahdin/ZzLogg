@@ -33,10 +33,8 @@ else()
 endif()
 
 set(runtime_sentinels
-  "COPYING"
-  "NOTICE"
-  "README.md"
-  "DOCUMENTATION.md"
+  "licenses/ZzLogg/COPYING"
+  "licenses/ZzLogg/NOTICE"
   "licenses/ZzPureTools/LICENSE"
   "licenses/ZzPureTools/THIRD_PARTY_NOTICES.md"
   "licenses/ZzPureTools/release-evidence.json"

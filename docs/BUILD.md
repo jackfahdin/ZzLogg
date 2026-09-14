@@ -35,6 +35,19 @@ directories can still contain DLLs left by an earlier shared build.
 Linux GNU runtime packaging is resolved by the host application independently
 of the framework's static linkage.
 
+## Lean Windows runtime
+
+The runtime folder is for the raster QWidget application: deployment excludes
+software OpenGL/D3D/DXC compilers, PDF, uncommon image formats, generic TUIO
+plugins, and external style plugins. PNG (built into Qt), JPEG, ICO, SVG, the
+Windows platform, and native HTTPS support are retained. Help is embedded in
+the executable; source README and standalone help files are not distributed.
+All existing license notices remain under `licenses/` without duplicate copies
+at the runtime root. Rebuild `zzlogg_runtime_folder` to apply these rules.
+
+The displayed vendor is `Jackfahdin`. The existing Qt storage namespace and
+application identifier remain unchanged so saved data locations are preserved.
+
 ## Requirements
 
 ZzLogg requires:

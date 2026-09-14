@@ -111,7 +111,10 @@ private Q_SLOTS:
         auto& app = *qobject_cast<KloggApp*>( qApp );
         QCOMPARE( app.applicationName(), QStringLiteral( "ZzLogg" ) );
         QCOMPARE( app.applicationDisplayName(), QStringLiteral( "ZzLogg" ) );
+        // Qt uses this namespace for the storage locator and default data root.
+        // Keep it stable even when the displayed company name changes.
         QCOMPARE( app.organizationName(), QStringLiteral( "JackfahdinQt" ) );
+        QCOMPARE( QString::fromLatin1( zzlogg::brand::Vendor ), QStringLiteral( "Jackfahdin" ) );
         const QUrl homepageUrl(
             QString::fromLatin1( zzlogg::brand::HomepageUrl ) );
         QVERIFY( homepageUrl.isValid() );

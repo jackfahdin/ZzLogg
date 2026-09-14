@@ -27,7 +27,7 @@ foreach ($app in $expectedOriginalFilenames.Keys) {
   if ($version.FileDescription -ne 'ZzLogg log viewer') {
     throw "Expected ZzLogg log viewer as FileDescription for $app, got $($version.FileDescription)"
   }
-  if ($version.CompanyName -ne 'JackfahdinQt') {
-    throw "Expected JackfahdinQt as CompanyName for $app, got $($version.CompanyName)"
+  if ($version.CompanyName -ne 'Jackfahdin') {
+    throw "Expected Jackfahdin as CompanyName for $app, got $($version.CompanyName)"
   }
 }

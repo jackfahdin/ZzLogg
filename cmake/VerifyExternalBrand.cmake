@@ -146,7 +146,7 @@ require_entry_line(
 require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central product description is not exact" "set(ZZLOGG_PRODUCT_DESCRIPTION \"ZzLogg log viewer\")")
 require_entry_line(
-  "cmake/ZzLoggBrand.cmake" "central vendor is not exact" "set(ZZLOGG_VENDOR \"JackfahdinQt\")")
+  "cmake/ZzLoggBrand.cmake" "central vendor is not exact" "set(ZZLOGG_VENDOR \"Jackfahdin\")")
 require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central homepage is not exact" "set(ZZLOGG_HOMEPAGE_URL \"https://gitcode.com/JackfahdinQt/ZzLogg\")")
 require_entry_line(

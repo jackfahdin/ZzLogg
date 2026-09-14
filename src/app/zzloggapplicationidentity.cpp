@@ -15,7 +15,7 @@ void prepareZzLoggApplicationIdentity()
     QGuiApplication::setApplicationDisplayName(
         QString::fromLatin1( zzlogg::brand::ProductName ) );
     QCoreApplication::setOrganizationName(
-        QString::fromLatin1( zzlogg::brand::Vendor ) );
+        QString::fromLatin1( zzlogg::brand::PathOrganization ) );
     const QUrl homepageUrl(
         QString::fromLatin1( zzlogg::brand::HomepageUrl ) );
     QCoreApplication::setOrganizationDomain( homepageUrl.host() );

@@ -20,7 +20,7 @@ void BrandContractTest::exposesApprovedIdentity()
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ProductName ), QStringLiteral( "ZzLogg" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ProductDescription ),
               QStringLiteral( "ZzLogg log viewer" ) );
-    QCOMPARE( QString::fromLatin1( zzlogg::brand::Vendor ), QStringLiteral( "JackfahdinQt" ) );
+    QCOMPARE( QString::fromLatin1( zzlogg::brand::Vendor ), QStringLiteral( "Jackfahdin" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::HomepageUrl ),
               QStringLiteral( "https://gitcode.com/JackfahdinQt/ZzLogg" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ApplicationIdentifier ),

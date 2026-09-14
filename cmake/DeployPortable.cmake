@@ -14,15 +14,6 @@ file(REMOVE_RECURSE "${DEPLOY_DIR}")
 file(MAKE_DIRECTORY "${DEPLOY_DIR}")
 file(COPY "${APP_EXECUTABLE}" DESTINATION "${DEPLOY_DIR}")
 
-if(DEFINED PORTABLE_DOCUMENTS_PIPE)
-  string(REPLACE "|" ";" PORTABLE_DOCUMENTS "${PORTABLE_DOCUMENTS_PIPE}")
-endif()
-foreach(document IN LISTS PORTABLE_DOCUMENTS)
-  if(EXISTS "${document}")
-    file(COPY "${document}" DESTINATION "${DEPLOY_DIR}")
-  endif()
-endforeach()
-
 if(CONFIG STREQUAL "Debug")
   set(deploy_mode --debug)
 else()
@@ -32,11 +23,30 @@ endif()
 get_filename_component(deployed_executable_name "${APP_EXECUTABLE}" NAME)
 set(deployed_executable "${DEPLOY_DIR}/${deployed_executable_name}")
 
+# This application uses raster QWidget painting, not OpenGL/Qt Quick/PDF.
+# Keep the Windows platform, SVG/icon support and native HTTPS backends.
+set(lean_deploy_options
+    --no-opengl-sw --no-system-d3d-compiler
+    --skip-plugin-types generic,styles
+    --exclude-plugins qpdf,qgif,qicns,qtga,qtiff,qwbmp,qwebp)
+# DXC deployment is present in newer Qt releases; older deploy tools have no
+# DXC option or payload. Do not require a newer Qt solely for this switch.
+execute_process(COMMAND "${WINDEPLOYQT}" --help
+  OUTPUT_VARIABLE deploy_help ERROR_VARIABLE deploy_help_error
+  RESULT_VARIABLE help_result)
+if(NOT help_result EQUAL 0)
+  message(FATAL_ERROR "Unable to inspect windeployqt options: ${deploy_help_error}")
+endif()
+if(deploy_help MATCHES "--no-system-dxc-compiler")
+  list(APPEND lean_deploy_options --no-system-dxc-compiler)
+endif()
+
 execute_process(
   COMMAND "${WINDEPLOYQT}"
           --dir "${DEPLOY_DIR}"
           ${deploy_mode}
           --no-translations
+          ${lean_deploy_options}
           "${deployed_executable}"
   RESULT_VARIABLE deploy_result
   COMMAND_ECHO STDOUT

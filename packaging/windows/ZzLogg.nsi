@@ -33,7 +33,7 @@ Caption "ZzLogg ${VERSION} Setup"
 !define MUI_WELCOMEPAGE_TEXT "This wizard will guide you through the installation of ZzLogg\
 , a fast, advanced log explorer.$\r$\n$\r$\n\
 ZzLogg and the Qt libraries are released under the GPL, see \
-the COPYING and NOTICE files.$\r$\n$\r$\n$_CLICK"
+the COPYING and NOTICE files in licenses\ZzLogg.$\r$\n$\r$\n$_CLICK"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_COMPONENTS

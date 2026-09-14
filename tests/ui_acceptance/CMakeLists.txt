@@ -273,6 +273,12 @@ if(TARGET zzlogg_runtime_folder)
     TIMEOUT 120)
   set_tests_properties(zzlogg_ui.output_contract PROPERTIES
     FIXTURES_REQUIRED zzlogg_runtime_folder)
+  add_test(NAME zzlogg_ui.lean_runtime_contract
+    COMMAND "${CMAKE_COMMAND}" "-DRUNTIME_DIR=${ZZLOGG_RUNTIME_DIR_CONTRACT}"
+      "-DCONFIG=$<CONFIG>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/leanruntimecontracttest.cmake")
+  set_tests_properties(zzlogg_ui.lean_runtime_contract PROPERTIES
+    FIXTURES_REQUIRED zzlogg_runtime_folder)
 endif()
 
 if(WIN32)
