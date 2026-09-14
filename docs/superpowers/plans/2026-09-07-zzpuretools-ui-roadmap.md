@@ -97,6 +97,14 @@ ZzPureTools 已提供 `ZzFluentTitleBar::menuBar()`，返回框架拥有的 `QMe
 
 ## 7. 计划状态
 
+### 当前状态（2026-09-14）
+
+阶段一至四代码改造以及阶段五 Windows 清理已完成，已合并到 master。两项末行增量搜索问题分别在 6bc9d7dd、f04d6b6d 修复，回归测试已移除旧计数 XFAIL；详见 [搜索修复记录](2026-09-07-tail-match-count-fix.md)。ZzPureTools 在 45f7fd2d 更新到 5a3ea3c，Windows Release 构建与 60 项 CTest 通过，运行目录已部署；这是 2026-09-08 的验证结果，不代表后续重新测试。
+
+剩余事项是旧新版大日志性能对照、Windows 人工多屏/DPI/拖动吸附验收。Linux/macOS 实机测试继续按用户要求暂停。执行安排见 [验收收尾计划](2026-09-14-ui-acceptance-followup.md)。未将更新子仓库等同于自动接入其新增多窗口功能。
+
+### 历史实施记录（保留当时状态）
+
 阶段一至三代码已在 `codex/zzpuretools-ui-refactor` 实现并分步提交，Windows Release 构建及 59 项 CTest 通过。阶段三将日志页面布局迁入 LogPage，搜索控件迁入 SearchPanel，保留 CrawlerWidget 的数据和搜索状态机职责。详见 [阶段三实施与验收](2026-09-07-log-page-search-panel-phase3.md)，其中明确记录一个原有增量搜索计数缺陷及预期失败用例，未将其视为已修复。
 
 阶段四已完成设置展示与保存职责拆分、辅助窗口动态语言/主题适配、草稿标签释放，并修复原生验收发现的快速查找通知悬挂回调。最终 Windows Release 构建及 59 项 CTest 通过，Windows 原生应用测试 44 项通过（保留上述已知末行计数 XFAIL）。详见 [阶段四实施与验收](2026-09-07-settings-auxiliary-phase4.md)。
