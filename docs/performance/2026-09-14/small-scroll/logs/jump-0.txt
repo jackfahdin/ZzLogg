@@ -1,0 +1,18 @@
+********* Start testing of ApplicationTranslationTest *********
+Config: Using QtTest library 6.11.0, Qt 6.11.0 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022), windows 11
+PASS   : ApplicationTranslationTest::initTestCase()
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll probe: settle_ms=300, steps=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll motion: jump
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=1997177200, calls=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=1956304300, calls=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=14617500, calls=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=1626204400, calls=35999
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=38794000, calls=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll segments: set_value_ns=12873500, repaint_ns=2379568000, events_ns=15100700
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: viewport=1239x539, dpr=1.00, paint_events=1000
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: bytes=138420224, lines=2097152, open_ms=233, search_ms=187, scroll_ms=2407
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: peak_working_set_bytes=333455360
+PASS   : ApplicationTranslationTest::opensAndSearchesLargeLog()
+PASS   : ApplicationTranslationTest::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 3503ms
+********* Finished testing of ApplicationTranslationTest *********
