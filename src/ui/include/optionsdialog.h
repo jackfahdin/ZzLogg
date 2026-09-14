@@ -85,6 +85,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
 
   protected:
     void changeEvent( QEvent* event ) override;
+    void showEvent( QShowEvent* event ) override;
 
   private Q_SLOTS:
     // Clears and updates the font size box with the sizes allowed
@@ -102,6 +103,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     void checkShortcutsOnDuplicate() const;
 
   private:
+    void fitToAvailableScreen();
     void setupTabs();
     void setupFontList();
     void setupRegexp();

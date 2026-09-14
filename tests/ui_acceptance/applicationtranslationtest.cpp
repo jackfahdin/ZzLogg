@@ -59,6 +59,9 @@
 #include <QTabWidget>
 #include <QtTest>
 #include <QValidator>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <QScreen>
 
 namespace {
 
@@ -137,6 +140,65 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void preferencesKeepButtonsVisibleInSmallWindow_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<bool>("dark");
+        QTest::newRow("english-light") << QString("en") << false;
+        QTest::newRow("chinese-light") << QString("zh_CN") << false;
+        QTest::newRow("english-dark") << QString("en") << true;
+        QTest::newRow("chinese-dark") << QString("zh_CN") << true;
+    }
+
+    void preferencesKeepButtonsVisibleInSmallWindow()
+    {
+        QFETCH(QString, language);
+        QFETCH(bool, dark);
+        QCOMPARE(MainWindow::installLanguage(language), 0);
+        const QString previousStyle = QApplication::style()->objectName();
+        const auto previousPalette = QApplication::palette();
+        const auto previousFluent = qApp->property("zzlogg.fluentUi");
+        auto& theme = testTheme();
+        const auto previousMode = theme.mode();
+        auto restoreStyle = qScopeGuard([&] {
+            QApplication::setStyle(previousStyle);
+            QApplication::setPalette(previousPalette);
+            qApp->setProperty("zzlogg.fluentUi", previousFluent);
+            theme.setMode(previousMode);
+        });
+        theme.setMode(dark ? ZzFluentUI::ZzThemeMode::Dark : ZzFluentUI::ZzThemeMode::Light);
+        qApp->setProperty("zzlogg.fluentUi", true);
+        QApplication::setStyle(new ZzFluentUI::ZzFluentStyle(&theme));
+        OptionsDialog dialog;
+        dialog.show();
+        QTest::qWait(50);
+        QVERIFY(dialog.screen()->availableGeometry().contains(dialog.frameGeometry()));
+        dialog.resize(640, 500);
+        QCoreApplication::processEvents();
+        QVERIFY(dialog.height() <= 500);
+        auto* buttons = dialog.findChild<QDialogButtonBox*>("buttonBox");
+        QVERIFY(buttons);
+        const auto buttonPosition = buttons->mapTo(&dialog, QPoint{});
+        QVERIFY(dialog.rect().contains(QRect(buttonPosition, buttons->size())));
+        for (auto standard : {QDialogButtonBox::Ok, QDialogButtonBox::Cancel, QDialogButtonBox::Apply})
+            QVERIFY(buttons->button(standard)->isVisible());
+        auto* area = dialog.findChild<QScrollArea*>("preferencesScrollArea");
+        QVERIFY(area);
+        QVERIFY(area->verticalScrollBar()->maximum() > 0);
+        auto* tabs = dialog.findChild<QTabWidget*>("tabWidget");
+        QVERIFY(tabs);
+        for (int i = 0; i < tabs->count(); ++i) {
+            tabs->setCurrentIndex(i);
+            QCoreApplication::processEvents();
+            QCOMPARE(buttons->mapTo(&dialog, QPoint{}), buttonPosition);
+        }
+        area->verticalScrollBar()->setValue(area->verticalScrollBar()->maximum());
+        QCoreApplication::processEvents();
+        QCOMPARE(buttons->mapTo(&dialog, QPoint{}), buttonPosition);
+        buttons->button(QDialogButtonBox::Cancel)->click();
+        QVERIFY(!dialog.isVisible());
+    }
+
     void removesTailResultAfterAppend_data()
     {
         QTest::addColumn<bool>("markedTail");

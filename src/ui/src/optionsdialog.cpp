@@ -41,6 +41,10 @@
 #include <QKeySequenceEdit>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QScrollArea>
+#include <QScreen>
+#include <QTimer>
+#include <QWindow>
 #include <QToolButton>
 #include <QUuid>
 #include <QtGui>
@@ -170,6 +174,42 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     setupSearchResultsCache();
     setupLogging();
     setupArchives();
+
+    // Keep action buttons outside the scrollable content on small/high-DPI screens.
+    verticalLayout_2->removeWidget( tabWidget );
+    auto* scrollArea = new QScrollArea( this );
+    scrollArea->setObjectName( QStringLiteral( "preferencesScrollArea" ) );
+    scrollArea->setFrameShape( QFrame::NoFrame );
+    scrollArea->setWidgetResizable( true );
+    scrollArea->setWidget( tabWidget );
+    verticalLayout_2->insertWidget( 0, scrollArea, 1 );
+}
+
+void OptionsDialog::showEvent( QShowEvent* event )
+{
+    QDialog::showEvent( event );
+    if ( windowHandle() ) {
+        connect( windowHandle(), &QWindow::screenChanged, this,
+                 &OptionsDialog::fitToAvailableScreen, Qt::UniqueConnection );
+    }
+    fitToAvailableScreen();
+    // Native frame margins can become available only after the first show event.
+    QTimer::singleShot( 0, this, &OptionsDialog::fitToAvailableScreen );
+}
+
+void OptionsDialog::fitToAvailableScreen()
+{
+    if ( !screen() )
+        return;
+    const QRect available = screen()->availableGeometry().adjusted( 8, 8, -8, -8 );
+    const QSize frameExtra = frameGeometry().size() - size();
+    resize( size().boundedTo( available.size() - frameExtra ) );
+    const QRect frame = frameGeometry();
+    const QPoint target( qBound( available.left(), frame.left(),
+                                qMax( available.left(), available.right() - frame.width() + 1 ) ),
+                         qBound( available.top(), frame.top(),
+                                 qMax( available.top(), available.bottom() - frame.height() + 1 ) ) );
+    move( pos() + target - frame.topLeft() );
 }
 
 void OptionsDialog::changeEvent( QEvent* event )
