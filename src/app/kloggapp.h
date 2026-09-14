@@ -46,7 +46,6 @@
 
 #include "configuration.h"
 #include "applicationrunner.h"
-#include "crashhandler.h"
 #include "klogg_version.h"
 #include "log.h"
 #include "logger.h"
@@ -135,10 +134,6 @@ class KloggApp : public QApplication {
         } );
     }
 
-    void initCrashHandler()
-    {
-        crashHandler_ = std::make_unique<CrashHandler>();
-    }
 
     using MainWindowFactory = std::function<MainWindow*(WindowSession)>;
     void setMainWindowFactory(MainWindowFactory factory) {
@@ -421,7 +416,6 @@ class KloggApp : public QApplication {
 
   private:
     KDSingleApplication singleApplication_;
-    std::unique_ptr<CrashHandler> crashHandler_;
 
     MessageReceiver messageReceiver_;
 

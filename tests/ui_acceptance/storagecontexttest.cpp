@@ -30,7 +30,6 @@ void StorageContextTest::exposesStableLayout()
     QCOMPARE( context.sessionFilePath(),
               QStringLiteral( "C:/data/ZzLogg/session/ZzLogg_session.ini" ) );
     QCOMPARE( context.logsDirectory(), QStringLiteral( "C:/data/ZzLogg/logs" ) );
-    QCOMPARE( context.crashesDirectory(), QStringLiteral( "C:/data/ZzLogg/crashes" ) );
     QCOMPARE( context.manifestFilePath(),
               QStringLiteral( "C:/data/ZzLogg/storage-manifest.ini" ) );
 }
@@ -73,7 +72,8 @@ void StorageContextTest::createsFixedDirectories()
     QVERIFY( QDir( context.configDirectory() ).exists() );
     QVERIFY( QDir( context.sessionDirectory() ).exists() );
     QVERIFY( QDir( context.logsDirectory() ).exists() );
-    QVERIFY( QDir( context.crashesDirectory() ).exists() );
+    QCOMPARE( QDir( dataRoot ).entryList( QDir::Dirs | QDir::NoDotAndDotDot ),
+              QStringList( { "config", "logs", "session" } ) );
 }
 
 void StorageContextTest::concurrentInstallSucceedsExactlyOnce()

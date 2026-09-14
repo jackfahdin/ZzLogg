@@ -167,7 +167,7 @@ endif()
 
 add_executable(zzlogg_storage_consumers_test storageconsumerstest.cpp)
 target_link_libraries(zzlogg_storage_consumers_test PRIVATE
-  klogg_logging klogg_crash_handler klogg_storage Qt6::Test Qt6::Core)
+  klogg_logging klogg_support klogg_storage Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_storage_consumers_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.storage_consumers
          COMMAND zzlogg_storage_consumers_test)
@@ -369,7 +369,7 @@ endif()
 
 add_executable(zzlogg_brand_contract_test brandcontracttest.cpp)
 target_link_libraries(zzlogg_brand_contract_test
-  PRIVATE klogg_settings klogg_versioncheck klogg_crash_handler
+  PRIVATE klogg_settings klogg_versioncheck klogg_support
           Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_brand_contract_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.brand_contract
@@ -457,7 +457,7 @@ add_executable(zzlogg_restart_contract_test restartcontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_restart_contract_test PRIVATE
-  klogg_ui klogg_logdata klogg_versioncheck klogg_crash_handler
+  klogg_ui klogg_logdata klogg_versioncheck klogg_support
   klogg_storage roaring kdsingleapp Qt6::Test Qt6::Widgets)
 target_include_directories(zzlogg_restart_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
@@ -536,7 +536,7 @@ add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
   zzlogg_ui_runtime klogg_ui klogg_logdata klogg_versioncheck
-  klogg_crash_handler roaring kdsingleapp Qt6::Test Qt6::Widgets)
+  klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)
 target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 set_target_properties(zzlogg_runtime_contract_test PROPERTIES

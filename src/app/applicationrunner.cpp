@@ -542,7 +542,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     const auto storageResult = bootstrapStorage(
         applicationDirectory, appConfigDirectory, userDataDirectory,
         legacyUserSettingsDirectory,
-        QDir{ userDataDirectory }.filePath( QStringLiteral( "klogg_dump" ) ), parameters.data_dir,
+        parameters.data_dir,
         []( const StorageBootstrapPrompt& prompt ) -> std::optional<StorageLocation> {
             StorageBootstrapDialog dialog;
             dialog.configurePaths( prompt.applicationDirectory, prompt.userDataDirectory );
@@ -588,7 +588,6 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     logging::enableLogging( parameters.enable_logging || config.enableLogging(), logLevel );
     logging::enableFileLogging( parameters.log_to_file || config.enableLogging(), logLevel );
 
-    app.initCrashHandler();
 
     auto maxConcurrency
         = tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism );

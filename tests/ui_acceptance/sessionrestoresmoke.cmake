@@ -50,7 +50,7 @@ if(NOT seed_result EQUAL 0)
     "UI session seed failed: ${seed_result}\n${seed_stdout}\n${seed_stderr}")
 endif()
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
-        session/ZzLogg_session.ini logs crashes)
+        session/ZzLogg_session.ini logs)
   if(NOT EXISTS "${data_root}/${storage_entry}")
     message(FATAL_ERROR "UI session smoke storage entry missing: ${data_root}/${storage_entry}")
   endif()

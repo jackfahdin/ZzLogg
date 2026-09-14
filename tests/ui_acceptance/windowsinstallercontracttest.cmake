@@ -97,8 +97,6 @@ foreach(forbidden_staging_line IN ITEMS
 endforeach()
 
 set(required_staging_lines
-  [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe" release]=]
-  [=[xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe" release]=]
   [=[xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release]=]
   [=[xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release]=]
   [=[xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release]=])
@@ -128,8 +126,6 @@ file(MAKE_DIRECTORY "${manifest_staging}")
 file(COPY "${RUNTIME_DIR}/" DESTINATION "${manifest_staging}")
 file(MAKE_DIRECTORY "${manifest_staging}/plugins/nested")
 file(WRITE "${manifest_staging}/ZzLogg.exe" "main")
-file(WRITE "${manifest_staging}/ZzLogg_crashpad_handler.exe" "handler")
-file(WRITE "${manifest_staging}/ZzLogg_minidump_dump.exe" "dump")
 file(WRITE "${manifest_staging}/documentation.html" "docs")
 file(WRITE "${manifest_staging}/libcrypto-1_1-x64.dll" "crypto")
 file(WRITE "${manifest_staging}/libssl-1_1-x64.dll" "ssl")

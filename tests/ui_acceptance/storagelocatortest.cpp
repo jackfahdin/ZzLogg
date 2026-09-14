@@ -346,7 +346,7 @@ void StorageLocatorTest::writePendingPreservesVerifiedSourceState()
         target,
         temporaryDirectory.filePath( QStringLiteral( "legacy.ini" ) ),
         temporaryDirectory.filePath( QStringLiteral( "session.ini" ) ),
-        temporaryDirectory.filePath( QStringLiteral( "crashes" ) )
+        temporaryDirectory.filePath( QStringLiteral( "logs" ) )
     };
 
     QVERIFY2( store.writePending( request, &error ), qPrintable( error ) );
@@ -838,7 +838,7 @@ void StorageLocatorTest::rejectsPendingWhoseSourceDiffersFromActive()
               "[Pending]\ntransactionId=pending-id\nsourceMode=program\nsourceRoot=%"
               "1\nsourceLocator=%2\n"
               "targetMode=custom\ntargetRoot=%3\ntargetLocator=%4\nlegacyConfigFile=config.ini\n"
-              "legacySessionFile=session.ini\nlegacyCrashDirectory=crashes\n" )
+              "legacySessionFile=session.ini\nsourceLogsDirectory=logs\n" )
               .arg( temporaryDirectory.filePath( QStringLiteral( "other-source" ) ),
                     store.programLocatorPath(), targetRoot, store.userLocatorPath() )
               .toUtf8();
@@ -922,7 +922,7 @@ void StorageLocatorTest::roundTripsCompleteProgramRelativePending()
         target,
         temporaryDirectory.filePath( QStringLiteral( "legacy-config.ini" ) ),
         temporaryDirectory.filePath( QStringLiteral( "legacy-session.ini" ) ),
-        temporaryDirectory.filePath( QStringLiteral( "legacy-crashes" ) )
+        temporaryDirectory.filePath( QStringLiteral( "legacy-logs" ) )
     };
     request.sourceLogsDirectory = temporaryDirectory.filePath( QStringLiteral( "stored-logs" ) );
     QString error;
@@ -946,7 +946,6 @@ void StorageLocatorTest::roundTripsCompleteProgramRelativePending()
     QCOMPARE( pending.target.locatorPath, store.userLocatorPath() );
     QCOMPARE( pending.legacyConfigFile, request.legacyConfigFile );
     QCOMPARE( pending.legacySessionFile, request.legacySessionFile );
-    QCOMPARE( pending.legacyCrashDirectory, request.legacyCrashDirectory );
     QCOMPARE( pending.sourceLogsDirectory, request.sourceLogsDirectory );
     QCOMPARE( pending.source.mode, resolution.state->active.mode );
     QCOMPARE( pending.source.dataRoot, resolution.state->active.dataRoot );
@@ -965,7 +964,7 @@ void StorageLocatorTest::readsPendingWithoutSourceLogsAsLegacyCompatible()
         = QStringLiteral( "[Storage]\nformatVersion=1\nmode=user\ndataRoot=%1\nverified=true\n"
                           "[Pending]\ntransactionId=old-pending\nsourceMode=user\nsourceRoot=%1\n"
                           "sourceLocator=%2\ntargetMode=program\ntargetRoot=%3\ntargetLocator=%4\n"
-                          "legacyConfigFile=\nlegacySessionFile=\nlegacyCrashDirectory=\n" )
+                          "legacyConfigFile=\nlegacySessionFile=\n" )
               .arg( sourceRoot, store.userLocatorPath(), targetRoot, store.programLocatorPath() )
               .toUtf8();
     QVERIFY( writeRawLocator( store.userLocatorPath(), locator ) );

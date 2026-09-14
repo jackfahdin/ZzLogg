@@ -91,8 +91,6 @@ void MainWindow::createMenus(QMenuBar& container)
     helpMenu->addSeparator();
     helpMenu->addAction( reportIssueAction );
     helpMenu->addSeparator();
-    helpMenu->addAction( generateDumpAction );
-    helpMenu->addSeparator();
     helpMenu->addAction( aboutQtAction );
     helpMenu->addAction( aboutAction );
 }

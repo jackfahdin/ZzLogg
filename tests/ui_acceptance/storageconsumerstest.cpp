@@ -9,7 +9,6 @@
 #include <memory>
 #include <sstream>
 
-#include "crashhandler.h"
 #include "logger.h"
 #include "storagecontext.h"
 
@@ -19,7 +18,7 @@ class StorageConsumersTest final : public QObject {
   private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
-    void storesLogsAndCrashesInsideTheInstalledDataRoot();
+    void storesLogsInsideTheInstalledDataRoot();
     void keepsConsoleLoggingWhenTheLogFileCannotBeOpened();
 
   private:
@@ -43,7 +42,7 @@ void StorageConsumersTest::cleanupTestCase()
     logging::enableFileLogging( false );
 }
 
-void StorageConsumersTest::storesLogsAndCrashesInsideTheInstalledDataRoot()
+void StorageConsumersTest::storesLogsInsideTheInstalledDataRoot()
 {
     const auto& context = StorageContext::current();
 
@@ -72,8 +71,6 @@ void StorageConsumersTest::storesLogsAndCrashesInsideTheInstalledDataRoot()
     QVERIFY( logFile.open( QIODevice::ReadOnly ) );
     QVERIFY( QString::fromUtf8( logFile.readAll() ).contains( message ) );
 
-    QCOMPARE( QDir::cleanPath( crashDatabasePath() ),
-              QDir::cleanPath( context.crashesDirectory() ) );
 }
 
 void StorageConsumersTest::keepsConsoleLoggingWhenTheLogFileCannotBeOpened()

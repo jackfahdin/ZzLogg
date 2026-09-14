@@ -33,7 +33,6 @@ class StorageContext final {
     QString configDirectory() const;
     QString sessionDirectory() const;
     QString logsDirectory() const;
-    QString crashesDirectory() const;
     QString configFilePath() const;
     QString sessionFilePath() const;
     QString manifestFilePath() const;

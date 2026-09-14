@@ -10,7 +10,6 @@ set(current_entry_files
   "${SOURCE_ROOT}/docs/DOCUMENTATION.md"
   "${SOURCE_ROOT}/.github/CONTRIBUTING.md"
   "${SOURCE_ROOT}/src/app/CMakeLists.txt"
-  "${SOURCE_ROOT}/src/crash_handler/src/crashhandler.cpp"
   "${SOURCE_ROOT}/cmake/ZzLoggBrand.cmake"
   "${SOURCE_ROOT}/cmake/ZzLoggIconInstall.cmake"
   "${SOURCE_ROOT}/packaging/osx/dmg_setup.scpt"
@@ -50,10 +49,6 @@ set(forbidden_literals
   "output/klogg.app"
   "ubuntu_appimage"
   "windows-x86-qt5")
-
-list(APPEND forbidden_literals
-  "klogg_crashpad_handler"
-  "klogg_minidump_dump")
 
 set(violations)
 foreach(expected_entry IN LISTS expected_scanned_entries)
@@ -151,15 +146,7 @@ require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central homepage is not exact" "set(ZZLOGG_HOMEPAGE_URL \"https://gitcode.com/JackfahdinQt/ZzLogg\")")
 require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central identifier is not exact" "set(ZZLOGG_IDENTIFIER \"com.gitcode.jackfahdinqt.zzlogg\")")
-require_entry_line(
-  "cmake/ZzLoggBrand.cmake" "crashpad helper name is not centralized" "set(ZZLOGG_CRASHPAD_HANDLER_NAME \"ZzLogg_crashpad_handler\")")
-require_entry_line(
-  "cmake/ZzLoggBrand.cmake" "minidump helper name is not centralized" "set(ZZLOGG_MINIDUMP_DUMP_NAME \"ZzLogg_minidump_dump\")")
 
-require_entry_literal(
-  "cmake/zzlogg_brand.h.in" "runtime crashpad helper name is not centralized" [=[inline constexpr char CrashpadHandlerName[] = "@ZZLOGG_CRASHPAD_HANDLER_NAME@";]=])
-require_entry_literal(
-  "cmake/zzlogg_brand.h.in" "runtime minidump helper name is not centralized" [=[inline constexpr char MinidumpDumpName[] = "@ZZLOGG_MINIDUMP_DUMP_NAME@";]=])
 
 require_entry_literal(
   "CMakeLists.txt" "CPack name is not centralized" [=[set(CPACK_PACKAGE_NAME "${ZZLOGG_PRODUCT_NAME}")]=])
@@ -199,14 +186,6 @@ require_entry_literal(
 require_entry_literal(
   "packaging/windows/ZzLogg.nsi" "installer does not consume the complete staged tree" [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
 require_entry_literal(
-  "src/app/CMakeLists.txt" "build does not publish the centralized crashpad helper name" [=[${ZZLOGG_CRASHPAD_HANDLER_NAME}]=])
-require_entry_literal(
-  "src/app/CMakeLists.txt" "build does not publish the centralized minidump helper name" [=[${ZZLOGG_MINIDUMP_DUMP_NAME}]=])
-require_entry_literal(
-  "src/crash_handler/src/crashhandler.cpp" "runtime does not locate the centralized crashpad helper" [=[zzlogg::brand::CrashpadHandlerName]=])
-require_entry_literal(
-  "src/crash_handler/src/crashhandler.cpp" "runtime does not locate the centralized minidump helper" [=[zzlogg::brand::MinidumpDumpName]=])
-require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the OpenSSL crypto DLL" "xcopy /y \"%SSL_DIR%\\libcrypto-1_1-x64.dll\" release\\")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the OpenSSL SSL DLL" "xcopy /y \"%SSL_DIR%\\libssl-1_1-x64.dll\" release\\")
@@ -218,10 +197,6 @@ require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging does not check the OpenSSL SSL source" "if not exist \"%SSL_DIR%\\libssl-1_1-x64.dll\" (")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "makensis does not preserve the repository-root working directory" "arguments: \"/NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%\"")
-require_entry_literal(
-  ".github/actions/agent-package-win/action.yml" "Windows staging omits the branded crashpad helper" "xcopy /y \"%KLOGG_BUILD_ROOT%\\output\\ZzLogg_crashpad_handler.exe\" release\\")
-require_entry_literal(
-  ".github/actions/agent-package-win/action.yml" "Windows staging omits the branded minidump helper" "xcopy /y \"%KLOGG_BUILD_ROOT%\\output\\ZzLogg_minidump_dump.exe\" release\\")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the unified runtime folder" "xcopy /e /i /y \"%KLOGG_BUILD_ROOT%\\runtime\\RelWithDebInfo\\ZzLogg-runtime\" release")
 require_entry_literal(

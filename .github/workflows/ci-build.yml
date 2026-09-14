@@ -94,7 +94,6 @@ jobs:
           cmake -S . -B build-linux -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DKLOGG_BUILD_UI_TESTS=ON
-          -DKLOGG_USE_SENTRY=OFF
           -DKLOGG_USE_VECTORSCAN=OFF
           -DKLOGG_USE_HYPERSCAN=OFF
           -DKLOGG_OVERRIDE_MALLOC=OFF
@@ -267,7 +266,6 @@ jobs:
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
       - uses: actions/checkout@v3
-      
       - name: Setup Xcode
         shell: sh
         run: sudo xcode-select -s /Applications/Xcode_15.2.app
@@ -344,7 +342,6 @@ jobs:
       - uses: ./.github/actions/agent-setup
       - uses: ./.github/actions/klogg-version
       - uses: ./.github/actions/prepare-workspace-env
-      
       - name: Prepare dev cmd
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -357,7 +354,6 @@ jobs:
           s3-key-id: ${{ secrets.WIN_CS_KEY_ID }}
           s3-secret: ${{ secrets.WIN_CS_SECRET }}
           s3-bucket: ${{ secrets.WIN_CS_BUCKET }}
-     
 # Final upload of all packages
       - uses: actions/upload-artifact@v3
         with:

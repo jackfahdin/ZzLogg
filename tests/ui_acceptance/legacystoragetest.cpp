@@ -40,8 +40,6 @@ void LegacyStorageTest::portableConfigTakesPriorityOverUserFiles()
     QVERIFY( temporaryDirectory.isValid() );
     const QString applicationDirectory = temporaryDirectory.filePath( QStringLiteral( "app" ) );
     const QString userDirectory = temporaryDirectory.filePath( QStringLiteral( "user" ) );
-    const QString oldCrashDirectory
-        = temporaryDirectory.filePath( QStringLiteral( "user-crashes" ) );
     QVERIFY(
         writeFile( QDir{ applicationDirectory }.filePath( QStringLiteral( "ZzLogg.conf" ) ) ) );
     QVERIFY( writeFile(
@@ -51,7 +49,7 @@ void LegacyStorageTest::portableConfigTakesPriorityOverUserFiles()
         writeFile( QDir{ userDirectory }.filePath( QStringLiteral( "ZzLogg_session.ini" ) ) ) );
 
     const auto detected
-        = LegacyStorageDetector::detect( applicationDirectory, userDirectory, oldCrashDirectory );
+        = LegacyStorageDetector::detect( applicationDirectory, userDirectory );
 
     QVERIFY( detected.has_value() );
     QCOMPARE( detected->mode, StorageMode::ProgramDirectory );
@@ -59,8 +57,6 @@ void LegacyStorageTest::portableConfigTakesPriorityOverUserFiles()
               normalized( applicationDirectory + QStringLiteral( "/ZzLogg.conf" ) ) );
     QCOMPARE( detected->sessionFile,
               normalized( applicationDirectory + QStringLiteral( "/ZzLogg_session.conf" ) ) );
-    QCOMPARE( detected->crashDirectory,
-              normalized( applicationDirectory + QStringLiteral( "/klogg_dump" ) ) );
 }
 
 void LegacyStorageTest::userConfigOrSessionAloneIsDetected_data()
@@ -81,19 +77,16 @@ void LegacyStorageTest::userConfigOrSessionAloneIsDetected()
     QVERIFY( temporaryDirectory.isValid() );
     const QString applicationDirectory = temporaryDirectory.filePath( QStringLiteral( "app" ) );
     const QString userDirectory = temporaryDirectory.filePath( QStringLiteral( "user" ) );
-    const QString oldCrashDirectory
-        = temporaryDirectory.filePath( QStringLiteral( "old-crashes" ) );
     QVERIFY( writeFile( QDir{ userDirectory }.filePath( existingName ) ) );
 
     const auto detected
-        = LegacyStorageDetector::detect( applicationDirectory, userDirectory, oldCrashDirectory );
+        = LegacyStorageDetector::detect( applicationDirectory, userDirectory );
 
     QVERIFY( detected.has_value() );
     QCOMPARE( detected->mode, StorageMode::UserDirectory );
     QCOMPARE( detected->configFile, normalized( userDirectory + QStringLiteral( "/ZzLogg.ini" ) ) );
     QCOMPARE( detected->sessionFile,
               normalized( QDir{ userDirectory }.filePath( expectedSessionName ) ) );
-    QCOMPARE( detected->crashDirectory, normalized( oldCrashDirectory ) );
 }
 
 void LegacyStorageTest::returnsNothingWhenNoLegacyIniExists()
@@ -103,8 +96,7 @@ void LegacyStorageTest::returnsNothingWhenNoLegacyIniExists()
 
     const auto detected = LegacyStorageDetector::detect(
         temporaryDirectory.filePath( QStringLiteral( "app" ) ),
-        temporaryDirectory.filePath( QStringLiteral( "user" ) ),
-        temporaryDirectory.filePath( QStringLiteral( "crashes" ) ) );
+        temporaryDirectory.filePath( QStringLiteral( "user" ) ) );
 
     QVERIFY( !detected.has_value() );
 }

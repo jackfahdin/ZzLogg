@@ -26,5 +26,5 @@ StorageBootstrapResult
 bootstrapStorage( const QString& applicationDirectory, const QString& appConfigDirectory,
                   const QString& userDataDirectory,
                   const QString& legacyUserSettingsDirectory,
-                  const QString& oldCrashDirectory, const QString& commandLineDataRoot,
+                  const QString& commandLineDataRoot,
                   StorageSelectionProvider selectionProvider );

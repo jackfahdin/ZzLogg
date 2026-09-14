@@ -121,7 +121,6 @@ bool sameRequest( const StorageMigrationRequest& left, const StorageMigrationReq
            && sameLocation( left.target, right.target )
            && samePath( left.legacyConfigFile, right.legacyConfigFile )
            && samePath( left.legacySessionFile, right.legacySessionFile )
-           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory )
            && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory );
 }
 
@@ -172,11 +171,9 @@ std::unique_ptr<QLockFile> lockLocatorMutations( const LocatorPaths& paths, QStr
 bool oldPendingSourceLocatorExisted( bool verified, const StorageLocation& source,
                                      const QString& legacyConfigFile,
                                      const QString& legacySessionFile,
-                                     const QString& legacyCrashDirectory,
                                      const QString& sourceLogsDirectory )
 {
     const bool hasLegacyInputs = !legacyConfigFile.isEmpty() || !legacySessionFile.isEmpty()
-                                 || !legacyCrashDirectory.isEmpty()
                                  || !sourceLogsDirectory.isEmpty();
     const QString manifest
         = QDir{ source.dataRoot }.filePath( QStringLiteral( "storage-manifest.ini" ) );
@@ -301,8 +298,6 @@ bool writeState( const QString& path, const StorageLocatorState& state, const Lo
                                pending.legacyConfigFile );
             settings.setValue( QStringLiteral( "Pending/legacySessionFile" ),
                                pending.legacySessionFile );
-            settings.setValue( QStringLiteral( "Pending/legacyCrashDirectory" ),
-                               pending.legacyCrashDirectory );
             settings.setValue( QStringLiteral( "Pending/sourceLogsDirectory" ),
                                pending.sourceLogsDirectory );
             settings.setValue( QStringLiteral( "Pending/sourceLocatorExisted" ),
@@ -405,8 +400,7 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                                        QStringLiteral( "Pending/targetRoot" ),
                                        QStringLiteral( "Pending/targetLocator" ),
                                        QStringLiteral( "Pending/legacyConfigFile" ),
-                                       QStringLiteral( "Pending/legacySessionFile" ),
-                                       QStringLiteral( "Pending/legacyCrashDirectory" ) };
+                                       QStringLiteral( "Pending/legacySessionFile" ) };
         for ( const QString& key : pendingKeys ) {
             if ( !settings.contains( key ) ) {
                 return {
@@ -455,13 +449,11 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
             = settings.value( QStringLiteral( "Pending/legacyConfigFile" ) ).toString();
         const QString legacySessionFile
             = settings.value( QStringLiteral( "Pending/legacySessionFile" ) ).toString();
-        const QString legacyCrashDirectory
-            = settings.value( QStringLiteral( "Pending/legacyCrashDirectory" ) ).toString();
         const QString sourceLogsDirectory
             = settings.value( QStringLiteral( "Pending/sourceLogsDirectory" ) ).toString();
         bool sourceLocatorExisted
             = oldPendingSourceLocatorExisted( verified, source, legacyConfigFile, legacySessionFile,
-                                              legacyCrashDirectory, sourceLogsDirectory );
+                                              sourceLogsDirectory );
         if ( settings.contains( QStringLiteral( "Pending/sourceLocatorExisted" ) )
              && !boolValue( settings, QStringLiteral( "Pending/sourceLocatorExisted" ),
                             &sourceLocatorExisted ) ) {
@@ -474,7 +466,6 @@ ReadResult readState( const QString& path, const LocatorPaths& paths )
                                                  target,
                                                  legacyConfigFile,
                                                  legacySessionFile,
-                                                 legacyCrashDirectory,
                                                  sourceLogsDirectory,
                                                  sourceLocatorExisted };
     }
@@ -524,15 +515,11 @@ bool normalizedRequest( const StorageMigrationRequest& input, const LocatorPaths
     }
     QString legacyConfigFile;
     QString legacySessionFile;
-    QString legacyCrashDirectory;
     QString sourceLogsDirectory;
     if ( !normalizedLegacyPath( input.legacyConfigFile, QStringLiteral( "legacy config file" ),
                                 &legacyConfigFile, error )
          || !normalizedLegacyPath( input.legacySessionFile, QStringLiteral( "legacy session file" ),
                                    &legacySessionFile, error )
-         || !normalizedLegacyPath( input.legacyCrashDirectory,
-                                   QStringLiteral( "legacy crash directory" ),
-                                   &legacyCrashDirectory, error )
          || !normalizedLegacyPath( input.sourceLogsDirectory,
                                    QStringLiteral( "source logs directory" ), &sourceLogsDirectory,
                                    error ) ) {
@@ -543,7 +530,6 @@ bool normalizedRequest( const StorageMigrationRequest& input, const LocatorPaths
                 target,
                 legacyConfigFile,
                 legacySessionFile,
-                legacyCrashDirectory,
                 sourceLogsDirectory,
                 input.sourceLocatorExisted };
     return true;

@@ -20,7 +20,6 @@ struct StorageMigrationRequest {
     StorageLocation target;
     QString legacyConfigFile;
     QString legacySessionFile;
-    QString legacyCrashDirectory;
     QString sourceLogsDirectory;
     bool sourceLocatorExisted = true;
 };

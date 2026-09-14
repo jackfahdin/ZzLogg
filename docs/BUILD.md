@@ -19,10 +19,8 @@ git submodule update --init --recursive
 ```
 
 ZzPureTools is a pinned, required build dependency and the repository's only
-remaining Git submodule. backward-cpp v1.6 is tracked directly under
-`3rdparty/vendor/backward-cpp`, so that dependency is available offline after
-the ZzLogg source tree itself has been cloned or archived. This does not make
-Qt, Boost, OpenSSL, or every CPM/CI dependency offline.
+remaining Git submodule. Qt, Boost, OpenSSL, and CPM/CI dependencies may still
+require separate installation or network access.
 
 ## Framework linkage
 
@@ -138,7 +136,7 @@ targets.
 ## Storage location and migration
 
 On first launch, ZzLogg asks where its persistent configuration, saved session,
-logs, and crash data should live. Canceling the chooser exits without creating
+and logs should live. Canceling the chooser exits without creating
 configuration. The choices are:
 
 - **User data directory**: the platform's per-user application data location;
@@ -147,7 +145,7 @@ configuration. The choices are:
 - **Custom directory**: an absolute directory selected by the user.
 
 The selected root contains `config/ZzLogg.ini`,
-`session/ZzLogg_session.ini`, `logs/`, `crashes/`, and
+`session/ZzLogg_session.ini`, `logs/`, and
 `storage-manifest.ini`. `--data-dir <absolute-path>` is a process-only override
 and does not replace the saved storage locator.
 
@@ -196,7 +194,6 @@ self-contained archive staging. Both forms run the same `ZzLogg.exe`.
 
 - `KLOGG_BUILD_UI_TESTS=ON` enables the focused UI tests;
 - `KLOGG_USE_HYPERSCAN=OFF` selects the Qt regular-expression backend;
-- `KLOGG_USE_SENTRY=ON` enables crash-reporting support;
 - `zzlogg_runtime_folder` creates the Windows self-contained runtime tree.
 
 These options do not create a second GUI. The public executable, package, and

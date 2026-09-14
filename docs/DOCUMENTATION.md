@@ -416,21 +416,6 @@ a desired level of verbosity. Log files are saved to a temporary directory.
 A log level of 4 or 5 is usually enough. Enabling logging can slow down 
 regular expressions search.
 
-## Crash reporting
-
-*ZzLogg* uses Crashpad crash handler to collect minidump files in case of
-unexpected crashes. At startup, *ZzLogg* checks for new minidumps and asks  the user
-if these files should be sent to developers.
-
-Crash report provides information about:
-
-* operating system: name, version, architecture, cpu features, system memory
-* Qt version
-* modules that were loaded into *ZzLogg* process: filename, size and hashes for symbols
-* stacktraces for all running threads in *ZzLogg* process
-
-These minidumps do not include the full content of *ZzLogg* process memory during the crash.
-
 ## Keyboard commands
 
 *ZzLogg* keyboard commands try to approximately emulate the default

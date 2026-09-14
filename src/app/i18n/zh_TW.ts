@@ -553,16 +553,6 @@
         <translation>%1 -- 切換到已開啟的檔案</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2332"/>
-        <source>%1 - generate crash dump</source>
-        <translation>%1 - 產生當機記錄</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2333"/>
-        <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
-        <translation>這將關閉 %1 並產生診斷當機傾印。是否繼續？</translation>
-    </message>
-    <message>
         <location filename="../../ui/src/mainwindow.cpp" line="416"/>
         <location filename="../../ui/src/mainwindow.cpp" line="903"/>
         <source>Open window</source>
@@ -2345,16 +2335,6 @@
         <location filename="../../ui/src/mainwindowtext.cpp" line="80"/>
         <source>Report an issue on GitCode</source>
         <translation>在 GitCode 上回報問題</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="81"/>
-        <source>Generate crash dump</source>
-        <translation>產生當機報告</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="82"/>
-        <source>Generate diagnostic crash dump</source>
-        <translation>產生當機診斷報告</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>

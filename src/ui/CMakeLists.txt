@@ -156,5 +156,5 @@ add_library(zzlogg_ui_runtime STATIC include/uiruntime.h src/uiruntime.cpp)
 target_include_directories(zzlogg_ui_runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
   PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
 target_link_libraries(zzlogg_ui_runtime PUBLIC klogg_ui klogg_settings
-  PRIVATE klogg_crash_handler kdsingleapp)
+  PRIVATE klogg_support kdsingleapp)
 set_target_properties(zzlogg_ui_runtime PROPERTIES AUTOMOC ON)

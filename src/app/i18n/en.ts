@@ -743,16 +743,6 @@
         <source>%1 -- switch to file</source>
         <translation>%1 -- switch to file</translation>
     </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2332"/>
-        <source>%1 - generate crash dump</source>
-        <translation>%1 - generate crash dump</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2333"/>
-        <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
-        <translation>This will shut down %1 and generate a diagnostic crash dump. Continue?</translation>
-    </message>
 </context>
 <context>
     <name>OptionsDialog</name>
@@ -2345,16 +2335,6 @@
         <location filename="../../ui/src/mainwindowtext.cpp" line="80"/>
         <source>Report an issue on GitCode</source>
         <translation>Report an issue on GitCode</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="81"/>
-        <source>Generate crash dump</source>
-        <translation>Generate crash dump</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="82"/>
-        <source>Generate diagnostic crash dump</source>
-        <translation>Generate diagnostic crash dump</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>

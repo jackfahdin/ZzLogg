@@ -38,9 +38,7 @@ git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
 cd ZzLogg
 ```
 
-ZzPureTools is a pinned, required build dependency. backward-cpp v1.6 is
-vendored directly in this repository and does not require separate submodule
-initialization or a configure-time download.
+ZzPureTools is a pinned, required build dependency and the only Git submodule.
 
 The project requires a C++20 compiler, CMake 3.23 or later, and Qt 6.8 or
 later. A typical Ninja build uses the checked-in presets (which require CMake
@@ -66,11 +64,11 @@ explicitly and is not part of the default build.
 On first launch, ZzLogg asks whether to keep persistent data in the user data
 directory, an absolute custom directory, or a `data/` directory beside the
 program. Choosing the program directory is the green-use mode: the application
-and its configuration, saved session, logs, and crash data stay together.
+and its configuration, saved session, and logs stay together.
 Canceling the chooser exits without creating configuration.
 
 The selected root uses one layout for every mode:
-`config/ZzLogg.ini`, `session/ZzLogg_session.ini`, `logs/`, `crashes/`, and
+`config/ZzLogg.ini`, `session/ZzLogg_session.ini`, `logs/`, and
 `storage-manifest.ini`. To move it later, open **Preferences > Storage** and
 choose a new empty directory. ZzLogg migrates the existing state and offers
 **Restart now** or **Restart later**; the new location takes effect after the

@@ -96,8 +96,7 @@ bool sameRequestContents( const StorageMigrationRequest& left,
     return sameLocation( left.source, right.source ) && sameLocation( left.target, right.target )
            && samePath( left.legacyConfigFile, right.legacyConfigFile )
            && samePath( left.legacySessionFile, right.legacySessionFile )
-           && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory )
-           && samePath( left.legacyCrashDirectory, right.legacyCrashDirectory );
+           && samePath( left.sourceLogsDirectory, right.sourceLogsDirectory );
 }
 
 } // namespace
@@ -474,7 +473,6 @@ bool OptionsDialog::scheduleStorageMigration()
     request.target = target;
     request.legacyConfigFile = storage.configFilePath();
     request.legacySessionFile = storage.sessionFilePath();
-    request.legacyCrashDirectory = storage.crashesDirectory();
     request.sourceLogsDirectory = storage.logsDirectory();
 
     if ( currentResolution.state->pending.has_value() ) {

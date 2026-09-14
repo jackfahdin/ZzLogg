@@ -156,7 +156,7 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
 StorageBootstrapResult
 bootstrapStorage( const QString& applicationDirectory, const QString& appConfigDirectory,
                   const QString& userDataDirectory, const QString& legacyUserSettingsDirectory,
-                  const QString& oldCrashDirectory, const QString& commandLineDataRoot,
+                  const QString& commandLineDataRoot,
                   StorageSelectionProvider selectionProvider )
 {
     const StorageRuntimePaths runtimePaths{ applicationDirectory, appConfigDirectory,
@@ -185,7 +185,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
          && !resolution.state->pending.has_value() && !resolution.state->verified
          && !StorageValidator::hasCompatibleManifest( resolution.state->active.dataRoot ) ) {
         const auto legacy = LegacyStorageDetector::detect(
-            applicationDirectory, legacyUserSettingsDirectory, oldCrashDirectory );
+            applicationDirectory, legacyUserSettingsDirectory );
         if ( legacy.has_value()
              && sameLocation( resolution.state->active,
                               legacySourceLocation( *legacy, store, applicationDirectory,
@@ -209,7 +209,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
     }
 
     const auto legacy = LegacyStorageDetector::detect(
-        applicationDirectory, legacyUserSettingsDirectory, oldCrashDirectory );
+        applicationDirectory, legacyUserSettingsDirectory );
     if ( legacy.has_value() ) {
         const StorageLocation source = legacySourceLocation( *legacy, store, applicationDirectory,
                                                              legacyUserSettingsDirectory );
@@ -227,8 +227,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
                                                source,
                                                target,
                                                legacy->configFile,
-                                               legacy->sessionFile,
-                                               legacy->crashDirectory };
+                                               legacy->sessionFile };
         const StorageMigrationResult migrated = StorageMigrator{ store }.execute( request );
         if ( !migrated.success ) {
             return errorResult(

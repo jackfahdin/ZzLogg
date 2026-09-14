@@ -26,8 +26,7 @@ bool hasSettingsKeys( const QString& path )
 } // namespace
 
 std::optional<LegacyStorage> LegacyStorageDetector::detect( const QString& applicationDirectory,
-                                                            const QString& userSettingsDirectory,
-                                                            const QString& oldCrashDirectory )
+                                                            const QString& userSettingsDirectory )
 {
     const QDir application{ normalized( applicationDirectory ) };
     const QString portableConfig
@@ -37,8 +36,7 @@ std::optional<LegacyStorage> LegacyStorageDetector::detect( const QString& appli
             = normalized( application.filePath( QStringLiteral( "ZzLogg_session.conf" ) ) );
         return LegacyStorage{
             StorageMode::ProgramDirectory, portableConfig,
-            QFileInfo{ portableSession }.isFile() ? portableSession : portableConfig,
-            normalized( application.filePath( QStringLiteral( "klogg_dump" ) ) )
+            QFileInfo{ portableSession }.isFile() ? portableSession : portableConfig
         };
     }
 
@@ -58,8 +56,7 @@ std::optional<LegacyStorage> LegacyStorageDetector::detect( const QString& appli
                   ? userSession
                   : hasUserSessionConf ? userSessionConf
                                        : hasUserConfig ? userConfig : userSession;
-        return LegacyStorage{ StorageMode::UserDirectory, userConfig, sessionSource,
-                              normalized( oldCrashDirectory ) };
+        return LegacyStorage{ StorageMode::UserDirectory, userConfig, sessionSource };
     }
 
     return std::nullopt;

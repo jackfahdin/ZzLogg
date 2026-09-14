@@ -11,8 +11,6 @@ set(ZZLOGG_SESSION_SETTINGS_APPLICATION "ZzLogg_session")
 set(ZZLOGG_PORTABLE_CONFIG_BASENAME "ZzLogg")
 set(ZZLOGG_ICON_RESOURCE ":/zzlogg/icons/ZzLogg.svg")
 set(ZZLOGG_UPDATE_MANIFEST_URL "")
-set(ZZLOGG_CRASHPAD_HANDLER_NAME "ZzLogg_crashpad_handler")
-set(ZZLOGG_MINIDUMP_DUMP_NAME "ZzLogg_minidump_dump")
 
 function(zzlogg_configure_brand)
   configure_file(

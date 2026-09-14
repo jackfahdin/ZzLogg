@@ -21,7 +21,7 @@ struct Fixture {
     QString appConfigDirectory;
     QString legacyUserSettingsDirectory;
     QString userDataDirectory;
-    QString oldCrashDirectory;
+    QString migrationLogsDirectory;
     StorageLocatorStore store;
 
     explicit Fixture( QString testRoot )
@@ -31,7 +31,7 @@ struct Fixture {
         , legacyUserSettingsDirectory(
               QDir{ root }.filePath( QStringLiteral( "legacy-user-settings" ) ) )
         , userDataDirectory( QDir{ root }.filePath( QStringLiteral( "user-data" ) ) )
-        , oldCrashDirectory( QDir{ root }.filePath( QStringLiteral( "old-crashes" ) ) )
+        , migrationLogsDirectory( QDir{ root }.filePath( QStringLiteral( "migration-logs" ) ) )
         , store( applicationDirectory, appConfigDirectory )
     {
         QDir{}.mkpath( applicationDirectory );
@@ -68,7 +68,7 @@ StorageBootstrapResult run( const Fixture& fixture, const QString& cli,
 {
     return bootstrapStorage( fixture.applicationDirectory, fixture.appConfigDirectory,
                              fixture.userDataDirectory, fixture.legacyUserSettingsDirectory,
-                             fixture.oldCrashDirectory, cli, std::move( provider ) );
+                             cli, std::move( provider ) );
 }
 
 int runScenario( const QString& name, const QString& root )
@@ -371,7 +371,7 @@ int runScenario( const QString& name, const QString& root )
             target,
             QDir{ source.dataRoot }.filePath( QStringLiteral( "ZzLogg.ini" ) ),
             QDir{ source.dataRoot }.filePath( QStringLiteral( "ZzLogg_session.ini" ) ),
-            QDir{ source.dataRoot }.filePath( QStringLiteral( "crashes" ) )
+            QDir{ source.dataRoot }.filePath( QStringLiteral( "logs" ) )
         };
         QString error;
         if ( !prepareManagedRoot( source ) || !fixture.store.writeActive( source, &error )
@@ -422,7 +422,7 @@ int runScenario( const QString& name, const QString& root )
                                                target,
                                                legacyConfig,
                                                legacySession,
-                                               fixture.oldCrashDirectory };
+                                               fixture.migrationLogsDirectory };
         QString error;
         if ( !fixture.store.writeActive( source, &error )
              || !fixture.store.writePending( request, &error ) ) {
@@ -446,12 +446,15 @@ int runScenario( const QString& name, const QString& root )
     if ( name == QStringLiteral( "legacy-failure-stage" ) ) {
         const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
             QStringLiteral( "ZzLogg.ini" ) );
+        const QString invalidSession = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
+            QStringLiteral( "ZzLogg_session.ini" ) );
         if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nretry=after-failure\n" ) )
-             || !writeFile( fixture.oldCrashDirectory, QByteArrayLiteral( "not-a-directory" ) ) ) {
+             || !writeFile( invalidSession,
+                            QByteArrayLiteral( "[General]\nvalid=value\n[broken\n" ) ) ) {
             return EXIT_FAILURE;
         }
         const auto result = run( fixture, {}, neverSelect );
-        const bool removedFault = QFile::remove( fixture.oldCrashDirectory );
+        const bool removedFault = QFile::remove( invalidSession );
         return expect( result.status == StorageBootstrapStatus::Error,
                        QStringLiteral( "legacy migration fault was not reported" ) )
                        && expect( removedFault, QStringLiteral( "legacy fault fixture remained" ) )
@@ -484,7 +487,7 @@ int runScenario( const QString& name, const QString& root )
         const QString legacyConfig
             = QDir{ source.dataRoot }.filePath( QStringLiteral( "ZzLogg.ini" ) );
         if ( !writeFile( legacyConfig, QByteArrayLiteral( "[legacy]\nold-pending=true\n" ) )
-             || !writeFile( fixture.oldCrashDirectory, QByteArrayLiteral( "not-a-directory" ) ) ) {
+             || !writeFile( fixture.migrationLogsDirectory, QByteArrayLiteral( "not-a-directory" ) ) ) {
             return EXIT_FAILURE;
         }
         const StorageMigrationRequest request{ QStringLiteral( "old-format-pending" ),
@@ -492,7 +495,7 @@ int runScenario( const QString& name, const QString& root )
                                                target,
                                                legacyConfig,
                                                legacyConfig,
-                                               fixture.oldCrashDirectory };
+                                               fixture.migrationLogsDirectory };
         QString error;
         if ( !fixture.store.writePending( request, &error ) ) {
             qCritical().noquote() << error;
@@ -508,7 +511,7 @@ int runScenario( const QString& name, const QString& root )
     }
     if ( name == QStringLiteral( "old-legacy-pending-failure" ) ) {
         const auto result = run( fixture, {}, neverSelect );
-        const bool removedFault = QFile::remove( fixture.oldCrashDirectory );
+        const bool removedFault = QFile::remove( fixture.migrationLogsDirectory );
         return expect( result.status == StorageBootstrapStatus::Error,
                        QStringLiteral( "old pending retry fault was not reported" ) )
                        && expect( removedFault,
@@ -581,7 +584,6 @@ int runScenario( const QString& name, const QString& root )
                                                target,
                                                sourceContext.configFilePath(),
                                                sourceContext.sessionFilePath(),
-                                               sourceContext.crashesDirectory(),
                                                sourceContext.logsDirectory() };
         QString error;
         if ( !prepareManagedRoot( source ) || !writeFile( sourceContext.configFilePath(), config )

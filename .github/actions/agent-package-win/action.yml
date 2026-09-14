@@ -23,8 +23,6 @@ runs:
     #  shell: cmd
     #  run: |
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg.exe
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbb12.dll
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbbmalloc.dll
     #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbbmalloc_proxy.dll
@@ -35,8 +33,6 @@ runs:
         cmake --build %KLOGG_BUILD_ROOT% --target zzlogg_runtime_folder
         if exist release rmdir /s /q release
         xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" release
-        xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_crashpad_handler.exe" release\
-        xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLogg_minidump_dump.exe" release\
         xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release\
         if not defined SSL_DIR (
           echo SSL_DIR is not set

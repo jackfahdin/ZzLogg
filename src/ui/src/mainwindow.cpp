@@ -384,8 +384,6 @@ void MainWindow::reTranslateUI()
     reportIssueAction->setText( transAction( action::reportIssueText ) );
     reportIssueAction->setStatusTip( transAction( action::reportIssueStatusTip ) );
 
-    generateDumpAction->setText( transAction( action::generateDumpText ) );
-    generateDumpAction->setStatusTip( transAction( action::generateDumpStatusTip ) );
 
     showScratchPadAction->setText( transAction( action::showScratchPadText ) );
     showScratchPadAction->setStatusTip( transAction( action::showScratchPadStatusTip ) );
@@ -628,10 +626,6 @@ void MainWindow::createActions()
     connect( reportIssueAction, &QAction::triggered, this,
              []( auto ) { IssueReporter::reportIssue( IssueTemplate::Bug ); } );
 
-    generateDumpAction = new QAction( tr( action::generateDumpText ), this );
-    generateDumpAction->setStatusTip( tr( action::generateDumpStatusTip ) );
-    connect( generateDumpAction, &QAction::triggered, this,
-             [ this ]( auto ) { this->generateDump(); } );
 
     showScratchPadAction = new QAction( tr( action::showScratchPadText ), this );
     showScratchPadAction->setObjectName( QStringLiteral( "showScratchPadAction" ) );
@@ -2120,17 +2114,4 @@ void MainWindow::logScreenInfo( QScreen* screen )
     LOG_INFO << "screen ratio " << screen->devicePixelRatio();
     LOG_INFO << "screen logical dpi " << screen->logicalDotsPerInch();
     LOG_INFO << "screen physical dpi " << screen->physicalDotsPerInch();
-}
-
-void MainWindow::generateDump()
-{
-    const auto userAction = QMessageBox::warning(
-        this, tr( "%1 - generate crash dump" ).arg( productName() ),
-        tr( "This will shut down %1 and generate a diagnostic crash dump. Continue?" )
-            .arg( productName() ),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No );
-
-    if ( userAction == QMessageBox::Yes ) {
-        throw std::logic_error( "test dump" );
-    }
 }

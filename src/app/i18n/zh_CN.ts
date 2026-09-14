@@ -553,16 +553,6 @@
         <translation>%1 -- 切换到已打开的文件</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2332"/>
-        <source>%1 - generate crash dump</source>
-        <translation>%1 - 生成崩溃记录</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="2333"/>
-        <source>This will shut down %1 and generate a diagnostic crash dump. Continue?</source>
-        <translation>这将关闭 %1 并生成诊断崩溃转储。是否继续？</translation>
-    </message>
-    <message>
         <location filename="../../ui/src/mainwindow.cpp" line="416"/>
         <location filename="../../ui/src/mainwindow.cpp" line="903"/>
         <source>Open window</source>
@@ -2345,16 +2335,6 @@
         <location filename="../../ui/src/mainwindowtext.cpp" line="80"/>
         <source>Report an issue on GitCode</source>
         <translation>在 GitCode 上报告问题</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="81"/>
-        <source>Generate crash dump</source>
-        <translation>生成崩溃报告</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindowtext.cpp" line="82"/>
-        <source>Generate diagnostic crash dump</source>
-        <translation>生成崩溃诊断报告</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>

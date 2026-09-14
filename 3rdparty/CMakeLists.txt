@@ -77,18 +77,6 @@ endif()
 add_subdirectory(vendor/robin-hood-hashing)
 
 if(KLOGG_BUILD_TESTS)
-  # backward-cpp
-  set(backward_cpp_source_dir
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/backward-cpp")
-  foreach(backward_cpp_file IN ITEMS
-      CMakeLists.txt BackwardConfig.cmake backward.cpp backward.hpp LICENSE.txt)
-    if(NOT EXISTS "${backward_cpp_source_dir}/${backward_cpp_file}")
-      message(FATAL_ERROR
-        "Vendored backward-cpp is incomplete: missing ${backward_cpp_file}")
-    endif()
-  endforeach()
-  add_subdirectory(vendor/backward-cpp)
-
   # Catch2
   set(CATCH_BUILD_TESTING OFF CACHE BOOL "" FORCE)
   add_subdirectory(vendor/Catch2)
@@ -179,36 +167,6 @@ target_include_directories(klogg_mimalloc_wrapper INTERFACE ${CMAKE_CURRENT_SOUR
 
 set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 
-if(KLOGG_USE_SENTRY)
-  set(SENTRY_BACKEND
-     "crashpad"
-     CACHE INTERNAL "" FORCE
-  )
-  set(SENTRY_TRANSPORT
-     "none"
-     CACHE INTERNAL "" FORCE
-  )
-  set(SENTRY_BUILD_EXAMPLES
-     OFF
-     CACHE INTERNAL "" FORCE
-  )
-  set(CRASHPAD_ENABLE_INSTALL
-     OFF
-     CACHE INTERNAL "" FORCE
-  )
-  set(CRASHPAD_ENABLE_INSTALL_DEV
-     OFF
-     CACHE INTERNAL "" FORCE
-  )
-
-  add_subdirectory(vendor/sentry-native)
-
-  if(WIN32)
-    set_target_properties(crashpad_handler PROPERTIES OUTPUT_NAME "klogg_crashpad_handler.exe")
-  else()
-    set_target_properties(crashpad_handler PROPERTIES OUTPUT_NAME "klogg_crashpad_handler")
-  endif()
-endif(KLOGG_USE_SENTRY)
 
 set(klogg_cpm_targets
     xxhash
@@ -226,11 +184,6 @@ set(klogg_cpm_targets
     exprtk
     type_safe
     mimalloc-static
-    sentry
-    crashpad_client
-    crashpad_compat
-    crashpad_util
-    mini_chromium
     streamvbyte
     FastPFor
 )

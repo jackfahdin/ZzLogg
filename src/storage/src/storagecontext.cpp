@@ -115,10 +115,6 @@ QString StorageContext::logsDirectory() const
     return QDir( dataRoot() ).filePath( QStringLiteral( "logs" ) );
 }
 
-QString StorageContext::crashesDirectory() const
-{
-    return QDir( dataRoot() ).filePath( QStringLiteral( "crashes" ) );
-}
 
 QString StorageContext::configFilePath() const
 {
@@ -139,6 +135,5 @@ bool StorageContext::ensureDirectories( QString* error ) const
 {
     return ensureDirectory( dataRoot(), error ) && ensureDirectory( configDirectory(), error )
            && ensureDirectory( sessionDirectory(), error )
-           && ensureDirectory( logsDirectory(), error )
-           && ensureDirectory( crashesDirectory(), error );
+           && ensureDirectory( logsDirectory(), error );
 }

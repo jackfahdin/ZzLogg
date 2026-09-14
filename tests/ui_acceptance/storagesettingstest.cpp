@@ -209,8 +209,7 @@ int runChildScenario( const QString& scenario, const QString& root )
     if ( pending.transactionId.isEmpty() || !samePath( pending.source.dataRoot, current.dataRoot() )
          || !samePath( pending.legacyConfigFile, current.configFilePath() )
          || !samePath( pending.legacySessionFile, current.sessionFilePath() )
-         || !samePath( pending.sourceLogsDirectory, current.logsDirectory() )
-         || !samePath( pending.legacyCrashDirectory, current.crashesDirectory() ) ) {
+         || !samePath( pending.sourceLogsDirectory, current.logsDirectory() ) ) {
         return fail( QStringLiteral( "pending migration omitted current persistent data" ) );
     }
     if ( !samePath( StorageContext::current().dataRoot(), sourceRoot ) ) {

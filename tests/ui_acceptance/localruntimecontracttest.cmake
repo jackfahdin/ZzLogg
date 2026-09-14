@@ -73,7 +73,7 @@ if(NOT smoke_result EQUAL 0)
 endif()
 
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
-        session/ZzLogg_session.ini logs crashes)
+        session/ZzLogg_session.ini logs)
   if(NOT EXISTS "${TEST_ROOT}/storage/${storage_entry}")
     message(FATAL_ERROR
       "Local runtime smoke storage entry missing: ${TEST_ROOT}/storage/${storage_entry}")

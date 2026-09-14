@@ -13,8 +13,7 @@
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "KLOGG_BUILD_TESTS": false,
-        "KLOGG_USE_LTO": false,
-        "KLOGG_USE_SENTRY": false
+        "KLOGG_USE_LTO": false
       }
     },
     {

@@ -78,7 +78,6 @@ function(zzlogg_check_data_root case_name data_root require_log)
       config/ZzLogg.ini
       session/ZzLogg_session.ini
       logs
-      crashes
       storage-manifest.ini)
     if(NOT EXISTS "${data_root}/${relative_path}")
       zzlogg_record_failure(

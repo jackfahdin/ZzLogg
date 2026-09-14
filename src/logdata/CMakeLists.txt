@@ -37,7 +37,7 @@ target_link_libraries(
   klogg_logdata
   PUBLIC project_options
          project_warnings
-         klogg_crash_handler
+         klogg_support
          klogg_settings
          klogg_utils
          klogg_regex
