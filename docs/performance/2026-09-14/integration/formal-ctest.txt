@@ -1,0 +1,127 @@
+Test project D:/File/Program/GitCode/ZzLogg/.worktrees/zzpuretools-ui-refactor/out/ui-vs
+      Start  1: zzlogg_ui.dependency_layout
+ 1/61 Test  #1: zzlogg_ui.dependency_layout ......................   Passed    0.06 sec
+      Start  2: zzlogg_ui.brand_external_files
+ 2/61 Test  #2: zzlogg_ui.brand_external_files ...................   Passed    0.02 sec
+      Start  3: klogg_smoke
+ 3/61 Test  #3: klogg_smoke ......................................   Passed    0.03 sec
+      Start  4: zzlogg_ui.text_cache
+ 4/61 Test  #4: zzlogg_ui.text_cache .............................   Passed    1.79 sec
+      Start  5: zzlogg_ui.release_preset_contract
+ 5/61 Test  #5: zzlogg_ui.release_preset_contract ................   Passed    0.02 sec
+      Start  6: zzlogg_ui.line_number_ui
+ 6/61 Test  #6: zzlogg_ui.line_number_ui .........................   Passed    0.65 sec
+      Start  7: zzlogg_ui.line_number_configuration
+ 7/61 Test  #7: zzlogg_ui.line_number_configuration ..............   Passed    0.27 sec
+      Start  8: zzlogg_ui.storage_context
+ 8/61 Test  #8: zzlogg_ui.storage_context ........................   Passed    0.02 sec
+      Start  9: zzlogg_ui.storage_validator
+ 9/61 Test  #9: zzlogg_ui.storage_validator ......................   Passed    0.03 sec
+      Start 10: zzlogg_ui.storage_locator
+10/61 Test #10: zzlogg_ui.storage_locator ........................   Passed    0.18 sec
+      Start 11: zzlogg_ui.legacy_storage
+11/61 Test #11: zzlogg_ui.legacy_storage .........................   Passed    0.02 sec
+      Start 12: zzlogg_ui.storage_migrator
+12/61 Test #12: zzlogg_ui.storage_migrator .......................   Passed    1.94 sec
+      Start 13: zzlogg_ui.storage_bootstrap
+13/61 Test #13: zzlogg_ui.storage_bootstrap ......................   Passed    0.71 sec
+      Start 14: zzlogg_ui.storage_location_ui
+14/61 Test #14: zzlogg_ui.storage_location_ui ....................   Passed    0.06 sec
+      Start 15: zzlogg_ui.application_translation
+15/61 Test #15: zzlogg_ui.application_translation ................   Passed   11.73 sec
+      Start 16: zzlogg_ui.application_translation_contract
+16/61 Test #16: zzlogg_ui.application_translation_contract .......   Passed    0.02 sec
+      Start 17: zzlogg_ui.runtime_translation_catalog_contract
+17/61 Test #17: zzlogg_ui.runtime_translation_catalog_contract ...   Passed    0.02 sec
+      Start 18: zzlogg_ui.storage_consumers
+18/61 Test #18: zzlogg_ui.storage_consumers ......................   Passed    0.08 sec
+      Start 31: zzlogg_ui.runtime_folder_setup
+19/61 Test #31: zzlogg_ui.runtime_folder_setup ...................   Passed    9.45 sec
+      Start 19: zzlogg_ui.output_contract
+20/61 Test #19: zzlogg_ui.output_contract ........................   Passed    0.02 sec
+      Start 20: zzlogg_ui.output_platform_contract
+21/61 Test #20: zzlogg_ui.output_platform_contract ...............   Passed    0.05 sec
+      Start 21: zzlogg_ui.ci_toolchain_contract
+22/61 Test #21: zzlogg_ui.ci_toolchain_contract ..................   Passed    0.02 sec
+      Start 22: zzlogg_ui.ci_compiler_contract
+23/61 Test #22: zzlogg_ui.ci_compiler_contract ...................   Passed    0.02 sec
+      Start 23: zzlogg_ui.build_documentation_contract
+24/61 Test #23: zzlogg_ui.build_documentation_contract ...........   Passed    0.02 sec
+      Start 24: zzlogg_ui.linux_packaging_contract
+25/61 Test #24: zzlogg_ui.linux_packaging_contract ...............   Passed    0.02 sec
+      Start 25: zzlogg_ui.linux_self_contained_contract
+26/61 Test #25: zzlogg_ui.linux_self_contained_contract ..........   Passed    0.02 sec
+      Start 26: zzlogg_ui.linux_package_validation_contract
+27/61 Test #26: zzlogg_ui.linux_package_validation_contract ......   Passed    0.02 sec
+      Start 27: zzlogg_ui.linux_package_integration_staging
+28/61 Test #27: zzlogg_ui.linux_package_integration_staging ......   Passed    0.04 sec
+      Start 28: zzlogg_ui.linux_gnu_runtime_contract
+29/61 Test #28: zzlogg_ui.linux_gnu_runtime_contract .............   Passed    0.02 sec
+      Start 29: zzlogg_ui.staged_install_contract
+30/61 Test #29: zzlogg_ui.staged_install_contract ................   Passed    0.12 sec
+      Start 30: zzlogg_ui.linux_install_contract
+31/61 Test #30: zzlogg_ui.linux_install_contract .................   Passed    0.02 sec
+      Start 32: zzlogg_ui.version_resource_contract
+32/61 Test #32: zzlogg_ui.version_resource_contract ..............   Passed    7.45 sec
+      Start 33: zzlogg_ui.windows_installer_contract
+33/61 Test #33: zzlogg_ui.windows_installer_contract .............   Passed    5.08 sec
+      Start 34: zzlogg_ui.icon_assets
+34/61 Test #34: zzlogg_ui.icon_assets ............................   Passed    0.05 sec
+      Start 35: zzlogg_ui.linux_icon_install_contract
+35/61 Test #35: zzlogg_ui.linux_icon_install_contract ............   Passed    0.30 sec
+      Start 36: zzlogg_ui.theme_configuration
+36/61 Test #36: zzlogg_ui.theme_configuration ....................   Passed    0.04 sec
+      Start 37: zzlogg_ui.settings_override
+37/61 Test #37: zzlogg_ui.settings_override ......................   Passed    0.03 sec
+      Start 38: zzlogg_ui.brand_contract
+38/61 Test #38: zzlogg_ui.brand_contract .........................   Passed    0.02 sec
+      Start 39: zzlogg_ui.options_theme
+39/61 Test #39: zzlogg_ui.options_theme ..........................   Passed    0.11 sec
+      Start 40: zzlogg_ui.storage_settings
+40/61 Test #40: zzlogg_ui.storage_settings .......................   Passed    0.53 sec
+      Start 41: zzlogg_ui.options_dialog_storage_paths
+41/61 Test #41: zzlogg_ui.options_dialog_storage_paths ...........   Passed    0.02 sec
+      Start 42: zzlogg_ui.application_restart_path
+42/61 Test #42: zzlogg_ui.application_restart_path ...............   Passed    0.02 sec
+      Start 43: zzlogg_ui.application_smoke_paths
+43/61 Test #43: zzlogg_ui.application_smoke_paths ................   Passed    0.02 sec
+      Start 44: zzlogg_ui.restart_contract
+44/61 Test #44: zzlogg_ui.restart_contract .......................   Passed    0.10 sec
+      Start 45: zzlogg_ui.search_panel
+45/61 Test #45: zzlogg_ui.search_panel ...........................   Passed    0.04 sec
+      Start 46: zzlogg_ui.document_workspace
+46/61 Test #46: zzlogg_ui.document_workspace .....................   Passed    0.10 sec
+      Start 47: zzlogg_ui.document_tab_close
+47/61 Test #47: zzlogg_ui.document_tab_close .....................   Passed    0.04 sec
+      Start 48: zzlogg_ui.fluent_shell
+48/61 Test #48: zzlogg_ui.fluent_shell ...........................   Passed    0.46 sec
+      Start 49: zzlogg_ui.runtime_contract
+49/61 Test #49: zzlogg_ui.runtime_contract .......................   Passed    0.47 sec
+      Start 50: zzlogg_ui.application_smoke
+50/61 Test #50: zzlogg_ui.application_smoke ......................   Passed    0.69 sec
+      Start 51: zzlogg_ui.smoke_isolation_contract
+51/61 Test #51: zzlogg_ui.smoke_isolation_contract ...............   Passed    0.02 sec
+      Start 52: zzlogg_ui.smoke_isolation_helper_contract
+52/61 Test #52: zzlogg_ui.smoke_isolation_helper_contract ........   Passed    0.06 sec
+      Start 53: zzlogg_ui.storage_path_isolation_contract
+53/61 Test #53: zzlogg_ui.storage_path_isolation_contract ........   Passed    0.02 sec
+      Start 54: zzlogg_ui.manual_storage_acceptance_contract
+54/61 Test #54: zzlogg_ui.manual_storage_acceptance_contract .....   Passed    0.33 sec
+      Start 55: zzlogg_ui.storage_application_smoke
+55/61 Test #55: zzlogg_ui.storage_application_smoke ..............   Passed    2.85 sec
+      Start 56: zzlogg_ui.windows_local_runtime_contract
+56/61 Test #56: zzlogg_ui.windows_local_runtime_contract .........   Passed    1.02 sec
+      Start 57: zzlogg_ui.session_restore_smoke
+57/61 Test #57: zzlogg_ui.session_restore_smoke ..................   Passed    0.72 sec
+      Start 58: zzlogg_ui.smoke_setup_diagnostics
+58/61 Test #58: zzlogg_ui.smoke_setup_diagnostics ................   Passed    0.11 sec
+      Start 59: zzlogg_ui.async_object_lifetime_smoke
+59/61 Test #59: zzlogg_ui.async_object_lifetime_smoke ............   Passed    0.62 sec
+      Start 60: zzlogg_ui.titlebar_lifetime_smoke
+60/61 Test #60: zzlogg_ui.titlebar_lifetime_smoke ................   Passed    0.55 sec
+      Start 61: zzlogg_ui.window_chrome
+61/61 Test #61: zzlogg_ui.window_chrome ..........................   Passed    0.05 sec
+
+100% tests passed out of 61
+
+Total Test time (real) =  49.38 sec
