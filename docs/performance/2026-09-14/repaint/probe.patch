@@ -1,0 +1,85 @@
+diff --git a/src/ui/src/abstractlogview.cpp b/src/ui/src/abstractlogview.cpp
+index 0980716a..4de2b73d 100644
+--- a/src/ui/src/abstractlogview.cpp
++++ b/src/ui/src/abstractlogview.cpp
+@@ -46,0 +47 @@
++#include "../../../tests/ui_acceptance/repaintprobe.h"
+@@ -1072,0 +1074 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
++    RepaintProbe::Scope paintProbe(RepaintProbe::Paint, this);
+@@ -1166 +1168,4 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
+-    devicePainter.drawPixmap( 0, drawingTopPosition, textAreaCache_.pixmap_ );
++    {
++        RepaintProbe::Scope blitProbe(RepaintProbe::Blit, this);
++        devicePainter.drawPixmap( 0, drawingTopPosition, textAreaCache_.pixmap_ );
++    }
+@@ -2213,0 +2219 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
++    RepaintProbe::Scope cacheProbe(RepaintProbe::Cache, this);
+@@ -2322 +2328,4 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
+-    const auto logLines = logData_->getLines( firstLine_, nbLines );
++    const auto logLines = [&] {
++        RepaintProbe::Scope fetchProbe(RepaintProbe::Fetch, this);
++        return logData_->getLines( firstLine_, nbLines );
++    }();
+@@ -2521,2 +2530,5 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
+-        lineDrawer.draw( painter.get(), xPos, yPos, viewport()->width(), wrappedLineView,
+-                         ContentMarginWidth );
++        {
++            RepaintProbe::Scope textProbe(RepaintProbe::Text, this);
++            lineDrawer.draw( painter.get(), xPos, yPos, viewport()->width(), wrappedLineView,
++                             ContentMarginWidth );
++        }
+diff --git a/tests/ui_acceptance/applicationtranslationtest.cpp b/tests/ui_acceptance/applicationtranslationtest.cpp
+index bc435f42..9f35c5b7 100644
+--- a/tests/ui_acceptance/applicationtranslationtest.cpp
++++ b/tests/ui_acceptance/applicationtranslationtest.cpp
+@@ -1,0 +2 @@
++#include "repaintprobe.h"
+@@ -1852,0 +1854 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    RepaintProbe::begin(mainView);
+@@ -1867,0 +1870 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    RepaintProbe::end();
+diff --git a/tests/ui_acceptance/repaintprobe.h b/tests/ui_acceptance/repaintprobe.h
+new file mode 100644
+--- /dev/null
++++ b/tests/ui_acceptance/repaintprobe.h
+@@ -0,0 +1,40 @@
++#pragma once
++
++#include <QElapsedTimer>
++#include <QDebug>
++#include <array>
++
++// Temporary, GUI-thread-only diagnostic. Inclusive, nested wall-clock timings.
++namespace RepaintProbe {
++enum Part { Paint, Cache, Fetch, Text, Blit, Count };
++inline const void* target = nullptr;
++inline std::array<qint64, Count> ns{};
++inline std::array<qint64, Count> calls{};
++class Scope {
++    Part part_;
++    bool enabled_;
++    QElapsedTimer timer_;
++public:
++    Scope(Part part, const void* view) : part_(part), enabled_(target == view) {
++        if (enabled_) timer_.start();
++    }
++    ~Scope() {
++        if (enabled_) {
++            ns[part_] += timer_.nsecsElapsed();
++            ++calls[part_];
++        }
++    }
++};
++inline void begin(const void* view) {
++    ns.fill(0);
++    calls.fill(0);
++    target = qEnvironmentVariableIntValue("ZZLOGG_REPAINT_PROBE") == 1 ? view : nullptr;
++}
++inline void end() {
++    target = nullptr;
++    const char* names[] = {"paint", "cache", "fetch", "text", "blit"};
++    for (int i = 0; i < Count; ++i)
++        qInfo("Repaint detail: part=%s, ns=%lld, calls=%lld", names[i],
++              static_cast<long long>(ns[i]), static_cast<long long>(calls[i]));
++}
++}
