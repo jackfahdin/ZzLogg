@@ -1832,6 +1832,14 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     QVERIFY(mainView);
     auto* scroll = mainView->verticalScrollBar();
     QVERIFY(scroll->maximum() > 0);
+    const int settleMs = qEnvironmentVariableIntValue("ZZLOGG_SCROLL_SETTLE_MS");
+    QVERIFY(settleMs >= 0 && settleMs <= 2000);
+    const int requestedSteps = qEnvironmentVariableIntValue("ZZLOGG_SCROLL_STEPS");
+    const int scrollSteps = requestedSteps == 0 ? 100 : requestedSteps;
+    QVERIFY(scrollSteps >= 100 && scrollSteps <= 10000);
+    if (settleMs > 0)
+        QTest::qWait(settleMs);
+    qInfo("Scroll probe: settle_ms=%d, steps=%d", settleMs, scrollSteps);
     struct PaintCounter final : QObject {
         int count = 0;
         bool eventFilter(QObject*, QEvent* event) override
@@ -1843,13 +1851,13 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     } paintCounter;
     mainView->viewport()->installEventFilter(&paintCounter);
     timer.restart();
-    for (int i = 1; i <= 100; ++i) {
-        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / 100));
+    for (int i = 1; i <= scrollSteps; ++i) {
+        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
         mainView->viewport()->repaint();
         QApplication::processEvents();
     }
     const auto scrollMs = timer.elapsed();
-    QVERIFY(paintCounter.count >= 100);
+    QVERIFY(paintCounter.count >= scrollSteps);
     qInfo("Large log: viewport=%dx%d, dpr=%.2f, paint_events=%d",
           mainView->viewport()->width(), mainView->viewport()->height(),
           mainView->devicePixelRatioF(), paintCounter.count);

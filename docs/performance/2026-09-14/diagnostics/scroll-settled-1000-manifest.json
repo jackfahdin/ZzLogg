@@ -1,0 +1,10 @@
+{
+  "RecordedAt": "2026-09-14T15:20:59.4344309+08:00",
+  "BaselineExe": "D:\\File\\Program\\GitCode\\ZzLogg\\.worktrees\\ui-perf-baseline\\out\\ui-vs\\output\\Release\\zzlogg_application_translation_test.exe",
+  "BaselineSha256": "9A65E6C99D1325A4D0B2018259B1BC869216B4A4A0157CCC8125464194C22788",
+  "CurrentExe": "D:\\File\\Program\\GitCode\\ZzLogg\\.worktrees\\zzpuretools-ui-refactor\\out\\ui-vs\\output\\Release\\zzlogg_application_translation_test.exe",
+  "CurrentSha256": "4DE0856640B8372F5263B3D7D76F6168BA7B6DE281465567DFE4DE5316F43A8B",
+  "QtBin": "D:\\SoftWare\\Qt\\6.11.0\\msvc2022_64\\bin",
+  "Runs": 5,
+  "Note": "Warm file cache; QTRY timings include approximately 50 ms polling granularity; process peak includes fixture generation."
+}

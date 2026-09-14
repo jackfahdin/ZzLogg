@@ -1,0 +1,129 @@
+diff --git a/tests/ui2/CMakeLists.txt b/tests/ui2/CMakeLists.txt
+index b9600d91..3e4a51c0 100644
+--- a/tests/ui2/CMakeLists.txt
++++ b/tests/ui2/CMakeLists.txt
+@@ -108 +108,2 @@ target_link_libraries(zzlogg_application_translation_test PRIVATE
+-  klogg_ui Qt6::Test Qt6::Widgets)
++  klogg_ui zzlogg_ui2_shell Qt6::Test Qt6::Widgets)
++klogg_copy_ui2_runtime_dlls(zzlogg_application_translation_test)
+diff --git a/tests/ui2/applicationtranslationtest.cpp b/tests/ui2/applicationtranslationtest.cpp
+index deacdd65..92aa8b30 100644
+--- a/tests/ui2/applicationtranslationtest.cpp
++++ b/tests/ui2/applicationtranslationtest.cpp
+@@ -18,0 +19,9 @@
++#include "logmainview.h"
++#include "zzloggfluentshell.h"
++#include <ZzFluentUI/ZzFluentStyle.h>
++#include <ZzFluentUI/ZzThemeController.h>
++#include <ZzWindowKit/ZzWindowKitBootstrap.h>
++#include <QElapsedTimer>
++#include <QScrollBar>
++#include <windows.h>
++#include <psapi.h>
+@@ -62,0 +72,7 @@ struct CrawlerWidget::access_by<ApplicationTranslationCrawlerAccess> {
++    static void configureBenchmarkSearch(CrawlerWidget& crawler)
++    {
++        crawler.matchCaseButton_->setChecked(true);
++        crawler.useRegexpButton_->setChecked(false);
++        crawler.booleanButton_->setChecked(false);
++        crawler.inverseButton_->setChecked(false);
++    }
+@@ -127,0 +144 @@ class ApplicationTranslationTest final : public QObject {
++    void opensAndSearchesLargeLog();
+@@ -1085,0 +1103,93 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
++void ApplicationTranslationTest::opensAndSearchesLargeLog()
++{
++    QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
++    Configuration::get().setUiThemeMode(UiThemeMode::Dark);
++    auto* theme = new ZzFluentUI::ZzThemeController(qApp);
++    theme->setMode(ZzFluentUI::ZzThemeMode::Dark);
++    qApp->setProperty("zzlogg.fluentUi", true);
++    qApp->setStyle(new ZzFluentUI::ZzFluentStyle(theme));
++    QTemporaryDir logs;
++    QVERIFY(logs.isValid());
++    const QString path = logs.filePath("large.log");
++    QFile file(path);
++    QVERIFY(file.open(QIODevice::WriteOnly));
++    const QByteArray block = QByteArray("2026-09-07 ERROR connection refused request=1234567890 service=sample\n")
++        + QByteArray("2026-09-07 INFO normal response request=1234567890 service=sample\n").repeated(1023);
++    for (int i = 0; i < 2048; ++i)
++        QCOMPARE(file.write(block), qint64(block.size()));
++    const qint64 bytes = file.size();
++    file.close();
++    auto session = std::make_shared<Session>();
++    MainWindow window(WindowSession(session, "large-log", 0));
++    const auto shell = ZzLoggFluentShell::install(window, *theme);
++    QVERIFY(shell.hasValue());
++    QObject::connect(&window, &MainWindow::activeDocumentNameChanged,
++                     shell.value(), &ZzLoggFluentShell::setActiveDocumentName);
++    window.resize(1280, 800);
++    window.show();
++    QVERIFY(QTest::qWaitForWindowExposed(&window));
++    QElapsedTimer timer;
++    timer.start();
++    window.loadFileNonInteractive(path);
++    auto* tabs = window.findChild<TabbedCrawlerWidget*>("documentTabs");
++    QVERIFY(tabs);
++    QTRY_COMPARE_WITH_TIMEOUT(tabs->count(), 1, 60000);
++    auto* crawler = qobject_cast<CrawlerWidget*>(tabs->currentWidget());
++    QVERIFY(crawler);
++    QTRY_VERIFY_WITH_TIMEOUT(TranslationCrawlerAccess::loadingFinished(*crawler), 60000);
++    const auto openMs = timer.elapsed();
++    TranslationCrawlerAccess::configureBenchmarkSearch(*crawler);
++    auto* edit = crawler->findChild<QComboBox*>("mainSearchEdit");
++    auto* button = crawler->findChild<QToolButton*>("mainSearchButton");
++    auto* info = crawler->findChild<InfoLine*>();
++    QVERIFY(edit);
++    QVERIFY(button);
++    QVERIFY(info);
++    edit->setCurrentText("ERROR");
++    timer.restart();
++    button->click();
++    QTRY_COMPARE_WITH_TIMEOUT(info->text(), QStringLiteral("2048 matches found"), 60000);
++    const auto searchMs = timer.elapsed();
++    auto* view = crawler->findChild<LogMainView*>();
++    QVERIFY(view);
++    auto* scroll = view->verticalScrollBar();
++    QVERIFY(scroll->maximum() > 0);
++    const int settleMs = qEnvironmentVariableIntValue("ZZLOGG_SCROLL_SETTLE_MS");
++    QVERIFY(settleMs >= 0 && settleMs <= 2000);
++    const int requestedSteps = qEnvironmentVariableIntValue("ZZLOGG_SCROLL_STEPS");
++    const int scrollSteps = requestedSteps == 0 ? 100 : requestedSteps;
++    QVERIFY(scrollSteps >= 100 && scrollSteps <= 10000);
++    if (settleMs > 0)
++        QTest::qWait(settleMs);
++    qInfo("Scroll probe: settle_ms=%d, steps=%d", settleMs, scrollSteps);
++    struct PaintCounter final : QObject {
++        int count = 0;
++        bool eventFilter(QObject*, QEvent* event) override
++        {
++            if (event->type() == QEvent::Paint)
++                ++count;
++            return false;
++        }
++    } paintCounter;
++    view->viewport()->installEventFilter(&paintCounter);
++    timer.restart();
++    for (int i = 1; i <= scrollSteps; ++i) {
++        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
++        view->viewport()->repaint();
++        QApplication::processEvents();
++    }
++    const auto scrollMs = timer.elapsed();
++    QVERIFY(paintCounter.count >= scrollSteps);
++    qInfo("Large log: viewport=%dx%d, dpr=%.2f, paint_events=%d",
++          view->viewport()->width(), view->viewport()->height(),
++          view->devicePixelRatioF(), paintCounter.count);
++    PROCESS_MEMORY_COUNTERS memory{};
++    memory.cb = sizeof(memory);
++    QVERIFY(K32GetProcessMemoryInfo(GetCurrentProcess(), &memory, sizeof(memory)));
++    qInfo("Large log: bytes=%lld, lines=2097152, open_ms=%lld, search_ms=%lld, scroll_ms=%lld",
++          static_cast<long long>(bytes), static_cast<long long>(openMs),
++          static_cast<long long>(searchMs), static_cast<long long>(scrollMs));
++    qInfo("Large log: peak_working_set_bytes=%llu",
++          static_cast<unsigned long long>(memory.PeakWorkingSetSize));
++}
++
+@@ -1087,0 +1198,2 @@ int main( int argc, char* argv[] )
++    if (!ZzWindowKit::ZzWindowKitBootstrap::prepare())
++        return 2;
