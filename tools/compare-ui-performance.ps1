@@ -49,6 +49,7 @@ try {
             $log = Get-Content -LiteralPath $report -Raw
             $timings = [regex]::Match($log, 'bytes=(\d+), lines=2097152, open_ms=(\d+), search_ms=(\d+), scroll_ms=(\d+)')
             $memory = [regex]::Match($log, 'peak_working_set_bytes=(\d+)')
+            $segments = [regex]::Match($log, 'set_value_ns=(\d+), repaint_ns=(\d+), events_ns=(\d+)')
             if (-not $timings.Success -or -not $memory.Success -or $log -notmatch '0 failed') {
                 throw "Missing benchmark evidence: $report"
             }
@@ -59,6 +60,9 @@ try {
                 SearchMs = [long]$timings.Groups[3].Value
                 ScrollMs = [long]$timings.Groups[4].Value
                 PeakWorkingSetBytes = [long]$memory.Groups[1].Value
+                SetValueNs = if ($segments.Success) { [long]$segments.Groups[1].Value } else { $null }
+                RepaintNs = if ($segments.Success) { [long]$segments.Groups[2].Value } else { $null }
+                EventsNs = if ($segments.Success) { [long]$segments.Groups[3].Value } else { $null }
             }
             $rows.Add($row)
             $rows | Export-Csv -NoTypeInformation -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'results.csv')

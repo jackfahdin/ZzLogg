@@ -1850,13 +1850,24 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
         }
     } paintCounter;
     mainView->viewport()->installEventFilter(&paintCounter);
+    qint64 setValueNs = 0, repaintNs = 0, eventsNs = 0;
+    QElapsedTimer segmentTimer;
     timer.restart();
     for (int i = 1; i <= scrollSteps; ++i) {
+        segmentTimer.start();
         scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
+        setValueNs += segmentTimer.nsecsElapsed();
+        segmentTimer.restart();
         mainView->viewport()->repaint();
+        repaintNs += segmentTimer.nsecsElapsed();
+        segmentTimer.restart();
         QApplication::processEvents();
+        eventsNs += segmentTimer.nsecsElapsed();
     }
     const auto scrollMs = timer.elapsed();
+    qInfo("Scroll segments: set_value_ns=%lld, repaint_ns=%lld, events_ns=%lld",
+          static_cast<long long>(setValueNs), static_cast<long long>(repaintNs),
+          static_cast<long long>(eventsNs));
     QVERIFY(paintCounter.count >= scrollSteps);
     qInfo("Large log: viewport=%dx%d, dpr=%.2f, paint_events=%d",
           mainView->viewport()->width(), mainView->viewport()->height(),
