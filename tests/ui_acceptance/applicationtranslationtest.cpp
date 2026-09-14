@@ -4,6 +4,8 @@
 #include "documentworkspace.h"
 #include "infoline.h"
 #include "mainwindow.h"
+#include "logmainview.h"
+#include <QScrollBar>
 #include "optionsdialog.h"
 #include "highlightersdialog.h"
 #include "predefinedfiltersdialog.h"
@@ -60,8 +62,11 @@
 #include <QtTest>
 #include <QValidator>
 #include <QScrollArea>
-#include <QScrollBar>
 #include <QScreen>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <psapi.h>
+#endif
 
 namespace {
 
@@ -1766,6 +1771,20 @@ void ApplicationTranslationTest::searchesThroughExtractedPanel()
 void ApplicationTranslationTest::opensAndSearchesLargeLog()
 {
     QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
+    const QString previousStyle = QApplication::style()->objectName();
+    const auto previousPalette = QApplication::palette();
+    const auto previousFluent = qApp->property("zzlogg.fluentUi");
+    auto& theme = testTheme();
+    const auto previousMode = theme.mode();
+    auto restoreStyle = qScopeGuard([&] {
+        QApplication::setStyle(previousStyle);
+        QApplication::setPalette(previousPalette);
+        qApp->setProperty("zzlogg.fluentUi", previousFluent);
+        theme.setMode(previousMode);
+    });
+    theme.setMode(ZzFluentUI::ZzThemeMode::Dark);
+    qApp->setProperty("zzlogg.fluentUi", true);
+    QApplication::setStyle(new ZzFluentUI::ZzFluentStyle(&theme));
     QTemporaryDir logs;
     QVERIFY(logs.isValid());
     const QString path = logs.filePath("large.log");
@@ -1779,7 +1798,9 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     file.close();
     auto session = std::make_shared<Session>();
     MainWindow window(WindowSession(session, "large-log", 0), UiThemeContext{testTheme()});
+    window.resize(1280, 800);
     window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
     QElapsedTimer timer;
     timer.start();
     window.loadFileNonInteractive(path);
@@ -1797,13 +1818,52 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
     QVERIFY(edit);
     QVERIFY(button);
     QVERIFY(info);
+    auto* benchmarkPanel = crawler->findChild<SearchPanel*>("searchPanel");
+    benchmarkPanel->matchCaseButton()->setChecked(true);
+    benchmarkPanel->useRegexpButton()->setChecked(false);
+    benchmarkPanel->booleanButton()->setChecked(false);
+    benchmarkPanel->inverseButton()->setChecked(false);
     edit->setCurrentText("ERROR");
     timer.restart();
     button->click();
     QTRY_COMPARE_WITH_TIMEOUT(info->text(), QStringLiteral("2048 matches found"), 60000);
-    qInfo("Large log: bytes=%lld, lines=2097152, open_ms=%lld, search_ms=%lld",
+    const auto searchMs = timer.elapsed();
+    auto* mainView = crawler->findChild<LogMainView*>();
+    QVERIFY(mainView);
+    auto* scroll = mainView->verticalScrollBar();
+    QVERIFY(scroll->maximum() > 0);
+    struct PaintCounter final : QObject {
+        int count = 0;
+        bool eventFilter(QObject*, QEvent* event) override
+        {
+            if (event->type() == QEvent::Paint)
+                ++count;
+            return false;
+        }
+    } paintCounter;
+    mainView->viewport()->installEventFilter(&paintCounter);
+    timer.restart();
+    for (int i = 1; i <= 100; ++i) {
+        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / 100));
+        mainView->viewport()->repaint();
+        QApplication::processEvents();
+    }
+    const auto scrollMs = timer.elapsed();
+    QVERIFY(paintCounter.count >= 100);
+    qInfo("Large log: viewport=%dx%d, dpr=%.2f, paint_events=%d",
+          mainView->viewport()->width(), mainView->viewport()->height(),
+          mainView->devicePixelRatioF(), paintCounter.count);
+    qInfo("Large log: bytes=%lld, lines=2097152, open_ms=%lld, search_ms=%lld, scroll_ms=%lld",
           static_cast<long long>(bytes), static_cast<long long>(openMs),
-          static_cast<long long>(timer.elapsed()));
+          static_cast<long long>(searchMs),
+          static_cast<long long>(scrollMs));
+#ifdef Q_OS_WIN
+    PROCESS_MEMORY_COUNTERS memory{};
+    memory.cb = sizeof(memory);
+    QVERIFY(K32GetProcessMemoryInfo(GetCurrentProcess(), &memory, sizeof(memory)));
+    qInfo("Large log: peak_working_set_bytes=%llu",
+          static_cast<unsigned long long>(memory.PeakWorkingSetSize));
+#endif
     auto* panel = crawler->findChild<SearchPanel*>("searchPanel");
     QSignalSpy stops(panel, &SearchPanel::stopRequested);
     edit->setCurrentText("response");
