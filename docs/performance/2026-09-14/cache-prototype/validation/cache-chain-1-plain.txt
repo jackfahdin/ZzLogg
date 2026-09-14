@@ -1,0 +1,43 @@
+********* Start testing of ApplicationTranslationTest *********
+Config: Using QtTest library 6.11.0, Qt 6.11.0 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022), windows 11
+PASS   : ApplicationTranslationTest::initTestCase()
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll probe: settle_ms=0, steps=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll motion: jump
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=229300, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=186800, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=20400, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=88400, calls=2
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=41100, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=233900, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=191300, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=13600, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=98100, calls=2
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=41000, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=219500, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=177900, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=10600, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=89000, calls=2
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=40200, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=265900, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=224600, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=8700, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=135000, calls=3
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=40100, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=328500, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=286700, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=10100, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=184400, calls=4
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=40500, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=213155400, calls=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=208909600, calls=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=1699800, calls=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=173227300, calls=3599
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=4058500, calls=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll segments: set_value_ns=1177200, repaint_ns=252402000, events_ns=1900400
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: viewport=1239x539, dpr=1.00, paint_events=133
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: bytes=138420224, lines=2097152, open_ms=245, search_ms=112, scroll_ms=255
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Large log: peak_working_set_bytes=349995008
+PASS   : ApplicationTranslationTest::opensAndSearchesLargeLog()
+PASS   : ApplicationTranslationTest::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 1079ms
+********* Finished testing of ApplicationTranslationTest *********

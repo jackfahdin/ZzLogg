@@ -1,0 +1,191 @@
+diff --git a/src/ui/src/abstractlogview.cpp b/src/ui/src/abstractlogview.cpp
+index 0980716a..951ef670 100644
+--- a/src/ui/src/abstractlogview.cpp
++++ b/src/ui/src/abstractlogview.cpp
+@@ -46,0 +47 @@
++#include "../../../tests/ui_acceptance/repaintprobe.h"
+@@ -1072,0 +1074 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
++    RepaintProbe::Scope paintProbe(RepaintProbe::Paint, this);
+@@ -1166 +1168,4 @@ void AbstractLogView::paintEvent( QPaintEvent* paintEvent )
+-    devicePainter.drawPixmap( 0, drawingTopPosition, textAreaCache_.pixmap_ );
++    {
++        RepaintProbe::Scope blitProbe(RepaintProbe::Blit, this);
++        devicePainter.drawPixmap( 0, drawingTopPosition, textAreaCache_.pixmap_ );
++    }
+@@ -2213,0 +2219,25 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
++    RepaintProbe::Scope cacheProbe(RepaintProbe::Cache, this);
++    // Experimental opt-in: preserve overlapping pixels for unwrapped full pages.
++    const auto rowDelta = static_cast<qint64>(textAreaCache_.first_line_.get())
++        - static_cast<qint64>(firstLine_.get());
++    const auto visibleRows = static_cast<qint64>(getNbVisibleLines().get());
++    const auto totalRows = static_cast<qint64>(logData_->getNbLine().get());
++    const double physicalDelta = rowDelta * charHeight_ * viewport()->devicePixelRatio();
++    const bool reuse = qEnvironmentVariableIntValue("ZZLOGG_INCREMENTAL_CACHE") == 1
++        && !useTextWrap_ && !textAreaCache_.invalid_
++        && textAreaCache_.first_column_ == firstCol_
++        && rowDelta != 0 && qAbs(rowDelta) < visibleRows
++        && static_cast<qint64>(firstLine_.get()) + visibleRows <= totalRows
++        && static_cast<qint64>(textAreaCache_.first_line_.get()) + visibleRows <= totalRows
++        && qAbs(physicalDelta - std::round(physicalDelta)) < 0.00001;
++    QRect exposed;
++    if (reuse) {
++        textAreaCache_.pixmap_.scroll(0, static_cast<int>(std::round(physicalDelta)),
++                                     textAreaCache_.pixmap_.rect());
++        const int height = static_cast<int>(visibleRows) * charHeight_;
++        const int moved = static_cast<int>(qAbs(rowDelta)) * charHeight_;
++        // The antialiased margin separator endpoints move with the old pixmap.
++        // Repaint a one-pixel guard inside the overlap to remove those endpoints.
++        exposed = QRect(0, rowDelta > 0 ? 0 : height - moved - 1,
++                        viewport()->width(), moved + 1);
++    }
+@@ -2218,0 +2249,2 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
++    if (reuse)
++        painter->setClipRect(exposed);
+@@ -2322 +2354,4 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
+-    const auto logLines = logData_->getLines( firstLine_, nbLines );
++    const auto logLines = [&] {
++        RepaintProbe::Scope fetchProbe(RepaintProbe::Fetch, this);
++        return logData_->getLines( firstLine_, nbLines );
++    }();
+@@ -2463,0 +2499,5 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
++        if (reuse && !exposed.intersects(QRect(0, yPos, viewport()->width(), finalLineHeight))) {
++            wrappedLinesInfo_.emplace_back(WrappedLineData{lineNumber, 0, wrappedLineView});
++            yPos += finalLineHeight;
++            continue;
++        }
+@@ -2521,2 +2561,5 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
+-        lineDrawer.draw( painter.get(), xPos, yPos, viewport()->width(), wrappedLineView,
+-                         ContentMarginWidth );
++        {
++            RepaintProbe::Scope textProbe(RepaintProbe::Text, this);
++            lineDrawer.draw( painter.get(), xPos, yPos, viewport()->width(), wrappedLineView,
++                             ContentMarginWidth );
++        }
+diff --git a/tests/ui_acceptance/applicationtranslationtest.cpp b/tests/ui_acceptance/applicationtranslationtest.cpp
+index bc435f42..04554dec 100644
+--- a/tests/ui_acceptance/applicationtranslationtest.cpp
++++ b/tests/ui_acceptance/applicationtranslationtest.cpp
+@@ -1,0 +2 @@
++#include "repaintprobe.h"
+@@ -1839,0 +1841,6 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    const auto motion = qEnvironmentVariable("ZZLOGG_SCROLL_MOTION", "jump");
++    QVERIFY(motion == "jump" || motion == "line" || motion == "still");
++    scroll->setValue(0);
++    mainView->viewport()->repaint();
++    QApplication::processEvents();
++    QVERIFY(scroll->maximum() > scrollSteps);
+@@ -1842,0 +1850 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    qInfo("Scroll motion: %s", qPrintable(motion));
+@@ -1852,0 +1861,60 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    if (qEnvironmentVariableIntValue("ZZLOGG_CACHE_CHECK") == 1) {
++        const auto scenario = qEnvironmentVariable("ZZLOGG_CACHE_SCENARIO");
++        if (scenario == "selection")
++            mainView->selectAll();
++        if (scenario == "no-lines")
++            mainView->setLineNumbersVisible(false);
++        if (scenario == "resize")
++            window.resize(1100, 720);
++        if (scenario == "font") {
++            auto font = mainView->font();
++            font.setPointSize(font.pointSize() + 1);
++            mainView->updateFont(font);
++        }
++        QApplication::processEvents();
++        scroll->setValue(100);
++        mainView->forceRefresh();
++        mainView->viewport()->repaint();
++        int previous = 100;
++        std::vector<QImage> referenceImages;
++        for (const int position : {101, 102, 101, 99, 102}) {
++            RepaintProbe::begin(mainView);
++            scroll->setValue(position);
++            mainView->viewport()->repaint();
++            const auto paintedLines = RepaintProbe::calls[RepaintProbe::Text];
++            RepaintProbe::end();
++            const auto incremental = mainView->viewport()->grab().toImage();
++            mainView->forceRefresh();
++            mainView->viewport()->repaint();
++            const auto full = mainView->viewport()->grab().toImage();
++            referenceImages.push_back(full);
++            if (incremental != full) {
++                QRect difference;
++                int pixels = 0;
++                for (int y = 0; y < full.height(); ++y)
++                    for (int x = 0; x < full.width(); ++x)
++                        if (incremental.pixel(x, y) != full.pixel(x, y)) {
++                            difference |= QRect(x, y, 1, 1);
++                            ++pixels;
++                        }
++                qInfo() << "Cache pixel mismatch" << position << pixels << difference;
++                incremental.save("out/ui-vs/cache-incremental.png");
++                full.save("out/ui-vs/cache-full.png");
++            }
++            QCOMPARE(incremental, full);
++            if (qEnvironmentVariableIntValue("ZZLOGG_CACHE_PIXELS_ONLY") != 1)
++                QVERIFY2(paintedLines <= qAbs(position - previous) + 1,
++                         qPrintable(QString("Expected exposed rows only, painted %1").arg(paintedLines)));
++            previous = position;
++        }
++        scroll->setValue(100);
++        mainView->forceRefresh();
++        mainView->viewport()->repaint();
++        size_t referenceIndex = 0;
++        for (const int position : {101, 102, 101, 99, 102}) {
++            scroll->setValue(position);
++            mainView->viewport()->repaint();
++            QCOMPARE(mainView->viewport()->grab().toImage(), referenceImages.at(referenceIndex++));
++        }
++    }
++    RepaintProbe::begin(mainView);
+@@ -1858 +1926,3 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
+-        scroll->setValue(static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps));
++        const int position = motion == "line" ? i : motion == "still" ? 0
++            : static_cast<int>(qint64(scroll->maximum()) * i / scrollSteps);
++        scroll->setValue(position);
+@@ -1867,0 +1938 @@ void ApplicationTranslationTest::opensAndSearchesLargeLog()
++    RepaintProbe::end();
+diff --git a/tests/ui_acceptance/repaintprobe.h b/tests/ui_acceptance/repaintprobe.h
+new file mode 100644
+--- /dev/null
++++ b/tests/ui_acceptance/repaintprobe.h
+@@ -0,0 +1,40 @@
++#pragma once
++
++#include <QElapsedTimer>
++#include <QDebug>
++#include <array>
++
++// Temporary, GUI-thread-only diagnostic. Inclusive, nested wall-clock timings.
++namespace RepaintProbe {
++enum Part { Paint, Cache, Fetch, Text, Blit, Count };
++inline const void* target = nullptr;
++inline std::array<qint64, Count> ns{};
++inline std::array<qint64, Count> calls{};
++class Scope {
++    Part part_;
++    bool enabled_;
++    QElapsedTimer timer_;
++public:
++    Scope(Part part, const void* view) : part_(part), enabled_(target == view) {
++        if (enabled_) timer_.start();
++    }
++    ~Scope() {
++        if (enabled_) {
++            ns[part_] += timer_.nsecsElapsed();
++            ++calls[part_];
++        }
++    }
++};
++inline void begin(const void* view) {
++    ns.fill(0);
++    calls.fill(0);
++    target = qEnvironmentVariableIntValue("ZZLOGG_REPAINT_PROBE") == 1 ? view : nullptr;
++}
++inline void end() {
++    target = nullptr;
++    const char* names[] = {"paint", "cache", "fetch", "text", "blit"};
++    for (int i = 0; i < Count; ++i)
++        qInfo("Repaint detail: part=%s, ns=%lld, calls=%lld", names[i],
++              static_cast<long long>(ns[i]), static_cast<long long>(calls[i]));
++}
++}

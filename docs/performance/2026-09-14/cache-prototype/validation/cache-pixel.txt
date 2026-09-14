@@ -1,0 +1,16 @@
+********* Start testing of ApplicationTranslationTest *********
+Config: Using QtTest library 6.11.0, Qt 6.11.0 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022), windows 11
+PASS   : ApplicationTranslationTest::initTestCase()
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll probe: settle_ms=0, steps=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll motion: jump
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=212800, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=174200, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=41600, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=53000, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=36000, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Cache pixel mismatch 101 2 QRect(10,524 2x1)
+FAIL!  : ApplicationTranslationTest::opensAndSearchesLargeLog() Compared values are not the same
+D:\File\Program\GitCode\ZzLogg\.worktrees\zzpuretools-ui-refactor\tests\ui_acceptance\applicationtranslationtest.cpp(1889) : failure location
+PASS   : ApplicationTranslationTest::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 716ms
+********* Finished testing of ApplicationTranslationTest *********

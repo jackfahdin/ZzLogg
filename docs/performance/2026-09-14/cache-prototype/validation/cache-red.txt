@@ -1,0 +1,15 @@
+********* Start testing of ApplicationTranslationTest *********
+Config: Using QtTest library 6.11.0, Qt 6.11.0 (x86_64-little_endian-llp64 shared (dynamic) release build; by MSVC 2022), windows 11
+PASS   : ApplicationTranslationTest::initTestCase()
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll probe: settle_ms=0, steps=100
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Scroll motion: jump
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=paint, ns=2011000, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=cache, ns=1969700, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=fetch, ns=24700, calls=1
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=text, ns=1651200, calls=36
+QINFO  : ApplicationTranslationTest::opensAndSearchesLargeLog() Repaint detail: part=blit, ns=39600, calls=1
+FAIL!  : ApplicationTranslationTest::opensAndSearchesLargeLog() 'paintedLines <= qAbs(position - previous) + 1' returned FALSE. (Expected exposed rows only, painted 36)
+D:\File\Program\GitCode\ZzLogg\.worktrees\zzpuretools-ui-refactor\tests\ui_acceptance\applicationtranslationtest.cpp(1878) : failure location
+PASS   : ApplicationTranslationTest::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 652ms
+********* Finished testing of ApplicationTranslationTest *********
