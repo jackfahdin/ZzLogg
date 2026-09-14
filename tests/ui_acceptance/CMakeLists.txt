@@ -277,6 +277,15 @@ endif()
 
 if(WIN32)
   find_program(ZZLOGG_POWERSHELL_EXECUTABLE NAMES powershell pwsh REQUIRED)
+  if(MSVC)
+    get_filename_component(zzlogg_compiler_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(ZZLOGG_DUMPBIN_EXECUTABLE NAMES dumpbin
+      HINTS "${zzlogg_compiler_directory}" REQUIRED)
+    add_test(NAME zzlogg_ui.static_framework_imports
+      COMMAND "${CMAKE_COMMAND}" "-DAPP=$<TARGET_FILE:klogg>"
+        "-DDUMPBIN=${ZZLOGG_DUMPBIN_EXECUTABLE}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/staticframeworktest.cmake")
+  endif()
   add_test(NAME zzlogg_ui.version_resource_contract
     COMMAND "${CMAKE_COMMAND}"
       "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"

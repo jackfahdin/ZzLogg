@@ -24,6 +24,17 @@ remaining Git submodule. backward-cpp v1.6 is tracked directly under
 the ZzLogg source tree itself has been cloned or archived. This does not make
 Qt, Boost, OpenSSL, or every CPM/CI dependency offline.
 
+## Framework linkage
+
+ZzLogg builds ZzPureTools and its framework dependencies as static libraries.
+This is enforced locally in `cmake/ZzPureTools.cmake`; the pinned submodule is
+not modified. Qt and the compiler runtime keep their existing dynamic linkage.
+The deployed Windows runtime folder must not contain ZzPureTools/ZzLog/QWK
+DLLs. Recreate the runtime folder after switching linkage; old build output
+directories can still contain DLLs left by an earlier shared build.
+Linux GNU runtime packaging is resolved by the host application independently
+of the framework's static linkage.
+
 ## Requirements
 
 ZzLogg requires:

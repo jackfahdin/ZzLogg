@@ -2,6 +2,22 @@ file(READ "${SOURCE_ROOT}/.github/workflows/ci-build.yml" ci)
 file(READ "${SOURCE_ROOT}/cmake/ZzPureTools.cmake" integration)
 file(READ "${SOURCE_ROOT}/CMakeLists.txt" root_cmake)
 
+# Exercise the host resolver's disabled path and its platform guard without
+# requiring a Linux compiler on the machine running the contract suite.
+execute_process(COMMAND "${CMAKE_COMMAND}" -DZZ_BUNDLE_GNU_RUNTIME=OFF
+  -P "${SOURCE_ROOT}/cmake/ZzLoggGnuRuntime.cmake"
+  RESULT_VARIABLE disabled_result)
+if(NOT disabled_result EQUAL 0)
+  message(FATAL_ERROR "Disabled runtime bundling must not require a compiler or licenses")
+endif()
+execute_process(COMMAND "${CMAKE_COMMAND}" -DZZ_BUNDLE_GNU_RUNTIME=ON
+  -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_CXX_COMPILER_ID=GNU -DCMAKE_BUILD_TYPE=Release
+  -P "${SOURCE_ROOT}/cmake/ZzLoggGnuRuntime.cmake"
+  RESULT_VARIABLE invalid_result ERROR_VARIABLE invalid_error OUTPUT_QUIET)
+if(invalid_result EQUAL 0 OR NOT invalid_error MATCHES "requires Linux, GNU, and Release")
+  message(FATAL_ERROR "Runtime bundling must reject unsupported platforms")
+endif()
+
 string(FIND "${ci}" "  Linux:" linux_position)
 string(FIND "${ci}" "  Mac:" mac_position)
 if(linux_position EQUAL -1 OR mac_position EQUAL -1
@@ -35,8 +51,7 @@ endforeach()
 foreach(required IN ITEMS
     "ZZLOGG_GNU_LIBSTDCXX_PATH"
     "ZZLOGG_GNU_LIBGCC_PATH"
-    "ZZLOGG_GNU_RUNTIME_LICENSE_DIR"
-    "get_directory_property")
+    "ZZLOGG_GNU_RUNTIME_LICENSE_DIR")
   string(FIND "${integration}" "${required}" found)
   if(found EQUAL -1)
     message(FATAL_ERROR "ZzPureTools integration does not expose: ${required}")

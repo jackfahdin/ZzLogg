@@ -45,8 +45,6 @@ set(runtime_sentinels
   "licenses/ZzPureTools/ZzLog/fmt/LICENSE.txt"
   "licenses/ZzPureTools/qwindowkit/LICENSE"
   "icuuc.dll"
-  "ZzCore.dll"
-  "ZzWindowKit.dll"
   "tbb12.dll"
   "platforms/qwindows${qt_debug_suffix}.dll"
   "iconengines/qsvgicon${qt_debug_suffix}.dll"
@@ -67,6 +65,13 @@ foreach(forbidden_executable IN ITEMS ZzLogg_portable.exe ZzLogg_ui2.exe)
 endforeach()
 
 file(GLOB_RECURSE runtime_files RELATIVE "${RUNTIME_DIR}" "${RUNTIME_DIR}/*")
+foreach(runtime_file IN LISTS runtime_files)
+  get_filename_component(runtime_name "${runtime_file}" NAME)
+  string(TOLOWER "${runtime_name}" runtime_name)
+  if(runtime_name MATCHES "^(zz[a-z0-9_]*|qwk[a-z0-9_]*)\\.dll$")
+    message(FATAL_ERROR "Static framework deployment contains a DLL: ${runtime_file}")
+  endif()
+endforeach()
 list(LENGTH runtime_files runtime_file_count)
 if(runtime_file_count LESS 20)
   message(FATAL_ERROR

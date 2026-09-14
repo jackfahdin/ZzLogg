@@ -11,7 +11,12 @@ function(klogg_add_zzpuretools)
     message(FATAL_ERROR "ZzLogg requires Qt 6.8 or newer")
   endif()
 
-  set(BUILD_SHARED_LIBS ON)
+  set(BUILD_SHARED_LIBS OFF)
+  # The application may still bundle GNU runtime DLLs/shared objects when its
+  # framework is static. Upstream's release bundler only accepts shared builds.
+  set(zz_bundle_gnu_runtime "${ZZ_BUNDLE_GNU_RUNTIME}")
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/ZzLoggGnuRuntime.cmake")
+  set(ZZ_BUNDLE_GNU_RUNTIME OFF)
   set(BUILD_TESTING OFF)
   set(ZZ_BUILD_TESTS OFF)
   set(ZZ_BUILD_EXAMPLES OFF)
@@ -29,16 +34,10 @@ function(klogg_add_zzpuretools)
                    "${zz_binary_dir}"
                    EXCLUDE_FROM_ALL)
 
-  # The vendored subtree resolves the exact runtime selected by CXX. Its
-  # install rules are excluded with the subtree, so expose those audited
-  # inputs for the application's deliberately small runtime install closure.
-  if(ZZ_BUNDLE_GNU_RUNTIME)
-    get_directory_property(ZZLOGG_GNU_LIBSTDCXX_PATH
-      DIRECTORY "${zz_binary_dir}"
-      DEFINITION ZZ_GNU_LIBSTDCXX_PATH)
-    get_directory_property(ZZLOGG_GNU_LIBGCC_PATH
-      DIRECTORY "${zz_binary_dir}"
-      DEFINITION ZZ_GNU_LIBGCC_PATH)
+  # Expose the compiler-resolved runtime to the application's install closure.
+  if(zz_bundle_gnu_runtime)
+    set(ZZLOGG_GNU_LIBSTDCXX_PATH "${ZZ_GNU_LIBSTDCXX_PATH}")
+    set(ZZLOGG_GNU_LIBGCC_PATH "${ZZ_GNU_LIBGCC_PATH}")
     foreach(zz_runtime_path IN ITEMS
         "${ZZLOGG_GNU_LIBSTDCXX_PATH}"
         "${ZZLOGG_GNU_LIBGCC_PATH}")
