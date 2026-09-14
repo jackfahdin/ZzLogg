@@ -1692,8 +1692,7 @@ void MainWindow::updateTitleBar( const QString& file_name )
         indexPart = QString( " #%1" ).arg( session_.windowIndex() + 1 );
     }
 
-    setWindowTitle( tr( "%1 - %2%3" ).arg( shownName, productName(), indexPart )
-                    + tr( " (build " ) + kloggVersion() + ")" );
+    setWindowTitle( tr( "%1 - %2%3" ).arg( shownName, productName(), indexPart ) );
     Q_EMIT activeDocumentNameChanged( file_name.isEmpty() ? QString{} : strippedName( file_name ) );
 }
 

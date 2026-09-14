@@ -1,65 +1,18 @@
-message("Version override ${BUILD_VERSION}")
-message("Build ${BUILD_NUMBER}")
+include("${CMAKE_CURRENT_LIST_DIR}/ZzLoggVersion.cmake")
 
-string(
-  REGEX MATCHALL
-        "[0-9]+"
-        _versionComponents
-        "${BUILD_VERSION}"
-)
-list(LENGTH _versionComponents _len)
-if(${_len} GREATER 0)
-  list(
-    GET
-    _versionComponents
-    0
-    PROJECT_VERSION_MAJOR
-  )
+if(NOT "${BUILD_VERSION}" STREQUAL "")
+  zzlogg_parse_version("${BUILD_VERSION}")
+else()
+  zzlogg_parse_version("${PROJECT_VERSION}")
 endif()
-if(${_len} GREATER 1)
-  list(
-    GET
-    _versionComponents
-    1
-    PROJECT_VERSION_MINOR
-  )
-endif()
-if(${_len} GREATER 2)
-  list(
-    GET
-    _versionComponents
-    2
-    PROJECT_VERSION_PATCH
-  )
-endif()
-if(${_len} GREATER 3)
-  list(
-    GET
-    _versionComponents
-    3
-    PROJECT_VERSION_TWEAK
-  )
-endif()
-set(PROJECT_VERSION_COUNT ${_len})
-
-if(NOT PROJECT_VERSION_PATCH)
-  set(PROJECT_VERSION_PATCH 0)
-endif()
-
-if(NOT
-   ${BUILD_NUMBER}
-   STREQUAL
-   ""
-)
-  set(PROJECT_VERSION_TWEAK ${BUILD_NUMBER})
-endif()
-
-if(NOT PROJECT_VERSION_TWEAK)
-  set(PROJECT_VERSION_TWEAK 0)
-endif()
-
-if(${PROJECT_VERSION_COUNT} GREATER 0)
-  set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+set(PROJECT_VERSION_MAJOR "${ZZLOGG_VERSION_COMPONENT_0}")
+set(PROJECT_VERSION_MINOR "${ZZLOGG_VERSION_COMPONENT_1}")
+set(PROJECT_VERSION_PATCH "${ZZLOGG_VERSION_COMPONENT_2}")
+set(PROJECT_VERSION_TWEAK "${ZZLOGG_VERSION_COMPONENT_3}")
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+if(NOT "${BUILD_NUMBER}" STREQUAL "")
+  zzlogg_parse_version("${PROJECT_VERSION}.${BUILD_NUMBER}")
+  set(PROJECT_VERSION_TWEAK "${ZZLOGG_VERSION_COMPONENT_3}")
 endif()
 
 message("Project version is ${PROJECT_VERSION}")
@@ -87,6 +40,8 @@ generate_product_version(
   ${PROJECT_VERSION_PATCH}
   VERSION_REVISION
   ${PROJECT_VERSION_TWEAK}
+  VERSION_TEXT
+  "${ZZLOGG_DISPLAY_VERSION}"
   COMPANY_NAME
   "${ZZLOGG_VENDOR}"
   COMPANY_COPYRIGHT
@@ -113,6 +68,8 @@ generate_product_version(
   ${PROJECT_VERSION_PATCH}
   VERSION_REVISION
   ${PROJECT_VERSION_TWEAK}
+  VERSION_TEXT
+  "${ZZLOGG_DISPLAY_VERSION}"
   COMPANY_NAME
   "${ZZLOGG_VENDOR}"
   COMPANY_COPYRIGHT

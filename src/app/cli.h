@@ -175,8 +175,7 @@ struct CliParameters {
     static void print_version()
     {
         std::cout << zzlogg::brand::ProductName << " " << kloggVersion().data() << "\n";
-        std::cout << "Built " << kloggBuildDate().data() << " from " << kloggCommit().data() << "("
-                  << kloggGitVersion().data() << ")\n";
+        std::cout << "Built " << kloggBuildDate().data() << " from " << kloggCommit().data() << "\n";
 
         std::cout
             << "Copyright (C) 2020 Nicolas Bonnefon, Anton Filimonov and other contributors\n";

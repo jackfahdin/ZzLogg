@@ -1,3 +1,6 @@
+include("${CMAKE_CURRENT_LIST_DIR}/ZzLoggVersion.cmake")
+zzlogg_parse_version("${BUILD_VERSION}")
+
 # Get the current working branch
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
@@ -34,6 +37,6 @@ file(APPEND generated/version.h "#define GENERATED_KLOGG_VERSION_H\n\n")
 file(APPEND generated/version.h "#define KLOGG_DATE \"${BUILD_DATE}\"\n\n")
 file(APPEND generated/version.h "#define KLOGG_GIT_VERSION \"${GIT_DESCRIBE}\"\n\n")
 file(APPEND generated/version.h "#define KLOGG_COMMIT \"${GIT_COMMIT_HASH}\"\n\n")
-file(APPEND generated/version.h "#define KLOGG_VERSION \"${BUILD_VERSION}\"\n\n")
+file(APPEND generated/version.h "#define KLOGG_VERSION \"${ZZLOGG_DISPLAY_VERSION}\"\n\n")
 
 file(APPEND generated/version.h "#endif // GENERATED_KLOGG_VERSION_H\n")

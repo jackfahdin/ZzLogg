@@ -14,6 +14,10 @@ foreach ($app in $expectedOriginalFilenames.Keys) {
   }
 
   $version = (Get-Item -LiteralPath $app).VersionInfo
+  $expectedText = '{0:D2}.{1:D2}.{2:D2}' -f $version.FileMajorPart, $version.FileMinorPart, $version.FileBuildPart
+  if ($version.FileVersion -cne $expectedText -or $version.ProductVersion -cne $expectedText) {
+    throw "Expected padded version $expectedText for $app, got $($version.FileVersion) / $($version.ProductVersion)"
+  }
   if ($version.OriginalFilename -ne $expectedOriginalFilenames[$app]) {
     throw "Expected $($expectedOriginalFilenames[$app]) as OriginalFilename for $app, got $($version.OriginalFilename)"
   }

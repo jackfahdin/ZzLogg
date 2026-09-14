@@ -4,6 +4,11 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_test(NAME zzlogg_ui.version_display
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}" "-DBINARY_ROOT=${CMAKE_BINARY_DIR}"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/versiondisplaytest.cmake")
+
 add_executable(zzlogg_text_cache_test textcachetest.cpp)
 target_link_libraries(zzlogg_text_cache_test PRIVATE
   klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
