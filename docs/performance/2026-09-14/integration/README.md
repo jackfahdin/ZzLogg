@@ -35,6 +35,10 @@
 
 CSV 和 manifest 保存全部数值、环境参数与二进制哈希。原始 QTest 日志保留在诊断工作区 out/ui-vs/formal-perf-line 和 formal-perf-jump。用 tools/compare-ui-performance.ps1 设置 ZZLOGG_SCROLL_MOTION=line 或 jump、ZZLOGG_SCROLL_STEPS=1000、ZZLOGG_SCROLL_SETTLE_MS=300 复现。
 
-## 后续
+## 交付与人工验收
 
-线性合并到 master 后在主工作区重新构建、运行完整测试并更新运行目录，不推送远端。下一步以用户真实日志验证流畅度、选择复制及跨屏拖动；当前没有必要继续扩展另一套渲染方案。
+已线性合并到 master 的 37fd6c20，在主工作区完成 Release 构建，合并后的 61 项 CTest 全部通过（43.77 秒）。运行目录 out/ui-vs/runtime/Release/ZzLogg-runtime 已更新，其 ZzLogg.exe 与构建输出的 SHA256 一致。旧运行目录保留为 ZzLogg-runtime-before-cache-20260914-170920，未推送远端。
+
+用户在收到该版本后反馈“测试正常”。本轮优化据此完成使用验收；这是一条整体反馈，不将其扩写为逐项测试清单或自动化未覆盖的跨屏迁移证明。
+
+本次收尾只补充验收文档，不修改程序，不重新编译。保留现有运行版本和性能基准，暂无必须继续实施的渲染优化。后续若真实日志出现可复现的卡顿或显示问题，再依据样本开展针对性修复。
