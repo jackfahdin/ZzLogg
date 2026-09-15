@@ -142,6 +142,12 @@ GNU General Public License,version 2.0 or later.
 GNU Lesser General Public License, version 2.1 or later.
 
 ===
+This product includes nlohmann/json 3.12.0 (https://github.com/nlohmann/json),
+Copyright (c) 2013-2025 Niels Lohmann, under the MIT license.
+Full JSON license: 3rdparty/vendor/nlohmann-json/LICENSE.MIT (source),
+licenses/nlohmann-json/LICENSE.MIT (runtime distribution).
+
+===
 This product includes Monocypher 4.0.3 (https://monocypher.org/),
 used under the BSD-2-Clause license option.
 Copyright (c) 2017-2023, Loup Vaillant and contributors.

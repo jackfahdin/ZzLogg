@@ -1,5 +1,8 @@
 include_guard(GLOBAL)
 set(_zz_update_vendor "${CMAKE_CURRENT_LIST_DIR}/../3rdparty/vendor")
+add_library(zzlogg_update_json INTERFACE)
+target_include_directories(zzlogg_update_json SYSTEM INTERFACE
+  "${_zz_update_vendor}/nlohmann-json")
 add_library(zzlogg_update_monocypher STATIC
   "${_zz_update_vendor}/monocypher/src/monocypher.c"
   "${_zz_update_vendor}/monocypher/src/optional/monocypher-ed25519.c")

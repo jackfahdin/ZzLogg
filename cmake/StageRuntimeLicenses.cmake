@@ -20,6 +20,8 @@ stage_runtime_notice("COPYING" "licenses/ZzLogg/COPYING")
 stage_runtime_notice("NOTICE" "licenses/ZzLogg/NOTICE")
 stage_runtime_notice("3rdparty/vendor/monocypher/LICENCE.md"
   "licenses/Monocypher/LICENCE.md")
+stage_runtime_notice("3rdparty/vendor/nlohmann-json/LICENSE.MIT"
+  "licenses/nlohmann-json/LICENSE.MIT")
 stage_runtime_notice("3rdparty/vendor/ZzPureTools/LICENSE"
   "licenses/ZzPureTools/LICENSE")
 stage_runtime_notice("3rdparty/vendor/ZzPureTools/docs/third-party/THIRD_PARTY_NOTICES.md"
