@@ -181,9 +181,9 @@ QCOMPARE(network.requestedUrls().size(), 1); // Never sends the HTTP request.
 **创建：** src/updateqt/include/zzlogg/updateqt/updateservice.h、src/updateqt/src/updateservice.cpp、src/updateqt/src/updateconfiguration.cpp、tests/updateqt/updateservicetest.cpp。
 **修改：** cmake/ZzLoggBrand.cmake、cmake/zzlogg_brand.h.in、src/updateqt/CMakeLists.txt、tests/updateqt/CMakeLists.txt。
 
-- [ ] 工厂读取编译时生产配置；地址、公钥表、允许主机任一缺失时返回未配置。默认保持空地址/空公钥。新增 CMake CACHE STRING：ZZLOGG_UPDATE_STABLE_URL、ZZLOGG_UPDATE_PREVIEW_URL、ZZLOGG_UPDATE_PUBLIC_KEYS（分号分隔的 keyId:64位小写公钥十六进制）、ZZLOGG_UPDATE_ALLOWED_HOSTS（分号分隔的小写 DNS 名）；校验 keyId 与域名格式、重复 ID、长度和转义，禁止将未经转义的配置拼进 C++。由 configure_file 生成内部配置头，构建时间用 UTC Unix 秒。旧 ZZLOGG_UPDATE_MANIFEST_URL 在删除旧版本检查器时移除。不从用户设置读取密钥或 URL。
-- [ ] 使用 tests/update/fixturehelper.h 的真实已签名负载，经 scripted network 进入真实 fetcher、verifyManifest、state store；用固定时钟验证服务。先以未接 verifier 的实现观察测试失败。
-- [ ] 测试完整路径：requestCheck(Stable, Manual) → Checking → 网络返回 → 验签 → accepted 落盘 → Available 或 ReleaseInformation；存储成功之前不发成功快照。
+- [x] 工厂读取编译时生产配置；地址、公钥表、允许主机任一缺失时返回未配置。默认保持空地址/空公钥。新增 CMake CACHE STRING：ZZLOGG_UPDATE_STABLE_URL、ZZLOGG_UPDATE_PREVIEW_URL、ZZLOGG_UPDATE_PUBLIC_KEYS（分号分隔的 keyId:64位小写公钥十六进制）、ZZLOGG_UPDATE_ALLOWED_HOSTS（分号分隔的小写 DNS 名）；校验 keyId 与域名格式、重复 ID、长度和转义，禁止将未经转义的配置拼进 C++。由 configure_file 生成内部配置头，构建时间用 UTC Unix 秒。旧 ZZLOGG_UPDATE_MANIFEST_URL 在删除旧版本检查器时移除。不从用户设置读取密钥或 URL。
+- [x] 使用 tests/update/fixturehelper.h 的真实已签名负载，经 scripted network 进入真实 fetcher、verifyManifest、state store；用固定时钟验证服务。先以未接 verifier 的实现观察测试失败。
+- [x] 测试完整路径：requestCheck(Stable, Manual) → Checking → 网络返回 → 验签 → accepted 落盘 → Available 或 ReleaseInformation；存储成功之前不发成功快照。
 
 ```cpp
 service.requestCheck(Channel::Stable, CheckOrigin::Manual);
@@ -194,11 +194,13 @@ QVERIFY(store->read(Channel::Stable).value->accepted);
 QVERIFY(!service.snapshot().decision);
 ```
 
-- [ ] 正式 InstalledRelease 仅由明确发布信息构造；默认身份缺失时展示 ReleaseInformation，不把用户选择的数据根映射为 Portable/Installer，也不伪造 releaseSequence。
-- [ ] 实现手动请求附着后台检查、每日检查、失败退避、跳过后台通知。轮询定时器读取时钟与最新状态；受测纯调度函数与定时器调用使用同一实现。
-- [ ] 状态错误拒绝成功；检查期间用户换渠道时取消旧请求，旧结果不能写入新渠道。多实例竞态测试在响应前让另一 store 保存更大序号，确认不能回退或通知旧结果。
-- [ ] 覆盖无配置零请求、开发身份、无匹配载荷仍推进 accepted、错误签名不推进、重复点击一请求、后台请求转手动、取消与销毁服务后零回调。
-- [ ] 注册 zzlogg_update.service，全绿后提交“feat: 连接签名验证与应用更新检查服务”。
+- [x] 正式 InstalledRelease 仅由明确发布信息构造；默认身份缺失时展示 ReleaseInformation，不把用户选择的数据根映射为 Portable/Installer，也不伪造 releaseSequence。
+- [x] 实现手动请求附着后台检查、每日检查、失败退避、跳过后台通知。轮询定时器读取时钟与最新状态；受测纯调度函数与定时器调用使用同一实现。
+- [x] 状态错误拒绝成功；检查期间用户换渠道时取消旧请求，旧结果不能写入新渠道。多实例竞态测试在响应前让另一 store 保存更大序号，确认不能回退或通知旧结果。
+- [x] 覆盖无配置零请求、开发身份、无匹配载荷仍推进 accepted、错误签名不推进、重复点击一请求、后台请求转手动、取消与销毁服务后零回调。
+- [x] 注册 zzlogg_update.service，全绿后提交“feat: 连接签名验证与应用更新检查服务”。
+
+任务 3 验证记录：检查服务先观察未接验签骨架的预期失败，再经真实签名清单、传输脚本和临时状态文件完成闭环。服务测试 19 项通过，更新相关 CTest 10/10 通过。审查发现换渠道残留快照、取消未保存退避，均先补失败回归再修复，并通过复审。生产配置写入独立内部头，所有外部字符串先编码为十六进制，配置契约验证重复密钥、长度、非法域名及 C++ 注入边界；应用界面与主程序接线仍属于任务 4–5。
 
 ## 任务 4：检查窗口、设置页与三语言通知
 

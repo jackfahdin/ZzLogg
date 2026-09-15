@@ -1,6 +1,9 @@
 add_library(zzlogg_update_qt STATIC src/updatestate.cpp src/manifestfetcher.cpp
   include/zzlogg/updateqt/manifestfetcher.h)
 set_target_properties(zzlogg_update_qt PROPERTIES AUTOMOC ON)
+target_sources(zzlogg_update_qt PRIVATE src/updateservice.cpp include/zzlogg/updateqt/updateservice.h)
+target_sources(zzlogg_update_qt PRIVATE src/updateconfiguration.cpp)
+target_link_libraries(zzlogg_update_qt PRIVATE zzlogg_brand)
 target_include_directories(zzlogg_update_qt PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(zzlogg_update_qt PRIVATE "../update/src")
 target_compile_features(zzlogg_update_qt PUBLIC cxx_std_17)

@@ -1,0 +1,8 @@
+#pragma once
+namespace zzlogg::updateqt::build {
+inline constexpr char Stable[]="@UPDATE_STABLE_HEX@";
+inline constexpr char Preview[]="@UPDATE_PREVIEW_HEX@";
+inline constexpr char Keys[]="@UPDATE_KEYS_HEX@";
+inline constexpr char Hosts[]="@UPDATE_HOSTS_HEX@";
+inline constexpr long long Time=@UPDATE_BUILD_TIME@LL;
+}

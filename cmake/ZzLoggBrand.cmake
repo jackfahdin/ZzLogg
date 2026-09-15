@@ -11,8 +11,10 @@ set(ZZLOGG_SESSION_SETTINGS_APPLICATION "ZzLogg_session")
 set(ZZLOGG_PORTABLE_CONFIG_BASENAME "ZzLogg")
 set(ZZLOGG_ICON_RESOURCE ":/zzlogg/icons/ZzLogg.svg")
 set(ZZLOGG_UPDATE_MANIFEST_URL "")
+include("${CMAKE_CURRENT_LIST_DIR}/ZzUpdateFeedConfiguration.cmake")
 
 function(zzlogg_configure_brand)
+  zzlogg_configure_update_feed("${CMAKE_BINARY_DIR}/generated/zzlogg_update_feed.h")
   configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/zzlogg_brand.h.in"
     "${CMAKE_BINARY_DIR}/generated/zzlogg_brand.h"

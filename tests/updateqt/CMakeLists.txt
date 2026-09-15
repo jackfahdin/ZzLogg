@@ -16,3 +16,9 @@ endfunction()
 zzlogg_update_qt_test(state updatestatetest.cpp)
 target_link_libraries(zzlogg_update_state_test PRIVATE zzlogg_update_json)
 zzlogg_update_qt_test(fetcher manifestfetchertest.cpp)
+zzlogg_update_qt_test(service updateservicetest.cpp)
+target_include_directories(zzlogg_update_service_test PRIVATE "../../src/update/src")
+target_link_libraries(zzlogg_update_service_test PRIVATE zzlogg_update_json zzlogg_update_monocypher)
+add_test(NAME zzlogg_update.feed_configuration COMMAND "${CMAKE_COMMAND}"
+  "-DSOURCE_ROOT=${CMAKE_SOURCE_DIR}" "-DBINARY_ROOT=${CMAKE_CURRENT_BINARY_DIR}"
+  -P "${CMAKE_CURRENT_SOURCE_DIR}/feedconfigurationtest.cmake")
