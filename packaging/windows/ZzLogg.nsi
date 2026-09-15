@@ -10,7 +10,10 @@
 !endif
 
 !include "MUI2.nsh"
+!include "StrFunc.nsh"
 !include "${__FILEDIR__}\FileAssociation.nsh"
+
+${StrStr}
 
 OutFile "ZzLogg-${VERSION}-${PLATFORM}-Qt6-setup.exe"
 XpStyle on
@@ -21,7 +24,7 @@ SetCompressor /SOLID lzma
 !else
   InstallDir "$PROGRAMFILES64\ZzLogg"
 !endif
-InstallDirRegKey HKLM Software\ZzLogg ""
+InstallDirRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"
 
 !define MUI_ICON "Resources\ZzLogg.ico"
 RequestExecutionLevel admin
@@ -48,6 +51,34 @@ the COPYING and NOTICE files in licenses\ZzLogg.$\r$\n$\r$\n$_CLICK"
 
 !insertmacro MUI_LANGUAGE "English"
 
+Function .onInit
+!ifdef ARCH32
+    SetRegView 32
+!else
+    SetRegView 64
+!endif
+    System::Call 'kernel32::GetCommandLine()t.r0'
+    ${StrStr} $1 $0 " /D="
+    StrCmp $1 "" 0 zzlogg_on_init_done
+!ifdef ARCH32
+    StrCpy $INSTDIR "$PROGRAMFILES\ZzLogg"
+!else
+    StrCpy $INSTDIR "$PROGRAMFILES64\ZzLogg"
+!endif
+    ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"
+    StrCmp $0 "" zzlogg_on_init_done
+    StrCpy $INSTDIR "$0"
+zzlogg_on_init_done:
+FunctionEnd
+
+Function un.onInit
+!ifdef ARCH32
+    SetRegView 32
+!else
+    SetRegView 64
+!endif
+FunctionEnd
+
 Section "ZzLogg application and runtime" zzlogg
     SectionIn RO
 
@@ -73,6 +104,7 @@ Section "ZzLogg application and runtime" zzlogg
 "UninstallString" '"$INSTDIR\Uninstall.exe"'
     WriteRegExpandStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg"\
 "InstallLocation" "$INSTDIR"
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 1
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "DisplayName" "ZzLogg"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "DisplayVersion" "${VERSION}"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "NoModify" "1"

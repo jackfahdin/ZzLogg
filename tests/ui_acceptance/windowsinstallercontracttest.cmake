@@ -227,6 +227,94 @@ set(nsis_path "${SOURCE_ROOT}/packaging/windows/ZzLogg.nsi")
 file(READ "${nsis_path}" nsis_content)
 string(REPLACE "\r\n" "\n" nsis_content "${nsis_content}")
 
+# Static NSIS identity assertions are intentionally scoped to active code blocks.
+# Strip full-line and trailing comments so contract words in commentary cannot pass.
+string(REGEX REPLACE "(^|\n)[ \t]*[#;][^\n]*" "\\1" nsis_active_content
+  "${nsis_content}")
+string(REGEX REPLACE "[ \t]+[#;][^\n]*" "" nsis_active_content
+  "${nsis_active_content}")
+
+function(extract_nsis_block content_variable start_marker end_marker block_name output_variable)
+  string(FIND "${${content_variable}}" "${start_marker}" block_start)
+  if(block_start EQUAL -1)
+    message(FATAL_ERROR "NSIS ${block_name} block is missing")
+  endif()
+  string(SUBSTRING "${${content_variable}}" ${block_start} -1 block_tail)
+  string(FIND "${block_tail}" "${end_marker}" block_end)
+  if(block_end EQUAL -1)
+    message(FATAL_ERROR "NSIS ${block_name} block is unterminated")
+  endif()
+  string(LENGTH "${end_marker}" end_marker_length)
+  math(EXPR block_length "${block_end} + ${end_marker_length}")
+  string(SUBSTRING "${block_tail}" 0 ${block_length} block_content)
+  set(${output_variable} "${block_content}" PARENT_SCOPE)
+endfunction()
+
+function(require_nsis_block_literal block_variable required_literal block_name)
+  string(FIND "${${block_variable}}" "${required_literal}" literal_position)
+  if(literal_position EQUAL -1)
+    message(FATAL_ERROR
+      "NSIS ${block_name} identity contract is missing: ${required_literal}")
+  endif()
+endfunction()
+
+foreach(required_literal IN ITEMS
+    "InstallDirRegKey HKLM \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ZzLogg\" \"InstallLocation\""
+    "SetRegView 64"
+    "\"UpdateIdentitySchema\" 1")
+  string(FIND "${nsis_active_content}" "${required_literal}" found)
+  if(found EQUAL -1)
+    message(FATAL_ERROR "Missing installer identity contract: ${required_literal}")
+  endif()
+endforeach()
+
+extract_nsis_block(nsis_active_content "Function .onInit" "FunctionEnd"
+  "installer .onInit" installer_on_init)
+extract_nsis_block(nsis_active_content "Function un.onInit" "FunctionEnd"
+  "uninstaller un.onInit" uninstaller_on_init)
+extract_nsis_block(nsis_active_content
+  [=[Section "ZzLogg application and runtime" zzlogg]=] "SectionEnd"
+  "application install section" application_install_section)
+
+set(expected_reg_view_selection [=[!ifdef ARCH32
+    SetRegView 32
+!else
+    SetRegView 64
+!endif]=])
+require_nsis_block_literal(installer_on_init "${expected_reg_view_selection}"
+  "installer .onInit")
+require_nsis_block_literal(uninstaller_on_init "${expected_reg_view_selection}"
+  "uninstaller un.onInit")
+
+set(installer_directory_read
+  [=[ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"]=])
+foreach(installer_init_literal IN ITEMS
+    [=[System::Call 'kernel32::GetCommandLine()t.r0']=]
+    [=[${StrStr} $1 $0 " /D="]=]
+    [=[StrCmp $1 "" 0 zzlogg_on_init_done]=]
+    "${installer_directory_read}"
+    [=[StrCpy $INSTDIR "$0"]=])
+  require_nsis_block_literal(installer_on_init "${installer_init_literal}"
+    "installer .onInit")
+endforeach()
+string(FIND "${installer_on_init}" "SetRegView 64" installer_view_position)
+string(FIND "${installer_on_init}" [=[${StrStr} $1 $0 " /D="]=]
+  installer_override_check_position)
+string(FIND "${installer_on_init}" "${installer_directory_read}"
+  installer_directory_read_position)
+if(installer_view_position GREATER installer_directory_read_position
+   OR installer_override_check_position GREATER installer_directory_read_position)
+  message(FATAL_ERROR
+    "NSIS installer must select its registry view and preserve /D= before directory readback")
+endif()
+
+foreach(application_identity_literal IN ITEMS
+    [=["InstallLocation" "$INSTDIR"]=]
+    [=[WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 1]=])
+  require_nsis_block_literal(application_install_section
+    "${application_identity_literal}" "application install section")
+endforeach()
+
 set(recursive_file_line [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
 string(REGEX MATCHALL "\n[ \t]+File[ \t][^\n]*" nsis_file_lines "${nsis_content}")
 list(LENGTH nsis_file_lines nsis_file_line_count)
