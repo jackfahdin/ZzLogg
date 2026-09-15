@@ -263,6 +263,7 @@ endif()
 if(KLOGG_BUILD_UI_TESTS)
   find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
   add_subdirectory(tests/ui_acceptance)
+  add_subdirectory(tests/update)
 endif()
 
 if(ZZ_BUNDLE_GNU_RUNTIME)

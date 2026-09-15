@@ -1,0 +1,11 @@
+function(zzlogg_update_test suffix source)
+  add_executable(zzlogg_update_${suffix}_test "${source}")
+  target_link_libraries(zzlogg_update_${suffix}_test PRIVATE zzlogg_update_core Qt6::Core Qt6::Test)
+  set_target_properties(zzlogg_update_${suffix}_test PROPERTIES AUTOMOC ON)
+  add_test(NAME zzlogg_update.${suffix} COMMAND zzlogg_update_${suffix}_test)
+  if(WIN32)
+    set_property(TEST zzlogg_update.${suffix} PROPERTY ENVIRONMENT_MODIFICATION
+      "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+  endif()
+endfunction()
+zzlogg_update_test(version versiontest.cpp)
