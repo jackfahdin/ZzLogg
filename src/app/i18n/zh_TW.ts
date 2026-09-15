@@ -634,16 +634,6 @@
         <translation>下載檔案的URL：</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1240"/>
-        <source>About %1</source>
-        <translation>關於 %1</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1241"/>
-        <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
-        <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;一款快速、先進的日誌檢視器。&lt;/p&gt;&lt;p&gt;建構於 %3，提交 %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;基於 klogg：&lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg 是 glogg 的分支&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;使用來自 &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; 專案的圖示&lt;/p&gt;&lt;p&gt;版權 &amp;copy; 2020 Nicolas Bonnefon、Anton Filimonov 與其他貢獻者&lt;/p&gt;&lt;p&gt;您可以根據 GPL（第 3 版或更新版本）的條款修改和重新散佈本程式。&lt;/p&gt;</translation>
-    </message>
-    <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1259"/>
         <source>About Qt</source>
         <translation>關於 Qt</translation>
@@ -742,6 +732,45 @@
         <location filename="../../ui/src/mainwindow.cpp" line="2134"/>
         <source>Remove from favorites</source>
         <translation>從書籤中移除</translation>
+    </message>
+</context>
+<context>
+    <name>AboutDialog</name>
+    <message>
+        <source>About %1</source>
+        <translation>關於 %1</translation>
+    </message>
+    <message>
+        <source>A fast, advanced log explorer.</source>
+        <translation>快速、高效的日誌瀏覽與分析工具。</translation>
+    </message>
+    <message>
+        <source>Maintainer</source>
+        <translation>維護者</translation>
+    </message>
+    <message>
+        <source>Build date</source>
+        <translation>建置日期</translation>
+    </message>
+    <message>
+        <source>Commit</source>
+        <translation>提交版本</translation>
+    </message>
+    <message>
+        <source>Project homepage</source>
+        <translation>專案首頁</translation>
+    </message>
+    <message>
+        <source>Open source and acknowledgements</source>
+        <translation>開源與致謝</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>關閉</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Based on %1, a fork of %2.&lt;/p&gt;&lt;p&gt;Interface powered by ZzPureTools. Icons provided by %3.&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors.&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the GNU GPL, version 3 or later.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;基於 %1 開發，其源自 %2。&lt;/p&gt;&lt;p&gt;介面使用 ZzPureTools，部分圖示來自 %3。&lt;/p&gt;&lt;p&gt;著作權所有 &amp;copy; 2020 Nicolas Bonnefon、Anton Filimonov 及其他貢獻者。&lt;/p&gt;&lt;p&gt;您可以依照 GNU GPL 第 3 版或更新版本的條款修改及再散布本程式。&lt;/p&gt;</translation>
     </message>
 </context>
 <context>

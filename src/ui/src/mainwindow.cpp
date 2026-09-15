@@ -81,6 +81,7 @@
 #include <QWindow>
 
 #include "mainwindow.h"
+#include "aboutdialog.h"
 #include "documentationwindow.h"
 #include "windowchrome.h"
 
@@ -1084,22 +1085,8 @@ void MainWindow::options()
 
 void MainWindow::about()
 {
-    QMessageBox::about(
-        this, tr( "About %1" ).arg( productName() ),
-        tr( "<h2>%1 %2</h2>"
-            "<p>A fast, advanced log explorer.</p>"
-            "<p>Built %3 from %4</p>"
-            "<p><a href=\"%5\">%5</a></p>"
-            "<p>Based on klogg: <a href=\"https://github.com/variar/klogg\">"
-            "https://github.com/variar/klogg</a></p>"
-            "<p>klogg is a fork of glogg</p>"
-            "<p><a href=\"http://glogg.bonnefon.org/\">http://glogg.bonnefon.org/</a></p>"
-            "<p>Using icons from <a href=\"https://icons8.com\">icons8.com</a> project</p>"
-            "<p>Copyright &copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors</p>"
-            "<p>You may modify and redistribute the program under the terms of the GPL (version 3 "
-            "or later).</p>" )
-            .arg( productName(), kloggVersion(), kloggBuildDate(), kloggCommit(),
-                  QString::fromLatin1( zzlogg::brand::HomepageUrl ) ) );
+    AboutDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::aboutQt()

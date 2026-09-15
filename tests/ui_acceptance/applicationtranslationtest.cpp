@@ -146,6 +146,56 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void aboutDialogUpdatesLanguage()
+    {
+        auto* previousStyle = QApplication::style();
+        const auto previousPalette = QApplication::palette();
+        previousStyle->setParent(nullptr);
+        auto& theme = testTheme();
+        const auto previousMode = theme.mode();
+        const auto restoreStyle = qScopeGuard([&] {
+            theme.setMode(previousMode);
+            QApplication::setStyle(previousStyle);
+            QApplication::setPalette(previousPalette);
+        });
+        QApplication::setStyle(new ZzFluentUI::ZzFluentStyle(&theme));
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        auto session = std::make_shared<Session>();
+        MainWindow window(WindowSession(session, "about", 0), UiThemeContext{testTheme()});
+        QTimer::singleShot(0, &window, [&] {
+            auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            QVERIFY(dialog);
+            const auto cleanup = qScopeGuard([&] { dialog->reject(); });
+            auto* description = dialog->findChild<QLabel*>("aboutDescription");
+            QVERIFY(description);
+            QVERIFY(description->text().contains("log"));
+            QCOMPARE(MainWindow::installLanguage("zh_CN"), 0);
+            QTRY_VERIFY(description->text().contains(QStringLiteral("日志")));
+            QCOMPARE(MainWindow::installLanguage("zh_TW"), 0);
+            QTRY_VERIFY(description->text().contains(QStringLiteral("日誌")));
+            QVERIFY(dialog->height() <= dialog->screen()->availableGeometry().height());
+            auto* close = dialog->findChild<QPushButton*>("aboutClose");
+            QVERIFY(close && close->isVisible());
+            QVERIFY(dialog->rect().contains(close->mapTo(dialog, close->rect().bottomRight())));
+            const QString captureDir = QStringLiteral(ZZLOGG_UI_CAPTURE_DIR);
+            QVERIFY(QDir().mkpath(captureDir));
+            QVERIFY(dialog->grab().save(captureDir + "/about.png"));
+            for (auto mode : {ZzFluentUI::ZzThemeMode::Light, ZzFluentUI::ZzThemeMode::Dark}) {
+                theme.setMode(mode);
+                QCoreApplication::processEvents();
+                QVERIFY(dialog->grab().save(captureDir + (mode == ZzFluentUI::ZzThemeMode::Light
+                    ? "/about-light.png" : "/about-dark.png")));
+            }
+            dialog->resize(440, 340);
+            QCoreApplication::processEvents();
+            QVERIFY(dialog->rect().contains(close->mapTo(dialog, close->rect().bottomRight())));
+            QTest::mouseClick(close, Qt::LeftButton);
+            QVERIFY(!dialog->isVisible());
+        });
+        QVERIFY(QMetaObject::invokeMethod(&window, "about", Qt::DirectConnection));
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+    }
+
     void documentationFollowsApplicationLanguage()
     {
         QCOMPARE(MainWindow::installLanguage("en"), 0);

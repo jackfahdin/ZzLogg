@@ -150,6 +150,7 @@
 - [mainwindowtext.cpp](../src/ui/src/mainwindowtext.cpp)：菜单/动作文案上下文。
 - [src/app/i18n](../src/app/i18n)：翻译目录。
 - [documentationwindow.cpp](../src/ui/src/documentationwindow.cpp)：内置帮助文档窗口，根据当前翻译器选择三语手册，并响应语言、字体和调色板变化。
+- [aboutdialog.cpp](../src/ui/src/aboutdialog.cpp)：关于窗口，展示应用标识、构建信息和开源致谢；正文可滚动，关闭按钮独立保留，支持即时翻译与主题切换。
 
 动态切换语言依靠 `LanguageChange` 与 `reTranslateUI()` 等入口更新已存在的对象，不重新创建菜单或日志页面，以保留选择、搜索与编码状态。
 

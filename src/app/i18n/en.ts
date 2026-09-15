@@ -629,16 +629,6 @@
         <translation>URL to download:</translation>
     </message>
     <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1240"/>
-        <source>About %1</source>
-        <translation>About %1</translation>
-    </message>
-    <message>
-        <location filename="../../ui/src/mainwindow.cpp" line="1241"/>
-        <source>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</source>
-        <translation>&lt;h2&gt;%1 %2&lt;/h2&gt;&lt;p&gt;A fast, advanced log explorer.&lt;/p&gt;&lt;p&gt;Built %3 from %4&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%5&quot;&gt;%5&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Based on klogg: &lt;a href=&quot;https://github.com/variar/klogg&quot;&gt;https://github.com/variar/klogg&lt;/a&gt;&lt;/p&gt;&lt;p&gt;klogg is a fork of glogg&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://glogg.bonnefon.org/&quot;&gt;http://glogg.bonnefon.org/&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Using icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; project&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the terms of the GPL (version 3 or later).&lt;/p&gt;</translation>
-    </message>
-    <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1259"/>
         <source>About Qt</source>
         <translation>About Qt</translation>
@@ -742,6 +732,45 @@
         <location filename="../../ui/src/mainwindow.cpp" line="2180"/>
         <source>%1 -- switch to file</source>
         <translation>%1 -- switch to file</translation>
+    </message>
+</context>
+<context>
+    <name>AboutDialog</name>
+    <message>
+        <source>About %1</source>
+        <translation>About %1</translation>
+    </message>
+    <message>
+        <source>A fast, advanced log explorer.</source>
+        <translation>A fast, advanced log explorer.</translation>
+    </message>
+    <message>
+        <source>Maintainer</source>
+        <translation>Maintainer</translation>
+    </message>
+    <message>
+        <source>Build date</source>
+        <translation>Build date</translation>
+    </message>
+    <message>
+        <source>Commit</source>
+        <translation>Commit</translation>
+    </message>
+    <message>
+        <source>Project homepage</source>
+        <translation>Project homepage</translation>
+    </message>
+    <message>
+        <source>Open source and acknowledgements</source>
+        <translation>Open source and acknowledgements</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Based on %1, a fork of %2.&lt;/p&gt;&lt;p&gt;Interface powered by ZzPureTools. Icons provided by %3.&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors.&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the GNU GPL, version 3 or later.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Based on %1, a fork of %2.&lt;/p&gt;&lt;p&gt;Interface powered by ZzPureTools. Icons provided by %3.&lt;/p&gt;&lt;p&gt;Copyright &amp;copy; 2020 Nicolas Bonnefon, Anton Filimonov and other contributors.&lt;/p&gt;&lt;p&gt;You may modify and redistribute the program under the GNU GPL, version 3 or later.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
