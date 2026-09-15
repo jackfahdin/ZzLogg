@@ -1,6 +1,6 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/ZzUpdateDependencies.cmake")
 add_library(zzlogg_update_core STATIC src/version.cpp src/signature.cpp src/strictjson.cpp src/manifest.cpp)
-target_sources(zzlogg_update_core PRIVATE src/payload.cpp src/policy.cpp)
+target_sources(zzlogg_update_core PRIVATE src/payload.cpp src/policy.cpp src/urlpolicy.cpp)
 target_include_directories(zzlogg_update_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(zzlogg_update_core PUBLIC cxx_std_17)
 target_link_libraries(zzlogg_update_core PRIVATE zzlogg_update_monocypher zzlogg_update_json)

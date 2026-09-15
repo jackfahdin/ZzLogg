@@ -8,6 +8,11 @@ function(zzlogg_update_qt_test suffix source)
     set_property(TEST zzlogg_update.${suffix} PROPERTY ENVIRONMENT_MODIFICATION
       "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
   endif()
+  if(TARGET Qt6::QOffscreenIntegrationPlugin)
+    set_property(TEST zzlogg_update.${suffix} PROPERTY ENVIRONMENT
+      "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  endif()
 endfunction()
 zzlogg_update_qt_test(state updatestatetest.cpp)
 target_link_libraries(zzlogg_update_state_test PRIVATE zzlogg_update_json)
+zzlogg_update_qt_test(fetcher manifestfetchertest.cpp)

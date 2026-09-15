@@ -156,9 +156,9 @@ QVERIFY(!store.read(Channel::Preview).value->accepted);
 **创建：** src/update/include/zzlogg/update/urlpolicy.h、src/update/src/urlpolicy.cpp、src/updateqt/include/zzlogg/updateqt/manifestfetcher.h、src/updateqt/src/manifestfetcher.cpp、tests/updateqt/manifestfetchertest.cpp、tests/updateqt/scriptednetwork.h。
 **修改：** src/update/src/payload.cpp、两个核心 CMakeLists、tests/updateqt/CMakeLists.txt。
 
-- [ ] 将现有 allowedUrl 原样提取为 bool isAllowedUpdateUrl(std::string_view, const std::vector<std::string>&)，核心与网络共用。先运行已有 policy URL 测试，保持全部规则。
-- [ ] ScriptedNetworkManager 继承 QNetworkAccessManager，只覆写 createRequest 返回按脚本分块发信号的 QNetworkReply；记录请求 URL、重定向策略及读取量。它不负责判断是否安全，判定由真实 ManifestFetcher 完成。
-- [ ] 先让 fetcher 无限制跟随脚本重定向，运行 HTTP 降级必须失败的测试，确认错误行为被抓住：
+- [x] 将现有 allowedUrl 原样提取为 bool isAllowedUpdateUrl(std::string_view, const std::vector<std::string>&)，核心与网络共用。先运行已有 policy URL 测试，保持全部规则。
+- [x] ScriptedNetworkManager 继承 QNetworkAccessManager，只覆写 createRequest 返回按脚本分块发信号的 QNetworkReply；记录请求 URL、重定向策略及读取量。它不负责判断是否安全，判定由真实 ManifestFetcher 完成。
+- [x] 先用返回成功的可编译骨架，运行 HTTP 降级必须失败的测试，确认缺失验证被抓住：
 
 ```cpp
 // test-owned network manager maps the first HTTPS request to a 302 with an HTTP Location.
@@ -169,10 +169,12 @@ QTRY_COMPARE(rejected.count(), 1);
 QCOMPARE(network.requestedUrls().size(), 1); // Never sends the HTTP request.
 ```
 
-- [ ] 实现手动重定向、最终 URL 校验、状态码、证书失败、块读取限额和总超时；取消 disconnect/abort/deleteLater，旧 generation 回调直接返回。
-- [ ] 测试无 Content-Length 逐块超限、虚假长度、空响应、压缩响应、3/4 次重定向边界、相对 Location、同后缀恶意主机、TLS 错误、慢速连续小块不逃逸总超时、取消后迟到 finished。超时值通过内部测试构造参数缩短，生产值固定。
-- [ ] 增加回环 QTcpServer 的真实 HTTP 拒绝用例，不能仅靠替身证明“不发 HTTP”；没有生产 HTTPS 服务时，不声称完成真实服务端互通验证。
-- [ ] 注册 zzlogg_update.fetcher，原核心及获取测试全绿后提交“feat: 安全获取签名更新清单”。
+- [x] 实现手动重定向、最终 URL 校验、状态码、证书失败、块读取限额和总超时；取消 disconnect/abort/deleteLater，旧 generation 回调直接返回。
+- [x] 测试无 Content-Length 逐块超限、虚假长度、空响应、压缩响应、3/4 次重定向边界、相对 Location、同后缀恶意主机、TLS 错误、慢速连续小块不逃逸总超时、取消后迟到 finished。超时值通过内部测试构造参数缩短，生产值固定。
+- [x] 增加回环 QTcpServer 的真实 HTTP 拒绝用例，不能仅靠替身证明“不发 HTTP”；没有生产 HTTPS 服务时，不声称完成真实服务端互通验证。
+- [x] 注册 zzlogg_update.fetcher，原核心及获取测试全绿后提交“feat: 安全获取签名更新清单”。
+
+任务 2 验证记录：拒绝降级先观察预期失败；获取器覆盖大小、状态码、重定向、超时、取消及销毁。审查发现 finished 收尾在错误回调中重入新请求的问题，增加失败回归后用对象存活和 generation 检查修复。真实回环 TCP 服务确认 HTTP 请求不会连接；生产 HTTPS 互通未执行。Qt 会先去除 HTTP 头值首尾合法空白，因此原文检查针对 Qt 提供的头值、在 QUrl 解析前执行，URL 内部空白仍拒绝；已有专门测试记录该边界。
 
 ## 任务 3：应用级检查服务与生产配置关闭边界
 
