@@ -123,7 +123,7 @@ VerificationResult verifyManifest(std::string_view envelope,
 
 **文件：** 创建 version.h/.cpp、tests/update/versiontest.cpp 和两个 CMakeLists；修改 src/CMakeLists.txt、根 CMakeLists.txt。
 
-- [ ] 写数据驱动测试，包括下述断言；测试放入现有 UI 测试开关下的 tests/update 子目录，注册为 `zzlogg_update.version`。
+- [x] 写数据驱动测试，包括下述断言；测试放入现有 UI 测试开关下的 tests/update 子目录，注册为 `zzlogg_update.version`。
 
 ```cpp
 QVERIFY(parseVersion("26.09.00").has_value());
@@ -136,17 +136,17 @@ QCOMPARE(compareVersion(*parseVersion("26.12.00"),
                         *parseVersion("27.01.00")), -1);
 ```
 
-- [ ] 先建立返回解析失败的最小可编译实现，运行 `zzlogg_update_version_test.exe -o -,txt`，确认合法版本断言失败；不把头文件缺失当成有效红灯。
-- [ ] 实现固定 8 字节格式及 ASCII 数字检查，再构造三段数值；用 tuple 比较，不使用 Qt 或浮点数。增加空串、空白、全角数字、尾随换行、相等版本测试。
-- [ ] 构建 `cmake --build out/ui-vs --config Release --target zzlogg_update_version_test --parallel 8`；运行 `ctest --test-dir out/ui-vs -C Release -R "^zzlogg_update.version$" --output-on-failure`。
-- [ ] 验证失败案例均拒绝后提交：`feat: 建立更新版本解析与比较规则`，正文说明日期式版本及拒绝开发后缀。
+- [x] 先建立返回解析失败的最小可编译实现，运行 `zzlogg_update_version_test.exe -o -,txt`，确认合法版本断言失败；不把头文件缺失当成有效红灯。
+- [x] 实现固定 8 字节格式及 ASCII 数字检查，再构造三段数值；用 tuple 比较，不使用 Qt 或浮点数。增加空串、空白、全角数字、尾随换行、相等版本测试。
+- [x] 构建 `cmake --build out/ui-vs --config Release --target zzlogg_update_version_test --parallel 8`；运行 `ctest --test-dir out/ui-vs -C Release -R "^zzlogg_update.version$" --output-on-failure`。
+- [x] 验证失败案例均拒绝后提交：`feat: 建立更新版本解析与比较规则`，正文说明日期式版本及拒绝开发后缀。
 
 ## 任务 2：离线 Ed25519 验签
 
 **文件：** 创建 signature.h/.cpp、signaturetest.cpp、fixtures/rfc8032.json、依赖包装及 Monocypher 离线源；修改 src/update/CMakeLists.txt、NOTICE、cmake/StageRuntimeLicenses.cmake。
 
-- [ ] 从官方 4.0.3 发布包获取源码，对照官方 SHA-512 校验，记录完整下载 URL、版本、包摘要及各保留文件摘要。只保存核心与 optional/monocypher-ed25519 文件及许可证。
-- [ ] RFC 8032 向量至少覆盖空消息与单字节消息。先让 verifyEd25519 返回 false，运行 `zzlogg_update_signature_test` 观察正确签名被拒绝的红灯。
+- [x] 从官方 4.0.3 发布包获取源码，对照官方 SHA-512 校验，记录完整下载 URL、版本、包摘要及各保留文件摘要。只保存核心与 optional/monocypher-ed25519 文件及许可证。
+- [x] RFC 8032 向量至少覆盖空消息与单字节消息。先让 verifyEd25519 返回 false，运行 `zzlogg_update_signature_test` 观察正确签名被拒绝的红灯。
 
 ```cpp
 // RFC 8032 test 1: empty message.
@@ -158,30 +158,30 @@ const auto sig = QByteArray::fromHex(
 QVERIFY(verifyEd25519({}, {pk.begin(), pk.end()}, {sig.begin(), sig.end()}));
 ```
 
-- [ ] 实现长度先验：公钥必须 32 字节，签名必须 64 字节；仅调用 `crypto_ed25519_check`，返回值等于 0 才接受。不得使用基于 BLAKE2b 的普通 EdDSA 接口冒充 Ed25519。
-- [ ] 增加消息/签名/公钥各一位变化、截断、全零签名及非法长度测试。签名测试不能只使用同一库现场生成的签名作为正确性依据。
-- [ ] 注册 `zzlogg_update.signature`，运行对应 CTest；检查目标依赖不含 Qt DLL，许可证部署测试仍通过。提交：`feat: 接入离线静态 Ed25519 验签`。
+- [x] 实现长度先验：公钥必须 32 字节，签名必须 64 字节；仅调用 `crypto_ed25519_check`，返回值等于 0 才接受。不得使用基于 BLAKE2b 的普通 EdDSA 接口冒充 Ed25519。
+- [x] 增加消息/签名/公钥各一位变化、截断、全零签名及非法长度测试。签名测试不能只使用同一库现场生成的签名作为正确性依据。
+- [x] 注册 `zzlogg_update.signature`，运行对应 CTest；检查目标依赖不含 Qt DLL，许可证部署测试仍通过。提交：`feat: 接入离线静态 Ed25519 验签`。
 
 ## 任务 3：严格 JSON 和签名封装验证
 
 **文件：** 创建 strictjson.h/.cpp、manifest.h/.cpp、manifesttest.cpp；引入 nlohmann-json 离线源及来源说明，更新 NOTICE 和 cmake/StageRuntimeLicenses.cmake。
 
-- [ ] 获取 3.12.0 官方 json.hpp；发布页公布的 SHA-256 为 `aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63`。摘要不一致立即停止，不能跳过检查。
-- [ ] 首先测试封装重复 schema、转义等价 keyId、嵌套重复键、深度超限、尾随 JSON、非规范 Base64；以“简单 DOM 解析会接受重复键”为变异目标，观察测试失败。
-- [ ] strictjson 使用 nlohmann 的解析回调跟踪每个对象的已解码键集合，遇重复或深度超限立即抛出内部解析拒绝异常；顶层捕获并转为结构错误。不以回调返回 false 实现拒绝，因为 false 可能仅丢弃字段并继续返回成功。
-- [ ] Base64 使用标准字母表、长度与填充位检查，并验证重编码结果完全一致。限制长度发生在分配大缓冲区之前。
-- [ ] 构造带 domain/keyId 的签名输入，先查找用途正确的可信公钥，再验签，最后调用负载解析。空生产键表、Test 用途键、未知 key ID 在 Production 上下文全部拒绝。内置公开 fixture 公钥的拒绝列表；即使误将 fixture 公钥标注为 Production，也必须拒绝。生产上下文只由编译配置构造，不向应用用户暴露切换信任环境的参数。
-- [ ] 对已签名原始负载增加一个空格但复用旧签名必须失败；重新签署语义相同但字节不同的负载可以验签，但受到元数据序号冲突规则约束。
-- [ ] 注册 `zzlogg_update.manifest`，运行正确封装及所有拒绝案例后提交：`feat: 严格验证更新清单签名封装`。
+- [x] 获取 3.12.0 官方 json.hpp；发布页公布的 SHA-256 为 `aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63`。摘要不一致立即停止，不能跳过检查。
+- [x] 首先测试封装重复 schema、转义等价 keyId、嵌套重复键、深度超限、尾随 JSON、非规范 Base64；以“简单 DOM 解析会接受重复键”为变异目标，观察测试失败。
+- [x] strictjson 使用 nlohmann 的解析回调跟踪每个对象的已解码键集合，遇重复或深度超限立即抛出内部解析拒绝异常；顶层捕获并转为结构错误。不以回调返回 false 实现拒绝，因为 false 可能仅丢弃字段并继续返回成功。
+- [x] Base64 使用标准字母表、长度与填充位检查，并验证重编码结果完全一致。限制长度发生在分配大缓冲区之前。
+- [x] 构造带 domain/keyId 的签名输入，先查找用途正确的可信公钥，再验签，最后调用负载解析。空生产键表、Test 用途键、未知 key ID 在 Production 上下文全部拒绝。内置公开 fixture 公钥的拒绝列表；即使误将 fixture 公钥标注为 Production，也必须拒绝。生产上下文只由编译配置构造，不向应用用户暴露切换信任环境的参数。
+- [x] 对已签名原始负载增加一个空格但复用旧签名必须失败；重新签署语义相同但字节不同的负载可以验签，但受到元数据序号冲突规则约束。
+- [x] 注册 `zzlogg_update.manifest`，运行正确封装及所有拒绝案例后提交：`feat: 严格验证更新清单签名封装`。
 
 ## 任务 4：负载约束、反回放与发布选择
 
 **文件：** 完成 manifest.h/.cpp，创建 policy.h/.cpp、policytest.cpp。
 
-- [ ] 增加真实签名 fixture：注入 now=1800000000、issuedAt=1799999900、expiresAt=1800003600、metadataSequence="2"、releaseSequence="2"、version="26.10.00"，平台 windows/x64、portable、zip，大小 "1024"，测试主机 `updates.example.invalid`。该域名不进行网络访问。
-- [ ] 建立生成 fixture 的纯测试 helper：采用测试种子产生完整符合上表的 JSON 和签名。测试类使用 VerificationContext::Test 环境与专用公钥；此 helper 不进入 src/update。
-- [ ] 表驱动测试：到期边界、未来签发、过长有效期、低序号、相同序号相同负载、相同序号不同负载、uint64 溢出、负数/小数、JSON 数字代替序号字符串、错误产品及无对应架构。
-- [ ] 测试选择行为，而非仅检查字段存在：
+- [x] 增加真实签名 fixture：注入 now=1800000000、issuedAt=1799999900、expiresAt=1800003600、metadataSequence="2"、releaseSequence="2"、version="26.10.00"，平台 windows/x64、portable、zip，大小 "1024"，测试主机 `updates.example.invalid`。该域名不进行网络访问。
+- [x] 建立生成 fixture 的纯测试 helper：采用测试种子产生完整符合上表的 JSON 和签名。测试类使用 VerificationContext::Test 环境与专用公钥；此 helper 不进入 src/update。
+- [x] 表驱动测试：到期边界、未来签发、过长有效期、低序号、相同序号相同负载、相同序号不同负载、uint64 溢出、负数/小数、JSON 数字代替序号字符串、错误产品及无对应架构。
+- [x] 测试选择行为，而非仅检查字段存在：
 
 ```cpp
 // verified 由上述已签名 fixture 验证得到；installed 为明确的旧发布。
@@ -193,22 +193,22 @@ installed.developmentBuild = true;
 QCOMPARE(selectUpdate(verified, installed).status, DecisionStatus::DevelopmentBuild);
 ```
 
-- [ ] fixtureInstalled 定义在 policytest.cpp，仅创建固定 windows/x64、系统 10.0.22621、schema=1、协议=1 的测试输入；不调用被测选择函数推导期望值。
-- [ ] 策略按渠道、正式构建、更新协议、数据格式、发布序号/版本、系统/架构/类型、最低 OS 顺序作判断；结构错误与“无新版”使用不同状态。
-- [ ] 验证元数据接受记录只在验证成功时存在，拒绝结果不能让调用方推进序号。首次接受也不能绕过期限、公钥用途或产品检查。
-- [ ] URL 测试覆盖 http、用户名密码、片段、CR/LF、反斜杠、非法转义、非允许主机和端口、主机后缀欺骗；本阶段验证地址，不执行下载。
-- [ ] 注册 `zzlogg_update.policy` 并运行全部更新测试。提交：`feat: 实现更新清单策略与反回放检查`。
+- [x] fixtureInstalled 定义在 policytest.cpp，仅创建固定 windows/x64、系统 10.0.22621、schema=1、协议=1 的测试输入；不调用被测选择函数推导期望值。
+- [x] 策略按渠道、正式构建、更新协议、数据格式、发布序号/版本、系统/架构/类型、最低 OS 顺序作判断；结构错误与“无新版”使用不同状态。
+- [x] 验证元数据接受记录只在验证成功时存在，拒绝结果不能让调用方推进序号。首次接受也不能绕过期限、公钥用途或产品检查。
+- [x] URL 测试覆盖 http、用户名密码、片段、CR/LF、反斜杠、非法转义、非允许主机和端口、主机后缀欺骗；本阶段验证地址，不执行下载。
+- [x] 注册 `zzlogg_update.policy` 并运行全部更新测试。提交：`feat: 实现更新清单策略与反回放检查`。
 
 ## 任务 5：隔离测试清单工具与端到端验收
 
 **文件：** 创建 tools/update/testfeed.cpp、tools/update/CMakeLists.txt、fixturetooltest.cmake 和 docs/development/UPDATE_PROTOCOL.md；修改根 CMakeLists.txt。
 
-- [ ] 新增默认关闭的 `ZZLOGG_BUILD_UPDATE_TEST_TOOLS` 选项；只有开启更新测试时才允许启用。工具名 `zzlogg_update_testfeed`，不安装、不放入 runtime，不处理生产私钥。
-- [ ] 工具只支持 `generate --output <new-file>` 和 `verify --input <file> --now <unix-seconds>`；generate 使用公开测试种子、固定隔离域名，拒绝覆盖已有输出。生成清单的 issuedAt/expiresAt 与任务 4 一致；用途仅为可复现 fixture，不作为生产发布工具。
-- [ ] CMake 集成测试生成清单，用工具 verify 检验退出码为 0；将签名最后一个字符修改后再次验证必须非 0；Production 上下文拒绝同一文件。测试输出只能位于构建树的临时测试目录。
-- [ ] 文档写明字节级签名输入、字段表、拒绝规则、已见序号持久化责任和引导版本限制；说明真实发布工具及密钥管理属于上线阶段。
-- [ ] 运行 `cmake --build out/ui-vs --config Release --parallel 8`，然后 `ctest --test-dir out/ui-vs -C Release --output-on-failure`。核对旧 64 项及新增测试逐项结果，不只报告新测试。
-- [ ] 对新验证核心进行只读安全审查，修复重要反馈再提交：`test: 补齐更新协议端到端验证与使用说明`。
+- [x] 新增默认关闭的 `ZZLOGG_BUILD_UPDATE_TEST_TOOLS` 选项；只有开启更新测试时才允许启用。工具名 `zzlogg_update_testfeed`，不安装、不放入 runtime，不处理生产私钥。
+- [x] 工具只支持 `generate --output <new-file>` 和 `verify --input <file> --now <unix-seconds>`；generate 使用公开测试种子、固定隔离域名，拒绝覆盖已有输出。生成清单的 issuedAt/expiresAt 与任务 4 一致；用途仅为可复现 fixture，不作为生产发布工具。
+- [x] CMake 集成测试生成清单，用工具 verify 检验退出码为 0；将签名最后一个字符修改后再次验证必须非 0；Production 上下文拒绝同一文件。测试输出只能位于构建树的临时测试目录。
+- [x] 文档写明字节级签名输入、字段表、拒绝规则、已见序号持久化责任和引导版本限制；说明真实发布工具及密钥管理属于上线阶段。
+- [x] 运行 `cmake --build out/ui-vs --config Release --parallel 8`，然后 `ctest --test-dir out/ui-vs -C Release --output-on-failure`。核对旧 64 项及新增测试逐项结果，不只报告新测试。
+- [x] 对新验证核心进行只读安全审查，修复重要反馈再提交：`test: 补齐更新协议端到端验证与使用说明`。
 
 ## 完成标准与下一阶段
 
@@ -225,3 +225,23 @@ QCOMPARE(selectUpdate(verified, installed).status, DecisionStatus::DevelopmentBu
 - [JSON 解析回调](https://json.nlohmann.me/features/parsing/parser_callbacks/)：拒绝重复键而不是悄悄覆盖。
 
 执行前再次核对两个依赖的安全公告；若发现新的相关漏洞，停止引入该固定版本并调整依赖方案，不自行修改密码学实现。
+
+## 实施验收记录（2026-09-15）
+
+- 工作分支：codex/update-core，独立工作区 .worktrees/update-core；主线未改动。
+- 五项已实现并分别完成红绿测试与中文提交；任务 1 至 4 提交为 0f3a7bc2、90bfae5e、c9df43df、2c776fdb。
+- Windows Release 全量构建通过；原有 64 项加新增 6 项，70/70 CTest 通过。
+- 另以没有 find_package(Qt) 的最小工程编译实际 src/update 静态库，验证无 Qt 构建依赖。
+- 静态审查未留下重要问题；补齐了可信 keyId 替换、生产键用途与 fixture 黑名单独立检查、换签不改变负载指纹、多载荷顺序不影响选择等测试。
+- 工具默认关闭，没有安装规则；运行目录检查未发现测试工具文件。
+- 修正基线遗留依赖提交号校验，并为两个测试共享的 moc 输出增加唯一生成依赖。删除两份可再生成的构建产物后并行重建，各文件只生成一次，构建及回归通过。
+
+### 实施拆分说明
+
+- 任务 3 用内部 envelope.h/verifyEnvelope 表示“签名有效的原始字节”；只有任务 4 的公共 verifyManifest 完成全部检查后才能构造 VerifiedManifest。完整负载解析独立放在 payload.cpp，避免一个文件同时承担封装、结构和策略。
+- strictjson 作为独立 CTest 注册，因此新增测试总数为 6 项。
+- 工具篡改用例改变签名首个 Base64 字符，保留合法编码结构，以覆盖真实验签失败而不只是填充格式失败。
+- 测试工具使用 Qt Core 提供跨平台独占文件创建；核心库没有 Qt 依赖。跨平台实际运行尚未验证。
+- 测试日志保存在工作区 out/ui-vs，核心独立编译日志在 out/update-noqt；这些构建产物不提交。
+
+下一阶段：合并后接入 Qt 网络与 UI、持久化渠道接受记录；便携/安装执行器和真实发布密钥流程仍未实现。
