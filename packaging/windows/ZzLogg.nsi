@@ -136,7 +136,13 @@ Section "Uninstall"
     RMDir "$APPDATA\ZzLogg"
 
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg"
+    SetRegView 32
     DeleteRegKey HKLM "Software\ZzLogg"
+!ifdef ARCH32
+    SetRegView 32
+!else
+    SetRegView 64
+!endif
     ${unregisterExtension} ".log" "ZzLogg log file"
 
     DeleteRegKey HKCR "*\OpenWithList\ZzLogg.exe"

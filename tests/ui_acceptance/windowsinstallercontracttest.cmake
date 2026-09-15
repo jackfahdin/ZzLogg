@@ -275,6 +275,8 @@ extract_nsis_block(nsis_active_content "Function un.onInit" "FunctionEnd"
 extract_nsis_block(nsis_active_content
   [=[Section "ZzLogg application and runtime" zzlogg]=] "SectionEnd"
   "application install section" application_install_section)
+extract_nsis_block(nsis_active_content [=[Section "Uninstall"]=] "SectionEnd"
+  "uninstall section" uninstall_section)
 
 set(expected_reg_view_selection [=[!ifdef ARCH32
     SetRegView 32
@@ -285,6 +287,38 @@ require_nsis_block_literal(installer_on_init "${expected_reg_view_selection}"
   "installer .onInit")
 require_nsis_block_literal(uninstaller_on_init "${expected_reg_view_selection}"
   "uninstaller un.onInit")
+
+set(uninstall_identity_key_delete
+  [=[DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg"]=])
+set(legacy_identity_key_delete [=[DeleteRegKey HKLM "Software\ZzLogg"]=])
+set(file_association_cleanup
+  [=[${unregisterExtension} ".log" "ZzLogg log file"]=])
+foreach(uninstall_identity_literal IN ITEMS
+    "${uninstall_identity_key_delete}"
+    "SetRegView 32"
+    "${legacy_identity_key_delete}"
+    "${expected_reg_view_selection}"
+    "${file_association_cleanup}")
+  require_nsis_block_literal(uninstall_section "${uninstall_identity_literal}"
+    "uninstall section")
+endforeach()
+string(FIND "${uninstall_section}" "${uninstall_identity_key_delete}"
+  uninstall_identity_delete_position)
+string(FIND "${uninstall_section}" "SetRegView 32" legacy_view_position)
+string(FIND "${uninstall_section}" "${legacy_identity_key_delete}"
+  legacy_identity_delete_position)
+string(FIND "${uninstall_section}" "${expected_reg_view_selection}"
+  restored_view_position)
+string(FIND "${uninstall_section}" "${file_association_cleanup}"
+  file_association_cleanup_position)
+if(NOT uninstall_identity_delete_position LESS legacy_view_position
+   OR NOT legacy_view_position LESS legacy_identity_delete_position
+   OR NOT legacy_identity_delete_position LESS restored_view_position
+   OR NOT restored_view_position LESS file_association_cleanup_position)
+  message(FATAL_ERROR
+    "NSIS uninstall must delete the new identity in the architecture view, "
+    "clean the legacy key in the 32-bit view, then restore the architecture view")
+endif()
 
 set(installer_directory_read
   [=[ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"]=])
