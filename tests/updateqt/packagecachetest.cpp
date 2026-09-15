@@ -45,15 +45,24 @@ protected:
     qint64 writeData(const char*,qint64) override { return -1; }
 };
 
+class PartialSaveFile final : public QSaveFile {
+public:
+    explicit PartialSaveFile(const QString& path) : QSaveFile(path) {}
+protected:
+    qint64 writeData(const char*,qint64 length) override { return length>1 ? length-1 : 0; }
+};
+
 class TestStorage final : public PackageCacheStorage {
 public:
     std::optional<quint64> available=std::numeric_limits<quint64>::max();
     bool failWrites=false;
+    bool partialWrites=false;
 
     std::optional<quint64> availableBytes(const QString&) const override { return available; }
     std::unique_ptr<QSaveFile> createSaveFile(const QString& path) const override
     {
         if (failWrites) return std::make_unique<FailingSaveFile>(path);
+        if (partialWrites) return std::make_unique<PartialSaveFile>(path);
         return std::make_unique<QSaveFile>(path);
     }
 };
@@ -137,6 +146,23 @@ private slots:
         PackageCache cache(QDir(link).filePath(QStringLiteral("cache")),artifactFor("x"));
         QCOMPARE(cache.begin(),CacheError::InvalidPath);
         QVERIFY(!QFileInfo::exists(QDir(target).filePath(QStringLiteral("cache"))));
+    }
+
+    void rejectsReparsePointAsCacheRoot()
+    {
+        QTemporaryDir temporary;
+        const QString target=temporary.filePath(QStringLiteral("target"));
+        const QString link=temporary.filePath(QStringLiteral("link"));
+        QVERIFY(QDir().mkpath(target));
+#ifdef Q_OS_WIN
+        QVERIFY(createJunction(link,target));
+#else
+        QVERIFY(QFile::link(target,link));
+#endif
+        PackageCache cache(link,artifactFor("x"));
+        QCOMPARE(cache.begin(),CacheError::InvalidPath);
+        QVERIFY(QFileInfo(link).exists());
+        QVERIFY(QDir(target).isEmpty());
     }
 
     void rejectsTargetAndLockReparsePoints_data()
@@ -247,6 +273,22 @@ private slots:
         QCOMPARE(cache.begin(),CacheError::None);
         QCOMPARE(cache.append(QByteArrayView("x",1)),CacheError::WriteFailed);
         QVERIFY(cache.verifiedPath().isEmpty());
+        PackageCache retry(root.path(),artifact);
+        QCOMPARE(retry.begin(),CacheError::None);
+        QCOMPARE(retry.cancel(),CacheError::Cancelled);
+    }
+
+    void terminatesOnPositivePartialWrite()
+    {
+        QTemporaryDir root;
+        const auto artifact=artifactFor("xy");
+        auto storage=std::make_shared<TestStorage>();
+        storage->partialWrites=true;
+        PackageCache cache(root.path(),artifact,storage);
+        QCOMPARE(cache.begin(),CacheError::None);
+        QCOMPARE(cache.append(QByteArrayView("xy",2)),CacheError::WriteFailed);
+        QVERIFY(cache.verifiedPath().isEmpty());
+        QVERIFY(!QFileInfo::exists(packagePath(root.path(),artifact)));
         PackageCache retry(root.path(),artifact);
         QCOMPARE(retry.begin(),CacheError::None);
         QCOMPARE(retry.cancel(),CacheError::Cancelled);
