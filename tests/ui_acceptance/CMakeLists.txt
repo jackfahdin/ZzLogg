@@ -389,7 +389,7 @@ endif()
 
 add_executable(zzlogg_brand_contract_test brandcontracttest.cpp)
 target_link_libraries(zzlogg_brand_contract_test
-  PRIVATE klogg_settings klogg_versioncheck klogg_support
+  PRIVATE klogg_settings zzlogg_update_qt klogg_support
           Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_brand_contract_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.brand_contract
@@ -481,13 +481,29 @@ add_executable(zzlogg_restart_contract_test restartcontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_restart_contract_test PRIVATE
-  klogg_ui klogg_logdata klogg_versioncheck klogg_support
+  klogg_ui klogg_logdata klogg_support
   klogg_storage roaring kdsingleapp Qt6::Test Qt6::Widgets)
 target_include_directories(zzlogg_restart_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${CMAKE_BINARY_DIR}/src/ui/klogg_ui_autogen/include_$<CONFIG>")
 set_target_properties(zzlogg_restart_contract_test PROPERTIES AUTOMOC ON)
 add_dependencies(zzlogg_restart_contract_test zzlogg_runtime_contract_moc)
+add_executable(zzlogg_update_integration_test
+  ../updateqt/updatecheckintegrationsmoke.cpp ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES})
+target_link_libraries(zzlogg_update_integration_test PRIVATE
+  klogg_ui klogg_support kdsingleapp Qt6::Test Qt6::Widgets)
+target_include_directories(zzlogg_update_integration_test PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+set_target_properties(zzlogg_update_integration_test PROPERTIES AUTOMOC ON)
+add_dependencies(zzlogg_update_integration_test zzlogg_runtime_contract_moc)
+add_test(NAME zzlogg_update.integration COMMAND zzlogg_update_integration_test -platform offscreen
+  -o "${CMAKE_CURRENT_BINARY_DIR}/update-integration-$<CONFIG>.txt,txt")
+set_property(TEST zzlogg_update.integration PROPERTY ENVIRONMENT
+  "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+if(WIN32)
+  set_property(TEST zzlogg_update.integration PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
 add_test(NAME zzlogg_ui.restart_contract
          COMMAND zzlogg_restart_contract_test -platform offscreen)
 if(WIN32)
@@ -561,7 +577,7 @@ add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 add_dependencies(zzlogg_runtime_contract_test zzlogg_runtime_contract_moc)
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
-  zzlogg_ui_runtime klogg_ui klogg_logdata klogg_versioncheck
+  zzlogg_ui_runtime klogg_ui klogg_logdata
   klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)
 target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")

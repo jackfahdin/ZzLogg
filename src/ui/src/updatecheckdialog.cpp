@@ -45,6 +45,13 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     connect(close_,&QPushButton::clicked,this,&UpdateCheckDialog::reject);
     resize(600,480); refresh();
 }
+UpdateCheckDialog::~UpdateCheckDialog()
+{
+    if(!dismissed_) {
+        Q_EMIT closing();
+        if(snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser) Q_EMIT cancelRequested();
+    }
+}
 void UpdateCheckDialog::setSnapshot(const CheckSnapshot& snapshot)
 {
     snapshot_=snapshot;
@@ -113,6 +120,9 @@ void UpdateCheckDialog::reject()
 {
     const bool cancel=snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser;
     const QPointer<UpdateCheckDialog> guard(this);
+    dismissed_=true;
+    Q_EMIT closing();
+    if(!guard) return;
     // Hide before cancellation can synchronously publish another snapshot.
     QDialog::reject();
     if(guard && cancel) Q_EMIT cancelRequested();

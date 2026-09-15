@@ -13,6 +13,8 @@
 #include <ZzFluentUI/ZzThemeController.h>
 #include <ZzFluentUI/ZzFluentStyle.h>
 #include "../update/fixturehelper.h"
+#include "../updateqt/scriptednetwork.h"
+#include "zzlogg/updateqt/updateservice.h"
 #include "configuration.h"
 #include "optionsdialog.h"
 #include "mainwindow.h"
@@ -47,6 +49,14 @@ private Q_SLOTS:
         dialog.close();
         QCOMPARE(cancelled.count(),1);
     }
+    void destroyingParentCancelsManualCheck() {
+        auto* parent=new QWidget;
+        auto* dialog=new UpdateCheckDialog(parent);
+        QSignalSpy cancelled(dialog,&UpdateCheckDialog::cancelRequested);
+        dialog->setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
+        delete parent;
+        QCOMPARE(cancelled.count(),1);
+    }
     void checkingDisablesDuplicateCheck() {
         UpdateCheckDialog dialog;
         dialog.setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
@@ -54,6 +64,36 @@ private Q_SLOTS:
         auto* cancel=dialog.findChild<QPushButton*>("updateCancel");
         QVERIFY(check && cancel);
         QVERIFY(!check->isEnabled()); QVERIFY(cancel->isEnabled());
+    }
+    void parentDestructionCancelsServiceBeforeLateReply() {
+        QTemporaryDir directory;
+        auto store=std::make_shared<UpdateStateStore>(directory.filePath("state.json"));
+        const auto context=update_fixture::context();
+        FeedConfiguration config{"https://updates.example.invalid/stable",
+            "https://updates.example.invalid/preview",context.keys,context.allowedHosts,
+            context.buildTime,context.environment};
+        auto* network=new ScriptedNetworkManager;
+        NetworkScript script; script.hang=true; network->scripts.push_back(script);
+        UpdateService service(config,store,{},[]{return 1800000000;},nullptr,[&]{return network;});
+        auto* parent=new QWidget;
+        QPointer<UpdateCheckDialog> dialog=new UpdateCheckDialog(parent);
+        bool dismissed=false;
+        connect(dialog,&UpdateCheckDialog::closing,this,[&]{dismissed=true; dialog.clear();});
+        connect(dialog,&UpdateCheckDialog::cancelRequested,&service,&UpdateService::cancel);
+        connect(&service,&UpdateService::snapshotChanged,this,[&]{
+            if(dialog) dialog->setSnapshot(service.snapshot());
+        });
+        service.requestCheck(Channel::Stable,CheckOrigin::Manual);
+        QCOMPARE(service.snapshot().status,CheckStatus::Checking);
+        QCOMPARE(network->requests.size(),1);
+        QSignalSpy changed(&service,&UpdateService::snapshotChanged);
+        delete parent;
+        QVERIFY(dismissed); QVERIFY(!dialog);
+        QCOMPARE(service.snapshot().status,CheckStatus::Cancelled);
+        QCOMPARE(changed.count(),1);
+        QCoreApplication::processEvents();
+        QCOMPARE(changed.count(),1);
+        QVERIFY(!store->read(Channel::Stable).value->accepted);
     }
     void settingsHasIndependentChannelPage() {
         try {

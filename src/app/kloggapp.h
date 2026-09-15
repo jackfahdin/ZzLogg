@@ -57,7 +57,9 @@
 
 #include "mainwindow.h"
 #include "messagereceiver.h"
-#include "versionchecker.h"
+#include "storagecontext.h"
+#include "updatecheckdialog.h"
+#include "zzlogg/updateqt/updateservice.h"
 #include "zzlogg_brand.h"
 
 class KloggApp : public QApplication {
@@ -95,12 +97,6 @@ class KloggApp : public QApplication {
             QObject::connect( &messageReceiver_, &MessageReceiver::loadFile, this,
                               &KloggApp::loadFileNonInteractive );
 
-            // Version checker notification
-            connect( &versionChecker_, &VersionChecker::newVersionFound,
-                     [ this ]( const QString& new_version, const QString& url,
-                               const QStringList& changes ) {
-                         newVersionNotification( new_version, url, changes );
-                     } );
         }
     }
 
@@ -233,7 +229,7 @@ class KloggApp : public QApplication {
     void startBackgroundTasks()
     {
         LOG_DEBUG << "startBackgroundTasks";
-        versionChecker_.startCheck();
+        ensureUpdateService();
     }
 
 #ifdef Q_OS_MAC
@@ -279,6 +275,20 @@ class KloggApp : public QApplication {
         connect( window, &MainWindow::exitRequested, [ this ] { exitApplication(); } );
         connect( window, &MainWindow::restartRequested,
                  [ this ] { restartApplication(); } );
+        connect(window, &MainWindow::checkUpdatesRequested, this, [this, window] {
+            ensureUpdateService();
+            if (!updateService_) return;
+            updateDialogDismissed_=false;
+            showUpdateDialog(window,true);
+            updateService_->requestCheck(configuredUpdateChannel(),zzlogg::updateqt::CheckOrigin::Manual);
+        });
+        connect(window, &MainWindow::updatePreferencesChanged, this, [this] {
+            ensureUpdateService();
+            if (!updateService_) return;
+            updateService_->setChannel(configuredUpdateChannel());
+            updateService_->setAutomaticChecking(singleApplication_.isPrimaryInstance()
+                && Configuration::get().versionCheckingEnabled());
+        });
 
         return window;
     }
@@ -377,27 +387,65 @@ class KloggApp : public QApplication {
         QCoreApplication::exit( ZzLoggRestartExitCode );
     }
 
-    void newVersionNotification( const QString& new_version, const QString& url,
-                                 const QStringList& changes )
-    {
-        LOG_DEBUG << "newVersionNotification( " << new_version << " from " << url << " )";
+    zzlogg::updateqt::Channel configuredUpdateChannel() const {
+        return Configuration::get().updateChannel()=="preview"
+            ? zzlogg::updateqt::Channel::Preview : zzlogg::updateqt::Channel::Stable;
+    }
 
-        QString message
-            = tr( "<p>A new version of %1 (%2) is available for download</p>"
-                  "<a href=\"%3\">%3</a>" )
-                  .arg( QString::fromLatin1( zzlogg::brand::ProductName ), new_version, url );
+    void ensureUpdateService() {
+        using namespace zzlogg::updateqt;
+        if (updateService_ || !StorageContext::isInstalled()) return;
+        const auto root=StorageContext::current().runtimePaths().appConfigDirectory;
+        const auto path=root.isEmpty() ? QString{} : QDir(root).filePath("updates/production/check-state-v1.json");
+        updateService_=std::make_unique<UpdateService>(productionFeedConfiguration(),
+            std::make_shared<UpdateStateStore>(path),std::nullopt,
+            [] { return QDateTime::currentSecsSinceEpoch(); },this);
+        updateService_->setObjectName("applicationUpdateService");
+        updateService_->setChannel(configuredUpdateChannel());
+        updateService_->setAutomaticChecking(singleApplication_.isPrimaryInstance()
+            && Configuration::get().versionCheckingEnabled());
+        connect(updateService_.get(),&UpdateService::snapshotChanged,this,[this] {
+            const auto& snapshot=updateService_->snapshot();
+            if (snapshot.status==CheckStatus::Checking) updateDialogDismissed_=false;
+            if (updateDialog_) updateDialog_->setSnapshot(snapshot);
+            if (!snapshot.presentToUser || updateDialogDismissed_ || snapshot.status==CheckStatus::Checking) return;
+            if (!updateDialog_ && !mainWindows_.empty())
+                showUpdateDialog(mainWindows_.front().second,false);
+        });
+        connect(this,&QCoreApplication::aboutToQuit,this,[this] {
+            updateDialogDismissed_=true;
+            if(updateService_) updateService_->cancel();
+        });
+    }
 
-        if ( !changes.empty() ) {
-            message.append( tr( "<p>Important changes:</p><ul>" ) );
-            for ( const auto& change : changes ) {
-                message.append( QString( "<li>%1</li>" ).arg( change ) );
-            }
-            message.append( "</ul>" );
+    void showUpdateDialog(QWidget* owner,bool foreground) {
+        if (!updateService_) return;
+        QWidget* modal=QApplication::activeModalWidget();
+        QWidget* parent=modal ? modal : owner;
+        if (!updateDialog_) {
+            auto* dialog=new UpdateCheckDialog(parent);
+            updateDialog_=dialog;
+            dialog->setAttribute(Qt::WA_ShowWithoutActivating,!foreground);
+            connect(dialog,&UpdateCheckDialog::checkRequested,this,[this] {
+                updateDialogDismissed_=false;
+                updateService_->requestCheck(configuredUpdateChannel(),zzlogg::updateqt::CheckOrigin::Manual);
+            });
+            connect(dialog,&UpdateCheckDialog::cancelRequested,this,[this] { updateService_->cancel(); });
+            connect(dialog,&UpdateCheckDialog::skipRequested,this,[this] {
+                updateService_->skipCurrentRelease();
+                if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
+            });
+            connect(dialog,&UpdateCheckDialog::closing,this,[this,dialog] {
+                updateDialogDismissed_=true;
+                if(updateDialog_==dialog) updateDialog_.clear();
+            });
+            connect(dialog,&QDialog::finished,dialog,&QObject::deleteLater);
+        } else if (foreground && modal && updateDialog_->parentWidget()!=modal) {
+            updateDialog_->setParent(modal,Qt::Dialog);
         }
-
-        QMessageBox msgBox;
-        msgBox.setText( message );
-        msgBox.exec();
+        updateDialog_->setSnapshot(updateService_->snapshot());
+        updateDialog_->show();
+        if (foreground) { updateDialog_->raise(); updateDialog_->activateWindow(); }
     }
 
     size_t nextWindowIndex() const
@@ -426,7 +474,9 @@ class KloggApp : public QApplication {
     std::stack<QPointer<MainWindow>> activeWindows_;
     MainWindowFactory mainWindowFactory_;
 
-    VersionChecker versionChecker_;
+    std::unique_ptr<zzlogg::updateqt::UpdateService> updateService_;
+    QPointer<UpdateCheckDialog> updateDialog_;
+    bool updateDialogDismissed_=false;
     bool restartInProgress_ = false;
 };
 

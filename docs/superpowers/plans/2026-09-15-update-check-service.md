@@ -223,11 +223,11 @@ QVERIFY(!service.snapshot().decision);
 **删除：** src/versioncheck/include/versionchecker.h、src/versioncheck/src/versionchecker.cpp、src/versioncheck/CMakeLists.txt。
 **创建：** tests/updateqt/updatecheckintegrationsmoke.cpp。
 
-- [ ] 先写集成测试，证明“帮助 → 检查更新”经过应用对象到达唯一 UpdateService；设置变更能改变同一个服务，不另建后台检查器。
-- [ ] KloggApp 在 StorageContext 安装及配置初始化完成后构造服务，不在 QApplication 构造函数中过早读取存储。每个主窗口转发请求到同一对象，主实例才启动后台轮询；关闭/退出安全取消。
-- [ ] 替换 startBackgroundTasks 与旧 HTML newVersionNotification；移除旧服务及全部目标链接，保留原自动检查布尔值。旧截止时间键不再读取，不为兼容旧未签名协议保留解析器。
-- [ ] 测试里强制 Production 未配置时启动应用不发网络、不阻塞日志功能；测试信任只存在独立测试可执行文件。测试目标不加入 runtime。
-- [ ] 完整构建与回归：
+- [x] 先写集成测试，证明“帮助 → 检查更新”经过应用对象到达唯一 UpdateService；设置变更能改变同一个服务，不另建后台检查器。
+- [x] KloggApp 在 StorageContext 安装及配置初始化完成后构造服务，不在 QApplication 构造函数中过早读取存储。每个主窗口转发请求到同一对象，主实例才启动后台轮询；关闭/退出安全取消。
+- [x] 替换 startBackgroundTasks 与旧 HTML newVersionNotification；移除旧服务及全部目标链接，保留原自动检查布尔值。旧截止时间键不再读取，不为兼容旧未签名协议保留解析器。
+- [x] 测试里强制 Production 未配置时启动应用不发网络、不阻塞日志功能；测试信任只存在独立测试可执行文件。测试目标不加入 runtime。
+- [x] 完整构建与回归：
 
 ```powershell
 cmake -S . -B out/ui-vs -DKLOGG_BUILD_UI_TESTS=ON -DZZLOGG_BUILD_UPDATE_TEST_TOOLS=ON
@@ -235,8 +235,10 @@ cmake --build out/ui-vs --config Release --parallel 8
 ctest --test-dir out/ui-vs -C Release --output-on-failure
 ```
 
-- [ ] 核对原 70 项以及新增测试逐项结果；既有 storage_migrator 的诊断日志仍保留。重新构建 runtime，确认无新增框架 DLL、无 fixture 或测试工具。
-- [ ] 只读审查网络重定向、生命周期、锁内更新和 UI 状态，修复重要问题；记录未执行的真实生产 HTTPS 互通测试。提交“feat: 接入主程序并完成更新检查验收”。
+- [x] 核对原 70 项以及新增测试逐项结果；既有 storage_migrator 的诊断日志仍保留。重新构建 runtime，确认无新增框架 DLL、无 fixture 或测试工具。
+- [x] 只读审查网络重定向、生命周期、锁内更新和 UI 状态，修复重要问题；记录未执行的真实生产 HTTPS 互通测试。提交“feat: 接入主程序并完成更新检查验收”。
+
+任务 5 验证记录：应用集成测试先出现服务数量 0、预期 1 的失败；接线后验证两主窗口共用一个服务/检查窗口及设置渠道生效。审查发现父窗口销毁绕过关闭事件，先补取消信号计数失败，再修复析构顺序并验证真实服务忽略迟到网络完成。只读复审无重要遗留。Release 完整构建成功，最终 CTest 76/76 通过（49.35 秒），UI 内部 13 项通过。runtime 重新生成成功，无测试工具、fixture 或框架 DLL；构建目录中原有部署产物已重建，未改动主工作区运行目录。生产 HTTPS 互通未执行，默认生产配置仍关闭。保留 codex/update-check 分支等待单独集成决定。
 
 ## 计划自检与下一步
 

@@ -31,9 +31,9 @@ public:
         if(!script_.length.isEmpty()) setRawHeader("Content-Length",script_.length);
         open(QIODevice::ReadOnly);
         QTimer::singleShot(0,this,[this]{
-            if(!script_.finishedOnly) emit metaDataChanged();
+            if(!script_.finishedOnly) Q_EMIT metaDataChanged();
             if(aborted_) return;
-            if(script_.tlsError) { emit sslErrors({QSslError(QSslError::SelfSignedCertificate)}); return; }
+            if(script_.tlsError) { Q_EMIT sslErrors({QSslError(QSslError::SelfSignedCertificate)}); return; }
             if(!script_.hang) tick();
         });
     }
@@ -41,7 +41,7 @@ public:
         aborted_=true;
         setError(OperationCanceledError,"cancelled");
         // Deliberately deliver a late finish, like a queued transport callback.
-        QTimer::singleShot(0,this,[this]{setFinished(true); emit finished();});
+        QTimer::singleShot(0,this,[this]{setFinished(true); Q_EMIT finished();});
     }
     qint64 bytesAvailable() const override { return buffer_.size()+QNetworkReply::bytesAvailable(); }
     void setReadBufferSize(qint64 size) override {
@@ -61,14 +61,14 @@ private:
         const auto count=qMin(qsizetype(script_.chunkSize),script_.body.size()-offset_);
         if(count>0) {
             buffer_.append(script_.body.constData()+offset_,count); offset_+=count;
-            if(!script_.finishedOnly) emit readyRead();
+            if(!script_.finishedOnly) Q_EMIT readyRead();
         }
         if(aborted_) return;
         if(offset_<script_.body.size()) {
             QTimer::singleShot(script_.intervalMs,this,[this]{tick();});
         } else {
             if(script_.error!=NoError) setError(script_.error,"scripted network error");
-            setFinished(true); emit finished();
+            setFinished(true); Q_EMIT finished();
         }
     }
     NetworkScript script_;

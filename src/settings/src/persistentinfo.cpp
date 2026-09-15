@@ -73,7 +73,6 @@ void PersistentInfo::UpdateSettings()
 
     if ( oldAppSettingsVersion != AppSettingsVersion ) {
         appSettings_->remove( "geometry" );
-        appSettings_->remove( "versionchecker.nextDeadline" );
         appSettings_->remove( "OpenFiles" );
         appSettings_->remove( "RecentFiles" );
         appSettings_->remove( "SavedSearches" );
@@ -97,8 +96,6 @@ void PersistentInfo::UpdateSettings()
 
     if ( oldSessionSettingsVersion < 1 ) {
         sessionSettings_->setValue( "Window/geometry", sessionSettings_->value( "geometry" ) );
-        sessionSettings_->setValue( "VersionChecker/nextDeadline",
-                                    sessionSettings_->value( "versionchecker.nextDeadline" ) );
         sessionSettings_->remove( "HighlighterSet" );
         for ( const auto& key : sessionSettings_->childKeys() ) {
             sessionSettings_->remove( key );

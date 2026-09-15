@@ -1,6 +1,8 @@
 #include "zzlogg_brand.h"
 #include "issuereporter.h"
-#include "versionchecker.h"
+#include "zzlogg/updateqt/updateservice.h"
+#include <QTemporaryDir>
+#include <QFile>
 
 #include <QNetworkAccessManager>
 #include <QUrl>
@@ -12,7 +14,7 @@ class BrandContractTest final : public QObject {
 
   private slots:
     void exposesApprovedIdentity();
-    void disabledUpdateCheckCreatesNoNetworkManager();
+    void disabledUpdateCheckDoesNotWriteState();
 };
 
 void BrandContractTest::exposesApprovedIdentity()
@@ -25,9 +27,6 @@ void BrandContractTest::exposesApprovedIdentity()
               QStringLiteral( "https://gitcode.com/JackfahdinQt/ZzLogg" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ApplicationIdentifier ),
               QStringLiteral( "com.gitcode.jackfahdinqt.zzlogg" ) );
-    QVERIFY( QString::fromLatin1( zzlogg::brand::UpdateManifestUrl ).isEmpty() );
-
-    QVERIFY( !VersionChecker::isUpdateCheckConfigured() );
 
     const QUrl issueUrl = IssueReporter::issueUrl( IssueTemplate::Bug );
     QCOMPARE( issueUrl.scheme(), QStringLiteral( "https" ) );
@@ -40,14 +39,15 @@ void BrandContractTest::exposesApprovedIdentity()
         QStringLiteral( "> running on %1" ).arg( QSysInfo::prettyProductName() ) ) );
 }
 
-void BrandContractTest::disabledUpdateCheckCreatesNoNetworkManager()
+void BrandContractTest::disabledUpdateCheckDoesNotWriteState()
 {
-    VersionChecker checker;
-    checker.startCheck();
-
-    QVERIFY( checker.findChildren<QNetworkAccessManager*>(
-                         QString(), Qt::FindDirectChildrenOnly )
-                 .isEmpty() );
+    using namespace zzlogg::updateqt;
+    QTemporaryDir directory;
+    const auto path=directory.filePath("state.json");
+    UpdateService service({},std::make_shared<UpdateStateStore>(path),{},[]{return 1800000000;});
+    service.requestCheck(Channel::Stable,CheckOrigin::Manual);
+    QCOMPARE(service.snapshot().status,CheckStatus::NotConfigured);
+    QVERIFY(!QFile::exists(path));
 }
 
 QTEST_GUILESS_MAIN( BrandContractTest )
