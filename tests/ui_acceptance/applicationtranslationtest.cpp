@@ -62,6 +62,7 @@
 #include <QtTest>
 #include <QValidator>
 #include <QScrollArea>
+#include <QTextBrowser>
 #include <QScreen>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -145,6 +146,60 @@ class ApplicationTranslationTest final : public QObject {
     Q_OBJECT
 
   private Q_SLOTS:
+    void documentationFollowsApplicationLanguage()
+    {
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        auto session = std::make_shared<Session>();
+        MainWindow window(WindowSession(session, "documentation", 0), UiThemeContext{testTheme()});
+        QVERIFY(QMetaObject::invokeMethod(&window, "documentation", Qt::DirectConnection));
+        QPointer<QTextBrowser> browser;
+        for (auto* top : QApplication::topLevelWidgets()) {
+            if (auto* candidate = qobject_cast<QTextBrowser*>(top)) browser = candidate;
+        }
+        QVERIFY(browser);
+        QCOMPARE(browser->parentWidget(), &window);
+        QVERIFY(browser->width() <= browser->screen()->availableGeometry().width());
+        QVERIFY(browser->height() <= browser->screen()->availableGeometry().height());
+        QVERIFY(QMetaObject::invokeMethod(&window, "documentation", Qt::DirectConnection));
+        QCOMPARE(window.findChildren<QTextBrowser*>("documentationWindow",
+                 Qt::FindDirectChildrenOnly).size(), 1);
+        const auto cleanup = qScopeGuard([&] { if (browser) browser->close(); });
+        QVERIFY(browser->toPlainText().contains("Getting started", Qt::CaseInsensitive));
+        QCOMPARE(MainWindow::installLanguage("zh_CN"), 0);
+        QTRY_VERIFY(browser->toPlainText().contains(QStringLiteral("ZzLogg 使用手册")));
+        QVERIFY(browser->toPlainText().contains("--data-dir <path>"));
+        QVERIFY(!browser->toPlainText().contains("---"));
+        browser->scrollToAnchor("getting-started");
+        QVERIFY(browser->verticalScrollBar()->value() > 0);
+        browser->verticalScrollBar()->setValue(0);
+        const QString captureDir = QStringLiteral(ZZLOGG_UI_CAPTURE_DIR);
+        QVERIFY(QDir().mkpath(captureDir));
+        QVERIFY(browser->grab().save(captureDir + "/documentation-zh_CN.png"));
+        const auto originalPalette = browser->palette();
+        for (bool dark : {false, true}) {
+            QPalette colors = originalPalette;
+            colors.setColor(QPalette::Base, dark ? QColor("#202020") : QColor("#ffffff"));
+            colors.setColor(QPalette::Text, dark ? QColor("#ffffff") : QColor("#202020"));
+            browser->setPalette(colors);
+            QCoreApplication::processEvents();
+            browser->scrollToAnchor("command-line-options");
+            QVERIFY(browser->toPlainText().contains("--data-dir <path>"));
+            QVERIFY(browser->document()->defaultStyleSheet().contains(
+                dark ? "#75bfff" : "#0064b4"));
+            QVERIFY(browser->grab().save(captureDir
+                + (dark ? "/documentation-dark.png" : "/documentation-light.png")));
+        }
+        browser->setPalette(originalPalette);
+        QCOMPARE(MainWindow::installLanguage("zh_TW"), 0);
+        QTRY_VERIFY(browser->toPlainText().contains(QStringLiteral("ZzLogg 使用手冊")));
+        const auto traditional = browser->toPlainText();
+        QCOMPARE(MainWindow::installLanguage("missing"), -1);
+        QCoreApplication::processEvents();
+        QCOMPARE(browser->toPlainText(), traditional);
+        QCOMPARE(MainWindow::installLanguage("en"), 0);
+        QTRY_VERIFY(browser->toPlainText().contains("Getting started", Qt::CaseInsensitive));
+    }
+
     void preferencesKeepButtonsVisibleInSmallWindow_data()
     {
         QTest::addColumn<QString>("language");

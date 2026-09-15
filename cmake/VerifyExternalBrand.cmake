@@ -202,27 +202,27 @@ require_entry_literal(
 require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt 6.8+ dependency list omits required modules" "Qt 6.8 or later, including Core, Core5Compat, Gui, Widgets, Svg, Concurrent,")
+  "docs/BUILD.md" "formal Qt 6.8+ dependency list omits required modules" "Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Core" "including Core,")
+  "docs/BUILD.md" "formal Qt dependency list omits Core" "包含 Core、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Core5Compat" "Core5Compat,")
+  "docs/BUILD.md" "formal Qt dependency list omits Core5Compat" "Core5Compat、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Gui" "Gui,")
+  "docs/BUILD.md" "formal Qt dependency list omits Gui" "Gui、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Widgets" "Widgets,")
+  "docs/BUILD.md" "formal Qt dependency list omits Widgets" "Widgets、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Svg" "Svg,")
+  "docs/BUILD.md" "formal Qt dependency list omits Svg" "Svg、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Concurrent" "Concurrent,")
+  "docs/BUILD.md" "formal Qt dependency list omits Concurrent" "Concurrent、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Network" "Network,")
+  "docs/BUILD.md" "formal Qt dependency list omits Network" "Network、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Xml" "Xml,")
+  "docs/BUILD.md" "formal Qt dependency list omits Xml" "Xml、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits LinguistTools" "LinguistTools,")
+  "docs/BUILD.md" "formal Qt dependency list omits LinguistTools" "LinguistTools 及")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits matching private development files" "matching private development files")
+  "docs/BUILD.md" "formal Qt dependency list omits matching private development files" "匹配的私有开发文件")
 require_entry_literal(
   ".github/CONTRIBUTING.md" "contribution guide does not identify the current project" "contributing to ZzLogg")
 require_entry_literal(
@@ -240,7 +240,7 @@ set(required_entry_literals
   "packaging/windows/ZzLogg.nsi|ZzLogg.exe"
   "packaging/windows/ZzLogg.nsi|Delete \"$APPDATA\\ZzLogg\\ZzLogg_session.ini\""
   "packaging/windows/ZzLogg.nsi|SetShellVarContext current\n    Delete \"$SENDTO\\ZzLogg.lnk\"\n    SetShellVarContext all\n    Delete \"$SMPROGRAMS\\ZzLogg.lnk\""
-  "docs/DOCUMENTATION.md|do not configure an update manifest URL"
+  "docs/DOCUMENTATION.md|未配置更新清单 URL"
   ".github/actions/agent-package-win/action.yml|zzlogg_runtime_folder"
   ".github/actions/agent-package-win/action.yml|packaging/windows/ZzLogg.nsi"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"

@@ -81,6 +81,7 @@
 #include <QWindow>
 
 #include "mainwindow.h"
+#include "documentationwindow.h"
 #include "windowchrome.h"
 
 #include "clipboard.h"
@@ -1108,21 +1109,12 @@ void MainWindow::aboutQt()
 
 void MainWindow::documentation()
 {
-    QFile doc( ":/documentation.html" );
-    if ( doc.open( QIODevice::ReadOnly | QIODevice::Text ) ) {
-        const auto text = QString::fromUtf8( doc.readAll() );
-        QTextBrowser* tb = new QTextBrowser();
-        tb->setOpenExternalLinks( true );
-        tb->setHtml( text );
-        tb->setWindowFlags( Qt::Window );
-        tb->setAttribute( Qt::WA_DeleteOnClose );
-        tb->setWindowTitle( tr( "%1 documentation" ).arg( productName() ) );
-        tb->resize( this->width() / 2, this->height() );
-        tb->show();
-    }
-    else {
-        LOG_ERROR << "Can't open documentation resource";
-    }
+    auto* browser = findChild<QTextBrowser*>(QStringLiteral("documentationWindow"),
+                                             Qt::FindDirectChildrenOnly);
+    if (!browser) browser = new DocumentationWindow(this);
+    browser->showNormal();
+    browser->raise();
+    browser->activateWindow();
 }
 
 void MainWindow::showScratchPad()

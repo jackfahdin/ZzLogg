@@ -1,5 +1,7 @@
 add_library(
   klogg_ui STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/documentationwindow.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/documentationwindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/optionsdialogpages.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/logpage.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/logpage.cpp

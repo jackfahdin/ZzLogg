@@ -324,6 +324,10 @@ if(UNIX)
       DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 
+    foreach(DOC_LANGUAGE IN ITEMS en zh_TW)
+      install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/i18n/${DOC_LANGUAGE}/DOCUMENTATION.md
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}/i18n/${DOC_LANGUAGE})
+    endforeach()
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/ZzLogg.desktop DESTINATION share/applications)
 
     set(CPACK_GENERATOR DEB)

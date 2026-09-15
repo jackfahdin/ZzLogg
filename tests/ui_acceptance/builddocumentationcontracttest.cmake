@@ -22,11 +22,11 @@ foreach(vendor_threshold IN LISTS vendor_thresholds)
 endforeach()
 
 set(documented_compiler_floors
-  "GCC 13.1 or newer"
-  "Clang 17 or newer"
-  "Apple Clang 15 or newer"
-  "macOS deployment target 13.3 or newer"
-  "MSVC 19.38 or newer"
+  "GCC 13.1+"
+  "Clang 17+"
+  "Apple Clang 15+"
+  "macOS 部署目标至少为 13.3"
+  "MSVC 19.38+"
   "Visual Studio 2022 17.8+")
 foreach(documented_floor IN LISTS documented_compiler_floors)
   string(FIND "${build_documentation}" "${documented_floor}" floor_index)

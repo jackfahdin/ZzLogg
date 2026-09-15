@@ -1,472 +1,367 @@
-# ZzLogg documentation
+# ZzLogg 使用手册
 
-## Table of Contents
+本手册适用于当前基于 Qt 6 的应用，可在程序内置文档窗口中离线阅读。
 
-1. [Getting started](#Getting-started)
-1. [Exploring log files](#Exploring-log-files)
-1. [Settings](#Settings)
-1. [Keyboard commands](#Keyboard-commands)
-1. [Command line options](#Command-line-options)
+<a name="contents"></a>
 
+## 目录
 
-## Getting started
+- [快速入门](#getting-started)
+- [浏览与分析日志](#exploring-log-files)
+  - [搜索语法与标记](#search-syntax)
+  - [打开文件](#opening-files)
+  - [字符编码](#encodings)
+  - [预定义过滤器](#predefined-filters)
+  - [高亮规则](#highlighters)
+  - [颜色标签](#color-labels)
+  - [查看持续变化的日志](#changing-log-files)
+  - [暂存区](#scratchpad)
+- [设置](#settings)
+  - [常规](#general)
+  - [视图](#view)
+  - [文件](#file)
+  - [存储](#storage)
+  - [高级选项](#advanced-options)
+- [键盘快捷键](#keyboard-commands)
+- [鼠标操作](#mouse-navigation)
+- [命令行选项](#command-line-options)
 
-*ZzLogg* can be started from the command line, optionally passing the
-file to open as an argument, or via the desktop environment's menu or
-file association. If no file name is passed, *ZzLogg* will initially open
-the most recent file.
+<a name="getting-started"></a>
 
-The main window is divided into three parts: the top displays the log
-file. The bottom part, called the "filtered view", displays the results of
-the search. The line separating the two contains the regular expression
-used as a filter.
+## 快速入门
 
-Entering a new regular expression or a simple search term will update
-the bottom view, displaying the results of the search. The lines
-matching the search criteria are listed in order in the results, and are
-marked with a red circle in both windows.
+可以从命令行、桌面应用菜单或文件关联启动 ZzLogg。命令行支持传入一个或多个文件路径；未指定文件时，程序会根据会话设置尝试恢复上次会话。
 
-## Exploring log files
+首次使用时，选择设置、会话和程序日志的保存位置：用户数据目录、程序旁的 `data` 目录，或自定义绝对路径。以后可在“设置 → 存储”中查看和更改。
 
-Regular expressions are a powerful way to extract the information you
-want from the log file. *ZzLogg* uses *extended regular
-expressions*.
+主窗口分为三个工作区域：
 
-One of the most useful regexp features when exploring logs is the
-*alternation* feature, using parentheses and the | operator. It searches for
-several alternatives and displays several line types in the
-filtered window, in the same order they appear in the log file.
+| 区域 | 用途 |
+|---|---|
+| 上方主视图 | 浏览原始日志及其上下文。 |
+| 两个视图之间的搜索栏 | 输入文本或正则表达式并执行搜索。 |
+| 下方过滤视图 | 按文件中的原始顺序查看匹配行与标记行。 |
 
-For example, to verify that every connection opened is also closed, one
-can use an expression similar to:
+搜索后，匹配行会列入过滤视图，并在两个视图中显示红色圆点。选择结果可定位到原始日志；右侧概览可显示匹配项在整个文件中的分布。
 
-`Entering (Open|Close)Connection`
+<a name="exploring-log-files"></a>
 
-Any 'open' call without a matching 'close' will immediately stand out
-in the filtered window. The alternation also works with the whole search
-line. If you would like to know what kind of connection has
-been opened:
+## 浏览与分析日志
 
-`Entering (Open|Close)Connection|Created a .* connection`
+<a name="search-syntax"></a>
 
-`.*` will match any sequence of characters on a single line, but *ZzLogg*
-will only display lines with a space and the word `connection` somewhere
-after `Created a`
+### 搜索语法与标记
 
-Sometimes alternation using regular expression syntax is cumbersome.
-For such cases *ZzLogg* can do logical search pattern combinations using
-`and`, `or`, and `not` operators. This mode can be enabled using button
-from search input panel. In this mode all patterns must be enclosed in `"`.
-Following logic operations are supported:
+正则表达式可以按原始顺序提取相关事件。搜索模式选择正则表达式时，输入内容会作为模式解析；选择固定字符串时，则按字面文本搜索。
 
-|Operator        |Actions                                                                   |
-|----------------|--------------------------------------------------------------------------|
-|`and`           |Logical AND, True only if x and y both match input line. (eg: `"x" and "y"`)|
-|`or`            |Logical OR, True if either x or y match input line. (eg: `"x" or "y"`)      |
-|`&`             |Similar to AND but with left to right expression short circuiting optimization  |
-|`\|`             |Similar to OR but with left to right expression short circuiting optimization   |
-|`not`           |Logical NOT, Negate the logical sense of the input. Input must be enclosed in `()` (eg: `not("x")`)|
+例如，要对照连接打开与关闭事件：
 
-*ZzLogg* keeps track of used search patterns and provides autocomplete
-for them. This history can be edited or cleared from the search text box context menu.
-Autocomplete is case-sensitive if this option is selected for matching 
-regular expressions. The size of autocomplete history is configured in general options.
+```text
+Entering (Open|Close)Connection
+```
 
-In addition to the filtered window, the match overview on the right-hand
-side of the screen offers a view of the position of matches in the log
-file. Matches are shown as small red lines.
+括号将候选项分组，`|` 表示“其中任意一个”。这样便于发现只有打开、没有对应关闭的事件。要同时查看连接类型，可使用：
 
-In addition to regexp matches, *ZzLogg* enables its users to mark any
-interesting line in the log. To do this, click on the round bullet in
-the left margin in front of the line that needs to be marked. Or, select
-the line and press the `'m'` hotkey.
-To mark several lines at once select them and use the `'m'` hotkey or context menu.
+```text
+Entering (Open|Close)Connection|Created a .* connection
+```
 
-By default, filtered view always shows all marked lines. It is possible to switch filtered
-view mode to show either only the lines matching search pattern or only marked lines.
+其中 `.*` 匹配同一行内任意长度的字符序列。第二个分支仍要求出现 `Created a`，并在后面某处出现一个空格和 `connection`。
 
-Marks also appear as blue lines in the match overview.
+#### 逻辑组合
 
-It is possible to quickly jump to a specific line using `Ctrl+L` shortcut.
+通过搜索栏旁的按钮启用逻辑搜索。每个搜索模式都必须用英文双引号括起来，再使用以下运算符组合：
 
-*ZzLogg* uses Hyperscan library to perform regular expressions search. Hyperscan is very
-fast, but it doesn't support some patterns, most notably any lookahead is not supported 
-(check [hyperscan documentation](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support) for 
-supported syntax). To overcome this *ZzLogg* will switch to Qt regular expression engine with full PCRE syntax support
-if Hyperscan can't handle the search pattern. However, in this case search will be significantly slower.
+| 运算符 | 含义 | 示例 |
+|---|---|---|
+| `and` | 两个模式都匹配该行。 | `"x" and "y"` |
+| `or` | 任意一个模式匹配该行。 | `"x" or "y"` |
+| `&` | 逻辑与，从左到右短路求值。 | `"x" & "y"` |
+| <code>&#124;</code> | 逻辑或，从左到右短路求值。 | <code>"x" &#124; "y"</code> |
+| `not` | 对括号内的表达式取反。 | `not("x")` |
 
-### Opening files
+搜索历史用于提供自动补全。可通过搜索框右键菜单编辑或清空历史，并在常规设置中指定最大条目数。自动补全遵循搜索的大小写敏感选项。
 
-*ZzLogg* provides several options for opening files:
+#### 匹配概览与行标记
 
-* using dedicated open file item in `File` menu or toolbar
-* dragging files from the file manager
-* downloading files from a provided url
-* providing one or many files via the command line
-* using recent files or favorite menu items.
+右侧概览用红色短线显示匹配项，用蓝色短线显示手动标记的行。点击行左侧的圆点，或选中该行后按 `m`，即可切换标记。要一次标记多行，先选中这些行，再按 `m` 或使用右键菜单。
 
-On Windows and Mac OS, the *ZzLogg* installer configures the operating system to open `.log` files by
-clicking them in the file manager.
+过滤视图默认同时显示匹配行和标记行，也可切换为仅标记或仅匹配模式。按 `Ctrl+L` 可跳转到指定行。
 
-#### Archives
+#### 正则表达式引擎
 
-*ZzLogg* can open archives (`zip`, `7z`, and `tar`). The archive is extracted
-to a temporary directory and standard open file dialog is presented to
-select files. The type of archive is determined automatically by file
-content or extension.
+ZzLogg 使用 Hyperscan 加速正则表达式搜索。该引擎不支持部分语法，例如前瞻断言。Hyperscan 无法编译某个模式时，ZzLogg 会回退到基于 PCRE 的 Qt 正则表达式引擎，此时搜索可能明显变慢。详细限制可选阅在线 [Hyperscan 模式参考](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support)。
 
-*ZzLogg* can open compressed files (`gzip`, `bzip2`, `xz`, `lzma`). Such files are
-decompressed to a temporary folder and then opened. The compression type is
-determined automatically by file content or extension.
+<a name="opening-files"></a>
 
-#### Remote URLs
+### 打开文件
 
-*ZzLogg* can open files from remote URLs. In that case, *ZzLogg* will
-download the file to a temporary directory and open it from there.
+可以通过“文件 → 打开”或工具栏打开日志，也可以从文件管理器拖入文件、提供远程 URL、在命令行中传入路径，或使用最近文件与收藏夹。如果安装包注册了 `.log` 文件关联，也可以在文件管理器中双击日志来打开。
 
-#### Recent files
+#### 归档与压缩文件
 
-*ZzLogg* saves a history of recent opened files. Up to 5 recent files are
-available from the `File` menu.
+支持的归档格式包括 `zip`、`7z` 和 `tar`。ZzLogg 会将归档解压到临时目录，再显示文件选择对话框，供你选择其中的文件。
 
-#### Favorites
+`gzip`、`bzip2`、`xz` 和 `lzma` 格式的单个压缩文件会先解压到临时目录，然后打开。程序根据文件内容或扩展名识别格式。“设置 → 文件”中可以配置解压及确认选项。
 
-Opened files can be added to the `Favorites` menu either from
-`Favorites->Add to Favorites` or from the toolbar.
+#### 远程 URL
 
-This menu is used to provide fast access to files that are opened less
-often and don't end up in the recent files section.
+ZzLogg 将远程文件下载到临时目录，然后打开下载后的副本。
 
-#### Clipboard
+#### 最近文件
 
-Pasting text from the clipboard to *ZzLogg* also works. In this case, *ZzLogg*
-will save pasted text to a temporary file and open that file for
-exploring.
+“文件”菜单提供最多五个最近打开文件的快捷入口。
 
-#### Switching between opened files
+#### 收藏夹
 
-Switching from one opened file to another can be done from the
-`View->Opened files` menu or by using the `Ctrl+Shift+O` shortcut 
-which displays special dialogue to choose between opened files.
+通过“收藏夹 → 添加到收藏夹”或工具栏收藏当前文件。对于不常打开、容易从最近文件列表中消失的日志，收藏夹尤其方便。
 
-### Encodings
+#### 剪贴板
 
-*ZzLogg* tries to guess the encoding of an opened file. If that guess happens to
-be wrong, then the desired encoding can be selected from the `Encoding` menu.
+将剪贴板文本粘贴到 ZzLogg，程序会把它保存为临时文件，以便像日志一样浏览和搜索。
 
-### Predefined filters
+#### 切换已打开文件
 
-If some search patterns are used very often they can be saved as predefined filters.
-Predefined filters are configured from the `Tools` menu.
+使用“视图 → 已打开文件”，或按 `Ctrl+Shift+O` 打开文件切换对话框。
 
-Predefined filters are added to a dropdown near the search input and allow to 
-add several patterns to regular expression. Predefined filter has a name
-which is displayed in the dropdown, a pattern to add to search regular expression
-and a setting to treat pattern as a regular expression
-or simple text search.
+<a name="encodings"></a>
 
-It is possible to save the current search pattern as a predefined filter from
-search input context menu.
+### 字符编码
 
-### Using highlighters
+ZzLogg 会尝试自动检测文件编码。若检测不正确，可在“编码”菜单中选择正确编码，也可在文件设置中指定默认编码来代替自动检测。
 
-*Highlighters* can colorize some lines of the log being displayed
-to draw attention to lines indicating an error, or to associate
-a color with a certain type of event. 
+<a name="predefined-filters"></a>
 
-Highlighters are grouped into sets. One set of highlighters can be active
-at any given time. The current active set can be selected using either the
-context menu or the `Tools->Highlighters` menu.
+### 预定义过滤器
 
-Any number of highlighters can be defined in a single set.
-Highlighter configuration includes a regular expression to match
-as well as color options. Another option is to use plain text patterns
-in cases when complex regular expression are unnecessary.
-Highlighters don't have support for logical search pattern combinations.
+可通过“工具”菜单把常用模式保存为预定义过滤器。每个过滤器包含显示名称、搜索模式，以及按正则表达式或纯文本处理的选项。
 
-Each highlighter can be configured to apply foreground and 
-background colors either to the whole line that matched its regular
-expression or only to matching parts of the line. In the latter case,
-if the regular expression contains capture groups then only the captured
-parts of the matching line are highlighted.
+通过搜索栏旁的下拉列表，可以向搜索中添加一个或多个预定义模式。搜索框右键菜单也支持将当前模式保存为预定义过滤器。
 
-It is possible to set a color variance. In that case different strings
-that match the same regular expression will have slightly different color.
+<a name="highlighters"></a>
 
-Any number of highlighters set can be applied to opened file using either 
-the context menu or the main menu.
+### 高亮规则
 
-The order of highlighters in the set and the order of sets in configuration is important.
-For each line all highlighters are tried from bottom to top. Each new matching 
-highlighter overrides colors for the current line. 
+高亮规则为日志文本着色，便于识别错误或特定类型的事件。规则按集合组织，可通过右键菜单或“工具 → 高亮规则”选择；一个打开的文件可以应用多个集合。
 
-Highlighter configuration can be exported to a file and 
-imported on another machine. Each set is identified
-by unique id. Only new sets are imported from the file. Please export the file
-with a `.conf` extension to ensure *ZzLogg* will be able to import it.
+每个集合可以包含任意数量的规则。每条规则指定正则表达式或纯文本模式，以及前景色和背景色。高亮规则不支持逻辑搜索组合。
 
-### Color labels
+规则可以作用于整条匹配行，也可以只作用于匹配文本。仅高亮匹配文本时，如果正则表达式包含捕获组，则高亮捕获的部分。启用颜色变化后，匹配同一模式的不同字符串会采用略有差异的颜色。
 
-In addition to predefined highlighters sets it is possible to create quick highlight rules
-from selected text. These are called color labels. By default, *ZzLogg* has 9
-color labels enabled. Adding color label to selected text is done either
-via context menu or with shortcuts `Ctrl+Shift+1-9`. Any number of 
-strings can be marked with a single color label. Also the is `Ctrl+D` shortcut
-that applies the next color label to selected text.
+集合顺序和规则顺序会影响结果：规则按从下到上的顺序求值，后匹配的规则覆盖相应颜色。请据此排列优先级较高的规则。
 
-To remove color label from selected text either select the text and use 
-context menu to set color label to `None` or use `Ctrl+Shift+0` shortcut that
-will remove all color labels.
+导出高亮配置时使用 `.conf` 扩展名，即可在其他计算机上导入。每个集合都有唯一 ID；导入仅添加尚不存在的集合。
 
-The colors that are used for text highlight can be configured from the color labels
-tab of highlighters configuration dialog.
+<a name="color-labels"></a>
 
-### Browsing changing log files
+### 颜色标签
 
-*ZzLogg* can display and search through logs while they are written to
-a disk. This might be the case when debugging a running program or
-server. The log is automatically updated when it grows, but the
-'Auto-refresh' option must be enabled if you want the search results to
-be automatically refreshed.
+颜色标签可为选中文本快速创建高亮规则。默认提供九种标签，通过右键菜单或 `Ctrl+Shift+1` 至 `Ctrl+Shift+9` 应用。多个字符串可以使用同一标签；`Ctrl+D` 会为选中文本应用下一个标签。
 
-The `'f'` key may be used to follow the end of the file as it grows (a
-la `tail -f`).
+要移除某段文本的标签，选中该文本并在右键菜单中选择“无”。`Ctrl+Shift+0` 会清除所有颜色标签。颜色可以在高亮配置对话框的“颜色标签”页中调整。
 
-*ZzLogg* detects if new lines have been appended to the file or if the file has
-been overwritten. In the former case, search results will be updated as new
-matching lines appear in the file. If the file is overwritten, then
-search results will be cleared. 
+<a name="changing-log-files"></a>
 
-*ZzLogg* has two options to distinguish appends from overwrites.
-The general and more stable option is to recalculate the hash of the 
-indexed part of the file and check if it matches current file on disk. 
-This is reliable but can be slow for large files and for slow file systems
-(e.g. network shares). The other option is to check hashes for only the 
-first and last parts of the file. This usually works quickly 
-but can skip over changes in the middle of the file. You can choose your 
-preferred option in `Settings->File` tab.
+### 查看持续变化的日志
 
-The following file mode requires monitoring of the file system for any changes.
-If native monitoring or polling are both disabled in settings, then the 
-following file mode is also disabled.
+其他程序持续写入日志时，ZzLogg 仍可显示和搜索文件。日志增长后，显示内容会更新；启用“自动刷新”还可自动更新搜索结果。
 
-### Scratchpad
+按 `f` 跟随文件末尾，效果类似 `tail -f`。文件追加新行时，结果中可以加入新的匹配行；文件被覆盖时，原有搜索结果会清空。
 
-Sometimes in log files there are text in base64 encoding, unformatted
-xml/json, etc. For such cases *ZzLogg* provides Scratchpad tool. Text can
-be copied to this window and transformed to human-readable form.
-Use context menu to either add data to the current scratchpad tab or 
-replace its content with selected text. There are shortcuts `Ctrl+Z` and `Ctrl+Shit+Z` for these actions.
+为区分追加与覆盖，ZzLogg 通常会重新计算已索引部分的哈希值。这种方式更可靠，但处理大文件或网络共享文件时可能较慢。“快速修改检测”只检查文件开头和末尾，工作量较少，但可能遗漏中间内容的变化。可在“设置 → 文件”中选择策略。
 
-New tabs can be opened in Scratchpad using the `Ctrl+N` hotkey.
+跟随模式依赖文件变化监控。如果原生监控和轮询均被禁用，跟随模式也会被禁用。
 
-## Settings
+<a name="scratchpad"></a>
 
-### General
+### 暂存区
 
-#### Search options
+暂存区适合查看日志中的 Base64 文本，或格式化 XML/JSON。通过右键菜单或 `Ctrl+Z`，可把选中文本发送到当前暂存区标签页；通过对应的右键菜单操作或 `Ctrl+Shift+Z`，可替换该标签页的内容。
 
-Determines which type of regular expression *ZzLogg* will use when
-filtering lines for the bottom window, and when using QuickFind.
+在暂存区中，`Ctrl+N` 新建标签页。这些快捷键的含义取决于当前获得焦点的窗口。
 
-*   Extended Regexp. The default, uses regular expressions similar to
-    those used by Perl
-*   Fixed Strings. Searches for the text exactly as it is written, no
-    character is special
+<a name="settings"></a>
 
-If incremental quickfind is selected, *ZzLogg* will automatically restart
-quickfind search when the search pattern changes.
+## 设置
 
-Turning on highlight of matched text will cause the text that matched the
-search pattern to be highlighted in both main view and filtered view.
-Enabling color variation will cause the highlight color of different strings
-that match the same pattern be slightly different.
+<a name="general"></a>
 
-Search size history controls the number of patterns that are saved for autocompletion
-in the search input box.
+### 常规
 
-Turning on option to run search on add or replace pattern will cause *ZzLogg* to
-immediately perform search when pattern is update from context menu.
+#### 搜索选项
 
-#### Session options
+| 选项 | 作用 |
+|---|---|
+| 扩展正则表达式 | 按正则表达式语法解释搜索模式。 |
+| 固定字符串 | 按字面文本匹配，标点不具有特殊含义。 |
+| 增量快速查找 | 模式变化时重新执行快速查找。 |
+| 高亮匹配文本 | 在主视图和过滤视图中高亮匹配部分。 |
+| 颜色变化 | 为不同的匹配字符串使用略有差异的高亮颜色。 |
+| 搜索历史大小 | 限制用于自动补全的历史模式数量。 |
+| 添加或替换模式时搜索 | 通过右键菜单更新模式后立即搜索。 |
 
-*   Load last session -- if enabled, *ZzLogg* will reopen files that were
-    opened when *ZzLogg* was closed. View configuration, marked lines and
-    `follow` mode settings are restored for each file.
-*   Follow file on load -- if enabled, *ZzLogg* will enter `follow` mode
-    for for all new opened files.
-*   Minimize to tray -- if enabled, *ZzLogg* will minimize to tray instead
-    of closing main window. Use tray icon context menu of `File->Exit`
-    to exit application. This option is not available on Mac OS.
-*   Enable multiple windows -- if enabled *ZzLogg* will allow opening
-    more than one main window using `File->New window`. In this mode last
-    closed windows will be saved to open session on next *ZzLogg* start.
-    When exiting *ZzLogg* using `File->Exit` all windows are saved and
-    will be reopened.
+搜索类型设置同时适用于过滤搜索和快速查找。
 
-#### Version checking options
+#### 会话选项
 
-Current ZzLogg builds do not configure an update manifest URL. The version
-checker therefore does not contact a release service or display automatic
-update notifications.
+- 加载上次会话：恢复之前打开的文件、视图配置、行标记和跟随状态。
+- 加载文件时跟随：为新打开的文件启用跟随模式。
+- 最小化到托盘：关闭主窗口时让应用保留在系统托盘中。通过托盘菜单或“文件 → 退出”结束程序。macOS 不提供此选项。
+- 启用多个窗口：允许通过“文件 → 新建窗口”打开更多主窗口。逐个关闭窗口时，保存最后关闭窗口的会话；通过“文件 → 退出”退出时，保存全部窗口以便恢复。
 
-### View
+#### 语言
 
-#### Font
+可选择简体中文、繁体中文或英语。应用语言设置后，界面立即更新，无需重启。
 
-The font used to display the log file. A clear, monospace font (like the
-free, open source, [DejaVu Mono](http://www.dejavu-fonts.org) for
-example, is recommended.
+#### 版本检查
 
-Font antialiasing can be forced if auto-detected options result in low-quality
-text rendering.
+当前构建未配置更新清单 URL，因此版本检查器不会联系发布服务，也不会显示自动更新通知。
 
-Font size can be changed from either main or filtered view using `Ctrl+Mouse wheel`
-to zoom in/out.
+<a name="view"></a>
 
-#### Style
+### 视图
 
-Qt usually comes with several options for drawing application widgets.
-By default, *ZzLogg* uses a style that matches current operating systems.
-Other styles can be chosen from the dropdown menu.
+#### 字体
 
-*ZzLogg* will try to respect current display manager theme and to
-use white icons for dark themes. 
+建议选择清晰的等宽字体，例如 DejaVu Sans Mono。若自动设置导致文字渲染不佳，可强制启用字体抗锯齿。在任一日志视图中，按住 `Ctrl` 滚动鼠标滚轮即可调整字号。
 
-Another option is to select Dark or Windows Dark style. In this case *ZzLogg*
-will use a custom dark mode stylesheet. 
+#### 主题与控件样式
 
-#### High DPI
+界面主题可选择浅色或深色，控制应用界面和图标的外观。独立的 Qt 控件样式选项决定控件的绘制方式，可用样式取决于平台。部分控件样式更改需要重启，程序会给出提示。
 
-Options in this group can be used in case *ZzLogg* window looks
-bad on High DPI monitors. Usually, Qt detects the correct settings.
-However, these options may be useful, especially for non-integer
-scale factors manual overrides.
+#### 高 DPI
 
-#### Miscellaneous
+当前应用仅使用 Qt 6。Qt 通常会自动处理显示缩放；如果缩放效果不正确，可检查可用的高 DPI 选项，尤其是使用非整数缩放比例时。
 
-Some log files contain ANSI color codes to be displayed by terminals with
-color support. These color codes create visual noise, so *ZzLogg* provides
-an option to hide them from both main and filtered view. However, enabling
-this option will cause regular expression search to be slower.
+#### 行号与其他显示选项
 
-### File
+统一的行号选项同时控制主视图和过滤视图的行号显示。
 
-#### File change monitoring
+可以在两个视图中隐藏 ANSI 终端颜色转义序列，使日志更易阅读；此选项可能降低正则表达式搜索速度。
 
-If file change monitoring is enabled, *ZzLogg* will use facilities
-provided by the operating system to reload the file when data is changed on the
-disk.
+<a name="file"></a>
 
-Sometimes this kind of monitoring is unreliable on
-network shares or directories mounted via sftp. In that case, polling can
-be enabled to make *ZzLogg* check for changes.
+### 文件
 
-*ZzLogg* tries to detect if the file was changed in the already indexed
-area. This mechanism involves hash recalculation and can be slow for
-large files and network filesystems. If fast modification detection
-is enabled *ZzLogg* will check hash for the first and last parts of
-changed files. This is faster but can skip over changes in the middle of
-the file. This feature should be used with caution.
+#### 文件变化监控
 
-It is possible to enable follow file mode by scrolling past the end of file.
-This behavior can be disabled.
+原生监控通过操作系统通知重新加载发生变化的文件。对于通知不可靠的网络共享或通过 SFTP 挂载的目录，可以启用轮询来定期检查变化。
 
-#### Encoding
+快速修改检测只计算文件开头和末尾的哈希值。它能提高速度，尤其适合较大或远程文件，但可能漏掉中间部分的修改。必须识别这些修改时，应关闭此选项。
 
-*ZzLogg* tries to detect file encoding automatically. If encoding detection
-is not required then it is possible to specify the encoding that will be
-used for all new opened files.
+滚动超过文件末尾可以启用跟随模式。如果希望手动控制跟随，可禁用这一行为。
 
-#### Archives
+#### 编码
 
-If extract archives is selected then *ZzLogg* will detect if opened file
-is of one of supported archives type or a single compressed file and
-will ask user permission to extract archives content to a temporary folder.
+可使用自动检测，也可为所有新打开的文件指定编码。
 
-If you do not want *ZzLogg* to ask for permission, check
-"extract archives without confirmation" option.
+#### 归档
 
-#### File download
+启用归档解压后，程序会检测支持的归档及压缩文件，并将其解压到临时目录。默认会询问是否解压；启用“无需确认即可解压”可跳过该提示。
 
-By default, *ZzLogg* will not download files using HTTPS if certificates
-can't be checked. In some development environments self-signed 
-certificates are used. In this case, *ZzLogg* can be instructed to ignore
-SSL errors.
+#### 文件下载
 
-### Advanced options
+默认情况下，HTTPS 下载必须通过证书验证。“忽略 SSL 错误”可用于采用自签名证书的开发服务器，但会禁用这项验证。
 
-These options refer to the customization of performance related settings.
+<a name="storage"></a>
 
-If parallel search is enabled, *ZzLogg* will try to use several CPU cores
-for regular expression matching. This does not work with quickfind.
+### 存储
 
-*ZzLogg* has several strategies for regular expression search based on file
-encoding. By default, it is optimized for files with UTF8 or single-byte
-encodings. If most of the files are in multi-byte encodings then enabling
-search optimization for non-latin encodings could improve performance.
+设置、会话和程序日志使用统一的数据目录。启动时的位置选择器与“设置 → 存储”提供相同的三种选择：
 
-If search results cache is enabled, *ZzLogg* will store numbers of lines
-that matched the search pattern in its memory. Repeating searches for the same
-pattern will not go through all files but will use cached line numbers
-instead.
+| 位置 | 用途 |
+|---|---|
+| 用户数据目录 | 为当前操作系统账户保存数据。 |
+| 程序目录（`data`） | 在程序旁保存数据，需要该位置可写。 |
+| 自定义目录 | 使用绝对路径指定可写目录。 |
 
-In case there is an issue with *ZzLogg*, logging can be enabled with
-a desired level of verbosity. Log files are saved to a temporary directory.
-A log level of 4 or 5 is usually enough. Enabling logging can slow down 
-regular expressions search.
+页面会预览数据路径，并提供“打开目录”按钮。更改位置后，程序会安排数据迁移，在重启后生效；出现提示时可选择立即重启或稍后重启。
 
-## Keyboard commands
+命令行选项 <code>--data-dir &lt;path&gt;</code> 为当前进程指定数据目录。使用该选项时，界面中的存储位置由命令行管理。
 
-*ZzLogg* keyboard commands try to approximately emulate the default
-bindings used by the classic Unix utilities *vi* and *less*.
+<a name="advanced-options"></a>
 
-The main commands are:
+### 高级选项
 
-|Keys            |Actions                                                           |
-|----------------|------------------------------------------------------------------|
-|arrows          |scroll one line up/down or one column left/right                  |
-|\[number\] j/k  |move the selection 'number' (or one) line down/up                 |
-|h/l             |scroll left/right                                                 |
-|\^ or \$        |scroll to beginning or end of selected line                       |
-|\[number\] g    |jump to the line number given or the first one if no number is    |
-|                |entered                                                           |
-|G               |jump to the first line of the file (selecting it)                 |
-|Shift+G         |jump to the last line of the file (selecting it)                  |
-|Alt+G           |show jump to line dialog                                          |
-|' or "          |start a quickfind search in the current screen                    |
-|                |(forward and backward)                                            |
-|n or N          |repeat the previous quickfind search forward/backward             |
-|\* or .         |search for the next occurrence of the currently selected text      |
-|/ or ,          |search for the previous occurrence of the currently selected text  |
-|f               |activate 'follow' mode, which keep the display as the tail of the |
-|                |file (like "tail -f")                                             |
-|m               |put a mark on current selected line                               |
-|\[ or \]        |jump to previous or next marked line                              |
-|+ or -          |decrease/increase filtered view size                              |
-|v               |switch filtered view visibility mode                               |
-|                |(Marks and Matches -&gt; Marks -&gt; Matches)                     |
-|F5              |reload current file                                               |
-|Ctrl+S          |Set focus to search string edit box                               |
-|Ctrl+Shift+O    |Open dialog to switch to another file                             |
+- 并行搜索使用多个 CPU 核心进行正则表达式匹配，不适用于快速查找。
+- 默认针对 UTF-8 和单字节编码优化搜索。若大多数文件使用其他多字节编码，非拉丁编码搜索优化可能提高性能。
+- 搜索结果缓存会在内存中保存匹配行号，重复搜索时可复用结果，避免重新扫描文件。
+- 诊断日志支持设置详细程度。排查问题通常使用 4 或 5 级即可。程序日志保存在所选数据目录的 `logs` 子目录中；启用日志可能降低搜索速度。
+- 当前应用不提供崩溃报告功能。
 
-All shortucts can be configured from the shortcuts tab in options dialog.
+<a name="keyboard-commands"></a>
 
-## Mouse navigation
+## 键盘快捷键
 
-Holding `Alt` while scrolling will scroll horizontally.
-Holding `Shift` while scrolling will scroll faster.
+日志导航借鉴了 `vi` 和 `less` 的操作习惯。下表列出默认按键，可在“设置 → 快捷键”中自定义动作。部分按键取决于当前视图或窗口。
 
-## Command line options
+| 按键 | 操作 |
+|---|---|
+| 上/下方向键；`j` / `k` | 按方向键方向移动选择；`j` 向下、`k` 向上。在 `j`/`k` 前输入数字可移动指定行数。 |
+| 左/右方向键；`h` / `l` | 水平滚动。 |
+| `Ctrl+Up` / `Ctrl+Down` | 垂直滚动。 |
+| `^` / `$` | 转到所选行的开头/末尾。 |
+| `Ctrl+Home` | 跳到文件开头。 |
+| `Shift+G` / `Ctrl+End` | 跳到文件末尾。 |
+| `Ctrl+L` | 打开跳转到行对话框。 |
+| `'` / `"` | 向前/向后启动快速查找。 |
+| `n` / `Shift+N` | 向前/向后重复快速查找。 |
+| `*` / `.` | 查找选中文本的下一处出现位置。 |
+| `/` / `,` | 查找选中文本的上一处出现位置。 |
+| `f` | 切换文件末尾跟随模式。 |
+| `m` | 切换所选行的标记。 |
+| `[` / `]` | 跳到上一个/下一个标记。 |
+| `+` / `-` | 缩小/增大过滤视图。 |
+| `v` | 循环切换过滤模式：标记与匹配 → 标记 → 匹配。 |
+| `F5` | 重新加载当前文件。 |
+| `Ctrl+S` | 将焦点移到搜索框。 |
+| `Ctrl+Shift+O` | 打开文件切换对话框。 |
+| `Ctrl+Shift+1`–`Ctrl+Shift+9` | 为选中文本应用颜色标签。 |
+| `Ctrl+D` | 应用下一个颜色标签。 |
+| `Ctrl+Shift+0` | 清除所有颜色标签。 |
+| `Ctrl+Z` / `Ctrl+Shift+Z` | 发送选中文本到暂存区/替换暂存区内容。 |
+| 暂存区中的 `Ctrl+N` | 新建暂存区标签页。 |
 
-|Switch             |Actions                                                   |
-|-------------------|----------------------------------------------------------|
-|-h, --help         |print help message and exit                               |
-|-v, --version      |print version information                                 |
-|-m,--multi         |allow multiple instance of ZzLogg to run simultaneously (use together with -s)|                                    |
-|-s,--load-session  |load the previous session (default when no file is passed)|
-|-n,--new-session   |do not load the previous session (default when a file is passed) |
-|-l,--log           |save the log to a file                                    |
-|-f,--follow        |follow initial opened files                               |
-|-d,--debug         |output more debug (include multiple times for more verbosity e.g. -dddd) |
+旧版手册中的 `[number]g`、`G` 和 `Alt+G` 不再是当前默认绑定。跳到指定行请用 `Ctrl+L`，跳到文件开头请用 `Ctrl+Home`；可以在快捷键设置中检查或调整自己的绑定。
+
+<a name="mouse-navigation"></a>
+
+## 鼠标操作
+
+| 手势 | 操作 |
+|---|---|
+| `Alt+鼠标滚轮` | 水平滚动。 |
+| `Shift+鼠标滚轮` | 加快滚动速度。 |
+| `Ctrl+鼠标滚轮` | 调整日志字号。 |
+
+<a name="command-line-options"></a>
+
+## 命令行选项
+
+在选项后传入一个或多个文件路径；包含空格的路径需要加引号。以下以 Windows 可执行文件名为例，其他平台请使用实际安装的程序名。
+
+```text
+ZzLogg.exe "C:\Logs\server.log"
+ZzLogg.exe --follow "C:\Logs\server.log"
+ZzLogg.exe --data-dir "D:\ZzLoggData" --new-session "C:\Logs\server.log"
+ZzLogg.exe --log --debug 2
+```
+
+| 选项 | 作用 |
+|---|---|
+| `-h, --help` | 显示帮助并退出。 |
+| `-v, --version` | 显示版本信息。 |
+| `-m, --multi` | 允许多个程序实例同时运行；配合 `-s` 加载已保存会话。 |
+| `-s, --load-session` | 加载上次会话；未指定文件时的默认行为。 |
+| `-n, --new-session` | 不加载上次会话；指定文件时的默认行为。 |
+| `-l, --log` | 将程序诊断输出写入日志文件。 |
+| `-f, --follow` | 跟随启动时打开的文件。 |
+| <code>-d, --debug &lt;debug_level&gt;</code> | 按数值增加诊断详细程度，例如 `-d 2`；当前语法不使用 `-dddd` 这样的重复字母。 |
+| <code>--data-dir &lt;path&gt;</code> | 为当前进程使用指定的绝对数据目录。 |
+| <code>--window-width &lt;width&gt;</code> | 设置新窗口宽度。 |
+| <code>--window-height &lt;height&gt;</code> | 设置新窗口高度。 |
+
+控制台模式的参数解析器还支持 <code>-e, --pattern &lt;pattern&gt;</code> 来指定搜索模式；图形应用的参数解析器不提供此选项。请对实际运行的可执行文件使用 `--help` 查看可用选项。
+
+[返回目录](#contents)
 

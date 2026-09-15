@@ -1,48 +1,44 @@
 # ZzLogg
 
-ZzLogg is a fast, cross-platform desktop application for browsing, following,
-filtering, and searching large or complex log files. It reads files directly
-from disk, keeps search results alongside the original log, supports regular
-expressions and boolean search expressions, and can follow files while they
-grow.
+ZzLogg 是一款跨平台桌面日志查看工具，用于浏览、跟随、过滤和搜索大型或复杂日志文件。它直接从磁盘读取文件，将搜索结果与原始日志同时呈现，支持正则表达式、布尔搜索表达式和文件持续追加时的实时跟随。
 
-The current source repository is
-[gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg).
+当前源码仓库：[gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg)。
 
-![ZzLogg main window](website/static/screenshots/mainwindow.png)
+![ZzLogg 主窗口](website/static/screenshots/mainwindow.png)
 
-## Features
+## 文档导航
 
-- Opens very large text files without loading the whole file into memory.
-- Searches with Qt regular expressions or the optional Hyperscan backend.
-- Combines search expressions with `and`, `or`, and `not`.
-- Shows filtered results, match context, marks, and color highlighters.
-- Follows growing files and detects appended or overwritten content.
-- Opens local files, supported compressed files and archives, remote URLs, and
-  clipboard text.
-- Supports saved sessions, recent files, favorites, encoding detection, and
-  multiple windows.
-- Provides Qt 6 build definitions for Windows, Linux, and macOS; target-host
-  verification is required for platform packages.
+| 文档 | 内容 |
+| --- | --- |
+| [用户手册](docs/DOCUMENTATION.md) | 文件操作、搜索、快捷键和设置；另有 [English](docs/i18n/en/DOCUMENTATION.md) 与 [繁體中文](docs/i18n/zh_TW/DOCUMENTATION.md) |
+| [构建指南](docs/BUILD.md) | 依赖、平台要求、CMake 预设、测试、安装与运行目录 |
+| [UI 代码学习指南](docs/UI_CODE_GUIDE.md) | 界面源码结构、职责划分与建议阅读顺序 |
 
-See the [user documentation](docs/DOCUMENTATION.md) for usage details.
+应用内帮助内嵌简体中文、繁体中文和英文手册，并随界面语言切换。
 
-For UI development, see the [UI code guide](docs/UI_CODE_GUIDE.md).
+## 主要功能
 
-## Build
+- 打开大型文本文件，无需将整个文件载入内存。
+- 使用 Qt 正则表达式或可选的 Hyperscan 后端进行搜索。
+- 通过 `and`、`or`、`not` 组合搜索表达式。
+- 显示过滤结果、匹配上下文、标记和颜色高亮。
+- 跟随持续增长的日志，并检测追加或覆盖写入。
+- 打开本地文件、支持的压缩文件与归档、远程 URL 和剪贴板文本。
+- 支持保存会话、最近文件、收藏、编码检测和多窗口。
+- 提供 Windows、Linux 和 macOS 的 Qt 6 构建配置；各平台安装包需在对应主机上验证。
 
-Clone the repository together with its submodules:
+## 快速构建
+
+克隆仓库并初始化子模块：
 
 ```bash
 git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
 cd ZzLogg
 ```
 
-ZzPureTools is a pinned, required build dependency and the only Git submodule.
+ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子模块。
 
-The project requires a C++20 compiler, CMake 3.23 or later, and Qt 6.8 or
-later. A typical Ninja build uses the checked-in presets (which require CMake
-3.25 or later):
+构建需要支持 C++20 的编译器、CMake 3.23 或更高版本，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；典型的 Ninja 构建如下：
 
 ```bash
 cmake --preset ninja-release
@@ -50,56 +46,32 @@ cmake --build --preset ninja-release
 ctest --preset ninja-release
 ```
 
-If Boost and Ragel are not installed, configure with
-`-DKLOGG_USE_HYPERSCAN=OFF` to use the Qt regular-expression backend. Detailed
-platform requirements, focused UI test presets, install commands, and the
-Windows runtime-folder target are documented in [docs/BUILD.md](docs/BUILD.md).
+未安装 Boost 和 Ragel 时，在配置命令中添加 `-DKLOGG_USE_HYPERSCAN=OFF`，使用 Qt 正则表达式后端。详细的平台要求、UI 专项测试预设、安装命令和 Windows 运行目录目标见[构建指南](docs/BUILD.md)。
 
-The default build produces one GUI, `ZzLogg` (`ZzLogg.exe` on Windows). The
-experimental `klogg_grep` command-line target is available only when built
-explicitly and is not part of the default build.
+默认构建只生成一个图形界面程序 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的命令行目标 `klogg_grep` 需要显式构建，不属于默认构建内容。
 
-## Storage and green use
+## 数据存储与绿色使用
 
-On first launch, ZzLogg asks whether to keep persistent data in the user data
-directory, an absolute custom directory, or a `data/` directory beside the
-program. Choosing the program directory is the green-use mode: the application
-and its configuration, saved session, and logs stay together.
-Canceling the chooser exits without creating configuration.
+首次启动时，ZzLogg 会询问持久化数据的保存位置：用户数据目录、自定义绝对路径，或程序旁的 `data/` 目录。选择程序目录即可绿色使用，让程序、配置、会话和日志保存在一起。取消选择会退出程序，不创建配置。
 
-The selected root uses one layout for every mode:
-`config/ZzLogg.ini`, `session/ZzLogg_session.ini`, `logs/`, and
-`storage-manifest.ini`. To move it later, open **Preferences > Storage** and
-choose a new empty directory. ZzLogg migrates the existing state and offers
-**Restart now** or **Restart later**; the new location takes effect after the
-restart while the saved session and recent files are retained.
+所有存储模式使用相同的目录结构：`config/ZzLogg.ini`、`session/ZzLogg_session.ini`、`logs/` 和 `storage-manifest.ini`。
 
-## Packaging and installation
+之后可在“首选项 → 存储”中选择新的空目录。ZzLogg 会迁移现有数据，并提供“立即重启”或“稍后重启”；新位置在重启后生效，已保存的会话和最近文件会保留。
 
-The maintained packaging inputs in this repository are CMake install/CPack,
-the Windows Qt 6 NSIS script, the Linux desktop entry and icon installation,
-and the CMake-generated Windows self-contained runtime folder. Package creation
-depends on the corresponding platform tools and should be verified on its
-target host.
+## 打包与安装
 
-This repository does not currently advertise a hosted binary-release channel
-or package-manager feed. Build or install from the current source tree instead
-of relying on historical third-party package instructions.
+仓库维护 CMake install/CPack 配置、Windows Qt 6 NSIS 脚本、Linux 桌面入口与图标安装规则，以及由 CMake 生成的 Windows 独立运行目录。制作安装包需要对应平台工具，并应在目标主机上验证。
 
-## Contributing
+ZzPureTools 及其框架依赖采用静态链接，Qt 和编译器运行库采用动态链接。Windows 运行目录包含应用运行所需的动态依赖，许可证集中保存在 `licenses/` 下。
 
-Please base changes on the current GitCode repository. Keep platform-specific
-packaging changes consistent with the central product metadata in
-`cmake/ZzLoggBrand.cmake`, and run the relevant CMake/CTest presets before
-submitting a change.
+目前仓库未提供正式的托管二进制发布渠道或包管理器软件源。请使用当前源码构建或安装；历史第三方安装说明可能不适用于本项目。
+
+## 参与贡献
+
+请基于当前 GitCode 仓库提交变更。平台打包修改应与 `cmake/ZzLoggBrand.cmake` 中的统一产品元数据保持一致，并在提交前运行相关 CMake/CTest 预设。
 
 ## 来源与许可
 
-ZzLogg is derived from [klogg](https://github.com/variar/klogg), which in turn
-was forked from [glogg](https://github.com/nickbnf/glogg). The project preserves
-the work and attribution of Anton Filimonov, Nicolas Bonnefon, and the other
-contributors.
+ZzLogg 源自 [klogg](https://github.com/variar/klogg)，而 klogg 源自 [glogg](https://github.com/nickbnf/glogg)。本项目保留 Anton Filimonov、Nicolas Bonnefon 及其他贡献者的成果与署名。
 
-ZzLogg is free software distributed under the GNU General Public License,
-version 3 or later (GPLv3+). See [COPYING](COPYING) and [NOTICE](NOTICE) for the
-license text and additional notices.
+ZzLogg 是自由软件，遵循 GNU 通用公共许可证第 3 版或更新版本（GPLv3+）。完整许可和附加声明见 [COPYING](COPYING) 与 [NOTICE](NOTICE)。

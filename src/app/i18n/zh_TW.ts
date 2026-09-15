@@ -745,6 +745,14 @@
     </message>
 </context>
 <context>
+    <name>DocumentationWindow</name>
+    <message>
+        <source>en</source>
+        <extracomment>Locale identifier for the embedded user guide: en, zh_CN or zh_TW.</extracomment>
+        <translation>zh_TW</translation>
+    </message>
+</context>
+<context>
     <name>OptionsDialog</name>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="20"/>

@@ -1,5 +1,7 @@
 <RCC>
-    <qresource>
-        <file>documentation.html</file>
+    <qresource prefix="/documentation">
+        <file alias="zh_CN.html">documentation.html</file>
+        <file alias="en.html">documentation-en.html</file>
+        <file alias="zh_TW.html">documentation-zh_TW.html</file>
     </qresource>
 </RCC>

@@ -123,12 +123,14 @@ add_app_translations_resource(ZZLOGG_TRANSLATION_TEST_APP_RES
 add_qt_translations_resource(ZZLOGG_TRANSLATION_TEST_QT_RES zh_CN zh_TW)
 add_executable(zzlogg_application_translation_test
   applicationtranslationtest.cpp
+  ${DOCUMENTATION_RESOURCE}
   "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc"
   "${PROJECT_SOURCE_DIR}/src/app/applicationlanguage.cpp"
   ${ZZLOGG_TRANSLATION_TEST_APP_RES}
   ${ZZLOGG_TRANSLATION_TEST_QT_RES})
 target_link_libraries(zzlogg_application_translation_test PRIVATE
   klogg_ui Qt6::Test Qt6::Widgets)
+add_dependencies(zzlogg_application_translation_test zzlogg_documentation)
 target_include_directories(zzlogg_application_translation_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 set_target_properties(zzlogg_application_translation_test PROPERTIES

@@ -1,6 +1,23 @@
 # ZzLogg UI 代码学习指南
 
-本文对应 `codex/zzpuretools-ui-refactor` 的阶段一至四实现及第五阶段命名清理。界面仍使用 Qt 6 Widgets，日志显示与搜索逻辑沿用原实现；主窗口直接组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 DocumentWorkspace 管理，不再经过创建后的装饰层。
+本文介绍当前 UI 源码的结构、职责和阅读顺序。界面使用 Qt 6 Widgets；主窗口组合 ZzPureTools 标题栏、菜单和共享主题，文件标签生命周期由 `DocumentWorkspace` 管理，日志显示与搜索由专门的数据和视图组件负责。
+
+[返回项目首页](../README.md) · [构建指南](BUILD.md) · [用户手册](DOCUMENTATION.md)
+
+## 目录
+
+- [1. 建议阅读顺序](#1-建议阅读顺序)
+- [2. 目录与分层](#2-目录与分层)
+- [3. 应用入口与窗口工厂](#3-应用入口与窗口工厂)
+- [4. 主窗口与布局](#4-主窗口与布局)
+- [5. 标题栏与菜单](#5-标题栏与菜单)
+- [6. 工具栏和状态信息](#6-工具栏和状态信息)
+- [7. 日志、搜索和绘制](#7-日志搜索和绘制)
+- [8. 深浅色主题](#8-深浅色主题)
+- [9. 设置和多语言](#9-设置和多语言)
+- [10. 高亮、过滤与草稿窗口](#10-高亮过滤与草稿窗口)
+- [11. 测试与常见修改入口](#11-测试与常见修改入口)
+- [12. 历史设计参考](#12-历史设计参考)
 
 ## 1. 建议阅读顺序
 
@@ -43,7 +60,7 @@
 ## 4. 主窗口与布局
 
 [mainwindow.h](../src/ui/include/mainwindow.h) 是主窗口接口。
-主窗口仍继承 `QMainWindow`，不是新造一套窗口基类。
+主窗口继承 `QMainWindow`。
 
 构造顺序：选择标题栏/菜单容器 → 创建动作 → 创建菜单 → 创建工具栏 → 接入文件标签和快速查找。
 
@@ -52,7 +69,7 @@
 - 快速查找：[quickfindwidget.cpp](../src/ui/src/quickfindwidget.cpp)、[quickfindmux.cpp](../src/ui/src/quickfindmux.cpp)。
 - 暂存器：[tabbedscratchpad.cpp](../src/ui/src/tabbedscratchpad.cpp)。
 
-本阶段不增加导航栏、不改变主/过滤视图的排列，也不拆换日志渲染器。
+主视图和过滤视图的排列由日志页面负责，日志内容由专用视图组件绘制。
 
 ### 4.1 文件工作区的责任边界
 
@@ -97,7 +114,7 @@
 
 [CrawlerWidget](../src/ui/include/crawlerwidget.h) 协调一份日志的读取、搜索状态和视图。
 
-阶段三将页面构造分为三层，阅读时建议按这个顺序：
+页面构造分为三层，阅读时建议按这个顺序：
 
 1. [LogPage](../src/ui/src/logpage.cpp)：垂直分割、主视图与底部搜索/结果区域的布局，不负责数据读取。
 2. [SearchPanel](../src/ui/src/searchpanel.cpp)：搜索输入、选项、历史菜单、信息行和图标；只发出用户操作信号，不执行过滤任务。翻译保留原 `CrawlerWidget` 上下文。
@@ -132,8 +149,11 @@
 - [storagebootstrapdialog.cpp](../src/ui/src/storagebootstrapdialog.cpp)：首次启动引导。
 - [mainwindowtext.cpp](../src/ui/src/mainwindowtext.cpp)：菜单/动作文案上下文。
 - [src/app/i18n](../src/app/i18n)：翻译目录。
+- [documentationwindow.cpp](../src/ui/src/documentationwindow.cpp)：内置帮助文档窗口，根据当前翻译器选择三语手册，并响应语言、字体和调色板变化。
 
 动态切换语言依靠 `LanguageChange` 与 `reTranslateUI()` 等入口更新已存在的对象，不重新创建菜单或日志页面，以保留选择、搜索与编码状态。
+
+用户手册位于 [简体中文](DOCUMENTATION.md)、[英语](i18n/en/DOCUMENTATION.md) 和 [繁体中文](i18n/zh_TW/DOCUMENTATION.md)。构建时由 maddy 转为 HTML，通过 [documentation.qrc.in](../src/app/documentation.qrc.in) 嵌入程序，运行目录无需额外携带文档文件。
 
 ## 10. 高亮、过滤与草稿窗口
 
@@ -159,7 +179,13 @@
 
 添加菜单项先改主窗口动作，再放入菜单/工具栏；修改主题入口先看 UiRuntime；改日志字体、选择或绘制先看 AbstractLogView；改窗口标题和系统按钮先看 WindowChrome。
 
-阶段一的具体范围与验证记录见 [实施计划](superpowers/plans/2026-09-07-zzpuretools-window-phase1.md)。
-阶段二的具体范围与验证记录见 [文件工作区计划](superpowers/plans/2026-09-07-document-workspace-phase2.md)。
-阶段三见 [日志页面与搜索面板计划](superpowers/plans/2026-09-07-log-page-search-panel-phase3.md)。
-阶段四见 [设置与辅助窗口计划](superpowers/plans/2026-09-07-settings-auxiliary-phase4.md)；应用集成测试覆盖设置 Apply/Cancel、语言切换保留草稿、主题图标刷新和草稿页面释放。
+应用集成测试还覆盖设置的应用/取消操作、语言切换保留草稿、主题图标刷新和草稿页面释放。
+
+## 12. 历史设计参考
+
+以下计划保留了重构时的设计取舍和验证记录；了解当前入口时，优先阅读上面的源码与测试。
+
+- [窗口集成计划](superpowers/plans/2026-09-07-zzpuretools-window-phase1.md)。
+- [文件工作区计划](superpowers/plans/2026-09-07-document-workspace-phase2.md)。
+- [日志页面与搜索面板计划](superpowers/plans/2026-09-07-log-page-search-panel-phase3.md)。
+- [设置与辅助窗口计划](superpowers/plans/2026-09-07-settings-auxiliary-phase4.md)。

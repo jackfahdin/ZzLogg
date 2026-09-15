@@ -1,81 +1,61 @@
-# How to Build ZzLogg
+# ZzLogg 构建指南
 
-## Getting the source
+[返回项目首页](../README.md) · [用户手册](DOCUMENTATION.md) · [UI 代码学习指南](UI_CODE_GUIDE.md)
 
-The current repository is
-[gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg).
-Clone it with its pinned submodules:
+## 目录
+
+- [获取源码](#获取源码)
+- [构建要求](#构建要求)
+- [使用预设构建](#使用预设构建)
+- [直接使用命令行构建](#直接使用命令行构建)
+- [框架链接方式](#框架链接方式)
+- [数据目录与迁移](#数据目录与迁移)
+- [安装与 CPack](#安装与-cpack)
+- [Windows 独立运行目录](#windows-独立运行目录)
+- [构建选项与目标](#构建选项与目标)
+- [验证范围](#验证范围)
+
+## 获取源码
+
+当前仓库为 [gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg)。克隆时一并获取固定版本的子模块：
 
 ```bash
 git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
 cd ZzLogg
 ```
 
-If the repository was cloned without `--recursive`, initialize the submodules
-before configuration:
+如果克隆时未使用 `--recursive`，请在配置前初始化子模块：
 
 ```bash
 git submodule update --init --recursive
 ```
 
-ZzPureTools is a pinned, required build dependency and the repository's only
-remaining Git submodule. Qt, Boost, OpenSSL, and CPM/CI dependencies may still
-require separate installation or network access.
+ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子模块。Qt、Boost、OpenSSL，以及 CPM/CI 使用的依赖仍可能需要单独安装或联网获取。
 
-## Framework linkage
+## 构建要求
 
-ZzLogg builds ZzPureTools and its framework dependencies as static libraries.
-This is enforced locally in `cmake/ZzPureTools.cmake`; the pinned submodule is
-not modified. Qt and the compiler runtime keep their existing dynamic linkage.
-The deployed Windows runtime folder must not contain ZzPureTools/ZzLog/QWK
-DLLs. Recreate the runtime folder after switching linkage; old build output
-directories can still contain DLLs left by an earlier shared build.
-Linux GNU runtime packaging is resolved by the host application independently
-of the framework's static linkage.
+- 直接使用命令行构建需要 CMake 3.23 或更高版本；仓库内的预设和工作流需要 CMake 3.25 或更高版本。
+- 编译器需支持 C++20：GCC 13.1+、Clang 17+、Apple Clang 15+，或 MSVC 19.38+（Visual Studio 2022 17.8+）。Apple 平台的 macOS 部署目标至少为 13.3。
+- Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、Network、Xml、LinguistTools 及匹配的私有开发文件。
+- 固定版本的 ZzPureTools 子模块，以及仓库内随附的其他第三方依赖。
 
-## Lean Windows runtime
+UI 专项测试还需要 Qt Test。UI 测试预设将 macOS 部署目标设为 13.3；其他 macOS 配置也必须满足这一最低要求，可显式传入 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`。
 
-The runtime folder is for the raster QWidget application: deployment excludes
-software OpenGL/D3D/DXC compilers, PDF, uncommon image formats, generic TUIO
-plugins, and external style plugins. PNG (built into Qt), JPEG, ICO, SVG, the
-Windows platform, and native HTTPS support are retained. Help is embedded in
-the executable; source README and standalone help files are not distributed.
-All existing license notices remain under `licenses/` without duplicate copies
-at the runtime root. Rebuild `zzlogg_runtime_folder` to apply these rules.
+Hyperscan 搜索需要 SSSE3 指令集、Boost 头文件和 Ragel。依赖不可用时，传入 `-DKLOGG_USE_HYPERSCAN=OFF`，改用 Qt 正则表达式后端。其余第三方依赖由仓库提供或在 CMake 配置过程中解析。
 
-The displayed vendor is `Jackfahdin`. The existing Qt storage namespace and
-application identifier remain unchanged so saved data locations are preserved.
+选择 Ninja 预设时需要安装 Ninja。Windows 的 `windows-vs2026*` 预设使用 `Visual Studio 18 2026` 生成器，因此还需安装 Visual Studio 2026，以及支持该生成器的 CMake；仅满足通用最低版本不足以使用这些预设。使用其他受支持编译器时，可自行选择匹配的生成器。
 
-## Requirements
+## 使用预设构建
 
-ZzLogg requires:
-
-- CMake 3.23 or later for direct command-line builds; the checked-in presets
-  and workflows require CMake 3.25 or later;
-- a C++20 compiler: GCC 13.1 or newer, Clang 17 or newer, Apple Clang 15 or newer, or MSVC 19.38 or newer (Visual Studio 2022 17.8+); Apple builds
-  require a macOS deployment target 13.3 or newer;
-- Qt 6.8 or later, including Core, Core5Compat, Gui, Widgets, Svg, Concurrent,
-  Network, Xml, LinguistTools, and the matching private development files;
-- the pinned ZzPureTools submodule and the other vendored dependencies in this
-  repository.
-
-Focused UI tests additionally require Qt Test. macOS builds currently set a
-13.3 deployment target.
-
-Hyperscan search additionally requires SSSE3, Boost headers, and Ragel. Pass
-`-DKLOGG_USE_HYPERSCAN=OFF` when those dependencies are unavailable; ZzLogg
-then uses the Qt regular-expression backend. Other third-party dependencies
-are provided by the repository or resolved during CMake configuration.
-
-## Preset builds
-
-List the available configure, build, test, and workflow presets:
+查看全部配置、构建、测试和工作流预设：
 
 ```bash
 cmake --list-presets=all
 ```
 
-The shared Ninja workflows configure, build, and test in one command:
+### Ninja 工作流
+
+共享 Ninja 工作流通过一条命令完成配置、构建和测试：
 
 ```bash
 cmake --workflow --preset ninja-debug
@@ -83,7 +63,7 @@ cmake --workflow --preset ninja-relwithdebinfo
 cmake --workflow --preset ninja-release
 ```
 
-The same stages can be run separately:
+也可以分步执行，并在配置时添加参数：
 
 ```bash
 cmake --preset ninja-release -DKLOGG_USE_HYPERSCAN=OFF
@@ -91,28 +71,37 @@ cmake --build --preset ninja-release
 ctest --preset ninja-release
 ```
 
-The focused UI test workflow uses the same ZzLogg GUI target:
+UI 专项测试使用相同的 ZzLogg 图形界面目标：
 
 ```bash
 cmake --workflow --preset ninja-ui-debug
 ```
 
-On Windows, copy `CMakeUserPresets.json.example` to `CMakeUserPresets.json`
-and set the local Qt and Visual Studio paths. The repository includes Visual
-Studio 2026 presets; for example:
+普通预设默认关闭 `KLOGG_BUILD_TESTS`；CTest 仅运行当前配置注册的测试。UI 预设通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 专项测试。
+
+### Windows 本地预设
+
+复制 `CMakeUserPresets.json.example` 为 `CMakeUserPresets.json`，设置本机 Qt 和 Visual Studio 路径。示例文件提供 `windows-qt6` 配置，以及对应的构建、测试和运行目录预设：
 
 ```powershell
-cmake --preset windows-vs2026-ui -DKLOGG_USE_HYPERSCAN=OFF
+cmake --preset windows-qt6
+cmake --build --preset windows-qt6-relwithdebinfo
+ctest --preset windows-qt6-relwithdebinfo
+```
+
+`CMakeUserPresets.json` 已被 Git 忽略，机器专用路径不会进入版本控制。
+
+也可以直接使用仓库的 Visual Studio 2026 UI 预设，并显式提供 Qt 路径。以下路径仅为示例，请替换为本机安装位置：
+
+```powershell
+cmake --preset windows-vs2026-ui -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64 -DKLOGG_USE_HYPERSCAN=OFF
 cmake --build --preset windows-vs2026-ui-relwithdebinfo
 ctest --preset windows-vs2026-ui-relwithdebinfo
 ```
 
-`CMakeUserPresets.json` is intentionally ignored so machine-specific paths do
-not enter version control.
+## 直接使用命令行构建
 
-## Direct command-line build
-
-When presets are not suitable, configure a conventional build directory:
+不使用预设时，可配置常规构建目录。以下为 Bash 命令；在 PowerShell 中请将多行配置命令合并为一行，或使用 PowerShell 的续行语法：
 
 ```bash
 cmake -S . -B out/build/ZzLogg -G Ninja \
@@ -122,88 +111,85 @@ cmake --build out/build/ZzLogg
 ctest --test-dir out/build/ZzLogg --output-on-failure
 ```
 
-The only GUI executable is `ZzLogg` (`ZzLogg.exe` on Windows). The experimental
-`klogg_grep` target is excluded from the default build; build it explicitly
-only when working on that command-line frontend:
+唯一的图形界面程序为 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的 `klogg_grep` 目标不参与默认构建；开发该命令行前端时可显式构建：
 
 ```bash
 cmake --build out/build/ZzLogg --target klogg_grep
 ```
 
-Default builds do not create alternate GUI or self-contained executable
-targets.
+默认构建不会生成其他图形界面程序或额外的独立可执行文件目标。
 
-## Storage location and migration
+## 框架链接方式
 
-On first launch, ZzLogg asks where its persistent configuration, saved session,
-and logs should live. Canceling the chooser exits without creating
-configuration. The choices are:
+ZzLogg 将 ZzPureTools 及其框架依赖构建为静态库。该设置由本仓库的 `cmake/ZzPureTools.cmake` 控制，不修改固定版本的子模块。Qt 和编译器运行库保持动态链接。
 
-- **User data directory**: the platform's per-user application data location;
-- **Program directory**: an adjacent `data/` directory, providing green use
-  with application and data kept together;
-- **Custom directory**: an absolute directory selected by the user.
+部署后的 Windows 运行目录不应包含 ZzPureTools、ZzLog 或 QWK 的 DLL。切换链接方式后需要重新生成运行目录；旧构建输出目录可能仍留有之前动态库构建产生的 DLL。
 
-The selected root contains `config/ZzLogg.ini`,
-`session/ZzLogg_session.ini`, `logs/`, and
-`storage-manifest.ini`. `--data-dir <absolute-path>` is a process-only override
-and does not replace the saved storage locator.
+Linux GNU 运行库的打包由宿主应用单独处理，与框架采用静态链接无关。
 
-The **Storage** page in Preferences can migrate an existing root to a new,
-empty location. ZzLogg saves current settings, performs the migration
-transactionally, and asks whether to restart immediately or later. The new
-location becomes active after restart; the saved session and recent files are
-preserved. If the selected root later becomes unavailable, startup reports the
-storage error instead of silently creating a new default profile.
+## 数据目录与迁移
 
-## Install and CPack
+首次启动时，ZzLogg 会询问配置、已保存会话和日志的存储位置。取消选择会退出，不创建配置。可选位置包括：
 
-Install from a configured Ninja build into a staging directory:
+- **用户数据目录**：平台为当前用户提供的应用数据目录。
+- **程序目录**：程序旁的 `data/` 目录，适合让应用与数据放在一起的绿色使用方式。
+- **自定义目录**：用户选择的绝对路径。
+
+所选根目录包含 `config/ZzLogg.ini`、`session/ZzLogg_session.ini`、`logs/` 和 `storage-manifest.ini`。`--data-dir <absolute-path>` 只覆盖当前进程的数据位置，不替换已保存的存储定位信息。
+
+“首选项”中的“存储”页可将现有数据迁移到新的空目录。ZzLogg 会保存当前设置，以事务方式执行迁移，并询问立即重启还是稍后重启。新位置在重启后生效，已保存会话和最近文件会保留。若所选根目录之后不可用，启动时会报告存储错误，不会静默创建新的默认配置。
+
+界面显示的厂商名称为 `Jackfahdin`。Qt 存储命名空间和应用标识保持兼容，以保留已有数据位置。
+
+## 安装与 CPack
+
+将已配置的 Ninja 构建安装到暂存目录：
 
 ```bash
 cmake --install out/build/ninja-release --prefix staging/ZzLogg
 ```
 
-On Linux, the install rules place `ZzLogg.desktop`, PNG icons at 16, 32, 48,
-64, 128, 256, and 512 pixels, and the scalable `ZzLogg.svg` icon in their
-standard locations. CPack configuration is generated by supported Unix
-configurations and uses the same central product metadata.
+Linux 安装规则会将 `ZzLogg.desktop`、16、32、48、64、128、256、512 像素的 PNG 图标，以及可缩放的 `ZzLogg.svg` 安装到标准位置。受支持的 Unix 配置会生成 CPack 配置，并使用统一的产品元数据。
 
-The Windows NSIS input is `packaging/windows/ZzLogg.nsi` and packages Qt 6.
-Building an installer requires NSIS and a prepared release directory containing
-the application and runtime files referenced by the script. The macOS bundle,
-distribution metadata, and DMG layout are maintained in the source tree, but
-must be built and checked on a macOS host.
+Windows NSIS 脚本为 `packaging/windows/ZzLogg.nsi`，用于打包 Qt 6 应用。制作安装包需要 NSIS，以及包含脚本所引用应用和运行文件的发布目录。
 
-## Windows runtime folder
+源码中维护 macOS 应用包、发行元数据和 DMG 布局；实际构建与检查必须在 macOS 主机上完成。
 
-After configuring a Windows build with `windeployqt` available, create the
-self-contained runtime directory with:
+## Windows 独立运行目录
+
+### 生成与启动
+
+配置 Windows 构建并确保 `windeployqt` 可用后，生成独立运行目录：
 
 ```powershell
 cmake --build --preset windows-vs2026-ui-relwithdebinfo --target zzlogg_runtime_folder
 ```
 
-The generated directory is
-`<build-directory>/runtime/RelWithDebInfo/ZzLogg-runtime/` and contains the
-single `ZzLogg.exe` GUI plus its Qt, ZzPureTools, MSVC runtime, and TBB
-dependencies. Windows packaging copies this same tree into installer and
-self-contained archive staging. Both forms run the same `ZzLogg.exe`.
+生成位置为 `<build-directory>/runtime/RelWithDebInfo/ZzLogg-runtime/`。其中包含唯一的图形界面程序 `ZzLogg.exe`，以及所需 Qt、MSVC 运行库和 TBB 动态依赖；ZzPureTools 及其框架依赖已经静态链接进程序。
 
-## Build options and targets
+Windows 打包会将同一目录树复制到安装程序和独立归档包的暂存目录，两种形式均运行同一个 `ZzLogg.exe`。请从完整运行目录启动程序。
 
-- `KLOGG_BUILD_UI_TESTS=ON` enables the focused UI tests;
-- `KLOGG_USE_HYPERSCAN=OFF` selects the Qt regular-expression backend;
-- `zzlogg_runtime_folder` creates the Windows self-contained runtime tree.
+### 部署内容与精简规则
 
-These options do not create a second GUI. The public executable, package, and
-desktop entry remain ZzLogg.
+运行目录面向使用栅格绘制的 QWidget 应用，部署时排除软件 OpenGL、D3D/DXC 编译器、PDF、不常用图像格式、通用 TUIO 插件和外部样式插件。保留 Qt 内置的 PNG、JPEG、ICO、SVG、Windows 平台插件和原生 HTTPS 支持。
 
-## Verification boundaries
+帮助以简体中文、繁体中文和英文内嵌于可执行文件，随界面语言切换；运行目录不分发源码 README 或独立帮助文件。现有许可证与声明集中保存在 `licenses/` 下，运行目录根部不再放置重复副本。重新构建 `zzlogg_runtime_folder` 即可应用部署规则。
 
-### Windows Release UI acceptance
+## 构建选项与目标
 
-From a configured developer environment (or with Qt supplied explicitly):
+| 选项或目标 | 用途 |
+| --- | --- |
+| `KLOGG_BUILD_UI_TESTS=ON` | 启用 UI 专项测试 |
+| `KLOGG_USE_HYPERSCAN=OFF` | 使用 Qt 正则表达式后端 |
+| `zzlogg_runtime_folder` | 生成 Windows 独立运行目录 |
+
+这些选项不会创建第二个图形界面程序。公开的可执行文件、安装包和桌面入口仍统一使用 ZzLogg 名称。
+
+## 验证范围
+
+### Windows Release UI 验收
+
+在已配置的开发环境中执行以下命令，或像示例一样显式提供 Qt 路径：
 
 ```powershell
 cmake --preset windows-vs2026-ui -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64
@@ -212,24 +198,18 @@ ctest --preset windows-vs2026-ui-release
 cmake --build --preset windows-vs2026-ui-release --target zzlogg_runtime_folder
 ```
 
-The corresponding `windows-vs2026-ui-release` workflow runs configure, build,
-and test. Supply your Qt path through the environment or a local user preset
-when using workflows. The Release test preset runs all registered tests,
-including `klogg_smoke`. Its runtime folder is
-`out/ui-vs/runtime/Release/ZzLogg-runtime/`; run `ZzLogg.exe` from that folder,
-not the build output directory without dependencies. No ZIP is required.
+对应的 `windows-vs2026-ui-release` 工作流依次执行配置、构建和测试。使用工作流时，请通过环境或匹配的本地用户预设提供 Qt 路径。缺少 Hyperscan 依赖时，同样需要关闭 `KLOGG_USE_HYPERSCAN`。
 
-### UI test entry points
+Release 测试预设运行所有已注册的测试，包括 `klogg_smoke`。运行目录为 `out/ui-vs/runtime/Release/ZzLogg-runtime/`，应从该目录启动 `ZzLogg.exe`，而不是从缺少依赖的构建输出目录启动；验收无需先制作 ZIP。
 
-Application UI implementation is in `src/ui`. UI acceptance tests are in
-`tests/ui_acceptance`, registered as `zzlogg_ui.*`; the existing core integration
-tests remain in `tests/ui`. Use `KLOGG_BUILD_UI_TESTS` and the `*-ui-*` presets.
-The former UI2 option and preset aliases have been removed; update local scripts
-to these current entry points. No second GUI or UI framework is enabled.
+### UI 测试入口
 
-### Platform limits
+应用 UI 实现在 `src/ui`。UI 验收测试位于 `tests/ui_acceptance`，CTest 名称统一为 `zzlogg_ui.*`；已有核心集成测试位于 `tests/ui`。
 
-The CTest presets exercise tests available on the current host. Windows
-interactive DPI, theme, high-contrast, and multi-monitor checks, together with
-Linux and macOS real-host packaging checks, must be run on their corresponding
-hosts before making release claims.
+使用 `KLOGG_BUILD_UI_TESTS` 和 `*-ui-*` 预设运行 UI 测试。Ninja UI 和 Windows UI 的 Debug、RelWithDebInfo 测试预设只选择 `zzlogg_ui.*`，Windows UI Release 预设运行全部已注册测试。
+
+早期 UI2 选项和预设别名已移除，本地脚本应使用上述入口。应用使用同一个 Qt Widgets 图形界面目标。
+
+### 平台验证边界
+
+CTest 预设只覆盖当前主机上可运行的测试。Windows 交互式 DPI、主题、高对比度和多显示器检查，以及 Linux、macOS 的真实主机打包检查，都应在对应平台完成后再宣称发行验证通过。
