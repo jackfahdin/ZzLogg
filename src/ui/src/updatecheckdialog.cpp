@@ -5,9 +5,11 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QProgressBar>
 #include <QScreen>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <algorithm>
 using namespace zzlogg::updateqt;
 namespace {
 QLabel* label(QWidget* parent) {
@@ -25,6 +27,8 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     auto* scroll=new QScrollArea(this); scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
     auto* content=new QWidget(scroll); auto* body=new QVBoxLayout(content); body->setSpacing(14);
     identity_=label(content); status_=label(content); details_=label(content); hint_=label(content);
+    downloadStatus_=label(this); downloadStatus_->setObjectName("updateDownloadStatus");
+    progress_=new QProgressBar(this); progress_->setObjectName("updateDownloadProgress");
     status_->setObjectName("updateStatus"); details_->setObjectName("updateDetails");
     auto font=status_->font(); font.setBold(true); font.setPointSize(font.pointSize()+2); status_->setFont(font);
     notes_=new QPlainTextEdit(content); notes_->setReadOnly(true); notes_->setObjectName("updateNotes");
@@ -32,14 +36,20 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     body->addWidget(identity_); body->addWidget(status_); body->addWidget(details_);
     body->addWidget(notes_,1); body->addWidget(hint_);
     scroll->setWidget(content); outer->addWidget(scroll,1);
+    outer->addWidget(downloadStatus_); outer->addWidget(progress_);
     auto* footer=new QHBoxLayout; outer->addLayout(footer);
     check_=new QPushButton(this); cancel_=new QPushButton(this); later_=new QPushButton(this);
     skip_=new QPushButton(this); close_=new QPushButton(this);
+    download_=new QPushButton(this); download_->setObjectName("updateDownload");
     check_->setObjectName("updateCheck"); cancel_->setObjectName("updateCancel"); close_->setObjectName("updateClose");
     skip_->setObjectName("updateSkip"); later_->setObjectName("updateLater");
-    for(auto* button:{check_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
+    for(auto* button:{check_,download_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
     connect(check_,&QPushButton::clicked,this,&UpdateCheckDialog::checkRequested);
-    connect(cancel_,&QPushButton::clicked,this,&UpdateCheckDialog::cancelRequested);
+    connect(download_,&QPushButton::clicked,this,&UpdateCheckDialog::downloadRequested);
+    connect(cancel_,&QPushButton::clicked,this,[this] {
+        if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
+        else Q_EMIT cancelRequested();
+    });
     connect(skip_,&QPushButton::clicked,this,&UpdateCheckDialog::skipRequested);
     connect(later_,&QPushButton::clicked,this,&UpdateCheckDialog::reject);
     connect(close_,&QPushButton::clicked,this,&UpdateCheckDialog::reject);
@@ -50,12 +60,18 @@ UpdateCheckDialog::~UpdateCheckDialog()
     if(!dismissed_) {
         Q_EMIT closing();
         if(snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser) Q_EMIT cancelRequested();
+        if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
     }
 }
 void UpdateCheckDialog::setSnapshot(const CheckSnapshot& snapshot)
 {
     snapshot_=snapshot;
     checkedAt_=snapshot.checkedAt>0 ? QDateTime::fromSecsSinceEpoch(snapshot.checkedAt) : QDateTime{};
+    refresh();
+}
+void UpdateCheckDialog::setDownloadSnapshot(const DownloadSnapshot& snapshot)
+{
+    downloadSnapshot_=snapshot;
     refresh();
 }
 void UpdateCheckDialog::refresh()
@@ -97,14 +113,58 @@ void UpdateCheckDialog::refresh()
                 .arg(qulonglong(artifact.size));
         }
     }
-    details_->setText(details); notes_->setPlainText(notes); notes_->setVisible(snapshot_.release.has_value());
-    hint_->setText(tr("This version supports update checks only. Download and installation are not available yet."));
+    details_->setText(details);
+    if(notes_->toPlainText()!=notes) notes_->setPlainText(notes);
+    notes_->setVisible(snapshot_.release.has_value());
+    hint_->setText(tr("This version supports update checks and verified downloads. Installation is not available yet."));
     check_->setText(tr("Check again")); cancel_->setText(tr("Cancel check"));
     later_->setText(tr("Remind me later")); skip_->setText(tr("Skip this version")); close_->setText(tr("Close"));
     const bool checking=snapshot_.status==CheckStatus::Checking;
-    check_->setEnabled(!checking); cancel_->setVisible(checking); cancel_->setEnabled(checking);
-    skip_->setVisible(snapshot_.release.has_value()); later_->setVisible(snapshot_.release.has_value());
-    skip_->setEnabled(!checking); later_->setEnabled(!checking);
+    const bool downloading=downloadSnapshot_.status==DownloadStatus::Downloading;
+    const bool downloadable=snapshot_.status==CheckStatus::Available && snapshot_.release && snapshot_.decision
+        && snapshot_.decision->status==zzlogg::update::DecisionStatus::Available && snapshot_.decision->artifact;
+    const bool retry=downloadSnapshot_.status==DownloadStatus::Failed || downloadSnapshot_.status==DownloadStatus::Cancelled;
+    download_->setText(retry ? tr("Retry download") : tr("Download update"));
+    download_->setVisible(downloadable);
+    download_->setEnabled(downloadable && !downloading && downloadSnapshot_.status!=DownloadStatus::Verified
+        && downloadSnapshot_.status!=DownloadStatus::Unavailable);
+    check_->setEnabled(!checking && !downloading);
+    cancel_->setVisible(checking || downloading); cancel_->setEnabled(checking || downloading);
+    if(downloading) cancel_->setText(tr("Cancel download"));
+    skip_->setVisible(snapshot_.release.has_value() && !downloading);
+    later_->setVisible(snapshot_.release.has_value() && !downloading);
+    skip_->setEnabled(!checking && !downloading); later_->setEnabled(!checking && !downloading);
+    QString downloadText;
+    switch(downloadSnapshot_.status) {
+    case DownloadStatus::Idle: break;
+    case DownloadStatus::Downloading: downloadText=tr("Downloading update..."); break;
+    case DownloadStatus::Verified: downloadText=tr("Download verified. Installation is not available yet."); break;
+    case DownloadStatus::Cancelled: downloadText=tr("Download cancelled. You can retry."); break;
+    case DownloadStatus::Unavailable: downloadText=tr("This download is no longer available. Check for updates again."); break;
+    case DownloadStatus::Failed:
+        switch(downloadSnapshot_.error.value_or(DownloadError::Network)) {
+        case DownloadError::InsufficientSpace: downloadText=tr("Not enough disk space. Free some space and retry."); break;
+        case DownloadError::Busy: downloadText=tr("Another process is downloading this package. Please retry later."); break;
+        case DownloadError::InvalidPath: case DownloadError::WriteFailed:
+            downloadText=tr("Unable to write the update cache. Check disk access and retry."); break;
+        case DownloadError::HashMismatch: case DownloadError::SizeMismatch:
+            downloadText=tr("Package verification failed. Please retry the download."); break;
+        default: downloadText=tr("Unable to download the update. Please retry."); break;
+        }
+        break;
+    }
+    const bool showProgress=downloading || downloadSnapshot_.status==DownloadStatus::Verified;
+    progress_->setVisible(showProgress);
+    if(showProgress) {
+        const auto received=std::max(qint64(0),downloadSnapshot_.received);
+        const auto total=std::max(qint64(0),downloadSnapshot_.total);
+        const auto percent=total>0 ? int(std::clamp(100.0L*received/total,0.0L,100.0L)) : 0;
+        progress_->setRange(0,total>0 ? 100 : 0); progress_->setValue(percent);
+        downloadText+=QStringLiteral("\n")+(total>0
+            ? tr("%1 / %2 bytes (%3%)").arg(received).arg(total).arg(percent)
+            : tr("%1 bytes received").arg(received));
+    }
+    downloadStatus_->setText(downloadText); downloadStatus_->setVisible(!downloadText.isEmpty());
 }
 void UpdateCheckDialog::changeEvent(QEvent* event)
 {
@@ -119,6 +179,7 @@ void UpdateCheckDialog::showEvent(QShowEvent* event)
 void UpdateCheckDialog::reject()
 {
     const bool cancel=snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser;
+    const bool cancelDownload=downloadSnapshot_.status==DownloadStatus::Downloading;
     const QPointer<UpdateCheckDialog> guard(this);
     dismissed_=true;
     Q_EMIT closing();
@@ -126,4 +187,5 @@ void UpdateCheckDialog::reject()
     // Hide before cancellation can synchronously publish another snapshot.
     QDialog::reject();
     if(guard && cancel) Q_EMIT cancelRequested();
+    if(guard && cancelDownload) Q_EMIT downloadCancelRequested();
 }

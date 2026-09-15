@@ -60,6 +60,8 @@
 #include "storagecontext.h"
 #include "updatecheckdialog.h"
 #include "zzlogg/updateqt/updateservice.h"
+#include "zzlogg/updateqt/updatedownloadservice.h"
+#include "zzlogg/updateqt/updatecachepaths.h"
 #include "zzlogg_brand.h"
 
 class KloggApp : public QApplication {
@@ -278,6 +280,7 @@ class KloggApp : public QApplication {
         connect(window, &MainWindow::checkUpdatesRequested, this, [this, window] {
             ensureUpdateService();
             if (!updateService_) return;
+            updateDownloadService_->invalidate();
             updateDialogDismissed_=false;
             showUpdateDialog(window,true);
             updateService_->requestCheck(configuredUpdateChannel(),zzlogg::updateqt::CheckOrigin::Manual);
@@ -285,6 +288,7 @@ class KloggApp : public QApplication {
         connect(window, &MainWindow::updatePreferencesChanged, this, [this] {
             ensureUpdateService();
             if (!updateService_) return;
+            if(updateService_->snapshot().channel!=configuredUpdateChannel()) updateDownloadService_->invalidate();
             updateService_->setChannel(configuredUpdateChannel());
             updateService_->setAutomaticChecking(singleApplication_.isPrimaryInstance()
                 && Configuration::get().versionCheckingEnabled());
@@ -401,12 +405,21 @@ class KloggApp : public QApplication {
             std::make_shared<UpdateStateStore>(path),std::nullopt,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
+        updateDownloadService_=std::make_unique<UpdateDownloadService>(productionFeedConfiguration(),
+            std::nullopt,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
+        updateDownloadService_->setObjectName("applicationUpdateDownloadService");
+        connect(updateDownloadService_.get(),&UpdateDownloadService::snapshotChanged,this,[this] {
+            if(updateDialog_) updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot());
+        });
         updateService_->setChannel(configuredUpdateChannel());
         updateService_->setAutomaticChecking(singleApplication_.isPrimaryInstance()
             && Configuration::get().versionCheckingEnabled());
         connect(updateService_.get(),&UpdateService::snapshotChanged,this,[this] {
             const auto& snapshot=updateService_->snapshot();
-            if (snapshot.status==CheckStatus::Checking) updateDialogDismissed_=false;
+            if (snapshot.status==CheckStatus::Checking) {
+                updateDownloadService_->invalidate();
+                updateDialogDismissed_=false;
+            }
             if (updateDialog_) updateDialog_->setSnapshot(snapshot);
             if (!snapshot.presentToUser || updateDialogDismissed_ || snapshot.status==CheckStatus::Checking) return;
             if (!updateDialog_ && !mainWindows_.empty())
@@ -415,6 +428,7 @@ class KloggApp : public QApplication {
         connect(this,&QCoreApplication::aboutToQuit,this,[this] {
             updateDialogDismissed_=true;
             if(updateService_) updateService_->cancel();
+            if(updateDownloadService_) updateDownloadService_->cancel();
         });
     }
 
@@ -427,11 +441,18 @@ class KloggApp : public QApplication {
             updateDialog_=dialog;
             dialog->setAttribute(Qt::WA_ShowWithoutActivating,!foreground);
             connect(dialog,&UpdateCheckDialog::checkRequested,this,[this] {
+                updateDownloadService_->invalidate();
                 updateDialogDismissed_=false;
                 updateService_->requestCheck(configuredUpdateChannel(),zzlogg::updateqt::CheckOrigin::Manual);
             });
             connect(dialog,&UpdateCheckDialog::cancelRequested,this,[this] { updateService_->cancel(); });
+            connect(dialog,&UpdateCheckDialog::downloadRequested,this,[this] {
+                updateDownloadService_->requestDownload(updateService_->snapshot());
+            });
+            connect(dialog,&UpdateCheckDialog::downloadCancelRequested,this,[this] { updateDownloadService_->cancel(); });
             connect(dialog,&UpdateCheckDialog::skipRequested,this,[this] {
+                if(updateDownloadService_->snapshot().status==zzlogg::updateqt::DownloadStatus::Downloading) return;
+                updateDownloadService_->invalidate();
                 updateService_->skipCurrentRelease();
                 if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
             });
@@ -444,6 +465,7 @@ class KloggApp : public QApplication {
             updateDialog_->setParent(modal,Qt::Dialog);
         }
         updateDialog_->setSnapshot(updateService_->snapshot());
+        updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot());
         updateDialog_->show();
         if (foreground) { updateDialog_->raise(); updateDialog_->activateWindow(); }
     }
@@ -475,6 +497,7 @@ class KloggApp : public QApplication {
     MainWindowFactory mainWindowFactory_;
 
     std::unique_ptr<zzlogg::updateqt::UpdateService> updateService_;
+    std::unique_ptr<zzlogg::updateqt::UpdateDownloadService> updateDownloadService_;
     QPointer<UpdateCheckDialog> updateDialog_;
     bool updateDialogDismissed_=false;
     bool restartInProgress_ = false;

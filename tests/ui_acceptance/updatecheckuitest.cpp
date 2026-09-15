@@ -10,6 +10,9 @@
 #include <QDialogButtonBox>
 #include <QScreen>
 #include <QFontDatabase>
+#include <QProgressBar>
+#include <QStandardPaths>
+#include <QCryptographicHash>
 #include <ZzFluentUI/ZzThemeController.h>
 #include <ZzFluentUI/ZzFluentStyle.h>
 #include "../update/fixturehelper.h"
@@ -23,6 +26,20 @@
 #include "savedsearches.h"
 #include "updatecheckdialog.h"
 using namespace zzlogg::updateqt;
+namespace {
+zzlogg::update::InstalledRelease installedRelease() {
+    zzlogg::update::InstalledRelease result;
+    result.version={26,9,0}; result.releaseSequence=1;
+    result.osVersion={10,0,22631}; result.dataSchema=1;
+    return result;
+}
+CheckSnapshot availableRelease(nlohmann::json payload=update_fixture::payload()) {
+    auto verified=zzlogg::update::verifyManifest(update_fixture::envelope(payload.dump()),update_fixture::context());
+    if(!verified.value) qFatal("UI fixture must have a verified release");
+    return {CheckStatus::Available,Channel::Stable,verified.value,
+        zzlogg::update::selectUpdate(*verified.value,installedRelease()),true,1800000000};
+}
+}
 class UpdateCheckUiTest : public QObject {
     Q_OBJECT
     QTemporaryDir settings_;
@@ -32,6 +49,7 @@ private Q_SLOTS:
         Configuration::getSynced();
         RecentFiles::getSynced(); SavedSearches::getSynced();
         QFontDatabase::addApplicationFont("C:/Windows/Fonts/consola.ttf");
+        QStandardPaths::setTestModeEnabled(true);
     }
     void notConfiguredIsNotUpToDate() {
         UpdateCheckDialog dialog;
@@ -40,6 +58,124 @@ private Q_SLOTS:
         QVERIFY(status);
         QCOMPARE(status->text(),QString("Update service is not configured."));
         QVERIFY(!dialog.isModal());
+    }
+    // A missing download action or offering unsigned/informational packages breaks this contract.
+    void downloadRequiresAvailableSelectedRelease() {
+        UpdateCheckDialog dialog;
+        auto* download=dialog.findChild<QPushButton*>("updateDownload");
+        QVERIFY(download);
+        auto snapshot=availableRelease();
+        dialog.setSnapshot(snapshot);
+        QVERIFY(!download->isHidden()); QVERIFY(download->isEnabled());
+        QSignalSpy requested(&dialog,SIGNAL(downloadRequested()));
+        QVERIFY(requested.isValid()); download->click(); QCOMPARE(requested.count(),1);
+        for(auto status:{CheckStatus::NotConfigured,CheckStatus::ReleaseInformation,CheckStatus::Unsupported}) {
+            snapshot.status=status; dialog.setSnapshot(snapshot);
+            QVERIFY(download->isHidden()); QVERIFY(!download->isEnabled());
+        }
+        snapshot=availableRelease(); snapshot.decision.reset(); dialog.setSnapshot(snapshot);
+        QVERIFY(download->isHidden()); QVERIFY(!download->isEnabled());
+        snapshot=availableRelease(); snapshot.release.reset(); dialog.setSnapshot(snapshot);
+        QVERIFY(download->isHidden()); QVERIFY(!download->isEnabled());
+    }
+    // Progress must not overflow and active downloads must block skip/duplicate actions.
+    void downloadProgressAndRetryStates() {
+        UpdateCheckDialog dialog; dialog.setSnapshot(availableRelease());
+        dialog.setDownloadSnapshot({DownloadStatus::Downloading,25,100});
+        auto* progress=dialog.findChild<QProgressBar*>("updateDownloadProgress");
+        QVERIFY(progress); QCOMPARE(progress->value(),25);
+        auto* download=dialog.findChild<QPushButton*>("updateDownload");
+        QVERIFY(!download->isEnabled());
+        QVERIFY(!dialog.findChild<QPushButton*>("updateSkip")->isEnabled());
+        QVERIFY(!dialog.findChild<QPushButton*>("updateCheck")->isEnabled());
+        auto* status=dialog.findChild<QLabel*>("updateDownloadStatus");
+        QVERIFY(status->text().contains("25 / 100 bytes (25%)"));
+        QSignalSpy cancelled(&dialog,&UpdateCheckDialog::downloadCancelRequested);
+        dialog.findChild<QPushButton*>("updateCancel")->click(); QCOMPARE(cancelled.count(),1);
+        dialog.setDownloadSnapshot({DownloadStatus::Downloading,3'000'000'000,4'000'000'000});
+        QCOMPARE(progress->value(),75); QVERIFY(status->text().contains("3000000000 / 4000000000"));
+        dialog.setDownloadSnapshot({DownloadStatus::Downloading,0,0}); QCOMPARE(progress->maximum(),0);
+        for(auto terminal:{DownloadStatus::Failed,DownloadStatus::Cancelled}) {
+            dialog.setDownloadSnapshot({terminal,0,0,DownloadError::Network});
+            QVERIFY(download->isEnabled()); QVERIFY(!dialog.findChild<QPushButton*>("updateCancel")->isEnabled());
+            QCOMPARE(download->text(),QString("Retry download"));
+        }
+        dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
+        QCOMPARE(progress->value(),100); QVERIFY(!download->isEnabled());
+        QCOMPARE(status->text(),QString("Download verified. Installation is not available yet.\n100 / 100 bytes (100%)"));
+        dialog.setDownloadSnapshot({DownloadStatus::Unavailable}); QVERIFY(!download->isEnabled());
+        QVERIFY(dialog.findChild<QPushButton*>("updateCheck")->isEnabled());
+    }
+    // Network progress must preserve the user's place/selection in the release notes.
+    void progressPreservesReleaseNotesSelection() {
+        UpdateCheckDialog dialog; dialog.setSnapshot(availableRelease());
+        auto* notes=dialog.findChild<QPlainTextEdit*>("updateNotes");
+        auto cursor=notes->textCursor(); cursor.setPosition(0);
+        cursor.setPosition(4,QTextCursor::KeepAnchor); notes->setTextCursor(cursor);
+        QCOMPARE(notes->textCursor().selectedText(),QString("Test"));
+        dialog.setDownloadSnapshot({DownloadStatus::Downloading,25,100});
+        QCOMPARE(notes->textCursor().selectedText(),QString("Test"));
+    }
+    // Real service callbacks after close or parent destruction must never reach the retired dialog.
+    void closingDownloadCancelsBeforeLateReply() {
+        const auto context=update_fixture::context();
+        FeedConfiguration config{"https://updates.example.invalid/stable","https://updates.example.invalid/preview",
+            context.keys,context.allowedHosts,context.buildTime,context.environment};
+        for(bool destroyParent:{false,true}) {
+            QTemporaryDir cache; auto* network=new ScriptedNetworkManager;
+            NetworkScript hanging; hanging.hang=true; network->scripts.push_back(hanging);
+            UpdateDownloadService service(config,installedRelease(),cache.path(),[]{return 1800000000;},nullptr,[&]{return network;});
+            auto* parent=new QWidget;
+            QPointer<UpdateCheckDialog> dialog=new UpdateCheckDialog(parent);
+            dialog->setSnapshot(availableRelease());
+            int deliveries=0;
+            connect(&service,&UpdateDownloadService::snapshotChanged,this,[&] {
+                if(dialog) { ++deliveries; dialog->setDownloadSnapshot(service.snapshot()); }
+            });
+            connect(dialog,&UpdateCheckDialog::downloadRequested,&service,[&]{service.requestDownload(availableRelease());});
+            connect(dialog,&UpdateCheckDialog::closing,this,[&]{dialog.clear();});
+            connect(dialog,&UpdateCheckDialog::downloadCancelRequested,&service,&UpdateDownloadService::cancel);
+            dialog->findChild<QPushButton*>("updateDownload")->click();
+            QCOMPARE(service.snapshot().status,DownloadStatus::Downloading); QCOMPARE(deliveries,1);
+            QSignalSpy changed(&service,&UpdateDownloadService::snapshotChanged);
+            if(destroyParent) delete parent; else { dialog->show(); dialog->close(); }
+            QVERIFY(!dialog); QCOMPARE(service.snapshot().status,DownloadStatus::Cancelled);
+            QCoreApplication::processEvents(); QCOMPARE(changed.count(),1); QCOMPARE(deliveries,1);
+            if(!destroyParent) delete parent;
+        }
+    }
+    // Retry must use the saved signed release, recheck expiry, and only show verified bytes on success.
+    void realDownloadRetryRevalidatesSavedRelease() {
+        const auto context=update_fixture::context();
+        FeedConfiguration config{"https://updates.example.invalid/stable","https://updates.example.invalid/preview",
+            context.keys,context.allowedHosts,context.buildTime,context.environment};
+        auto payload=update_fixture::payload(); payload["artifacts"][0]["size"]="7";
+        payload["artifacts"][0]["sha256"]=QCryptographicHash::hash("package",QCryptographicHash::Sha256).toHex().toStdString();
+        const auto saved=availableRelease(payload);
+        for(bool expire:{false,true}) {
+            QTemporaryDir cache; qint64 now=1800000000;
+            auto* network=new ScriptedNetworkManager;
+            NetworkScript fail; fail.status=503;
+            NetworkScript good; good.body="package"; network->scripts={fail,good};
+            UpdateDownloadService service(config,installedRelease(),cache.path(),[&]{return now;},nullptr,[&]{return network;});
+            UpdateCheckDialog dialog; dialog.setSnapshot(saved);
+            connect(&dialog,&UpdateCheckDialog::downloadRequested,&service,[&]{service.requestDownload(saved);});
+            connect(&service,&UpdateDownloadService::snapshotChanged,&dialog,[&]{dialog.setDownloadSnapshot(service.snapshot());});
+            auto* download=dialog.findChild<QPushButton*>("updateDownload");
+            QCOMPARE(service.snapshot().status,DownloadStatus::Idle); QVERIFY(network->requests.isEmpty());
+            download->click(); QTRY_COMPARE(service.snapshot().status,DownloadStatus::Failed);
+            QVERIFY(download->isEnabled());
+            if(expire) now=1800003600;
+            download->click();
+            QTRY_COMPARE(service.snapshot().status,expire ? DownloadStatus::Unavailable : DownloadStatus::Verified);
+            QCOMPARE(network->requests.size(),expire ? 1 : 2);
+            if(expire) QVERIFY(service.snapshot().verifiedPath.isEmpty());
+            else {
+                QFile file(service.snapshot().verifiedPath); QVERIFY(file.open(QIODevice::ReadOnly));
+                QCOMPARE(file.readAll(),QByteArray("package"));
+                QCOMPARE(dialog.findChild<QProgressBar*>("updateDownloadProgress")->value(),100);
+            }
+        }
     }
     void closingManualCheckCancelsOnce() {
         UpdateCheckDialog dialog;
@@ -160,20 +296,27 @@ private Q_SLOTS:
         const QStringList languages{"en","zh_CN","zh_TW"};
         const QStringList expected{"<b>Not HTML</b> https://example.invalid","简体说明","繁體說明"};
         const QStringList titles{"Check for updates","检查更新","檢查更新"};
+        const QStringList downloadLabels{"Download update","下载更新","下載更新"};
+        const QStringList verifiedLabels{"Download verified. Installation is not available yet.",
+            "下载已验证，安装功能尚未接入","下載已驗證，安裝功能尚未接入"};
         for(int i=0;i<3;++i) {
             QTranslator translator;
             QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+languages[i]+".qm"));
             Configuration::get().setLanguage(languages[i]);
             qApp->installTranslator(&translator); QCoreApplication::processEvents();
             QCOMPARE(notes->toPlainText(),expected[i]); QCOMPARE(dialog.windowTitle(),titles[i]);
+            dialog.setDownloadSnapshot({DownloadStatus::Downloading,25,100});
+            QCOMPARE(dialog.findChild<QPushButton*>("updateDownload")->text(),downloadLabels[i]);
+            dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100});
+            QVERIFY(dialog.findChild<QLabel*>("updateDownloadStatus")->text().startsWith(verifiedLabels[i]));
             qApp->removeTranslator(&translator);
         }
     }
     void longNotesKeepFooterVisibleWithBothThemes() {
         auto payload=update_fixture::payload();
         for(const auto* language:{"en","zh_CN","zh_TW"}) payload["notes"][language]=std::string(16000,'W');
-        auto verified=zzlogg::update::verifyManifest(update_fixture::envelope(payload.dump()),update_fixture::context());
-        QVERIFY(verified.value); Configuration::get().setLanguage("en");
+        auto snapshot=availableRelease(payload);
+        Configuration::get().setLanguage("en");
         auto* theme=new ZzFluentUI::ZzThemeController(qApp);
         qApp->setStyle(new ZzFluentUI::ZzFluentStyle(theme));
         for(const auto* language:{"en","zh_CN","zh_TW"}) {
@@ -182,16 +325,25 @@ private Q_SLOTS:
           Configuration::get().setLanguage(language); qApp->installTranslator(&translator);
           for(auto mode:{ZzFluentUI::ZzThemeMode::Light,ZzFluentUI::ZzThemeMode::Dark}) {
             theme->setMode(mode);
+          for(auto downloadStatus:{DownloadStatus::Idle,DownloadStatus::Downloading,DownloadStatus::Cancelled,DownloadStatus::Verified}) {
             UpdateCheckDialog dialog;
-            dialog.setSnapshot({CheckStatus::ReleaseInformation,Channel::Stable,verified.value,{},true});
+            dialog.setSnapshot(snapshot);
+            dialog.setDownloadSnapshot({downloadStatus,downloadStatus==DownloadStatus::Verified ? 100 : 25,100});
             dialog.resize(600,480); dialog.show(); QCoreApplication::processEvents();
-            auto* close=dialog.findChild<QPushButton*>("updateClose");
-            QVERIFY(dialog.rect().contains(QRect(close->mapTo(&dialog,QPoint()),close->size())));
+            for(auto* button:dialog.findChildren<QPushButton*>()) if(button->isVisible())
+                QVERIFY(dialog.rect().contains(QRect(button->mapTo(&dialog,QPoint()),button->size())));
+            if(downloadStatus==DownloadStatus::Downloading || downloadStatus==DownloadStatus::Verified) {
+                auto* progress=dialog.findChild<QProgressBar*>("updateDownloadProgress");
+                QVERIFY(!progress->visibleRegion().isEmpty());
+            }
             QVERIFY(dialog.height()<=720); QVERIFY(dialog.width()<=1232);
             const auto captured=dialog.grab();
             QVERIFY(!captured.isNull());
             QVERIFY(captured.save(QString(ZZLOGG_UI_QM_DIR)+
-                (mode==ZzFluentUI::ZzThemeMode::Dark ? "/update-dark-" : "/update-light-")+language+".png"));
+                (mode==ZzFluentUI::ZzThemeMode::Dark ? "/update-download-dark-" : "/update-download-light-")+language
+                +QString("-%1-%2-%3.png").arg(int(downloadStatus)).arg(QGuiApplication::platformName())
+                    .arg(qRound(dialog.devicePixelRatioF()*100))));
+          }
           }
           qApp->removeTranslator(&translator);
         }

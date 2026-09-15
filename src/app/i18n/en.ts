@@ -2486,6 +2486,62 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>Download update</source>
+        <translation>Download update</translation>
+    </message>
+    <message>
+        <source>Retry download</source>
+        <translation>Retry download</translation>
+    </message>
+    <message>
+        <source>Cancel download</source>
+        <translation>Cancel download</translation>
+    </message>
+    <message>
+        <source>Downloading update...</source>
+        <translation>Downloading update...</translation>
+    </message>
+    <message>
+        <source>Download verified. Installation is not available yet.</source>
+        <translation>Download verified. Installation is not available yet.</translation>
+    </message>
+    <message>
+        <source>Download cancelled. You can retry.</source>
+        <translation>Download cancelled. You can retry.</translation>
+    </message>
+    <message>
+        <source>This download is no longer available. Check for updates again.</source>
+        <translation>This download is no longer available. Check for updates again.</translation>
+    </message>
+    <message>
+        <source>Not enough disk space. Free some space and retry.</source>
+        <translation>Not enough disk space. Free some space and retry.</translation>
+    </message>
+    <message>
+        <source>Another process is downloading this package. Please retry later.</source>
+        <translation>Another process is downloading this package. Please retry later.</translation>
+    </message>
+    <message>
+        <source>Unable to write the update cache. Check disk access and retry.</source>
+        <translation>Unable to write the update cache. Check disk access and retry.</translation>
+    </message>
+    <message>
+        <source>Package verification failed. Please retry the download.</source>
+        <translation>Package verification failed. Please retry the download.</translation>
+    </message>
+    <message>
+        <source>Unable to download the update. Please retry.</source>
+        <translation>Unable to download the update. Please retry.</translation>
+    </message>
+    <message>
+        <source>%1 / %2 bytes (%3%)</source>
+        <translation>%1 / %2 bytes (%3%)</translation>
+    </message>
+    <message>
+        <source>%1 bytes received</source>
+        <translation>%1 bytes received</translation>
+    </message>
+    <message>
         <source>Check for updates</source>
         <translation>Check for updates</translation>
     </message>
@@ -2576,8 +2632,8 @@ Channel: %2</translation>
         <translation>Installer</translation>
     </message>
     <message>
-        <source>This version supports update checks only. Download and installation are not available yet.</source>
-        <translation>This version supports update checks only. Download and installation are not available yet.</translation>
+        <source>This version supports update checks and verified downloads. Installation is not available yet.</source>
+        <translation>This version supports update checks and verified downloads. Installation is not available yet.</translation>
     </message>
     <message>
         <source>Check again</source>

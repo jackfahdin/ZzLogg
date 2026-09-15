@@ -2564,6 +2564,62 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>Download update</source>
+        <translation>下載更新</translation>
+    </message>
+    <message>
+        <source>Retry download</source>
+        <translation>重試下載</translation>
+    </message>
+    <message>
+        <source>Cancel download</source>
+        <translation>取消下載</translation>
+    </message>
+    <message>
+        <source>Downloading update...</source>
+        <translation>正在下載更新…</translation>
+    </message>
+    <message>
+        <source>Download verified. Installation is not available yet.</source>
+        <translation>下載已驗證，安裝功能尚未接入</translation>
+    </message>
+    <message>
+        <source>Download cancelled. You can retry.</source>
+        <translation>下載已取消，可以重試。</translation>
+    </message>
+    <message>
+        <source>This download is no longer available. Check for updates again.</source>
+        <translation>此下載已無法使用，請重新檢查更新。</translation>
+    </message>
+    <message>
+        <source>Not enough disk space. Free some space and retry.</source>
+        <translation>磁碟空間不足，請釋放空間後重試。</translation>
+    </message>
+    <message>
+        <source>Another process is downloading this package. Please retry later.</source>
+        <translation>其他處理程序正在下載此更新套件，請稍後重試。</translation>
+    </message>
+    <message>
+        <source>Unable to write the update cache. Check disk access and retry.</source>
+        <translation>無法寫入更新快取，請檢查磁碟存取權限後重試。</translation>
+    </message>
+    <message>
+        <source>Package verification failed. Please retry the download.</source>
+        <translation>更新套件驗證失敗，請重試下載。</translation>
+    </message>
+    <message>
+        <source>Unable to download the update. Please retry.</source>
+        <translation>無法下載更新，請重試。</translation>
+    </message>
+    <message>
+        <source>%1 / %2 bytes (%3%)</source>
+        <translation>%1 / %2 位元組（%3%）</translation>
+    </message>
+    <message>
+        <source>%1 bytes received</source>
+        <translation>已接收 %1 位元組</translation>
+    </message>
+    <message>
         <source>Check for updates</source>
         <translation>檢查更新</translation>
     </message>
@@ -2654,8 +2710,8 @@ Channel: %2</source>
         <translation>安裝版</translation>
     </message>
     <message>
-        <source>This version supports update checks only. Download and installation are not available yet.</source>
-        <translation>目前僅支援檢查更新，下載與安裝功能尚未接入。</translation>
+        <source>This version supports update checks and verified downloads. Installation is not available yet.</source>
+        <translation>目前支援檢查更新與驗證下載，安裝功能尚未接入。</translation>
     </message>
     <message>
         <source>Check again</source>
