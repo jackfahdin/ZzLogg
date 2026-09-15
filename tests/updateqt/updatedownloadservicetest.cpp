@@ -94,6 +94,50 @@ private slots:
         QCOMPARE(file.readAll(),QByteArray("package")); QCOMPARE(service.snapshot().received,qint64(7));
         QCOMPARE(service.snapshot().total,qint64(7)); QVERIFY(!service.snapshot().error);
     }
+    // With the same signing key/purpose and all production preconditions satisfied,
+    // removing only the environment check must admit the Test-verified snapshot.
+    void productionServiceRejectsTestVerificationEnvironment() {
+        // This deterministic key exists only inside this test; it is never deployed or configured globally.
+        std::array<std::uint8_t,32> seed{}, publicKey{};
+        for(std::size_t i=0;i<seed.size();++i) seed[i]=std::uint8_t(i);
+        std::array<std::uint8_t,64> secret{}, signature{};
+        crypto_ed25519_key_pair(secret.data(),publicKey.data(),seed.data());
+        const std::string id="environment-isolation-test", payload=update_fixture::payload().dump();
+        const auto message="ZzLogg update manifest v1\n"+id+"\n"+payload;
+        crypto_ed25519_sign(signature.data(),secret.data(),
+            reinterpret_cast<const std::uint8_t*>(message.data()),message.size());
+        const auto envelope=nlohmann::json{{"schema",1},{"keyId",id},
+            {"payload",zzlogg::update::detail::encodeBase64(payload)},
+            {"signature",zzlogg::update::detail::encodeBase64(
+                {reinterpret_cast<const char*>(signature.data()),signature.size()})}}.dump();
+        auto config=configuration(); config.environment=TrustEnvironment::Production;
+        config.keys={{id,{publicKey.begin(),publicKey.end()},KeyPurpose::Production}};
+        QStandardPaths::setTestModeEnabled(false);
+        struct RestoreTestMode { ~RestoreTestMode() { QStandardPaths::setTestModeEnabled(true); } } restore;
+        const auto cache=updateCachePath(TrustEnvironment::Production);
+        QVERIFY(!cache.isEmpty());
+        const bool existed=QFileInfo::exists(cache);
+        for(const auto environment:{TrustEnvironment::Test,TrustEnvironment::Production}) {
+            auto context=update_fixture::context(); context.environment=environment; context.keys=config.keys;
+            const auto verified=verifyManifest(envelope,context); QVERIFY(verified.value);
+            auto* network=new ScriptedNetworkManager;
+            UpdateDownloadService service(config,installedRelease(),cache,[]{return 1800000000;},nullptr,[&]{return network;});
+            bool admitted=false;
+            connect(&service,&UpdateDownloadService::snapshotChanged,this,[&]{
+                if(service.snapshot().status==DownloadStatus::Downloading) {
+                    admitted=true;
+                    // Safety boundary: even the Production control or a mutated guard cannot reach disk/network.
+                    service.cancel();
+                }
+            });
+            service.requestDownload({CheckStatus::Available,Channel::Stable,verified.value,{},true,context.now});
+            QVERIFY(network->requests.isEmpty()); QCOMPARE(QFileInfo::exists(cache),existed);
+            QVERIFY(service.snapshot().verifiedPath.isEmpty());
+            QCOMPARE(admitted,environment==TrustEnvironment::Production);
+            QCOMPARE(service.snapshot().status,environment==TrustEnvironment::Production
+                ? DownloadStatus::Cancelled : DownloadStatus::Unavailable);
+        }
+    }
     void duplicateAndDifferentReleaseRequireConfirmation() {
         QTemporaryDir root; auto* network=new ScriptedNetworkManager;
         auto first=response(); first.hang=true; network->scripts={first,response("next")};
@@ -218,11 +262,11 @@ private slots:
     }
     void cachePathsAreEnvironmentSeparatedAndDoNotCreateDirectories() {
         const auto base=QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-        QCOMPARE(updateCachePath(TrustEnvironment::Test),QDir(base).filePath("updates/test"));
+        QCOMPARE(updateCachePath(TrustEnvironment::Test),QDir(base).filePath("updates/test/packages-v1"));
         QVERIFY(updateCachePath(TrustEnvironment::Production).isEmpty());
         QStandardPaths::setTestModeEnabled(false);
         const auto prod=updateCachePath(); const auto test=updateCachePath(TrustEnvironment::Test);
-        const auto expected=QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath("updates/production");
+        const auto expected=QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath("updates/production/packages-v1");
         QStandardPaths::setTestModeEnabled(true);
         QCOMPARE(prod,expected); QVERIFY(test.isEmpty());
     }

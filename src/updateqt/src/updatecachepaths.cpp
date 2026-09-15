@@ -10,6 +10,7 @@ QString updateCachePath(update::TrustEnvironment environment)
     if(test!=QStandardPaths::isTestModeEnabled()) return {};
     const auto root=QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
     if(root.isEmpty() || !QDir::isAbsolutePath(root)) return {};
-    return QDir(root).filePath(test ? QStringLiteral("updates/test") : QStringLiteral("updates/production"));
+    return QDir(root).filePath(test ? QStringLiteral("updates/test/packages-v1")
+                                  : QStringLiteral("updates/production/packages-v1"));
 }
 }
