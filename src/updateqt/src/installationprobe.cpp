@@ -168,9 +168,12 @@ bool validMarker(const QByteArray& bytes)
     version.chop(1);
     if (version.endsWith('\r')) version.chop(1);
     if (version.isEmpty()) return false;
-    QStringDecoder decoder(QStringDecoder::Utf8);
+    // This is the entire version, not a stream: incomplete sequences are errors.
+    // Preserve an initial BOM so the printability check cannot silently discard it.
+    QStringDecoder decoder(QStringDecoder::Utf8,
+        QStringDecoder::Flag::Stateless | QStringDecoder::Flag::ConvertInitialBom);
     const QString text = decoder.decode(version);
-    if (decoder.hasError()) return false;
+    if (decoder.hasError() || text.isEmpty()) return false;
     for (const auto character : text.toUcs4())
         if (!QChar::isPrint(character)) return false;
     return true;

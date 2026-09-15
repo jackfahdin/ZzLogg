@@ -101,7 +101,8 @@ private slots:
                  "invalid-utf8", "wrong-prefix", "dot-segment", "missing-root", "empty-exe",
                  "wrong-exe-name", "unc-root", "device-root", "drive-relative", "root-relative",
                  "dot-root", "trailing-dot", "trailing-space", "alternate-stream", "wildcard-root",
-                 "double-separator", "marker-locked"})
+                 "double-separator", "marker-locked", "truncated-utf8", "ascii-truncated-utf8",
+                 "bom-only-version", "version-leading-bom"})
             QTest::newRow(row) << QString::fromLatin1(row) << InstallationKind::Invalid;
     }
 
@@ -155,6 +156,11 @@ private slots:
         if (scenario == "nul-marker") text = QByteArray("ZzLogg a\0b\n", 11);
         if (scenario == "control-marker") text = "ZzLogg a\tb\n";
         if (scenario == "invalid-utf8") text = QByteArray("ZzLogg \xff\n", 9);
+        // Incomplete sequences must not be buffered away, and a version BOM is not printable text.
+        if (scenario == "truncated-utf8") text = QByteArray::fromHex("5a7a4c6f676720c20a");
+        if (scenario == "ascii-truncated-utf8") text = QByteArray::fromHex("5a7a4c6f67672061e2820a");
+        if (scenario == "bom-only-version") text = QByteArray::fromHex("5a7a4c6f676720efbbbf0a");
+        if (scenario == "version-leading-bom") text = QByteArray::fromHex("5a7a4c6f676720efbbbf610a");
         if (scenario == "wrong-prefix") text = "Other version\n";
         if (scenario == "exe-directory") QVERIFY(QDir().mkpath(executable));
         else if (scenario != "missing-exe") QVERIFY(writeFile(executable, "fixture"));
