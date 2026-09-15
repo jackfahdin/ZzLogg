@@ -133,6 +133,7 @@ VerificationResult verifyManifest(std::string_view input, const VerificationCont
            && accepted.payloadDigest!=context.lastAccepted->payloadDigest)
             return {{},VerificationError::MetadataConflict};
     }
-    return {VerifiedManifest(std::move(manifest),accepted),VerificationError::None};
+    return {VerifiedManifest(std::move(manifest),accepted,context.environment,*envelope.signingKey),
+        VerificationError::None};
 }
 }

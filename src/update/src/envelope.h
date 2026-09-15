@@ -5,6 +5,7 @@ namespace zzlogg::update::detail {
 struct EnvelopeResult {
     std::optional<std::string> payload;
     VerificationError error = VerificationError::EnvelopeInvalid;
+    std::optional<TrustedKey> signingKey;
 };
 EnvelopeResult verifyEnvelope(std::string_view, const VerificationContext&);
 }

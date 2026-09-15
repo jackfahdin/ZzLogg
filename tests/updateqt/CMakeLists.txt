@@ -23,6 +23,9 @@ zzlogg_update_qt_test(package_cache packagecachetest.cpp)
 zzlogg_update_qt_test(package_download packagedownloadertest.cpp)
 target_include_directories(zzlogg_update_package_download_test PRIVATE "../../src/update/src")
 target_link_libraries(zzlogg_update_package_download_test PRIVATE zzlogg_update_json zzlogg_update_monocypher)
+zzlogg_update_qt_test(download_service updatedownloadservicetest.cpp)
+target_include_directories(zzlogg_update_download_service_test PRIVATE "../../src/update/src")
+target_link_libraries(zzlogg_update_download_service_test PRIVATE zzlogg_update_json zzlogg_update_monocypher)
 add_test(NAME zzlogg_update.feed_configuration COMMAND "${CMAKE_COMMAND}"
   "-DSOURCE_ROOT=${CMAKE_SOURCE_DIR}" "-DBINARY_ROOT=${CMAKE_CURRENT_BINARY_DIR}"
   -P "${CMAKE_CURRENT_SOURCE_DIR}/feedconfigurationtest.cmake")

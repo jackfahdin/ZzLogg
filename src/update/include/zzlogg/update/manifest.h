@@ -57,11 +57,17 @@ class VerifiedManifest {
 public:
     const Manifest& manifest() const { return manifest_; }
     const AcceptedMetadata& acceptedMetadata() const { return accepted_; }
+    TrustEnvironment trustEnvironment() const { return environment_; }
+    const TrustedKey& signingKey() const { return signingKey_; }
 private:
-    VerifiedManifest(Manifest manifest, AcceptedMetadata accepted)
-        : manifest_(std::move(manifest)), accepted_(accepted) {}
+    VerifiedManifest(Manifest manifest, AcceptedMetadata accepted, TrustEnvironment environment,
+                     TrustedKey signingKey)
+        : manifest_(std::move(manifest)), accepted_(accepted), environment_(environment),
+          signingKey_(std::move(signingKey)) {}
     Manifest manifest_;
     AcceptedMetadata accepted_;
+    TrustEnvironment environment_;
+    TrustedKey signingKey_;
     friend VerificationResult verifyManifest(std::string_view, const VerificationContext&);
 };
 struct VerificationResult {

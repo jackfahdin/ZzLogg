@@ -49,6 +49,6 @@ EnvelopeResult verifyEnvelope(std::string_view input, const VerificationContext&
     const std::string message="ZzLogg update manifest v1\n"+id+"\n"+*payload;
     if(!verifyEd25519(message,selected->publicKey,{signature->begin(),signature->end()}))
         return {{},VerificationError::SignatureInvalid};
-    return {*payload,VerificationError::None};
+    return {*payload,VerificationError::None,*selected};
 }
 }
