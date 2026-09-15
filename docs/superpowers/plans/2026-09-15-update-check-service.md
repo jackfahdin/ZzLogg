@@ -127,8 +127,8 @@ ManifestFetcher 提供 start(QUrl, allowedHosts)、cancel() 和 succeeded(QByteA
 **创建：** src/updateqt/CMakeLists.txt、include/zzlogg/updateqt/updatestate.h、src/updatestate.cpp、tests/updateqt/CMakeLists.txt、tests/updateqt/updatestatetest.cpp。
 **修改：** src/CMakeLists.txt（update 后加入 updateqt）、根 CMakeLists.txt（测试注册）。
 
-- [ ] 建立新静态库，只链接 Qt Core 和 update 核心；状态实现可私有链接现有 JSON 目标，不能将 JSON 类型暴露给 UI。临时状态均使用 QTemporaryDir。
-- [ ] 先实现返回 WriteFailed 的可编译骨架，写读回与反回退测试并观察失败：
+- [x] 建立新静态库，只链接 Qt Core 和 update 核心；状态实现可私有链接现有 JSON 目标，不能将 JSON 类型暴露给 UI。临时状态均使用 QTemporaryDir。
+- [x] 先实现返回 WriteFailed 的可编译骨架，写读回与反回退测试并观察失败：
 
 ```cpp
 QTemporaryDir directory;
@@ -145,9 +145,11 @@ QCOMPARE(store.accept(Channel::Stable, AcceptedMetadata{1, {}}, 1800000001),
 QVERIFY(!store.read(Channel::Preview).value->accepted);
 ```
 
-- [ ] 实现严格读取、锁内重读与原子替换；写入失败测试让目的路径为目录，确认旧 accepted 不变；持有同名锁时第二实例返回 Busy。两个 store 依次写 3、2，确认第二次拒绝。
-- [ ] 覆盖摘要冲突、uint64 最大值、两渠道交错更新、文件截断/重复字段/超限、失败退避序列、取消退避、时间溢出与跳过值保存。读失败不能返回默认有效状态。
-- [ ] 注册 zzlogg_update.state，运行构建及 CTest 后提交“feat: 持久化更新渠道状态与检查周期”。
+- [x] 实现严格读取、锁内重读与原子替换；写入失败测试让目的路径为目录，确认旧 accepted 不变；持有同名锁时第二实例返回 Busy。两个 store 依次写 3、2，确认第二次拒绝。
+- [x] 覆盖摘要冲突、uint64 最大值、两渠道交错更新、文件截断/重复字段/超限、失败退避序列、取消退避、时间溢出与跳过值保存。读失败不能返回默认有效状态。
+- [x] 注册 zzlogg_update.state，运行构建及 CTest 后提交“feat: 持久化更新渠道状态与检查周期”。
+
+任务 1 验证记录：可编译空实现出现 7 个预期失败；实现后状态测试 9 项通过，完整 CTest 71/71 通过。Windows 使用禁止删除共享的真实文件句柄验证原子替换失败不破坏旧文件；只读审查无重要问题，并补充有效 JSON 的 16 KiB 精确边界测试。
 
 ## 任务 2：有界 HTTPS 清单获取
 
