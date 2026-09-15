@@ -82,7 +82,8 @@ target_link_libraries(zzlogg_storage_migrator_test PRIVATE
   klogg_storage Qt6::Test Qt6::Core)
 set_target_properties(zzlogg_storage_migrator_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.storage_migrator
-         COMMAND zzlogg_storage_migrator_test)
+         COMMAND zzlogg_storage_migrator_test
+           -o "${CMAKE_CURRENT_BINARY_DIR}/storage-migrator-$<CONFIG>.txt,txt")
 
 add_executable(zzlogg_storage_bootstrap_test
   storagebootstraptest.cpp
