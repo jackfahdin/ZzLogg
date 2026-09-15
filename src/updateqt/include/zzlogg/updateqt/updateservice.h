@@ -25,6 +25,7 @@ struct CheckSnapshot {
     std::optional<update::VerifiedManifest> release;
     std::optional<update::Decision> decision;
     bool presentToUser=false;
+    qint64 checkedAt=0;
 };
 class UpdateService : public QObject {
     Q_OBJECT
@@ -41,7 +42,7 @@ public:
     void setChannel(Channel);
     void skipCurrentRelease();
     const CheckSnapshot& snapshot() const { return snapshot_; }
-signals:
+Q_SIGNALS:
     void snapshotChanged();
 private:
     bool configured(Channel) const;

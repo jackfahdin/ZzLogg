@@ -88,6 +88,7 @@ void MainWindow::createMenus(QMenuBar& container)
 
     helpMenu = container.addMenu( tr( menu::helpTitle ) );
     helpMenu->addAction( showDocumentationAction );
+    helpMenu->addAction(checkUpdatesAction);
     helpMenu->addSeparator();
     helpMenu->addAction( reportIssueAction );
     helpMenu->addSeparator();

@@ -187,6 +187,8 @@ class MainWindow : public QMainWindow {
   Q_SIGNALS:
     // Is emitted when new settings must be used
     void optionsChanged();
+    void checkUpdatesRequested();
+    void updatePreferencesChanged();
     void uiThemeChanged( UiThemeMode mode );
     void activeDocumentNameChanged( const QString& fileName );
     // Is emitted when the 'follow' option is enabled/disabled
@@ -288,6 +290,7 @@ class MainWindow : public QMainWindow {
     QAction* showScratchPadAction;
     QAction* showDocumentationAction;
     QAction* aboutAction;
+    QAction* checkUpdatesAction;
     QAction* aboutQtAction;
     QAction* predefinedFiltersDialogAction;
     QAction* reportIssueAction;

@@ -40,6 +40,8 @@ bool UpdateService::configured(Channel channel) const
 void UpdateService::publish(CheckStatus status,bool present)
 {
     snapshot_={status,channel_,{},{},present};
+    if(status!=CheckStatus::Idle && status!=CheckStatus::Checking && status!=CheckStatus::NotConfigured)
+        snapshot_.checkedAt=clock_();
     emit snapshotChanged();
 }
 void UpdateService::abandon()
@@ -106,6 +108,7 @@ void UpdateService::received(const QByteArray& bytes)
     const auto saved=store_->accept(channel_,verified.value->acceptedMetadata(),now);
     if (saved!=StateError::None) { publish(stateStatus(saved),manual_); return; }
     CheckSnapshot result{CheckStatus::ReleaseInformation,channel_,verified.value,{},false};
+    result.checkedAt=now;
     if (installed_ && !installed_->developmentBuild && installed_->releaseSequence>0) {
         result.decision=update::selectUpdate(*verified.value,*installed_);
         switch(result.decision->status) {

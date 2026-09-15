@@ -2483,4 +2483,166 @@
         <translation>%1 log viewer</translation>
     </message>
 </context>
+<context>
+    <name>UpdateCheckDialog</name>
+    <message>
+        <source>Check for updates</source>
+        <translation>Check for updates</translation>
+    </message>
+    <message>
+        <source>Stable</source>
+        <translation>Stable</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Preview</translation>
+    </message>
+    <message>
+        <source>Current version: %1
+Channel: %2</source>
+        <translation>Current version: %1
+Channel: %2</translation>
+    </message>
+    <message>
+        <source>Ready to check for updates.</source>
+        <translation>Ready to check for updates.</translation>
+    </message>
+    <message>
+        <source>Update service is not configured.</source>
+        <translation>Update service is not configured.</translation>
+    </message>
+    <message>
+        <source>Checking for updates...</source>
+        <translation>Checking for updates...</translation>
+    </message>
+    <message>
+        <source>Update check cancelled.</source>
+        <translation>Update check cancelled.</translation>
+    </message>
+    <message>
+        <source>You are using the latest version.</source>
+        <translation>You are using the latest version.</translation>
+    </message>
+    <message>
+        <source>A new version is available.</source>
+        <translation>A new version is available.</translation>
+    </message>
+    <message>
+        <source>Verified release information (installation identity unavailable).</source>
+        <translation>Verified release information (installation identity unavailable).</translation>
+    </message>
+    <message>
+        <source>This release is not compatible with this installation.</source>
+        <translation>This release is not compatible with this installation.</translation>
+    </message>
+    <message>
+        <source>Unable to retrieve the update manifest. Please try again later.</source>
+        <translation>Unable to retrieve the update manifest. Please try again later.</translation>
+    </message>
+    <message>
+        <source>Update verification failed. Check the system clock or try again later.</source>
+        <translation>Update verification failed. Check the system clock or try again later.</translation>
+    </message>
+    <message>
+        <source>Local update state cannot be read. It has not been reset.</source>
+        <translation>Local update state cannot be read. It has not been reset.</translation>
+    </message>
+    <message>
+        <source>Another process is updating the local state. Please try again later.</source>
+        <translation>Another process is updating the local state. Please try again later.</translation>
+    </message>
+    <message>
+        <source>Unable to save update state. No update has been accepted.</source>
+        <translation>Unable to save update state. No update has been accepted.</translation>
+    </message>
+    <message>
+        <source>Last check: %1</source>
+        <translation>Last check: %1</translation>
+    </message>
+    <message>
+        <source>Release version: %1</source>
+        <translation>Release version: %1</translation>
+    </message>
+    <message>
+        <source>Package: %1 (%2 bytes)</source>
+        <translation>Package: %1 (%2 bytes)</translation>
+    </message>
+    <message>
+        <source>Portable</source>
+        <translation>Portable</translation>
+    </message>
+    <message>
+        <source>Installer</source>
+        <translation>Installer</translation>
+    </message>
+    <message>
+        <source>This version supports update checks only. Download and installation are not available yet.</source>
+        <translation>This version supports update checks only. Download and installation are not available yet.</translation>
+    </message>
+    <message>
+        <source>Check again</source>
+        <translation>Check again</translation>
+    </message>
+    <message>
+        <source>Cancel check</source>
+        <translation>Cancel check</translation>
+    </message>
+    <message>
+        <source>Remind me later</source>
+        <translation>Remind me later</translation>
+    </message>
+    <message>
+        <source>Skip this version</source>
+        <translation>Skip this version</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Close</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateSettingsPage</name>
+    <message>
+        <source>Check now uses the applied channel: %1</source>
+        <translation>Check now uses the applied channel: %1</translation>
+    </message>
+    <message>
+        <source>Stable</source>
+        <translation>Stable</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Preview</translation>
+    </message>
+    <message>
+        <source>Automatically check for updates</source>
+        <translation>Automatically check for updates</translation>
+    </message>
+    <message>
+        <source>Update channel</source>
+        <translation>Update channel</translation>
+    </message>
+    <message>
+        <source>Stable is recommended. Preview releases may contain unfinished changes. Channel and automatic checking changes take effect after Apply or OK.</source>
+        <translation>Stable is recommended. Preview releases may contain unfinished changes. Channel and automatic checking changes take effect after Apply or OK.</translation>
+    </message>
+    <message>
+        <source>Check now</source>
+        <translation>Check now</translation>
+    </message>
+</context>
+<context>
+    <name>OptionsDialog</name>
+    <message>
+        <source>Updates</source>
+        <translation>Updates</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>Check for updates</source>
+        <translation>Check for updates</translation>
+    </message>
+</context>
 </TS>

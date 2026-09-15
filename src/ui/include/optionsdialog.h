@@ -52,6 +52,7 @@
 #include "ui_optionsdialog.h"
 
 class StorageLocationPage;
+class UpdateSettingsPage;
 class QEvent;
 
 class KeySequencePresenter : public QWidget {
@@ -82,6 +83,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     // Is emitted when new settings must be used
     void optionsChanged();
     void restartRequested();
+    void checkUpdatesRequested();
 
   protected:
     void changeEvent( QEvent* event ) override;
@@ -125,6 +127,7 @@ class OptionsDialog : public QDialog, public Ui::OptionsDialog {
     QColor mainSearchColor_;
     QColor qfSearchColor_;
     StorageLocationPage* storageLocationPage_ = nullptr;
+    UpdateSettingsPage* updateSettingsPage_ = nullptr;
     OptionsDialogStoragePaths storagePaths_;
 };
 

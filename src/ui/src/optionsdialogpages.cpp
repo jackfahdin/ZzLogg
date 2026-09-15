@@ -38,6 +38,7 @@
 
 // Page presentation only. Persistence and storage migration stay in optionsdialog.cpp.
 #include "optionsdialog.h"
+#include "updatesettingspage.h"
 #include "encodings.h"
 #include "fontutils.h"
 #include "highlighteredit.h"
@@ -65,6 +66,7 @@ void OptionsDialog::retranslateDynamicUi()
     retranslateUi( this );
     setWindowTitle( tr( "%1 preferences" ).arg( QApplication::applicationDisplayName() ) );
     tabWidget->setTabText( tabWidget->indexOf( storageLocationPage_ ), tr( "Storage" ) );
+    tabWidget->setTabText(tabWidget->indexOf(updateSettingsPage_), tr("Updates"));
     replaceText( themeModeComboBox, int( UiThemeMode::Light ), tr( "Light" ) );
     replaceText( themeModeComboBox, int( UiThemeMode::Dark ), tr( "Dark" ) );
     replaceText( mainSearchBox, int( SearchRegexpType::ExtendedRegexp ), tr( "Extended Regexp" ) );
@@ -296,7 +298,7 @@ void OptionsDialog::updateDialogFromConfig()
     optimizeForNotLatinEncodingsCheckBox->setChecked( config.optimizeForNotLatinEncodings() );
 
     // version checking
-    checkForNewVersionCheckBox->setChecked( config.versionCheckingEnabled() );
+    updateSettingsPage_->loadFromConfig();
 
     // downloads
     verifySslCheckBox->setChecked( config.verifySslPeers() );

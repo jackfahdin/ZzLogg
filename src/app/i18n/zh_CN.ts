@@ -2561,4 +2561,166 @@
         <translation>可点击 &lt;b&gt;"+"&lt;/b&gt; 或按 Ctrl+N 添加标签页</translation>
     </message>
 </context>
+<context>
+    <name>UpdateCheckDialog</name>
+    <message>
+        <source>Check for updates</source>
+        <translation>检查更新</translation>
+    </message>
+    <message>
+        <source>Stable</source>
+        <translation>稳定版</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>预览版</translation>
+    </message>
+    <message>
+        <source>Current version: %1
+Channel: %2</source>
+        <translation>当前版本：%1
+更新渠道：%2</translation>
+    </message>
+    <message>
+        <source>Ready to check for updates.</source>
+        <translation>可以开始检查更新。</translation>
+    </message>
+    <message>
+        <source>Update service is not configured.</source>
+        <translation>尚未配置更新服务。</translation>
+    </message>
+    <message>
+        <source>Checking for updates...</source>
+        <translation>正在检查更新…</translation>
+    </message>
+    <message>
+        <source>Update check cancelled.</source>
+        <translation>已取消检查更新。</translation>
+    </message>
+    <message>
+        <source>You are using the latest version.</source>
+        <translation>当前已是最新版本。</translation>
+    </message>
+    <message>
+        <source>A new version is available.</source>
+        <translation>发现新版本。</translation>
+    </message>
+    <message>
+        <source>Verified release information (installation identity unavailable).</source>
+        <translation>已验证的发布信息（无法确认安装身份）。</translation>
+    </message>
+    <message>
+        <source>This release is not compatible with this installation.</source>
+        <translation>此版本与当前安装不兼容。</translation>
+    </message>
+    <message>
+        <source>Unable to retrieve the update manifest. Please try again later.</source>
+        <translation>无法获取更新清单，请稍后重试。</translation>
+    </message>
+    <message>
+        <source>Update verification failed. Check the system clock or try again later.</source>
+        <translation>更新验证失败，请检查系统时间或稍后重试。</translation>
+    </message>
+    <message>
+        <source>Local update state cannot be read. It has not been reset.</source>
+        <translation>无法读取本地更新状态，原状态未被重置。</translation>
+    </message>
+    <message>
+        <source>Another process is updating the local state. Please try again later.</source>
+        <translation>其他进程正在更新本地状态，请稍后重试。</translation>
+    </message>
+    <message>
+        <source>Unable to save update state. No update has been accepted.</source>
+        <translation>无法保存更新状态，未接受本次更新。</translation>
+    </message>
+    <message>
+        <source>Last check: %1</source>
+        <translation>上次检查：%1</translation>
+    </message>
+    <message>
+        <source>Release version: %1</source>
+        <translation>发布版本：%1</translation>
+    </message>
+    <message>
+        <source>Package: %1 (%2 bytes)</source>
+        <translation>更新包：%1（%2 字节）</translation>
+    </message>
+    <message>
+        <source>Portable</source>
+        <translation>便携版</translation>
+    </message>
+    <message>
+        <source>Installer</source>
+        <translation>安装版</translation>
+    </message>
+    <message>
+        <source>This version supports update checks only. Download and installation are not available yet.</source>
+        <translation>当前仅支持检查更新，下载与安装功能尚未接入。</translation>
+    </message>
+    <message>
+        <source>Check again</source>
+        <translation>重新检查</translation>
+    </message>
+    <message>
+        <source>Cancel check</source>
+        <translation>取消检查</translation>
+    </message>
+    <message>
+        <source>Remind me later</source>
+        <translation>稍后提醒</translation>
+    </message>
+    <message>
+        <source>Skip this version</source>
+        <translation>跳过此版本</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateSettingsPage</name>
+    <message>
+        <source>Check now uses the applied channel: %1</source>
+        <translation>立即检查使用已应用的渠道：%1</translation>
+    </message>
+    <message>
+        <source>Stable</source>
+        <translation>稳定版</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>预览版</translation>
+    </message>
+    <message>
+        <source>Automatically check for updates</source>
+        <translation>自动检查更新</translation>
+    </message>
+    <message>
+        <source>Update channel</source>
+        <translation>更新渠道</translation>
+    </message>
+    <message>
+        <source>Stable is recommended. Preview releases may contain unfinished changes. Channel and automatic checking changes take effect after Apply or OK.</source>
+        <translation>推荐使用稳定版。预览版可能包含尚未完成的改动。渠道和自动检查选项在点击“应用”或“确定”后生效。</translation>
+    </message>
+    <message>
+        <source>Check now</source>
+        <translation>立即检查</translation>
+    </message>
+</context>
+<context>
+    <name>OptionsDialog</name>
+    <message>
+        <source>Updates</source>
+        <translation>更新</translation>
+    </message>
+</context>
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>Check for updates</source>
+        <translation>检查更新</translation>
+    </message>
+</context>
 </TS>

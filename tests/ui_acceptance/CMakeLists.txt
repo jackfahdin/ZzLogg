@@ -4,6 +4,22 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_update_check_ui_test updatecheckuitest.cpp)
+target_link_libraries(zzlogg_update_check_ui_test PRIVATE klogg_ui Qt6::Test)
+target_include_directories(zzlogg_update_check_ui_test PRIVATE "${PROJECT_SOURCE_DIR}/src/update/src")
+target_link_libraries(zzlogg_update_check_ui_test PRIVATE zzlogg_update_json zzlogg_update_monocypher)
+target_compile_definitions(zzlogg_update_check_ui_test PRIVATE ZZLOGG_UI_QM_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(zzlogg_update_check_ui_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.update_check COMMAND zzlogg_update_check_ui_test -platform offscreen
+  -o "${CMAKE_CURRENT_BINARY_DIR}/update-check-$<CONFIG>.txt,txt")
+set_property(TEST zzlogg_ui.update_check PROPERTY ENVIRONMENT
+  "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+if(WIN32)
+  set_property(TEST zzlogg_ui.update_check PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+
 add_test(NAME zzlogg_ui.version_display
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}" "-DBINARY_ROOT=${CMAKE_BINARY_DIR}"
@@ -132,6 +148,7 @@ add_executable(zzlogg_application_translation_test
 target_link_libraries(zzlogg_application_translation_test PRIVATE
   klogg_ui Qt6::Test Qt6::Widgets)
 add_dependencies(zzlogg_application_translation_test zzlogg_documentation)
+add_dependencies(zzlogg_update_check_ui_test zzlogg_application_translation_test)
 target_include_directories(zzlogg_application_translation_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app")
 set_target_properties(zzlogg_application_translation_test PROPERTIES

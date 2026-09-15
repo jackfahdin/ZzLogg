@@ -207,13 +207,15 @@ QVERIFY(!service.snapshot().decision);
 **创建：** src/ui/include/updatecheckdialog.h、src/ui/src/updatecheckdialog.cpp、src/ui/include/updatesettingspage.h、src/ui/src/updatesettingspage.cpp、tests/ui_acceptance/updatecheckuitest.cpp。
 **修改：** mainwindow.h/mainwindow.cpp/mainwindowmenus.cpp、mainwindowtext.h/.cpp、optionsdialog.h/.cpp、optionsdialogpages.cpp、optionsdialog.ui、configuration.h/.cpp、src/ui/CMakeLists.txt、src/app/i18n/en.ts、src/app/i18n/zh_CN.ts、src/app/i18n/zh_TW.ts、tests/ui_acceptance/CMakeLists.txt。
 
-- [ ] 先写对象行为测试：单次菜单激活只发一个检查信号；未配置状态不是最新状态；重复打开窗口只激活已有窗口。使用真实控件，服务测试数据通过 CheckSnapshot 输入，不发真实网络。
-- [ ] UpdateCheckDialog 为非模态 QDialog，内容滚动、底部操作区固定；尺寸按当前屏幕 availableGeometry 限制，沿用现有主题与动态 LanguageChange。更新说明强制 PlainText，不启用外部链接。
-- [ ] 窗口显示当前版本、渠道、检查状态与时间、已验证新版本和所选语言说明；只有具备明确发布身份及选中载荷时展示体积/类型。当前阶段显式提示下载/安装尚未接入。
-- [ ] 操作为“检查/重试、取消检查、稍后、跳过此版本、关闭”；根据状态启用；关闭活动窗口视为取消当前手动检查，不退出主程序。后台新版只展示非模态提示，不强抢焦点。
-- [ ] 独立“更新”设置页复用自动检查设置并提供稳定/预览渠道和立即检查入口。编辑开关/渠道只有 Apply/OK 后生效，Cancel 不保存；立即检查使用已保存渠道，界面明确显示此渠道，避免未应用草稿偷偷生效。
-- [ ] 所有文本支持 en、zh_CN、zh_TW 实时切换；已有设置页布局与样式不重构。测试超长说明、深浅色及 1280×800 逻辑屏幕底部按钮可见。
-- [ ] 注册 zzlogg_ui.update_check，验证设置 Apply/Cancel、菜单与语言行为后提交“feat: 新增检查更新窗口与更新设置页”。
+- [x] 先写对象行为测试：单次菜单激活只发一个检查信号；未配置状态不是最新状态；唯一窗口由任务 5 的应用所有者创建，重复打开的集成测试随该任务执行。使用真实控件，服务测试数据通过 CheckSnapshot 输入，不发真实网络。
+- [x] UpdateCheckDialog 为非模态 QDialog，内容滚动、底部操作区固定；尺寸按当前屏幕 availableGeometry 限制，沿用现有主题与动态 LanguageChange。更新说明强制 PlainText，不启用外部链接。
+- [x] 窗口显示当前版本、渠道、检查状态与时间、已验证新版本和所选语言说明；只有具备明确发布身份及选中载荷时展示体积/类型。当前阶段显式提示下载/安装尚未接入。
+- [x] 操作为“检查/重试、取消检查、稍后、跳过此版本、关闭”；根据状态启用；关闭活动窗口视为取消当前手动检查，不退出主程序。后台新版只展示非模态提示，不强抢焦点。
+- [x] 独立“更新”设置页复用自动检查设置并提供稳定/预览渠道和立即检查入口。编辑开关/渠道只有 Apply/OK 后生效，Cancel 不保存；立即检查使用已保存渠道，界面明确显示此渠道，避免未应用草稿偷偷生效。
+- [x] 所有文本支持 en、zh_CN、zh_TW 实时切换；已有设置页布局与样式不重构。测试三语言超长说明、深浅色及 1280×800 逻辑区域内底部按钮可见，并实际运行 Windows 原生 150% Qt 缩放。
+- [x] 注册 zzlogg_ui.update_check，验证设置 Apply/Cancel、菜单与语言行为后提交“feat: 新增检查更新窗口与更新设置页”。
+
+任务 4 验证记录：窗口骨架先出现 3 项失败，菜单/设置入口再出现 2 项缺失失败；实现后 UI 11 项通过，更新相关与界面 CTest 11/11 通过，已有翻译、行号和设置主题回归 4/4 通过。Windows 原生 QT_SCALE_FACTOR=1.5 实测三语言双主题长说明，900×720 像素截图中的底栏完整可见（600×480 逻辑尺寸）。审查修复检查时间被展示操作改写的问题，时间改由服务快照提供；无配置不伪造检查时间。
 
 ## 任务 5：应用接线、移除旧路径与整体验收
 

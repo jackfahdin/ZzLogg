@@ -267,6 +267,10 @@ class Configuration final : public Persistable<Configuration> {
     {
         enableVersionChecking_ = enabled;
     }
+    QString updateChannel() const { return updateChannel_; }
+    void setUpdateChannel(const QString& channel) {
+        updateChannel_ = channel == QStringLiteral("preview") ? channel : QStringLiteral("stable");
+    }
 
     // View settings
     bool isOverviewVisible() const
@@ -592,6 +596,7 @@ class Configuration final : public Persistable<Configuration> {
     int loggingLevel_ = 4;
 
     bool enableVersionChecking_ = true;
+    QString updateChannel_ = QStringLiteral("stable");
 
     bool extractArchives_ = true;
     bool extractArchivesAlways_ = false;

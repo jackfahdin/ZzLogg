@@ -112,6 +112,9 @@ add_library(
 )
 
 set_target_properties(klogg_ui PROPERTIES AUTOUIC ON)
+target_sources(klogg_ui PRIVATE include/updatecheckdialog.h src/updatecheckdialog.cpp)
+target_sources(klogg_ui PRIVATE include/updatesettingspage.h src/updatesettingspage.cpp)
+target_link_libraries(klogg_ui PUBLIC zzlogg_update_qt)
 set_target_properties(klogg_ui PROPERTIES AUTOMOC ON)
 
 qt6_wrap_cpp(KLOGG_STORAGE_LOCATION_UI_MOC_SOURCES

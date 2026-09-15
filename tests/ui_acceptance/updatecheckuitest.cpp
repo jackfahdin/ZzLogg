@@ -1,0 +1,161 @@
+#include <QtTest>
+#include <QLabel>
+#include <QPushButton>
+#include <QComboBox>
+#include <QAction>
+#include <QTemporaryDir>
+#include <QCheckBox>
+#include <QPlainTextEdit>
+#include <QTranslator>
+#include <QDialogButtonBox>
+#include <QScreen>
+#include <QFontDatabase>
+#include <ZzFluentUI/ZzThemeController.h>
+#include <ZzFluentUI/ZzFluentStyle.h>
+#include "../update/fixturehelper.h"
+#include "configuration.h"
+#include "optionsdialog.h"
+#include "mainwindow.h"
+#include "storagecontext.h"
+#include "recentfiles.h"
+#include "savedsearches.h"
+#include "updatecheckdialog.h"
+using namespace zzlogg::updateqt;
+class UpdateCheckUiTest : public QObject {
+    Q_OBJECT
+    QTemporaryDir settings_;
+private Q_SLOTS:
+    void initTestCase() {
+        QVERIFY(StorageContext::install({StorageMode::CustomDirectory,settings_.path(),settings_.filePath("storage.ini"),true}));
+        Configuration::getSynced();
+        RecentFiles::getSynced(); SavedSearches::getSynced();
+        QFontDatabase::addApplicationFont("C:/Windows/Fonts/consola.ttf");
+    }
+    void notConfiguredIsNotUpToDate() {
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot({CheckStatus::NotConfigured,Channel::Stable,{},{},true});
+        auto* status=dialog.findChild<QLabel*>("updateStatus");
+        QVERIFY(status);
+        QCOMPARE(status->text(),QString("Update service is not configured."));
+        QVERIFY(!dialog.isModal());
+    }
+    void closingManualCheckCancelsOnce() {
+        UpdateCheckDialog dialog;
+        QSignalSpy cancelled(&dialog,&UpdateCheckDialog::cancelRequested);
+        dialog.setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
+        dialog.show();
+        dialog.close();
+        QCOMPARE(cancelled.count(),1);
+    }
+    void checkingDisablesDuplicateCheck() {
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
+        auto* check=dialog.findChild<QPushButton*>("updateCheck");
+        auto* cancel=dialog.findChild<QPushButton*>("updateCancel");
+        QVERIFY(check && cancel);
+        QVERIFY(!check->isEnabled()); QVERIFY(cancel->isEnabled());
+    }
+    void settingsHasIndependentChannelPage() {
+        try {
+        OptionsDialog dialog;
+        auto* channel=dialog.findChild<QComboBox*>("updateChannel");
+        QVERIFY(channel); QCOMPARE(channel->count(),2);
+        QVERIFY(dialog.findChild<QPushButton*>("updateCheckNow"));
+        } catch(const std::exception& error) { QFAIL(error.what()); }
+    }
+    void menuOffersCheckAction() {
+        MainWindow window{WindowSession{std::make_shared<Session>(),"update-ui",0}};
+        auto* action=window.findChild<QAction*>("checkUpdatesAction");
+        QVERIFY(action);
+        QSignalSpy requested(&window,SIGNAL(checkUpdatesRequested()));
+        action->trigger(); QCOMPARE(requested.count(),1);
+    }
+    void displayChangesDoNotInventCheckTime() {
+        UpdateCheckDialog dialog;
+        CheckSnapshot snapshot{CheckStatus::UpToDate,Channel::Stable,{},{},true};
+        snapshot.checkedAt=1800000000;
+        dialog.setSnapshot(snapshot);
+        auto* details=dialog.findChild<QLabel*>("updateDetails");
+        QVERIFY(details->text().contains(QDateTime::fromSecsSinceEpoch(1800000000).toString(Qt::ISODate)));
+        const auto text=details->text(); snapshot.presentToUser=false; dialog.setSnapshot(snapshot);
+        QCOMPARE(details->text(),text);
+        dialog.setSnapshot({CheckStatus::Idle,Channel::Preview});
+        QVERIFY(details->text().isEmpty());
+    }
+    void applyCancelAndImmediateCheckRespectSavedChannel() {
+        auto& config=Configuration::get();
+        config.setUpdateChannel("stable"); config.setVersionCheckingEnabled(true); config.save();
+        {
+            OptionsDialog dialog;
+            auto* channel=dialog.findChild<QComboBox*>("updateChannel");
+            auto* automatic=dialog.findChild<QCheckBox*>("updateAutomatic");
+            QVERIFY(channel && automatic);
+            channel->setCurrentIndex(1); automatic->setChecked(false);
+            QSignalSpy requested(&dialog,SIGNAL(checkUpdatesRequested()));
+            dialog.findChild<QPushButton*>("updateCheckNow")->click();
+            QCOMPARE(requested.count(),1); QCOMPARE(config.updateChannel(),QString("stable"));
+            QVERIFY(config.versionCheckingEnabled());
+            dialog.reject();
+        }
+        QCOMPARE(config.updateChannel(),QString("stable")); QVERIFY(config.versionCheckingEnabled());
+        OptionsDialog dialog;
+        dialog.findChild<QComboBox*>("updateChannel")->setCurrentIndex(1);
+        dialog.findChild<QCheckBox*>("updateAutomatic")->setChecked(false);
+        config.setLanguage(dialog.findChild<QComboBox*>("languageComboBox")->currentData().toString());
+        dialog.buttonBox->button(QDialogButtonBox::Apply)->click();
+        QCOMPARE(Configuration::getSynced().updateChannel(),QString("preview"));
+        QVERIFY(!Configuration::get().versionCheckingEnabled());
+        QVERIFY(dialog.findChild<QLabel*>("updateAppliedChannel")->text().contains("Preview"));
+    }
+    void notesArePlainTextAndLanguageSwitchesLive() {
+        auto payload=update_fixture::payload();
+        payload["notes"]["en"]="<b>Not HTML</b> https://example.invalid";
+        payload["notes"]["zh_CN"]="简体说明";
+        payload["notes"]["zh_TW"]="繁體說明";
+        auto verified=zzlogg::update::verifyManifest(update_fixture::envelope(payload.dump()),update_fixture::context());
+        QVERIFY(verified.value);
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot({CheckStatus::ReleaseInformation,Channel::Stable,verified.value,{},true});
+        auto* notes=dialog.findChild<QPlainTextEdit*>("updateNotes"); QVERIFY(notes);
+        const QStringList languages{"en","zh_CN","zh_TW"};
+        const QStringList expected{"<b>Not HTML</b> https://example.invalid","简体说明","繁體說明"};
+        const QStringList titles{"Check for updates","检查更新","檢查更新"};
+        for(int i=0;i<3;++i) {
+            QTranslator translator;
+            QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+languages[i]+".qm"));
+            Configuration::get().setLanguage(languages[i]);
+            qApp->installTranslator(&translator); QCoreApplication::processEvents();
+            QCOMPARE(notes->toPlainText(),expected[i]); QCOMPARE(dialog.windowTitle(),titles[i]);
+            qApp->removeTranslator(&translator);
+        }
+    }
+    void longNotesKeepFooterVisibleWithBothThemes() {
+        auto payload=update_fixture::payload();
+        for(const auto* language:{"en","zh_CN","zh_TW"}) payload["notes"][language]=std::string(16000,'W');
+        auto verified=zzlogg::update::verifyManifest(update_fixture::envelope(payload.dump()),update_fixture::context());
+        QVERIFY(verified.value); Configuration::get().setLanguage("en");
+        auto* theme=new ZzFluentUI::ZzThemeController(qApp);
+        qApp->setStyle(new ZzFluentUI::ZzFluentStyle(theme));
+        for(const auto* language:{"en","zh_CN","zh_TW"}) {
+          QTranslator translator;
+          QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+language+".qm"));
+          Configuration::get().setLanguage(language); qApp->installTranslator(&translator);
+          for(auto mode:{ZzFluentUI::ZzThemeMode::Light,ZzFluentUI::ZzThemeMode::Dark}) {
+            theme->setMode(mode);
+            UpdateCheckDialog dialog;
+            dialog.setSnapshot({CheckStatus::ReleaseInformation,Channel::Stable,verified.value,{},true});
+            dialog.resize(600,480); dialog.show(); QCoreApplication::processEvents();
+            auto* close=dialog.findChild<QPushButton*>("updateClose");
+            QVERIFY(dialog.rect().contains(QRect(close->mapTo(&dialog,QPoint()),close->size())));
+            QVERIFY(dialog.height()<=720); QVERIFY(dialog.width()<=1232);
+            const auto captured=dialog.grab();
+            QVERIFY(!captured.isNull());
+            QVERIFY(captured.save(QString(ZZLOGG_UI_QM_DIR)+
+                (mode==ZzFluentUI::ZzThemeMode::Dark ? "/update-dark-" : "/update-light-")+language+".png"));
+          }
+          qApp->removeTranslator(&translator);
+        }
+    }
+};
+QTEST_MAIN(UpdateCheckUiTest)
+#include "updatecheckuitest.moc"

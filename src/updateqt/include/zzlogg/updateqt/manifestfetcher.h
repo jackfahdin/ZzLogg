@@ -18,7 +18,7 @@ public:
     ~ManifestFetcher() override;
     void start(const QUrl&, const std::vector<std::string>& allowedHosts);
     void cancel();
-signals:
+Q_SIGNALS:
     void succeeded(QByteArray bytes);
     void failed(zzlogg::updateqt::FetchError error);
 private:

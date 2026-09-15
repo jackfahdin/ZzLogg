@@ -65,6 +65,7 @@
 #include "styles.h"
 
 #include "optionsdialog.h"
+#include "updatesettingspage.h"
 
 static constexpr int PollIntervalMin = 10;
 static constexpr int PollIntervalMax = 3600000;
@@ -109,6 +110,9 @@ OptionsDialog::OptionsDialog( QWidget* parent )
     setWindowTitle( tr( "%1 preferences" ).arg( QApplication::applicationDisplayName() ) );
 
     storageLocationPage_ = new StorageLocationPage{ tabWidget };
+    updateSettingsPage_ = new UpdateSettingsPage(tabWidget);
+    tabWidget->addTab(updateSettingsPage_, tr("Updates"));
+    connect(updateSettingsPage_, &UpdateSettingsPage::checkRequested, this, &OptionsDialog::checkUpdatesRequested);
     tabWidget->addTab( storageLocationPage_, tr( "Storage" ) );
     const auto& storage = StorageContext::current();
     const StorageRuntimePaths& installedPaths = storage.runtimePaths();
@@ -347,7 +351,7 @@ bool OptionsDialog::updateConfigFromDialog()
     config.setOptimizeForNotLatinEncodings( optimizeForNotLatinEncodingsCheckBox->isChecked() );
 
     // version checking
-    config.setVersionCheckingEnabled( checkForNewVersionCheckBox->isChecked() );
+    updateSettingsPage_->applyToConfig();
 
     config.setVerifySslPeers( verifySslCheckBox->isChecked() );
 
@@ -386,6 +390,7 @@ bool OptionsDialog::updateConfigFromDialog()
     retranslateDynamicUi();
 
     config.save();
+    updateSettingsPage_->refreshAppliedChannel();
 
     auto& savedSearches = SavedSearches::get();
     savedSearches.setHistorySize( searchHistorySpinBox->value() );

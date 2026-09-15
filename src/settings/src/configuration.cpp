@@ -241,6 +241,7 @@ void Configuration::retrieveFromStorage( QSettings& settings )
     enableVersionChecking_
         = settings.value( "versionchecker.enabled", DefaultConfiguration.enableVersionChecking_ )
               .toBool();
+    setUpdateChannel(settings.value("updates.channel", "stable").toString());
 
     extractArchives_
         = settings.value( "archives.extract", DefaultConfiguration.extractArchives_ ).toBool();
@@ -441,6 +442,7 @@ void Configuration::saveToStorage( QSettings& settings ) const
     settings.setValue( "logging.verbosity", loggingLevel_ );
 
     settings.setValue( "versionchecker.enabled", enableVersionChecking_ );
+    settings.setValue("updates.channel", updateChannel_);
 
     settings.setValue( "archives.extract", extractArchives_ );
     settings.setValue( "archives.extractAlways", extractArchivesAlways_ );

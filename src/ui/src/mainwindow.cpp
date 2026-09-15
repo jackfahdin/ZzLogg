@@ -378,6 +378,7 @@ void MainWindow::reTranslateUI()
     showDocumentationAction->setStatusTip( transAction( action::showDocumentationStatusTip ) );
 
     aboutAction->setText( transAction( action::aboutText ) );
+    checkUpdatesAction->setText(tr("Check for updates"));
     aboutAction->setStatusTip( transAction( action::aboutStatusTip ) );
 
     aboutQtAction->setText( transAction( action::aboutQtText ) );
@@ -616,6 +617,9 @@ void MainWindow::createActions()
              [ this ]( auto ) { this->documentation(); } );
 
     aboutAction = new QAction( tr( action::aboutText ), this );
+    checkUpdatesAction = new QAction(tr("Check for updates"), this);
+    checkUpdatesAction->setObjectName("checkUpdatesAction");
+    connect(checkUpdatesAction, &QAction::triggered, this, &MainWindow::checkUpdatesRequested);
     aboutAction->setStatusTip( tr( action::aboutStatusTip ) );
     connect( aboutAction, &QAction::triggered, this, [ this ]( auto ) { this->about(); } );
 
@@ -1061,6 +1065,8 @@ void MainWindow::editPredefinedFilters( const QString& newFilter )
 void MainWindow::options()
 {
     OptionsDialog dialog( this );
+    connect(&dialog, &OptionsDialog::checkUpdatesRequested, this, &MainWindow::checkUpdatesRequested);
+    connect(&dialog, &OptionsDialog::optionsChanged, this, &MainWindow::updatePreferencesChanged);
     signalMux_.connect( &dialog, SIGNAL( optionsChanged() ), SLOT( applyConfiguration() ) );
     connect( &dialog, &OptionsDialog::restartRequested, this, [ this ] {
         QTimer::singleShot( 0, this, [ this ] { Q_EMIT restartRequested(); } );
