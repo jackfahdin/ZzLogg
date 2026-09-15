@@ -9,3 +9,6 @@ function(zzlogg_update_test suffix source)
   endif()
 endfunction()
 zzlogg_update_test(version versiontest.cpp)
+zzlogg_update_test(signature signaturetest.cpp)
+target_compile_definitions(zzlogg_update_signature_test PRIVATE
+  UPDATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

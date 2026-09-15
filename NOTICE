@@ -142,6 +142,13 @@ GNU General Public License,version 2.0 or later.
 GNU Lesser General Public License, version 2.1 or later.
 
 ===
+This product includes Monocypher 4.0.3 (https://monocypher.org/),
+used under the BSD-2-Clause license option.
+Copyright (c) 2017-2023, Loup Vaillant and contributors.
+Full license: 3rdparty/vendor/monocypher/LICENCE.md (source),
+licenses/Monocypher/LICENCE.md (runtime distribution).
+
+===
 This product includes software developed by Intel Corporation
 Hyperscan (https://hyperscan.io) licensed
 under the terms of the BSD License
