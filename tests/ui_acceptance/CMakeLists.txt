@@ -450,6 +450,10 @@ add_test(NAME zzlogg_ui.application_smoke_paths
 qt6_wrap_cpp(ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+# Both executables consume these generated files. Give generation one owner so
+# parallel MSBuild projects cannot run moc against the same output concurrently.
+add_custom_target(zzlogg_runtime_contract_moc
+  DEPENDS ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES})
 set_source_files_properties(
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h"
@@ -465,6 +469,7 @@ target_include_directories(zzlogg_restart_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${CMAKE_BINARY_DIR}/src/ui/klogg_ui_autogen/include_$<CONFIG>")
 set_target_properties(zzlogg_restart_contract_test PROPERTIES AUTOMOC ON)
+add_dependencies(zzlogg_restart_contract_test zzlogg_runtime_contract_moc)
 add_test(NAME zzlogg_ui.restart_contract
          COMMAND zzlogg_restart_contract_test -platform offscreen)
 if(WIN32)
@@ -536,6 +541,7 @@ add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/klogg.qrc"
   "${PROJECT_SOURCE_DIR}/src/app/kloggapp.h"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
+add_dependencies(zzlogg_runtime_contract_test zzlogg_runtime_contract_moc)
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
   zzlogg_ui_runtime klogg_ui klogg_logdata klogg_versioncheck
   klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)
