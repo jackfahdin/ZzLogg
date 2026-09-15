@@ -1,6 +1,7 @@
 add_library(zzlogg_update_qt STATIC src/updatestate.cpp src/manifestfetcher.cpp
   include/zzlogg/updateqt/manifestfetcher.h
   src/packagecache.cpp include/zzlogg/updateqt/packagecache.h)
+target_sources(zzlogg_update_qt PRIVATE src/packagedownloader.cpp include/zzlogg/updateqt/packagedownloader.h)
 set_target_properties(zzlogg_update_qt PROPERTIES AUTOMOC ON)
 target_sources(zzlogg_update_qt PRIVATE src/updateservice.cpp include/zzlogg/updateqt/updateservice.h)
 target_sources(zzlogg_update_qt PRIVATE src/updateconfiguration.cpp)

@@ -3,6 +3,7 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <QSslError>
+#include <QPointer>
 #include <deque>
 #include <cstring>
 #include <memory>
@@ -31,8 +32,9 @@ public:
         if(!script_.length.isEmpty()) setRawHeader("Content-Length",script_.length);
         open(QIODevice::ReadOnly);
         QTimer::singleShot(0,this,[this]{
+            const QPointer<ScriptedReply> guard(this);
             if(!script_.finishedOnly) Q_EMIT metaDataChanged();
-            if(aborted_) return;
+            if(!guard || aborted_) return;
             if(script_.tlsError) { Q_EMIT sslErrors({QSslError(QSslError::SelfSignedCertificate)}); return; }
             if(!script_.hang) tick();
         });
@@ -57,13 +59,14 @@ protected:
     }
 private:
     void tick() {
-        if(aborted_) return;
+        const QPointer<ScriptedReply> guard(this);
+        if(!guard || aborted_) return;
         const auto count=qMin(qsizetype(script_.chunkSize),script_.body.size()-offset_);
         if(count>0) {
             buffer_.append(script_.body.constData()+offset_,count); offset_+=count;
             if(!script_.finishedOnly) Q_EMIT readyRead();
         }
-        if(aborted_) return;
+        if(!guard || aborted_) return;
         if(offset_<script_.body.size()) {
             QTimer::singleShot(script_.intervalMs,this,[this]{tick();});
         } else {
