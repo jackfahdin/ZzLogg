@@ -57,7 +57,7 @@ enum class HandoffState { Connecting, Ready, AwaitingAppExit, ExitCommitted, Com
 
 - [ ] 编写参数表测试：正确顺序、仅启动/Hello 不可退出、提前 Complete/Commit、重复握手、其他事务/令牌、全零字段、全部终态重放、截断与超长；取消从每个未完成阶段不可退出。固定协议消息只承载控制信息，安装选择记录不经此消息变为授权。
 - [ ] 同源定义 core/execution/monocypher 两套目标；辅助函数明确 CRT 属性，应用目标保持不变，协调者目标全部 `/MT`（Debug `/MTd`）。不要用全局 CRT 开关，不改变发布身份生成语义；新库/测试不链接 Qt。头文件 json 复用。
-- [ ] 锁接口使用 RAII move-only，获得目录真实 handle，拒绝 reparse/网络/无效根、保留祖先稳定性，标识包含卷序号和文件 ID。可使用 Global 命名 mutex：名称是目录身份哈希、显式 DACL 允许经过身份验证的本地用户 SYNCHRONIZE/MUTEX_MODIFY_STATE、拒绝访问/预占/废弃锁均安全阻塞；持有者死亡不自动视为可继续升级。更新独占租约和新入口探测均基于同一对象。锁不是提升权限凭据。
+- [ ] 锁接口使用 RAII move-only，获得目录真实 handle，拒绝 reparse/网络/无效根、保留祖先稳定性，标识包含卷序号和文件 ID。可使用 Global 命名 mutex：名称是目录身份哈希、显式 DACL 允许经过身份验证的本地用户 SYNCHRONIZE/MUTEX_MODIFY_STATE、拒绝访问/预占/现存对象返回废弃状态时均安全阻塞；不得把 WAIT_ABANDONED 当作成功。更新独占租约和新入口探测均基于同一对象。锁不是提升权限凭据。最后句柄关闭后内核对象消失，此锁不提供持久崩溃恢复判定；该责任属于 3C 受保护事务日志，禁止为弥补此边界在安装目录写普通用户标记。
 - [ ] 真实子进程或本地独立实例测试同目录竞争失败、释放后成功、其他目录互不影响、路径大小写别名一致、路径替换拒绝/持有时失败；记录平台限制，不伪称其他用户实测。
 - [ ] 最少实现通过测试，再移除一个错序/令牌守卫做变异测试并恢复。目标需实际编译链接 core/execution 静态闭包，不能只检查未使用库属性。
 - [ ] 完整 Release 构建及 CTest，提交任务 1。
