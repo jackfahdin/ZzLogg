@@ -2,9 +2,27 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <array>
+#include <stdexcept>
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
-int wmain(int argc,wchar_t** argv) {
+namespace {
+fs::path createTestRoot(const fs::path& base) {
+    std::array<unsigned char,16> nonce{};
+    if(!randomBytes(nonce.data(),static_cast<ULONG>(nonce.size())))
+        throw std::runtime_error("cannot generate a unique coordinator test directory");
+    std::wstring name=L"ZzLogg-coordinate-test-"+std::to_wstring(GetCurrentProcessId())+L"-";
+    constexpr wchar_t hex[]=L"0123456789abcdef";
+    for(auto byte:nonce){name+=hex[byte>>4];name+=hex[byte&15];}
+    auto root=base/name;
+    // Atomic creation must succeed: never adopt or erase another run's files.
+    if(!fs::create_directory(root))
+        throw fs::filesystem_error("coordinator test directory already exists",root,
+            std::make_error_code(std::errc::file_exists));
+    return root;
+}
+}
+int runCoordinatorTest(int argc,wchar_t** argv) {
     if(argc==4 && std::wstring(argv[1])==L"--orphan-parent"){
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"orphan");Coordinator c;
         if(!c.start(fs::path(argv[2]).make_preferred().wstring(),argv[3]) || !c.authenticate(after(2000))
@@ -15,7 +33,16 @@ int wmain(int argc,wchar_t** argv) {
     if(argc!=3)return 2;int failures=0;
     auto check=[&](bool ok,const char* name){if(!ok){++failures;std::cerr<<"FAIL: "<<name<<" error="<<GetLastError()<<'\n';}};
     wchar_t temp[MAX_PATH]{};GetTempPathW(MAX_PATH,temp);
-    auto root=fs::path(temp)/(L"ZzLogg-coordinate-test-"+std::to_wstring(GetCurrentProcessId()));fs::create_directory(root);
+    auto root=createTestRoot(temp);
+    // A previous run's files must never be reused, even when Windows reuses its PID.
+    const auto firstRoot=createTestRoot(root);
+    {std::ofstream sentinel(firstRoot/L"previous-run.txt");sentinel<<"preserve previous run";}
+    const auto secondRoot=createTestRoot(root);
+    check(firstRoot!=secondRoot && !fs::exists(secondRoot/L"previous-run.txt"),"each test run gets an independent directory despite the same PID");
+    std::string previous;{std::ifstream sentinel(firstRoot/L"previous-run.txt");std::getline(sentinel,previous);}
+    check(previous=="preserve previous run","allocating another test root preserves previous files");
+    fs::remove(firstRoot/L"previous-run.txt");fs::remove(firstRoot);fs::remove(secondRoot);
+    if(failures){fs::remove(root);return 1;}
     fs::create_directory(root/L"install");fs::create_directory(root/L"runtime");
     const auto source=root/L"install"/L"fixture.exe";fs::copy_file(argv[1],source);
     for(auto mode:{L"success",L"linger",L"early",L"timeout",L"token",L"order",L"replay",L"cancel",L"hello-only",L"exit-after-hello"}) {
@@ -96,4 +123,11 @@ int wmain(int argc,wchar_t** argv) {
       WaitForSingleObject(c.process().handle(),2000);DWORD code=0;GetExitCodeProcess(c.process().handle(),&code);check(code==40,"production returns explicit ExecutionDisabled");}
     std::error_code ec;fs::remove(source,ec);fs::remove(root/L"install",ec);fs::remove(root/L"runtime",ec);fs::remove(root,ec);
     std::cout<<"coordinator test complete"<<std::endl;return failures?1:0;
+}
+int wmain(int argc,wchar_t** argv) {
+    try {return runCoordinatorTest(argc,argv);}
+    catch(const std::exception& error) {
+        std::cerr<<"FAIL: coordinator test exception: "<<error.what()<<std::endl;
+        return 1;
+    }
 }
