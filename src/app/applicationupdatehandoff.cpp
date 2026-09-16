@@ -221,6 +221,15 @@ bool ApplicationUpdateHandoff::commitExit()
     if ( d.snapshot.state != State::Waiting || d.commitPending || !d.session ) {
         return false;
     }
+    // Recheck the local preparation before posting the irreversible CommitExit:
+    // losing a prepared participant silently cancels the application
+    // preparation, and the peer must never observe a committed exit for an
+    // application that stays alive.
+    if ( !d.app.isApplicationExitPrepared() ) {
+        failFromWaiting( Failure::PreparationFailed,
+                         QStringLiteral( "the prepared session was lost before the exit commit" ) );
+        return false;
+    }
     if ( !d.session->canCommitExit() ) {
         failFromWaiting( Failure::PeerLost,
                          QStringLiteral( "peer exited before the exit commit" ) );

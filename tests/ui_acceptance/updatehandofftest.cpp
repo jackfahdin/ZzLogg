@@ -146,6 +146,8 @@ bool beginWithRetry( ApplicationUpdateHandoff& handoff, qint64 timeoutMs = 10000
     timer.start();
     while ( !handoff.begin() ) {
         if ( timer.elapsed() > timeoutMs ) {
+            qWarning() << "beginWithRetry exhausted; last failure:"
+                       << int( handoff.snapshot().failure ) << handoff.snapshot().detail;
             return false;
         }
         QTest::qWait( 50 );
@@ -518,6 +520,56 @@ class UpdateHandoffTest final : public QObject {
                 return probe.enter( nativeInstall ) == ActivityError::None;
             }(),
             15000 );
+    }
+
+    // Review finding (3B.4 task 3): losing a prepared participant silently
+    // cancels the local preparation; the irreversible CommitExit must never be
+    // posted afterwards and the application stays usable.
+    void preparationLostBeforeCommitNeverSendsCommitExit()
+    {
+        setFixtureMode( L"waitgate" );
+        const QString gateName
+            = QStringLiteral( "Local\\zzlogg-handoff-gate-%1-lost" )
+                  .arg( QCoreApplication::applicationPid() );
+        HANDLE gateRaw = CreateEventW( nullptr, TRUE, FALSE,
+                                       reinterpret_cast<LPCWSTR>( gateName.utf16() ) );
+        QVERIFY( gateRaw != nullptr );
+        const auto gateCloser = qScopeGuard( [ gateRaw ] { CloseHandle( gateRaw ); } );
+        SetEnvironmentVariableW( L"ZZLOGG_HANDOFF_GATE",
+                                 reinterpret_cast<const wchar_t*>( gateName.utf16() ) );
+        const auto gateEnvCleaner
+            = qScopeGuard( [] { SetEnvironmentVariableW( L"ZZLOGG_HANDOFF_GATE", nullptr ); } );
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, fixtureSessionFactory( fixtureExecutable(), nextRuntimeBase() ) );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        QVERIFY( app_.isApplicationExitPrepared() );
+        QVERIFY( app_.updateGuard().isUpdateReserved() );
+        // Participant loss silently cancels the local preparation.
+        delete window;
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        // The commit path must refuse before posting the irreversible message.
+        QVERIFY( !handoff.commitExit() );
+        QCOMPARE( handoff.snapshot().state, State::Failed );
+        QCOMPARE( handoff.snapshot().failure, Failure::PreparationFailed );
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
+        // The child received Cancel, not CommitExit: it exits after its bounded
+        // receive instead of lingering on the never-signalled gate, so the
+        // observed directory gate evaporates quickly.
+        const auto nativeInstall = QDir::toNativeSeparators( installDir_ ).toStdWString();
+        QTRY_VERIFY_WITH_TIMEOUT(
+            [ &nativeInstall ] {
+                InstallationActivity probe;
+                return probe.enter( nativeInstall ) == ActivityError::None;
+            }(),
+            8000 );
+        // The application stays fully usable.
+        auto* replacement = app_.newWindow();
+        QVERIFY( replacement != nullptr );
+        replacement->show();
+        QVERIFY( replacement->isEnabled() );
     }
 
   private:
