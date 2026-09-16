@@ -47,6 +47,7 @@
 #include "configuration.h"
 #include "applicationrunner.h"
 #include "applicationupdateguard.h"
+#include "applicationupdatehandoff.h"
 #include "klogg_version.h"
 #include "log.h"
 #include "logger.h"
@@ -477,7 +478,7 @@ class KloggApp : public QApplication {
             std::nullopt,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateDownloadService_->setObjectName("applicationUpdateDownloadService");
         connect(updateDownloadService_.get(),&UpdateDownloadService::snapshotChanged,this,[this] {
-            if(updateDialog_) updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot());
+            if(updateDialog_) { updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot()); pushUpdateExecutionCapability(); }
         });
         updateService_->setChannel(configuredUpdateChannel());
         updateService_->setAutomaticChecking(singleApplication_.isPrimaryInstance()
@@ -488,7 +489,7 @@ class KloggApp : public QApplication {
                 updateDownloadService_->invalidate();
                 updateDialogDismissed_=false;
             }
-            if (updateDialog_) updateDialog_->setSnapshot(snapshot);
+            if (updateDialog_) { updateDialog_->setSnapshot(snapshot); pushUpdateExecutionCapability(); }
             if (!snapshot.presentToUser || updateDialogDismissed_ || snapshot.status==CheckStatus::Checking) return;
             if (!updateDialog_ && !mainWindows_.empty())
                 showUpdateDialog(mainWindows_.front().second,false);
@@ -524,6 +525,8 @@ class KloggApp : public QApplication {
                 updateService_->skipCurrentRelease();
                 if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
             });
+            connect(dialog,&UpdateCheckDialog::installRequested,this,[this] { updateHandoff().begin(); });
+            connect(dialog,&UpdateCheckDialog::installCancelRequested,this,[this] { updateHandoff().cancel(); });
             connect(dialog,&UpdateCheckDialog::closing,this,[this,dialog] {
                 updateDialogDismissed_=true;
                 if(updateDialog_==dialog) updateDialog_.clear();
@@ -534,8 +537,79 @@ class KloggApp : public QApplication {
         }
         updateDialog_->setSnapshot(updateService_->snapshot());
         updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot());
+        pushUpdateExecutionCapability();
         updateDialog_->show();
         if (foreground) { updateDialog_->raise(); updateDialog_->activateWindow(); }
+    }
+
+    // Lazily owned restricted handoff controller. The production factory is
+    // closed, so begin() always refuses; the wiring only forwards the dialog
+    // requests and arranges the real exit after a committed handoff.
+    ApplicationUpdateHandoff& updateHandoff()
+    {
+        if ( !updateHandoff_ ) {
+            auto handoff = std::make_unique<ApplicationUpdateHandoff>( *this );
+            connect( handoff.get(), &ApplicationUpdateHandoff::snapshotChanged, this,
+                     [ this ]( const ApplicationUpdateHandoff::Snapshot& snapshot ) {
+                         if ( updateDialog_ ) {
+                             updateDialog_->setHandoffState( mapHandoffState( snapshot.state ),
+                                                             mapHandoffError( snapshot.failure ) );
+                         }
+                         if ( snapshot.state == ApplicationUpdateHandoff::State::Waiting ) {
+                             // Minimal prepared-to-commit interval: the peer is
+                             // already live, authenticated and AwaitingAppExit.
+                             updateHandoff_->commitExit();
+                         }
+                     } );
+            connect( handoff.get(), &ApplicationUpdateHandoff::exitCommitted, this, [] {
+                QCoreApplication::exit( 0 ); // arranged exit, never the restart code
+            } );
+            updateHandoff_ = std::move( handoff );
+        }
+        return *updateHandoff_;
+    }
+
+    // Capability is presentation only; the dialog clears it on every snapshot
+    // change, so it is re-pushed after each delivery.
+    void pushUpdateExecutionCapability()
+    {
+        if ( updateDialog_ ) {
+            updateDialog_->setUpdateExecutionAvailable( updateHandoff().executionAvailable() );
+        }
+    }
+
+    static UpdateCheckDialog::UpdateHandoffState mapHandoffState( ApplicationUpdateHandoff::State state )
+    {
+        using H = ApplicationUpdateHandoff;
+        using D = UpdateCheckDialog;
+        switch ( state ) {
+        case H::State::Idle: return D::UpdateHandoffState::Idle;
+        case H::State::Preparing: return D::UpdateHandoffState::Preparing;
+        case H::State::Waiting: return D::UpdateHandoffState::Waiting;
+        case H::State::ExitCommitted: return D::UpdateHandoffState::ExitCommitted;
+        case H::State::Cancelled: return D::UpdateHandoffState::Cancelled;
+        case H::State::Failed: return D::UpdateHandoffState::Failed;
+        }
+        return D::UpdateHandoffState::Idle;
+    }
+
+    static UpdateCheckDialog::UpdateHandoffError mapHandoffError( ApplicationUpdateHandoff::Failure failure )
+    {
+        using H = ApplicationUpdateHandoff;
+        using D = UpdateCheckDialog;
+        switch ( failure ) {
+        case H::Failure::None: return D::UpdateHandoffError::None;
+        case H::Failure::ExecutionClosed: return D::UpdateHandoffError::Closed;
+        case H::Failure::PreparationFailed: return D::UpdateHandoffError::Preparation;
+        case H::Failure::ReservationBlocked: return D::UpdateHandoffError::Blocked;
+        case H::Failure::ReservationUnavailable: return D::UpdateHandoffError::Unavailable;
+        case H::Failure::LaunchFailed:
+        case H::Failure::PeerRejected:
+        case H::Failure::PeerLost: return D::UpdateHandoffError::Helper;
+        case H::Failure::CommitRejected: return D::UpdateHandoffError::Commit;
+        case H::Failure::ApprovalDeclined: return D::UpdateHandoffError::ApprovalDeclined;
+        }
+        return D::UpdateHandoffError::Helper;
     }
 
     size_t nextWindowIndex() const
@@ -578,6 +652,9 @@ class KloggApp : public QApplication {
     ExitPreparationState exitPreparationState_ = ExitPreparationState::Idle;
     QList<QPointer<MainWindow>> preparedWindows_;
     bool previousExitRequested_ = false;
+    // Destroyed first: a live handoff restores preparation and releases the
+    // reservation while every other member is still valid.
+    std::unique_ptr<ApplicationUpdateHandoff> updateHandoff_;
 };
 
 #endif // KLOGG_KLOGGAPP_H

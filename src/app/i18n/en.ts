@@ -2655,6 +2655,54 @@ Channel: %2</translation>
         <source>Close</source>
         <translation>Close</translation>
     </message>
+    <message>
+        <source>Quit and install update</source>
+        <translation>Quit and install update</translation>
+    </message>
+    <message>
+        <source>Cancel update</source>
+        <translation>Cancel update</translation>
+    </message>
+    <message>
+        <source>Preparing the update. Your session is being saved...</source>
+        <translation>Preparing the update. Your session is being saved...</translation>
+    </message>
+    <message>
+        <source>Closing ZzLogg and starting the update...</source>
+        <translation>Closing ZzLogg and starting the update...</translation>
+    </message>
+    <message>
+        <source>Update cancelled. Your session is unchanged.</source>
+        <translation>Update cancelled. Your session is unchanged.</translation>
+    </message>
+    <message>
+        <source>Unable to prepare the update. Your session is unchanged.</source>
+        <translation>Unable to prepare the update. Your session is unchanged.</translation>
+    </message>
+    <message>
+        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
+        <translation>Another ZzLogg instance is active in this installation. Close it and try again.</translation>
+    </message>
+    <message>
+        <source>The installation directory could not be verified. The update was not started.</source>
+        <translation>The installation directory could not be verified. The update was not started.</translation>
+    </message>
+    <message>
+        <source>The update helper could not be started. Your session is unchanged.</source>
+        <translation>The update helper could not be started. Your session is unchanged.</translation>
+    </message>
+    <message>
+        <source>The update could not be committed. Your session is unchanged.</source>
+        <translation>The update could not be committed. Your session is unchanged.</translation>
+    </message>
+    <message>
+        <source>Administrator approval was declined. No changes were made.</source>
+        <translation>Administrator approval was declined. No changes were made.</translation>
+    </message>
+    <message>
+        <source>Updates are not available for this installation.</source>
+        <translation>Updates are not available for this installation.</translation>
+    </message>
 </context>
 <context>
     <name>UpdateSettingsPage</name>

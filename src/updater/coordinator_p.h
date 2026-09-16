@@ -10,7 +10,12 @@ public:
     // Destruction disconnects immediately; a private owner retains a live
     // process and runtime leases until actual exit. No UI-thread wait/kill.
     Coordinator();~Coordinator();
-    bool start(const std::wstring& coordinator,const std::wstring& runtimeBase);
+    // When reservedIdentity is present, the bootstrap carries the reserved
+    // directory identity and the child binds an observer handle to the
+    // existing mutex before Hello, keeping the gate alive across this
+    // process's exit. The reservation itself stays owned by the caller.
+    bool start(const std::wstring& coordinator,const std::wstring& runtimeBase,
+        const DirectoryIdentity* reservedIdentity=nullptr);
     bool authenticate(Deadline);
     CoordinationResult awaitAppExit(Deadline);
     bool canCommitExit() const;

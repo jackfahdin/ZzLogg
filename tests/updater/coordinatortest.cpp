@@ -1,9 +1,12 @@
 #include "coordinator_p.h"
+#include "installationactivity_win.h"
+#include "installlock_win.h"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <array>
 #include <stdexcept>
+using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
 namespace {
@@ -21,8 +24,36 @@ fs::path createTestRoot(const fs::path& base) {
             std::make_error_code(std::errc::file_exists));
     return root;
 }
+DWORD probeEnter(const fs::path& dir) {
+    wchar_t executable[32768]{};GetModuleFileNameW(nullptr,executable,32768);
+    std::wstring command=L"\""+std::wstring(executable)+L"\" --probe-enter \""+dir.wstring()+L"\"";
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(executable,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))return 999;
+    Handle child(process.hProcess),thread(process.hThread);
+    if(WaitForSingleObject(child.get(),10000)!=WAIT_OBJECT_0){TerminateProcess(child.get(),998);return 998;}
+    DWORD code=999;GetExitCodeProcess(child.get(),&code);return code;
+}
 }
 int runCoordinatorTest(int argc,wchar_t** argv) {
+    if(argc==3 && std::wstring(argv[1])==L"--probe-enter"){
+        // Third-process entry probe: 0 entered, 10 blocked/unavailable.
+        InstallationActivity activity;
+        return activity.enter(argv[2])==ActivityError::None?0:10;
+    }
+    if(argc==5 && std::wstring(argv[1])==L"--reserve-parent"){
+        // Holds a real update reservation, hands the directory identity to the
+        // child coordinator, reaches WaitingForAppExit, then truly vanishes
+        // without releasing leases so gate continuity is observable.
+        InstallationActivity activity;
+        if(activity.enter(argv[4])!=ActivityError::None)return 4;
+        if(activity.reserveUpdate()!=ActivityError::None)return 5;
+        const auto identity=activity.identity();
+        Coordinator c;
+        if(!c.start(argv[2],argv[3],&identity) || !c.authenticate(after(2000))
+            || c.awaitAppExit(after(2000))!=CoordinationResult::WaitingForAppExit)return 6;
+        {std::wofstream info(fs::path(argv[3])/L"reserve-info.txt");info<<c.process().stamp().pid<<L'\n'<<c.runtimePath()<<L'\n';}
+        ExitProcess(0);
+    }
     if(argc==4 && std::wstring(argv[1])==L"--orphan-parent"){
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"orphan");Coordinator c;
         if(!c.start(fs::path(argv[2]).make_preferred().wstring(),argv[3]) || !c.authenticate(after(2000))
@@ -121,6 +152,44 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
     {Coordinator c;check(c.start(fs::path(argv[2]).make_preferred().wstring(),root.wstring()) && c.authenticate(after(2000)),"production bootstrap authenticates");
       check(c.awaitAppExit(after(1000))==CoordinationResult::Failed && !c.canCommitExit(),"production execution disabled");
       WaitForSingleObject(c.process().handle(),2000);DWORD code=0;GetExitCodeProcess(c.process().handle(),&code);check(code==40,"production returns explicit ExecutionDisabled");}
+    {
+        // Directory reservation continuity across the reserving parent's real exit.
+        std::cout<<"coordinator reservation continuity"<<std::endl;
+        const auto reserved=root/L"reserved-install";fs::create_directory(reserved);
+        const auto reserveBase=root/L"reserve-runtime";fs::create_directory(reserveBase);
+        DirectoryIdentity unreserved{};
+        check(InstallationActivity::probeIdentity(reserved.wstring(),unreserved),"identity probe of an unreserved directory");
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"success");
+        {Coordinator c;
+          check(c.start(source.wstring(),(root/L"runtime").wstring(),&unreserved),"launch with unmatched directory identity still starts");
+          check(!c.authenticate(after(2000)) && !c.canCommitExit(),"child without the existing reservation mutex never completes Hello");
+          WaitForSingleObject(c.process().handle(),2000);DWORD code=0;GetExitCodeProcess(c.process().handle(),&code);
+          check(code==51,"unmatched directory child returns BootstrapRejected");}
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"orphan");
+        wchar_t executable[32768]{};GetModuleFileNameW(nullptr,executable,32768);
+        std::wstring command=L"\""+std::wstring(executable)+L"\" --reserve-parent \""+source.wstring()+L"\" \""+reserveBase.wstring()+L"\" \""+reserved.wstring()+L"\"";
+        STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+        check(CreateProcessW(executable,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process),"reserve parent starts");
+        Handle parent(process.hProcess),parentThread(process.hThread);
+        check(WaitForSingleObject(parent.get(),10000)==WAIT_OBJECT_0,"reserve parent truly exits");
+        DWORD parentCode=1;GetExitCodeProcess(parent.get(),&parentCode);
+        check(parentCode==0,"reserve parent reached WaitingForAppExit before exiting");
+        DWORD childPid=0;std::wstring childPath;{std::wifstream info(reserveBase/L"reserve-info.txt");info>>childPid;info.ignore();std::getline(info,childPath);}
+        Handle grandchild(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,FALSE,childPid));
+        check(grandchild && WaitForSingleObject(grandchild.get(),0)==WAIT_TIMEOUT,"observing child outlives the reserving parent");
+        check(probeEnter(reserved)==10,"third-process entry stays rejected after the reserving parent exited");
+        {InstallLock lock;const auto claimResult=lock.acquire(reserved.wstring());
+          // The reserving parent vanished without releasing: the object lives
+          // on through the child's observer, so every new claim is fail-closed
+          // (blocked or observed as abandoned), never acquired.
+          check(claimResult==InstallLockError::Blocked || claimResult==InstallLockError::Abandoned,
+              "install lock stays fail-closed while the observer holds the object");}
+        check(WaitForSingleObject(grandchild.get(),8000)==WAIT_OBJECT_0,"observing child ends on its own");
+        check(probeEnter(reserved)==0,"entry allowed again after the observing child ends");
+        {InstallLock lock;check(lock.acquire(reserved.wstring())==InstallLockError::None,"install lock reacquired once the observer is gone");}
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+        std::error_code cleanup;fs::remove_all(reserveBase,cleanup);fs::remove(reserved,cleanup);
+    }
     std::error_code ec;fs::remove(source,ec);fs::remove(root/L"install",ec);fs::remove(root/L"runtime",ec);fs::remove(root,ec);
     std::cout<<"coordinator test complete"<<std::endl;return failures?1:0;
 }

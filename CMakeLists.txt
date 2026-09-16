@@ -270,12 +270,14 @@ endif()
 
 if(KLOGG_BUILD_UI_TESTS)
   find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
-  add_subdirectory(tests/ui_acceptance)
-  add_subdirectory(tests/update)
-  add_subdirectory(tests/updateqt)
+  # Updater fixtures must exist before ui_acceptance: the handoff acceptance
+  # test spawns the real handoff fixture child process.
   if(TARGET zzlogg_updater_handoff)
     add_subdirectory(tests/updater)
   endif()
+  add_subdirectory(tests/ui_acceptance)
+  add_subdirectory(tests/update)
+  add_subdirectory(tests/updateqt)
   if(ZZLOGG_BUILD_UPDATE_TEST_TOOLS)
     add_subdirectory(tools/update)
   endif()

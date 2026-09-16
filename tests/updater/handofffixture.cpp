@@ -20,6 +20,7 @@ int wmain(int argc,wchar_t** argv) {
     message.kind=mode==L"replay"?MessageKind::Hello:mode==L"cancel"?MessageKind::Cancel:MessageKind::AwaitingAppExit;
     if(!channel.send(message,after(1000)))return 54;
     if(mode==L"cancel" || mode==L"replay")return 0;
+    if(mode==L"die-waiting")return 0; // Peer dies after AwaitingAppExit, before CommitExit.
     auto commit=channel.receive(after(2000));
     if(mode==L"orphan"){
         // Keep the child alive after the real parent dies so the harness can
@@ -30,5 +31,14 @@ int wmain(int argc,wchar_t** argv) {
     if(!commit || commit->kind!=MessageKind::CommitExit)return 0;
     message.kind=MessageKind::Complete;channel.send(message,after(1000));
     if(mode==L"linger")Sleep(600);
+    if(mode==L"waitgate"){
+        // Hold the bootstrap directory observer until the harness opens the
+        // named gate, so gate continuity is observable after the parent's
+        // real exit. The bounded wait keeps a broken harness from hanging.
+        wchar_t name[256]{};GetEnvironmentVariableW(L"ZZLOGG_HANDOFF_GATE",name,256);
+        Handle gate(OpenEventW(SYNCHRONIZE,FALSE,name));
+        if(!gate)return 9;
+        WaitForSingleObject(gate.get(),30000);
+    }
     return 0;
 }

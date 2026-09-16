@@ -28,6 +28,7 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     auto* content=new QWidget(scroll); auto* body=new QVBoxLayout(content); body->setSpacing(14);
     identity_=label(content); status_=label(content); details_=label(content); hint_=label(content);
     downloadStatus_=label(this); downloadStatus_->setObjectName("updateDownloadStatus");
+    handoffStatus_=label(this); handoffStatus_->setObjectName("updateHandoffStatus");
     progress_=new QProgressBar(this); progress_->setObjectName("updateDownloadProgress");
     status_->setObjectName("updateStatus"); details_->setObjectName("updateDetails");
     auto font=status_->font(); font.setBold(true); font.setPointSize(font.pointSize()+2); status_->setFont(font);
@@ -36,18 +37,26 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     body->addWidget(identity_); body->addWidget(status_); body->addWidget(details_);
     body->addWidget(notes_,1); body->addWidget(hint_);
     scroll->setWidget(content); outer->addWidget(scroll,1);
-    outer->addWidget(downloadStatus_); outer->addWidget(progress_);
+    outer->addWidget(downloadStatus_); outer->addWidget(progress_); outer->addWidget(handoffStatus_);
     auto* footer=new QHBoxLayout; outer->addLayout(footer);
     check_=new QPushButton(this); cancel_=new QPushButton(this); later_=new QPushButton(this);
     skip_=new QPushButton(this); close_=new QPushButton(this);
     download_=new QPushButton(this); download_->setObjectName("updateDownload");
+    install_=new QPushButton(this); install_->setObjectName("updateInstall");
     check_->setObjectName("updateCheck"); cancel_->setObjectName("updateCancel"); close_->setObjectName("updateClose");
     skip_->setObjectName("updateSkip"); later_->setObjectName("updateLater");
-    for(auto* button:{check_,download_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
+    for(auto* button:{check_,download_,install_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
     connect(check_,&QPushButton::clicked,this,&UpdateCheckDialog::checkRequested);
     connect(download_,&QPushButton::clicked,this,&UpdateCheckDialog::downloadRequested);
+    connect(install_,&QPushButton::clicked,this,[this] {
+        // Defense in depth: capability and a fresh verified package are
+        // rechecked at click time, not only at refresh time.
+        if(installAvailable()) Q_EMIT installRequested();
+    });
     connect(cancel_,&QPushButton::clicked,this,[this] {
-        if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
+        if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting)
+            Q_EMIT installCancelRequested();
+        else if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
         else Q_EMIT cancelRequested();
     });
     connect(skip_,&QPushButton::clicked,this,&UpdateCheckDialog::skipRequested);
@@ -59,6 +68,8 @@ UpdateCheckDialog::~UpdateCheckDialog()
 {
     if(!dismissed_) {
         Q_EMIT closing();
+        if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting)
+            Q_EMIT installCancelRequested();
         if(snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser) Q_EMIT cancelRequested();
         if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
     }
@@ -67,12 +78,36 @@ void UpdateCheckDialog::setSnapshot(const CheckSnapshot& snapshot)
 {
     snapshot_=snapshot;
     checkedAt_=snapshot.checkedAt>0 ? QDateTime::fromSecsSinceEpoch(snapshot.checkedAt) : QDateTime{};
+    updateExecutionAvailable_=false; // any selection/check change clears the pushed capability
     refresh();
 }
 void UpdateCheckDialog::setDownloadSnapshot(const DownloadSnapshot& snapshot)
 {
     downloadSnapshot_=snapshot;
+    updateExecutionAvailable_=false; // any download change clears the pushed capability
     refresh();
+}
+void UpdateCheckDialog::setUpdateExecutionAvailable(bool available)
+{
+    updateExecutionAvailable_=available;
+    refresh();
+}
+void UpdateCheckDialog::setHandoffState(UpdateHandoffState state, UpdateHandoffError error)
+{
+    handoffState_=state;
+    handoffError_=error;
+    refresh();
+}
+bool UpdateCheckDialog::installAvailable() const
+{
+    // Both the pushed execution capability and a fresh selected verified
+    // package are required; the Verified download state alone is never enough.
+    const bool downloadable=snapshot_.status==CheckStatus::Available && snapshot_.release
+        && snapshot_.decision
+        && snapshot_.decision->status==zzlogg::update::DecisionStatus::Available
+        && snapshot_.decision->artifact;
+    return updateExecutionAvailable_ && downloadable
+        && downloadSnapshot_.status==DownloadStatus::Verified;
 }
 void UpdateCheckDialog::refresh()
 {
@@ -165,6 +200,52 @@ void UpdateCheckDialog::refresh()
             : tr("%1 bytes received").arg(received));
     }
     downloadStatus_->setText(downloadText); downloadStatus_->setVisible(!downloadText.isEmpty());
+    // Restricted handoff presentation: the install action stays hidden unless
+    // the backend pushed the capability and a fresh verified package exists.
+    const bool handoffBusy=handoffState_==UpdateHandoffState::Preparing
+        || handoffState_==UpdateHandoffState::Waiting;
+    install_->setText(tr("Quit and install update"));
+    install_->setVisible(installAvailable() || handoffBusy);
+    install_->setEnabled(installAvailable() && !handoffBusy);
+    if(handoffBusy) {
+        // Preparing/waiting freezes every selection-changing action; the only
+        // offered operation is cancelling the handoff.
+        check_->setEnabled(false); download_->setEnabled(false);
+        skip_->setEnabled(false); later_->setEnabled(false);
+        cancel_->setText(tr("Cancel update"));
+        cancel_->setVisible(true); cancel_->setEnabled(true);
+    }
+    QString handoffText;
+    switch(handoffState_) {
+    case UpdateHandoffState::Idle: break;
+    case UpdateHandoffState::Preparing:
+        handoffText=tr("Preparing the update. Your session is being saved..."); break;
+    case UpdateHandoffState::Waiting:
+    case UpdateHandoffState::ExitCommitted:
+        handoffText=tr("Closing ZzLogg and starting the update..."); break;
+    case UpdateHandoffState::Cancelled:
+        handoffText=tr("Update cancelled. Your session is unchanged."); break;
+    case UpdateHandoffState::Failed:
+        switch(handoffError_) {
+        case UpdateHandoffError::Preparation:
+            handoffText=tr("Unable to prepare the update. Your session is unchanged."); break;
+        case UpdateHandoffError::Blocked:
+            handoffText=tr("Another ZzLogg instance is active in this installation. Close it and try again."); break;
+        case UpdateHandoffError::Unavailable:
+            handoffText=tr("The installation directory could not be verified. The update was not started."); break;
+        case UpdateHandoffError::Commit:
+            handoffText=tr("The update could not be committed. Your session is unchanged."); break;
+        case UpdateHandoffError::ApprovalDeclined:
+            handoffText=tr("Administrator approval was declined. No changes were made."); break;
+        case UpdateHandoffError::Closed:
+            handoffText=tr("Updates are not available for this installation."); break;
+        case UpdateHandoffError::None:
+        case UpdateHandoffError::Helper:
+            handoffText=tr("The update helper could not be started. Your session is unchanged."); break;
+        }
+        break;
+    }
+    handoffStatus_->setText(handoffText); handoffStatus_->setVisible(!handoffText.isEmpty());
 }
 void UpdateCheckDialog::changeEvent(QEvent* event)
 {
@@ -178,6 +259,12 @@ void UpdateCheckDialog::showEvent(QShowEvent* event)
 }
 void UpdateCheckDialog::reject()
 {
+    // Closing or ESC during an active handoff is exactly the cancel operation;
+    // the dialog stays open so the cancelled/failed state remains visible.
+    if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting) {
+        Q_EMIT installCancelRequested();
+        return;
+    }
     const bool cancel=snapshot_.status==CheckStatus::Checking && snapshot_.presentToUser;
     const bool cancelDownload=downloadSnapshot_.status==DownloadStatus::Downloading;
     const QPointer<UpdateCheckDialog> guard(this);

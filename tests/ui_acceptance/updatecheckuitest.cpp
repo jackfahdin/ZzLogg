@@ -312,6 +312,135 @@ private Q_SLOTS:
             qApp->removeTranslator(&translator);
         }
     }
+    // The quit-and-install action requires both the execution capability and a
+    // fresh selected verified package; every check/selection/download change
+    // clears the pushed capability and the default production state hides it.
+    void installActionRequiresCapabilityAndFreshVerifiedPackage() {
+        UpdateCheckDialog dialog;
+        auto* install=dialog.findChild<QPushButton*>("updateInstall");
+        QVERIFY(install);
+        QVERIFY(install->isHidden()); QVERIFY(!install->isEnabled());
+        QSignalSpy requested(&dialog,SIGNAL(installRequested()));
+        QVERIFY(requested.isValid());
+        dialog.setSnapshot(availableRelease());
+        dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
+        QVERIFY(install->isHidden()); QVERIFY(!install->isEnabled());
+        dialog.setUpdateExecutionAvailable(true);
+        QVERIFY(!install->isHidden()); QVERIFY(install->isEnabled());
+        QCOMPARE(install->text(),QString("Quit and install update"));
+        install->click(); QCOMPARE(requested.count(),1);
+        auto checking=availableRelease(); checking.status=CheckStatus::Checking;
+        dialog.setSnapshot(checking);
+        QVERIFY(install->isHidden()); QVERIFY(!install->isEnabled());
+        dialog.setSnapshot(availableRelease());
+        QVERIFY(install->isHidden()); // capability stayed cleared
+        dialog.setUpdateExecutionAvailable(true);
+        QVERIFY(!install->isHidden()); QVERIFY(install->isEnabled());
+        dialog.setDownloadSnapshot({DownloadStatus::Downloading,25,100});
+        QVERIFY(install->isHidden()); QVERIFY(!install->isEnabled());
+        dialog.setUpdateExecutionAvailable(true);
+        QVERIFY(install->isHidden()); // no verified package while downloading
+        auto info=availableRelease(); info.status=CheckStatus::ReleaseInformation;
+        dialog.setSnapshot(info);
+        dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
+        dialog.setUpdateExecutionAvailable(true);
+        QVERIFY(install->isHidden()); QVERIFY(!install->isEnabled());
+        QCOMPARE(requested.count(),1);
+    }
+    // Preparing/waiting disable selection changes; close and ESC both cancel.
+    void handoffStatesDisableSelectionChangesAndCloseCancels() {
+        using S=UpdateCheckDialog::UpdateHandoffState;
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot(availableRelease());
+        dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
+        dialog.setUpdateExecutionAvailable(true);
+        auto* install=dialog.findChild<QPushButton*>("updateInstall");
+        auto* check=dialog.findChild<QPushButton*>("updateCheck");
+        auto* download=dialog.findChild<QPushButton*>("updateDownload");
+        auto* skip=dialog.findChild<QPushButton*>("updateSkip");
+        auto* later=dialog.findChild<QPushButton*>("updateLater");
+        auto* cancel=dialog.findChild<QPushButton*>("updateCancel");
+        auto* status=dialog.findChild<QLabel*>("updateHandoffStatus");
+        QVERIFY(status);
+        dialog.show();
+        dialog.setHandoffState(S::Preparing);
+        QVERIFY(!check->isEnabled()); QVERIFY(!download->isEnabled());
+        QVERIFY(!skip->isEnabled()); QVERIFY(!later->isEnabled());
+        QVERIFY(!install->isEnabled()); QVERIFY(!install->isHidden());
+        QVERIFY(cancel->isEnabled()); QVERIFY(!cancel->isHidden());
+        QCOMPARE(cancel->text(),QString("Cancel update"));
+        QCOMPARE(status->text(),QString("Preparing the update. Your session is being saved..."));
+        QSignalSpy cancelledSpy(&dialog,SIGNAL(installCancelRequested()));
+        QVERIFY(cancelledSpy.isValid());
+        QTest::keyClick(&dialog,Qt::Key_Escape);
+        QCOMPARE(cancelledSpy.count(),1);
+        QVERIFY(dialog.isVisible()); // cancelling is not closing
+        dialog.setHandoffState(S::Waiting);
+        QCOMPARE(status->text(),QString("Closing ZzLogg and starting the update..."));
+        QVERIFY(!check->isEnabled());
+        cancel->click(); QCOMPARE(cancelledSpy.count(),2);
+        QVERIFY(dialog.isVisible());
+        dialog.setHandoffState(S::Cancelled);
+        QVERIFY(check->isEnabled()); QVERIFY(install->isEnabled());
+        QCOMPARE(status->text(),QString("Update cancelled. Your session is unchanged."));
+        dialog.close();
+        QVERIFY(!dialog.isVisible()); // after cancellation the dialog closes normally
+    }
+    // Failure texts are the controller-to-UI error mapping, never raw detail.
+    void handoffFailureStatesShowMappedTexts() {
+        using E=UpdateCheckDialog::UpdateHandoffError;
+        using S=UpdateCheckDialog::UpdateHandoffState;
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot(availableRelease());
+        auto* status=dialog.findChild<QLabel*>("updateHandoffStatus");
+        QVERIFY(status);
+        const QList<QPair<E,QString>> cases{
+            {E::Preparation,QString("Unable to prepare the update. Your session is unchanged.")},
+            {E::Blocked,QString("Another ZzLogg instance is active in this installation. Close it and try again.")},
+            {E::Unavailable,QString("The installation directory could not be verified. The update was not started.")},
+            {E::Helper,QString("The update helper could not be started. Your session is unchanged.")},
+            {E::Commit,QString("The update could not be committed. Your session is unchanged.")},
+            {E::ApprovalDeclined,QString("Administrator approval was declined. No changes were made.")},
+            {E::Closed,QString("Updates are not available for this installation.")},
+        };
+        for(const auto& entry:cases) {
+            dialog.setHandoffState(S::Failed,entry.first);
+            QCOMPARE(status->text(),entry.second);
+            QVERIFY(!status->isHidden());
+            dialog.setHandoffState(S::Idle);
+            QVERIFY(status->text().isEmpty());
+            QVERIFY(status->isHidden());
+        }
+    }
+    // Handoff strings switch live between English, simplified and traditional.
+    void handoffStringsTranslateLive() {
+        using S=UpdateCheckDialog::UpdateHandoffState;
+        UpdateCheckDialog dialog;
+        dialog.setSnapshot(availableRelease());
+        auto* install=dialog.findChild<QPushButton*>("updateInstall");
+        auto* status=dialog.findChild<QLabel*>("updateHandoffStatus");
+        const QStringList languages{"en","zh_CN","zh_TW"};
+        const QStringList installLabels{"Quit and install update","退出并安装更新","結束並安裝更新"};
+        const QStringList preparingTexts{"Preparing the update. Your session is being saved...",
+            "正在准备更新，会话正在保存...","正在準備更新，工作階段正在儲存..."};
+        const QStringList cancelledTexts{"Update cancelled. Your session is unchanged.",
+            "更新已取消，会话未更改。","更新已取消，工作階段未變更。"};
+        for(int i=0;i<3;++i) {
+            QTranslator translator;
+            QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+languages[i]+".qm"));
+            Configuration::get().setLanguage(languages[i]);
+            qApp->installTranslator(&translator); QCoreApplication::processEvents();
+            dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
+            dialog.setUpdateExecutionAvailable(true);
+            QCOMPARE(install->text(),installLabels[i]);
+            dialog.setHandoffState(S::Preparing);
+            QCOMPARE(status->text(),preparingTexts[i]);
+            dialog.setHandoffState(S::Cancelled);
+            QCOMPARE(status->text(),cancelledTexts[i]);
+            dialog.setHandoffState(S::Idle);
+            qApp->removeTranslator(&translator);
+        }
+    }
     void longNotesKeepFooterVisibleWithBothThemes() {
         auto payload=update_fixture::payload();
         for(const auto* language:{"en","zh_CN","zh_TW"}) payload["notes"][language]=std::string(16000,'W');
@@ -329,6 +458,7 @@ private Q_SLOTS:
             UpdateCheckDialog dialog;
             dialog.setSnapshot(snapshot);
             dialog.setDownloadSnapshot({downloadStatus,downloadStatus==DownloadStatus::Verified ? 100 : 25,100});
+            dialog.setUpdateExecutionAvailable(true); // also covers the install button containment
             dialog.resize(600,480); dialog.show(); QCoreApplication::processEvents();
             for(auto* button:dialog.findChildren<QPushButton*>()) if(button->isVisible())
                 QVERIFY(dialog.rect().contains(QRect(button->mapTo(&dialog,QPoint()),button->size())));

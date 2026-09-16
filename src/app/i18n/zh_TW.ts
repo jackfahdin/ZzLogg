@@ -2733,6 +2733,54 @@ Channel: %2</source>
         <source>Close</source>
         <translation>關閉</translation>
     </message>
+    <message>
+        <source>Quit and install update</source>
+        <translation>結束並安裝更新</translation>
+    </message>
+    <message>
+        <source>Cancel update</source>
+        <translation>取消更新</translation>
+    </message>
+    <message>
+        <source>Preparing the update. Your session is being saved...</source>
+        <translation>正在準備更新，工作階段正在儲存...</translation>
+    </message>
+    <message>
+        <source>Closing ZzLogg and starting the update...</source>
+        <translation>正在關閉 ZzLogg 並啟動更新...</translation>
+    </message>
+    <message>
+        <source>Update cancelled. Your session is unchanged.</source>
+        <translation>更新已取消，工作階段未變更。</translation>
+    </message>
+    <message>
+        <source>Unable to prepare the update. Your session is unchanged.</source>
+        <translation>無法準備更新，工作階段未變更。</translation>
+    </message>
+    <message>
+        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
+        <translation>另一個 ZzLogg 執行個體正在使用此安裝目錄，請關閉後重試。</translation>
+    </message>
+    <message>
+        <source>The installation directory could not be verified. The update was not started.</source>
+        <translation>無法驗證安裝目錄，未啟動更新。</translation>
+    </message>
+    <message>
+        <source>The update helper could not be started. Your session is unchanged.</source>
+        <translation>無法啟動更新程式，工作階段未變更。</translation>
+    </message>
+    <message>
+        <source>The update could not be committed. Your session is unchanged.</source>
+        <translation>無法提交更新，工作階段未變更。</translation>
+    </message>
+    <message>
+        <source>Administrator approval was declined. No changes were made.</source>
+        <translation>系統管理員授權被拒絕，未做任何變更。</translation>
+    </message>
+    <message>
+        <source>Updates are not available for this installation.</source>
+        <translation>此安裝不支援更新。</translation>
+    </message>
 </context>
 <context>
     <name>UpdateSettingsPage</name>

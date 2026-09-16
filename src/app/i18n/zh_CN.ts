@@ -2733,6 +2733,54 @@ Channel: %2</source>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
+    <message>
+        <source>Quit and install update</source>
+        <translation>退出并安装更新</translation>
+    </message>
+    <message>
+        <source>Cancel update</source>
+        <translation>取消更新</translation>
+    </message>
+    <message>
+        <source>Preparing the update. Your session is being saved...</source>
+        <translation>正在准备更新，会话正在保存...</translation>
+    </message>
+    <message>
+        <source>Closing ZzLogg and starting the update...</source>
+        <translation>正在关闭 ZzLogg 并启动更新...</translation>
+    </message>
+    <message>
+        <source>Update cancelled. Your session is unchanged.</source>
+        <translation>更新已取消，会话未更改。</translation>
+    </message>
+    <message>
+        <source>Unable to prepare the update. Your session is unchanged.</source>
+        <translation>无法准备更新，会话未更改。</translation>
+    </message>
+    <message>
+        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
+        <translation>另一个 ZzLogg 实例正在使用此安装目录，请关闭后重试。</translation>
+    </message>
+    <message>
+        <source>The installation directory could not be verified. The update was not started.</source>
+        <translation>无法验证安装目录，未启动更新。</translation>
+    </message>
+    <message>
+        <source>The update helper could not be started. Your session is unchanged.</source>
+        <translation>无法启动更新程序，会话未更改。</translation>
+    </message>
+    <message>
+        <source>The update could not be committed. Your session is unchanged.</source>
+        <translation>无法提交更新，会话未更改。</translation>
+    </message>
+    <message>
+        <source>Administrator approval was declined. No changes were made.</source>
+        <translation>管理员授权被拒绝，未做任何更改。</translation>
+    </message>
+    <message>
+        <source>Updates are not available for this installation.</source>
+        <translation>此安装不支持更新。</translation>
+    </message>
 </context>
 <context>
     <name>UpdateSettingsPage</name>

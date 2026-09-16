@@ -53,6 +53,8 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrestart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatehandoff.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatehandoff.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
@@ -130,6 +132,12 @@ if(TARGET zzlogg_update_handoff)
   target_link_libraries(klogg PUBLIC zzlogg_update_handoff)
   target_compile_definitions(klogg_grep PRIVATE ZZLOGG_HAS_INSTALLATION_ACTIVITY)
   target_link_libraries(klogg_grep PUBLIC zzlogg_update_handoff)
+endif()
+
+# The application build depends on the standalone update helper so the two are
+# always produced together; the helper keeps its own static-CRT closure.
+if(TARGET ZzLoggUpdate)
+  add_dependencies(klogg ZzLoggUpdate)
 endif()
 
 if(WIN32)
@@ -234,6 +242,16 @@ if(WIN32 AND TARGET Qt6::qmake)
     set(KLOGG_RUNTIME_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_RUNTIME_DLLS:klogg> "${KLOGG_RUNTIME_DIR}")
+
+    # The update helper is staged by explicit target name; test fixtures that
+    # live next to the product executables are never swept up by a glob.
+    if(TARGET ZzLoggUpdate)
+      list(APPEND KLOGG_RUNTIME_DEPENDENCIES ZzLoggUpdate)
+      list(APPEND KLOGG_RUNTIME_COMMANDS
+           COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                   $<TARGET_FILE:ZzLoggUpdate> "${KLOGG_RUNTIME_DIR}"
+      )
+    endif()
 
     foreach(runtime_target tbb tbbmalloc tbbmalloc_proxy)
       if(TARGET ${runtime_target})

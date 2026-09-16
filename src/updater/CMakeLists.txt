@@ -17,3 +17,7 @@ zzlogg_add_updater_handoff(zzlogg_update FALSE)
 add_executable(ZzLoggUpdate main.cpp)
 target_link_libraries(ZzLoggUpdate PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(ZzLoggUpdate TRUE)
+# Formal deployment of the standalone update helper: the full NSIS package
+# consumes the staged runtime tree, and the staged install carries the helper
+# next to the application. Execution itself stays closed this phase.
+install(TARGETS ZzLoggUpdate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

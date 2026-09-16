@@ -23,12 +23,13 @@ Coordinator::~Coordinator(){
         // A diagnosable residue is safer than releasing/cleaning a live image.
     }
 }
-bool Coordinator::start(const std::wstring& source,const std::wstring& base){
+bool Coordinator::start(const std::wstring& source,const std::wstring& base,const DirectoryIdentity* reservedIdentity){
     if(impl_->session)return false;ProcessIdentity self;
+    if(reservedIdentity && !reservedIdentity->volumeSerial)return false;
     if(!self.open(GetCurrentProcessId()) || !randomBytes(impl_->transaction.data(),16) || !randomBytes(impl_->token.data(),32))return false;
     impl_->elevated=self.elevated();impl_->session=std::make_unique<HandoffSession>(impl_->transaction,impl_->token);
     if(!impl_->copy.create(source,base) || !impl_->channel.create(impl_->transaction)
-        || !launchCopy(impl_->copy,impl_->transaction,impl_->token,impl_->process)){impl_->abort();return false;}return true;
+        || !launchCopy(impl_->copy,impl_->transaction,impl_->token,reservedIdentity,impl_->process)){impl_->abort();return false;}return true;
 }
 bool Coordinator::authenticate(Deadline deadline){
     if(!impl_->session || impl_->failed || impl_->session->state()!=HandoffState::Connecting

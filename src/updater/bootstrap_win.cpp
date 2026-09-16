@@ -3,8 +3,17 @@
 #include <cstring>
 #include <limits>
 namespace zzlogg::updater::detail {
-struct ChildBootstrap::Impl {update::detail::StablePackage self;};
+struct ChildBootstrap::Impl {
+    update::detail::StablePackage self;
+    // Observer handle on the reserved directory mutex, opened with SYNCHRONIZE
+    // before Hello. Never waited on and never released: the handle keeps the
+    // named object alive so every new entry/lock stays fail-closed until this
+    // child ends. Its existence is coordination continuity, not installation
+    // authority.
+    Handle directoryObserver;
+};
 ChildBootstrap::ChildBootstrap()=default;ChildBootstrap::~ChildBootstrap()=default;
+bool ChildBootstrap::directoryReserved() const { return impl_ && static_cast<bool>(impl_->directoryObserver); }
 bool ChildBootstrap::open(int argc,wchar_t** argv){
     if(argc!=2 || impl_)return false;
     uint64_t value=0;const std::wstring text=argv[1];if(text.empty() || text.size()>20)return false;
@@ -12,7 +21,7 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     if(!value)return false;Handle mapping(reinterpret_cast<HANDLE>(value));
     const auto view=MapViewOfFile(mapping.get(),FILE_MAP_READ,0,0,sizeof(BootstrapData));if(!view)return false;
     BootstrapData data{};std::memcpy(&data,view,sizeof(data));UnmapViewOfFile(view);
-    if(data.magic!=0x42555a5a || data.version!=1 || !data.parentHandle || endpointName(data.transaction).empty()
+    if(data.magic!=0x42555a5a || data.version!=2 || (data.flags&~DirectoryReserved) || !data.parentHandle || endpointName(data.transaction).empty()
         || !encodeMessage({MessageKind::Hello,data.transaction,data.token}))return false;
     ProcessIdentity parent,self;
     if(!parent.adopt(reinterpret_cast<HANDLE>(data.parentHandle),data.parent) || !parent.alive()
@@ -20,9 +29,20 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     wchar_t executable[32768]{};auto length=GetModuleFileNameW(nullptr,executable,32768);
     auto lease=std::make_unique<Impl>();
     if(!length || length>=32768 || lease->self.open(executable)!=update::PackageVerificationError::None)return false;
+    if(data.flags&DirectoryReserved) {
+        // The parent still owns and holds the gate while this observer opens
+        // the computed existing object; a missing object means the reservation
+        // is gone and the handshake must never start.
+        if(!data.directory.volumeSerial)return false;
+        const auto name=InstallLock::mutexName(data.directory);
+        if(name.empty())return false;
+        Handle observer(OpenMutexW(SYNCHRONIZE,FALSE,name.c_str()));
+        if(!observer)return false;
+        lease->directoryObserver=std::move(observer);
+    }
     data_=data;parent_=std::move(parent);impl_=std::move(lease);return true;
 }
-bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const SessionToken& token,ProcessIdentity& child){
+bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const SessionToken& token,const DirectoryIdentity* reservedIdentity,ProcessIdentity& child){
     if(!copy.unchanged())return false;
     ProcessIdentity parent;if(!parent.open(GetCurrentProcessId()))return false;
     HANDLE raw=nullptr;
@@ -31,6 +51,7 @@ bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const S
     Handle writable(CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,sizeof(BootstrapData),nullptr));if(!writable)return false;
     auto view=MapViewOfFile(writable.get(),FILE_MAP_WRITE,0,0,sizeof(BootstrapData));if(!view)return false;
     BootstrapData data;data.parentHandle=reinterpret_cast<uint64_t>(inheritedParent.get());data.parent=parent.stamp();data.transaction=transaction;data.token=token;
+    if(reservedIdentity){data.flags=DirectoryReserved;data.directory=*reservedIdentity;}
     std::memcpy(view,&data,sizeof(data));UnmapViewOfFile(view);
     if(!DuplicateHandle(GetCurrentProcess(),writable.get(),GetCurrentProcess(),&raw,FILE_MAP_READ,TRUE,0))return false;
     Handle inheritedMapping(raw);writable.reset();
