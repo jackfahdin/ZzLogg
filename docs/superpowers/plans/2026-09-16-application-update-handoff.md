@@ -35,9 +35,9 @@
 
 **文件：** `tests/updater/coordinatortest.cpp` 及由堆栈或可复现证据直接指向的 `src/updater` 文件；不扩展到其他功能。
 
-- [ ] 保存 `out/ui-vs/3b4-baseline-tests.log`（98/99，coordinator 0xc0000409），用聚焦运行/重建/系统事件或调试器识别异常位置；原始失败没有可见断言，不能直接归因于超时。
-- [ ] 若发现代码缺陷，先建立定向可运行 RED，再最小修复；若为旧二进制/环境问题，记录对比证据，不无依据改代码。不能用重试或放宽断言宣称修复。
-- [ ] 聚焦及全套验证，中文提交有证据的修复（若有），报告根因与日志。
+- [x] 保存 `out/ui-vs/3b4-baseline-tests.log`（98/99，coordinator 0xc0000409），用聚焦运行/重建/系统事件或调试器识别异常位置；原始失败没有可见断言，不能直接归因于超时。
+- [x] 若发现代码缺陷，先建立定向可运行 RED，再最小修复；若为旧二进制/环境问题，记录对比证据，不无依据改代码。不能用重试或放宽断言宣称修复。
+- [x] 聚焦及全套验证，中文提交有证据的修复（若有），报告根因与日志。
 
 ```powershell
 & D:/SoftWare/CMake/bin/ctest.exe --test-dir out/ui-vs -C Release -R '^zzlogg_updater.coordinator$' -V
@@ -77,7 +77,7 @@ git commit -m "feat: 拆分应用退出准备与提交阶段" -m "3B.4 任务一
 
 ## 任务 2：同目录实例协调与所有启动入口
 
-**文件：** `src/updater/installlock_win.*`、新增 `installationactivity_win.*`、updater CMake；`src/app/applicationupdateguard.*`、`applicationrunner.cpp`、`klogg_grep.cpp`、app/tests CMake；`tests/updater/installationactivitytest.cpp`。
+**文件：** `src/updater/installlock_win.*`、新增 `installationactivity_win.*`、updater CMake；根 `CMakeLists.txt` 与 `src/CMakeLists.txt` 调整子目录顺序；`src/app/applicationupdateguard.*`、`applicationrunner.cpp`、`klogg_grep.cpp`、app/tests CMake；`tests/updater/installationactivitytest.cpp`。
 
 - [ ] 先写真实临时目录及子进程的进入/预留失败测试。新增 RAII `InstallationActivity` 提供 `enter(root)`、`reserveUpdate()`、`cancelUpdate()`：多个正常实例可并存；更新预留与进入使用 3B.3 相同目录身份 mutex，检查到进入之间无放行窗口；同目录其他实例阻止预留，其他目录不受影响。
 
@@ -93,6 +93,7 @@ CHECK(first.reserveUpdate() == ActivityError::Blocked);
 - [ ] 使用操作系统句柄生命周期实现只读活动租约，不往 Program Files 创建用户锁文件。可用目录共享读句柄表示实例存在，在持有更新 mutex 时撤下本实例活动句柄并独占探测目录，确认没有其他活动读句柄后恢复稳定租约并保持更新 mutex；必须避免自身 InstallLock 路径句柄造成自冲突，并保留目录身份、祖先反替换保护。用真实实验验证共享语义，不能仅凭 flags 推论正确。若无法安全支持该方案，先报告控制者，不换成无证明的注册表/进程名枚举。
 - [ ] 取消/失败恢复本实例租约后才释放更新 mutex；句柄获取失败和异常身份不允许更新。其他同目录实例保守提示先自行关闭，不主动退出其他实例，更不强杀；未知旧实例/文件占用仍由后续安装端独立检查，不能宣称已证明可覆盖全部文件。
 - [ ] GUI 入口在单实例转发和 --multi 分支之前进入活动租约，grep 在存储引导之前进入；转发进程也必须尊重更新预留。普通支持目录的应用活动租约持续到真实应用进程收尾。仅不支持自动更新的路径形态（例如网络路径）允许保留手动使用且能力关闭；已观察到更新锁、权限失败或身份异常不视为不支持而放行。引导错误不启动存储选择器。
+- [ ] 应用侧为 KDSingleApplication 提供按安装目录隔离的实例名（不修改 vendor）：现有默认仅取 EXE 文件名，会把 B 目录请求转发到正在更新的 A 目录。保持同目录转发、不同目录独立；目录身份/路径大小写归一化可复核，真实进程测试不能仅比较生成的 key 字符串。
 - [ ] 原生源同源创建应用 `/MD` 与 updater `/MT` 两个闭包，Qt 不链接 MT 库。新的启动保护没有 Linux/ARM 自动更新支持承诺。测试真实子进程同/异目录、多实例、更新期间新启动、取消恢复、崩溃释放、祖先替换；显式编译 grep，但不加入默认目标。
 - [ ] 完整 Release/CTest、相关 PE/CRT 检查，自审中文提交。
 
@@ -122,6 +123,7 @@ QCOMPARE(closed.count(), 0);
 
 - [ ] 控制器依赖任务 1 准备 API 和任务 2 目录活动预留；先准备/同步，再预留同目录，然后启动已有原生 Coordinator（应用 MD 闭包）。Qt 主线程不阻塞在 connect/read/write/进程等待。异步消息使用对象生命期和单次代次隔离，取消后迟到成功不能退出；销毁恢复准备并安全释放，原生运行副本租约仍覆盖真实子进程结束。
 - [ ] 只有原生协调者已认证且存活 AwaitingAppExit 才提交退出。测试成功链在独立测试进程运行 QApplication，不能拿假的 bool 替代真实握手；生产后端仍拒绝 begin，不执行安装。保存失败、取消、启动失败、拒绝/超时、对端提前退出、迟到完成、重复点击都保持原窗口可用。UAC 拒绝仅测错误映射，不声称已做真实 UAC。
+- [ ] 预留必须跨越主程序真实退出：扩展内部 bootstrap 传递可选的目录身份，子协调者在握手前以 SYNCHRONIZE 打开并持有该身份对应的既有 mutex，父进程仍持有原句柄时完成绑定。现有 InstallLock 对任何已存在对象均拒绝，因此该观察句柄在父退出后仍阻止新进入，直到子协调者结束；不跨线程/跨进程移动 mutex 所有权，不把句柄存在当成安装授权。真实子进程测试父退出后新入口仍被拒绝、子结束后重新允许；未启用目录预留的原有独立协议测试保持受限内部用法。需要修改 `src/updater/bootstrap_win*`、`coordinator*` 和相应 fixtures/测试。
 - [ ] 更新对话框新增受能力约束的“退出并更新”及准备/等待/取消状态；生产能力关闭时按钮隐藏，不能发可执行请求。准备期间检查、下载、跳过等会改变选择的动作停用；关闭/ESC 等价取消。便携副本仅手动更新提示。英文/简体/繁体运行时切换及 150% 布局自动验收，长文本不遮挡按钮。
 - [ ] 通过正式 CMake target 将 ZzLoggUpdate.exe 加入安装和 Windows runtime-folder 产物，应用构建依赖 helper；不扫描测试输出，不部署 fixtures。运行目录验证 helper 无 Qt/MSVC 动态运行库依赖，入口仍拒绝任意参数。不得为了演示更改生产签名/正式身份门禁。
 - [ ] 更新文档明确受限接线、目录实例的保守阻塞策略、仍缺管理员事务/生产配置/真实升级验收；完整测试、原生链路、Qt 三语和部署产物检查，中文提交。
