@@ -31,6 +31,20 @@
 - `src/updater/CMakeLists.txt`、`src/app/CMakeLists.txt`、运行目录脚本：两种 CRT 闭包和正式更新器部署。
 - `tests/ui_acceptance/*`、`tests/updater/*`：真实窗口、真实进程、临时目录与部署产物验收；fixtures 不部署。
 
+## 任务 0：先排查协调者基线异常
+
+**文件：** `tests/updater/coordinatortest.cpp` 及由堆栈或可复现证据直接指向的 `src/updater` 文件；不扩展到其他功能。
+
+- [ ] 保存 `out/ui-vs/3b4-baseline-tests.log`（98/99，coordinator 0xc0000409），用聚焦运行/重建/系统事件或调试器识别异常位置；原始失败没有可见断言，不能直接归因于超时。
+- [ ] 若发现代码缺陷，先建立定向可运行 RED，再最小修复；若为旧二进制/环境问题，记录对比证据，不无依据改代码。不能用重试或放宽断言宣称修复。
+- [ ] 聚焦及全套验证，中文提交有证据的修复（若有），报告根因与日志。
+
+```powershell
+& D:/SoftWare/CMake/bin/ctest.exe --test-dir out/ui-vs -C Release -R '^zzlogg_updater.coordinator$' -V
+& D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --target zzlogg_updater_coordinator_test --parallel 8
+& D:/SoftWare/CMake/bin/ctest.exe --test-dir out/ui-vs -C Release --output-on-failure
+```
+
 ## 任务 1：可撤销的应用退出准备
 
 **文件：** `src/app/kloggapp.h`；`src/ui/include/mainwindow.h`、`src/ui/src/mainwindow.cpp`；`tests/ui_acceptance/restartcontracttest.cpp`；必要时抽取 `applicationexitpreparation.*` 并更新 app/tests CMake。
