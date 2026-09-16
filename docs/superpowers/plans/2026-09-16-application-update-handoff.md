@@ -108,7 +108,7 @@ git commit -m "feat: 接入安装目录活动租约与启动保护" -m "3B.4 任
 
 **文件：** `src/app/applicationupdatehandoff.*`、`kloggapp.h`、app/updater CMake；`src/ui/include/updatecheckdialog.h`、`src/ui/src/updatecheckdialog.cpp`、三语 ts；runtime staging 脚本；`tests/ui_acceptance/updatehandofftest.cpp`、`updatecheckuitest.cpp`、相关 CMake 与 `docs/development/UPDATE_PROTOCOL.md`。
 
-- [ ] 新 Qt 控制器按 Idle→Preparing→Waiting→ExitCommitted 及 Cancelled/Failed 管理生命周期；UI 只消费枚举快照，执行可用性由生产后端给出且本期恒关闭，不由 Verified 下载状态推导。失败测试先证明未授权/只 Ready/启动失败均不能提交退出。
+- [x] 新 Qt 控制器按 Idle→Preparing→Waiting→ExitCommitted 及 Cancelled/Failed 管理生命周期；UI 只消费枚举快照，执行可用性由生产后端给出且本期恒关闭，不由 Verified 下载状态推导。失败测试先证明未授权/只 Ready/启动失败均不能提交退出。
 
 ```cpp
 // 使用测试目标专属原生 fixture，不在生产入口增加成功开关。
@@ -121,12 +121,12 @@ QCOMPARE(closed.count(), 0);
 // 正确真实进程 AwaitingAppExit 后才可调用 commitApplicationExit。
 ```
 
-- [ ] 控制器依赖任务 1 准备 API 和任务 2 目录活动预留；先准备/同步，再预留同目录，然后启动已有原生 Coordinator（应用 MD 闭包）。Qt 主线程不阻塞在 connect/read/write/进程等待。异步消息使用对象生命期和单次代次隔离，取消后迟到成功不能退出；销毁恢复准备并安全释放，原生运行副本租约仍覆盖真实子进程结束。
-- [ ] 只有原生协调者已认证且存活 AwaitingAppExit 才提交退出。测试成功链在独立测试进程运行 QApplication，不能拿假的 bool 替代真实握手；生产后端仍拒绝 begin，不执行安装。保存失败、取消、启动失败、拒绝/超时、对端提前退出、迟到完成、重复点击都保持原窗口可用。UAC 拒绝仅测错误映射，不声称已做真实 UAC。
-- [ ] 预留必须跨越主程序真实退出：扩展内部 bootstrap 传递可选的目录身份，子协调者在握手前以 SYNCHRONIZE 打开并持有该身份对应的既有 mutex，父进程仍持有原句柄时完成绑定。现有 InstallLock 对任何已存在对象均拒绝，因此该观察句柄在父退出后仍阻止新进入，直到子协调者结束；不跨线程/跨进程移动 mutex 所有权，不把句柄存在当成安装授权。真实子进程测试父退出后新入口仍被拒绝、子结束后重新允许；未启用目录预留的原有独立协议测试保持受限内部用法。需要修改 `src/updater/bootstrap_win*`、`coordinator*` 和相应 fixtures/测试。
-- [ ] 更新对话框新增受能力约束的“退出并更新”及准备/等待/取消状态；生产能力关闭时按钮隐藏，不能发可执行请求。准备期间检查、下载、跳过等会改变选择的动作停用；关闭/ESC 等价取消。便携副本仅手动更新提示。英文/简体/繁体运行时切换及 150% 布局自动验收，长文本不遮挡按钮。
-- [ ] 通过正式 CMake target 将 ZzLoggUpdate.exe 加入安装和 Windows runtime-folder 产物，应用构建依赖 helper；不扫描测试输出，不部署 fixtures。运行目录验证 helper 无 Qt/MSVC 动态运行库依赖，入口仍拒绝任意参数。不得为了演示更改生产签名/正式身份门禁。
-- [ ] 更新文档明确受限接线、目录实例的保守阻塞策略、仍缺管理员事务/生产配置/真实升级验收；完整测试、原生链路、Qt 三语和部署产物检查，中文提交。
+- [x] 控制器依赖任务 1 准备 API 和任务 2 目录活动预留；先准备/同步，再预留同目录，然后启动已有原生 Coordinator（应用 MD 闭包）。Qt 主线程不阻塞在 connect/read/write/进程等待。异步消息使用对象生命期和单次代次隔离，取消后迟到成功不能退出；销毁恢复准备并安全释放，原生运行副本租约仍覆盖真实子进程结束。
+- [x] 只有原生协调者已认证且存活 AwaitingAppExit 才提交退出。测试成功链在独立测试进程运行 QApplication，不能拿假的 bool 替代真实握手；生产后端仍拒绝 begin，不执行安装。保存失败、取消、启动失败、拒绝/超时、对端提前退出、迟到完成、重复点击都保持原窗口可用。UAC 拒绝仅测错误映射，不声称已做真实 UAC。
+- [x] 预留必须跨越主程序真实退出：扩展内部 bootstrap 传递可选的目录身份，子协调者在握手前以 SYNCHRONIZE 打开并持有该身份对应的既有 mutex，父进程仍持有原句柄时完成绑定。现有 InstallLock 对任何已存在对象均拒绝，因此该观察句柄在父退出后仍阻止新进入，直到子协调者结束；不跨线程/跨进程移动 mutex 所有权，不把句柄存在当成安装授权。真实子进程测试父退出后新入口仍被拒绝、子结束后重新允许；未启用目录预留的原有独立协议测试保持受限内部用法。需要修改 `src/updater/bootstrap_win*`、`coordinator*` 和相应 fixtures/测试。
+- [x] 更新对话框新增受能力约束的“退出并更新”及准备/等待/取消状态；生产能力关闭时按钮隐藏，不能发可执行请求。准备期间检查、下载、跳过等会改变选择的动作停用；关闭/ESC 等价取消。便携副本仅手动更新提示。英文/简体/繁体运行时切换及 150% 布局自动验收，长文本不遮挡按钮。
+- [x] 通过正式 CMake target 将 ZzLoggUpdate.exe 加入安装和 Windows runtime-folder 产物，应用构建依赖 helper；不扫描测试输出，不部署 fixtures。运行目录验证 helper 无 Qt/MSVC 动态运行库依赖，入口仍拒绝任意参数。不得为了演示更改生产签名/正式身份门禁。
+- [x] 更新文档明确受限接线、目录实例的保守阻塞策略、仍缺管理员事务/生产配置/真实升级验收；完整测试、原生链路、Qt 三语和部署产物检查，中文提交。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -148,3 +148,4 @@ git commit -m "feat: 接入可取消的更新交接界面" -m "3B.4 任务三：
 - 任务 0：基线异常根因是协调者测试复用进程临时目录；`5cd5e4f6` 仅修测试（唯一 nonce 加原子创建），定向 RED 复现后转绿，完整 99/99（105.29 秒）。独立审查无发现。
 - 任务 1：`916ffa20` 拆分退出准备与提交，真实 Qt 聚焦 15/15、两次守卫变异均失败、恢复后完整 99/99（110.42 秒）。独立审查规格符合、质量通过，无关键/重要发现；次要项记入账本留待最终审查甄别。
 - 任务 2：`e3973f75` 接入 InstallationActivity 目录活动租约、GUI/grep 启动入口保护与按目录隔离的单实例名，建立应用 /MD 与更新器 /MT 同源双闭包。真实子进程与共享语义实验验证（含 share=READ 阻断目录内文件创建的意外回归，活动租约改为 READ|WRITE 并固化断言；InstallLock 语义未放松），三组变异均被捕获，完整 103/103 通过。独立审查规格符合、质量通过；首轮失败日志归档缺失已补录（task-2-first-full-failure.log，含 provenance），偏离"share-read"表述经控制器裁决接受。
+- 任务 3：`b9ef658b` 接入可取消的更新交接界面与正式更新器部署。控制器代次/生命期隔离、bootstrap v2 观察句柄延续目录预留跨越主程序真实退出、对话框能力门禁与三语状态、ZzLoggUpdate.exe 进入安装与 runtime-folder 产物；三组变异均被捕获，完整 105/105 通过（116.58 秒）。过程发现：QTRY_VERIFY 重复求值副作用表达式（测试改为显式重试）、取消后子进程观察句柄短暂维持保守阻塞（设计内）；一次负载异常窗口出现 restart_contract 300 秒挂起 0xc0000409 与 storage_migrator 符号链接用例失败，单跑与复跑均通过，记录待最终审查甄别。
