@@ -33,6 +33,7 @@ void UpdateDownloadService::watchDownload(quint64 generation)
         }
         active_=false; ++generation_;
         snapshot_.status=DownloadStatus::Verified; snapshot_.error.reset(); snapshot_.verifiedPath=path;
+        snapshot_.selection=update::makeUpdateSelection(*release_,*installed_);
         // This path certifies this download only. Installation must verify the signature and bytes again.
         Q_EMIT snapshotChanged();
     });

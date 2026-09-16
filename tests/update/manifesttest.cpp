@@ -6,6 +6,20 @@ using namespace zzlogg::update::detail;
 class ManifestTest : public QObject {
     Q_OBJECT
 private slots:
+    void verifiedManifestOwnsExactEnvelopeBytes() {
+        auto payload=update_fixture::payload();
+        const std::string expected="\n  "+update_fixture::envelope(payload.dump())+"\r\n\t";
+        std::string input=expected;
+        const auto result=verifyManifest(input,update_fixture::context());
+        QVERIFY(result.value);
+        input.assign(input.size(),'x');
+        input.clear(); input.shrink_to_fit();
+        QCOMPARE(result.value->signedEnvelope(),expected);
+
+        auto invalid=expected; invalid[invalid.find("signature")]='S';
+        const auto rejected=verifyManifest(invalid,update_fixture::context());
+        QVERIFY(!rejected.value);
+    }
     void acceptsOriginalBytes() {
         const auto input=update_fixture::envelope(" { \"schema\" : 1 } ");
         const auto result=verifyEnvelope(input,update_fixture::context());

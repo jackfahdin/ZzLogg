@@ -1,6 +1,7 @@
 #pragma once
 #include "updateservice.h"
 #include "packagedownloader.h"
+#include "zzlogg/update/executionselection.h"
 
 namespace zzlogg::updateqt {
 enum class DownloadStatus { Idle, Downloading, Verified, Cancelled, Failed, Unavailable };
@@ -9,6 +10,7 @@ struct DownloadSnapshot {
     qint64 received=0, total=0;
     std::optional<DownloadError> error;
     QString verifiedPath;
+    std::optional<update::UpdateSelection> selection;
 };
 class UpdateDownloadService : public QObject {
     Q_OBJECT

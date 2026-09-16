@@ -59,15 +59,17 @@ public:
     const AcceptedMetadata& acceptedMetadata() const { return accepted_; }
     TrustEnvironment trustEnvironment() const { return environment_; }
     const TrustedKey& signingKey() const { return signingKey_; }
+    const std::string& signedEnvelope() const { return signedEnvelope_; }
 private:
     VerifiedManifest(Manifest manifest, AcceptedMetadata accepted, TrustEnvironment environment,
-                     TrustedKey signingKey)
+                     TrustedKey signingKey, std::string signedEnvelope)
         : manifest_(std::move(manifest)), accepted_(accepted), environment_(environment),
-          signingKey_(std::move(signingKey)) {}
+          signingKey_(std::move(signingKey)), signedEnvelope_(std::move(signedEnvelope)) {}
     Manifest manifest_;
     AcceptedMetadata accepted_;
     TrustEnvironment environment_;
     TrustedKey signingKey_;
+    std::string signedEnvelope_;
     friend VerificationResult verifyManifest(std::string_view, const VerificationContext&);
 };
 struct VerificationResult {

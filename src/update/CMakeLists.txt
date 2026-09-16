@@ -12,6 +12,7 @@ add_library(zzlogg_update_core STATIC
   src/strictjson.cpp
   src/manifest.cpp)
 target_sources(zzlogg_update_core PRIVATE src/payload.cpp src/policy.cpp src/urlpolicy.cpp)
+target_sources(zzlogg_update_core PRIVATE src/executionselection.cpp)
 target_include_directories(zzlogg_update_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(zzlogg_update_core PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_compile_features(zzlogg_update_core PUBLIC cxx_std_17)

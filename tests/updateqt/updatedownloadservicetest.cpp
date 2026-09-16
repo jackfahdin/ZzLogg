@@ -16,6 +16,7 @@ FeedConfiguration configuration() {
 }
 InstalledRelease installedRelease() {
     InstalledRelease result; result.version={26,9,0}; result.releaseSequence=1;
+    result.distribution=Distribution::Installer;
     result.osVersion={10,0,22631}; result.dataSchema=1; return result;
 }
 CheckSnapshot available(const QByteArray& bytes="package",int sequence=2,Channel channel=Channel::Stable) {
@@ -23,10 +24,15 @@ CheckSnapshot available(const QByteArray& bytes="package",int sequence=2,Channel
     payload["metadataSequence"]=std::to_string(sequence);
     payload["releaseSequence"]=std::to_string(sequence);
     payload["channel"]=channel==Channel::Stable?"stable":"preview";
+    payload["artifacts"][0]["distribution"]="installer";
+    payload["artifacts"][0]["format"]="nsis-exe";
+    payload["artifacts"][0]["minOsVersion"]="10.0.22631";
+    payload["artifacts"][0]["url"]="https://updates.example.invalid/ZzLoggSetup.exe";
     payload["artifacts"][0]["size"]=std::to_string(bytes.size());
     payload["artifacts"][0]["sha256"]=QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex().toStdString();
     auto context=update_fixture::context(); context.channel=payload["channel"];
-    auto verified=verifyManifest(update_fixture::envelope(payload.dump()),context);
+    const auto envelope="\n"+update_fixture::envelope(payload.dump())+"\r\n";
+    auto verified=verifyManifest(envelope,context);
     if(!verified.value) qFatal("signed download fixture must verify");
     return {CheckStatus::Available,channel,verified.value,Decision{DecisionStatus::Available,{}},true,context.now};
 }
@@ -76,7 +82,7 @@ private slots:
         const auto result=service.snapshot();
         QStandardPaths::setTestModeEnabled(true);
         QCOMPARE(result.status,DownloadStatus::Unavailable);
-        QVERIFY(result.verifiedPath.isEmpty()); QVERIFY(network->requests.isEmpty());
+        QVERIFY(result.verifiedPath.isEmpty()); QVERIFY(!result.selection); QVERIFY(network->requests.isEmpty());
         QVERIFY(!QFileInfo::exists(path));
     }
     // Re-selecting the signed artifact must defeat an attacker-controlled public decision.
@@ -89,10 +95,14 @@ private slots:
         service.requestDownload(check);
         QTRY_COMPARE_WITH_TIMEOUT(service.snapshot().status,DownloadStatus::Verified,1000);
         QCOMPARE(network->requests.size(),1);
-        QCOMPARE(network->requests[0].url(),QUrl("https://updates.example.invalid/ZzLogg.zip"));
+        QCOMPARE(network->requests[0].url(),QUrl("https://updates.example.invalid/ZzLoggSetup.exe"));
         QFile file(service.snapshot().verifiedPath); QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(file.readAll(),QByteArray("package")); QCOMPARE(service.snapshot().received,qint64(7));
         QCOMPARE(service.snapshot().total,qint64(7)); QVERIFY(!service.snapshot().error);
+        QVERIFY(service.snapshot().selection);
+        QCOMPARE(service.snapshot().selection->signedEnvelope,check.release->signedEnvelope());
+        QCOMPARE(service.snapshot().selection->artifact.url,
+                 std::string("https://updates.example.invalid/ZzLoggSetup.exe"));
     }
     // With the same signing key/purpose and all production preconditions satisfied,
     // removing only the environment check must admit the Test-verified snapshot.
@@ -102,7 +112,10 @@ private slots:
         for(std::size_t i=0;i<seed.size();++i) seed[i]=std::uint8_t(i);
         std::array<std::uint8_t,64> secret{}, signature{};
         crypto_ed25519_key_pair(secret.data(),publicKey.data(),seed.data());
-        const std::string id="environment-isolation-test", payload=update_fixture::payload().dump();
+        auto productionPayload=update_fixture::payload();
+        productionPayload["artifacts"][0]["distribution"]="installer";
+        productionPayload["artifacts"][0]["format"]="nsis-exe";
+        const std::string id="environment-isolation-test", payload=productionPayload.dump();
         const auto message="ZzLogg update manifest v1\n"+id+"\n"+payload;
         crypto_ed25519_sign(signature.data(),secret.data(),
             reinterpret_cast<const std::uint8_t*>(message.data()),message.size());
@@ -153,6 +166,47 @@ private slots:
         service.requestDownload(next); QCOMPARE(network->requests.size(),2);
         QFile file(service.snapshot().verifiedPath); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),QByteArray("next"));
         service.invalidate(); QCOMPARE(service.snapshot().status,DownloadStatus::Idle); QVERIFY(service.snapshot().verifiedPath.isEmpty());
+        QVERIFY(!service.snapshot().selection);
+    }
+
+    void updateServiceEnvelopeSurvivesIntoDownloadSelectionByValue() {
+        QTemporaryDir stateRoot;
+        auto store=std::make_shared<UpdateStateStore>(stateRoot.filePath("state.json"));
+        auto payload=update_fixture::payload();
+        payload["artifacts"][0]["distribution"]="installer";
+        payload["artifacts"][0]["format"]="nsis-exe";
+        payload["artifacts"][0]["minOsVersion"]="10.0.22631";
+        payload["artifacts"][0]["url"]="https://updates.example.invalid/ZzLoggSetup.exe";
+        payload["artifacts"][0]["size"]="7";
+        payload["artifacts"][0]["sha256"]=QCryptographicHash::hash(
+            QByteArray("package"),QCryptographicHash::Sha256).toHex().toStdString();
+        const QByteArray exact=QByteArray("\n  ")+QByteArray::fromStdString(
+            update_fixture::envelope(payload.dump()))+QByteArray("\r\n\t");
+        CheckSnapshot checked;
+        {
+            auto* network=new ScriptedNetworkManager;
+            NetworkScript script; script.body=exact; network->scripts={script};
+            UpdateService service(configuration(),store,installedRelease(),[]{return 1800000000;},
+                nullptr,[&]{return network;});
+            service.requestCheck(Channel::Stable,CheckOrigin::Manual);
+            QTRY_COMPARE_WITH_TIMEOUT(service.snapshot().status,CheckStatus::Available,1000);
+            checked=service.snapshot();
+        }
+        QVERIFY(checked.release);
+        QCOMPARE(checked.release->signedEnvelope(),exact.toStdString());
+
+        QTemporaryDir cacheRoot;
+        auto* network=new ScriptedNetworkManager; network->scripts={response()};
+        UpdateDownloadService download(configuration(),installedRelease(),cacheRoot.path(),
+            []{return 1800000000;},nullptr,[&]{return network;});
+        download.requestDownload(checked);
+        QTRY_COMPARE_WITH_TIMEOUT(download.snapshot().status,DownloadStatus::Verified,1000);
+        QVERIFY(download.snapshot().selection);
+        QCOMPARE(download.snapshot().selection->signedEnvelope,exact.toStdString());
+        checked.release.reset();
+        QCOMPARE(download.snapshot().selection->signedEnvelope,exact.toStdString());
+        download.invalidate();
+        QVERIFY(!download.snapshot().selection);
     }
     void expiryDuringDownloadAndChannelChange() {
         for(bool channelChange:{false,true}) {
