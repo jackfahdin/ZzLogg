@@ -38,7 +38,7 @@
 
 **文件：** 修改依赖 CMake、核心 CMake、顶层 CMake；创建 updater CMake、协议和锁文件，以及 `tests/updater/CMakeLists.txt`、`protocoltest.cpp`、`installlocktest.cpp`、`dependencytest.cmake`。
 
-- [ ] 先编写协议/锁失败测试，记录 RED；定义接口后执行运行失败测试，不能仅以编译缺符号代替行为 RED。
+- [x] 先编写协议/锁失败测试，记录 RED；定义接口后执行运行失败测试，不能仅以编译缺符号代替行为 RED。
 
 ```cpp
 enum class MessageKind : uint32_t { Hello=1, Ready=2, AwaitingAppExit=3,
@@ -55,12 +55,12 @@ enum class HandoffState { Connecting, Ready, AwaitingAppExit, ExitCommitted, Com
 // not an input transition. canExit() is true only at AwaitingAppExit/ExitCommitted.
 ```
 
-- [ ] 编写参数表测试：正确顺序、仅启动/Hello 不可退出、提前 Complete/Commit、重复握手、其他事务/令牌、全零字段、全部终态重放、截断与超长；取消从每个未完成阶段不可退出。固定协议消息只承载控制信息，安装选择记录不经此消息变为授权。
-- [ ] 同源定义 core/execution/monocypher 两套目标；辅助函数明确 CRT 属性，应用目标保持不变，协调者目标全部 `/MT`（Debug `/MTd`）。不要用全局 CRT 开关，不改变发布身份生成语义；新库/测试不链接 Qt。头文件 json 复用。
-- [ ] 锁接口使用 RAII move-only，获得目录真实 handle，拒绝 reparse/网络/无效根、保留祖先稳定性，标识包含卷序号和文件 ID。可使用 Global 命名 mutex：名称是目录身份哈希、显式 DACL 允许经过身份验证的本地用户 SYNCHRONIZE/MUTEX_MODIFY_STATE、拒绝访问/预占/现存对象返回废弃状态时均安全阻塞；不得把 WAIT_ABANDONED 当作成功。更新独占租约和新入口探测均基于同一对象。锁不是提升权限凭据。最后句柄关闭后内核对象消失，此锁不提供持久崩溃恢复判定；该责任属于 3C 受保护事务日志，禁止为弥补此边界在安装目录写普通用户标记。
-- [ ] 真实子进程或本地独立实例测试同目录竞争失败、释放后成功、其他目录互不影响、路径大小写别名一致、路径替换拒绝/持有时失败；记录平台限制，不伪称其他用户实测。
-- [ ] 最少实现通过测试，再移除一个错序/令牌守卫做变异测试并恢复。目标需实际编译链接 core/execution 静态闭包，不能只检查未使用库属性。
-- [ ] 完整 Release 构建及 CTest，提交任务 1。
+- [x] 编写参数表测试：正确顺序、仅启动/Hello 不可退出、提前 Complete/Commit、重复握手、其他事务/令牌、全零字段、全部终态重放、截断与超长；取消从每个未完成阶段不可退出。固定协议消息只承载控制信息，安装选择记录不经此消息变为授权。
+- [x] 同源定义 core/execution/monocypher 两套目标；辅助函数明确 CRT 属性，应用目标保持不变，协调者目标全部 `/MT`（Debug `/MTd`）。不要用全局 CRT 开关，不改变发布身份生成语义；新库/测试不链接 Qt。头文件 json 复用。
+- [x] 锁接口使用 RAII move-only，获得目录真实 handle，拒绝 reparse/网络/无效根、保留祖先稳定性，标识包含卷序号和文件 ID。可使用 Global 命名 mutex：名称是目录身份哈希、显式 DACL 允许经过身份验证的本地用户 SYNCHRONIZE/MUTEX_MODIFY_STATE、拒绝访问/预占/现存对象返回废弃状态时均安全阻塞；不得把 WAIT_ABANDONED 当作成功。更新独占租约和新入口探测均基于同一对象。锁不是提升权限凭据。最后句柄关闭后内核对象消失，此锁不提供持久崩溃恢复判定；该责任属于 3C 受保护事务日志，禁止为弥补此边界在安装目录写普通用户标记。
+- [x] 真实子进程或本地独立实例测试同目录竞争失败、释放后成功、其他目录互不影响、路径大小写别名一致、路径替换拒绝/持有时失败；记录平台限制，不伪称其他用户实测。
+- [x] 最少实现通过测试，再移除一个错序/令牌守卫做变异测试并恢复。目标需实际编译链接 core/execution 静态闭包，不能只检查未使用库属性。
+- [x] 完整 Release 构建及 CTest，提交任务 1。
 
 ```powershell
 $env:CL='/MP8'
@@ -116,6 +116,11 @@ git commit -m "feat: 实现独立更新进程的受限安全交接" -m "3B.3 任
 ## 执行记录
 
 - 起点 `d8d504e5`，master 与隔离分支相同；上一阶段主线 Release 构建成功，90/90 CTest 通过（100.53 秒）。用户已指定后续验证完成直接合并 master。
+- 本阶段隔离工作区基线 90/90 通过（101.49 秒）。任务 1 提交 `9cfac53f`，独立审查规格与质量通过，无 Critical/Important/Minor；完整 Release 构建与 94/94 测试通过（101.14 秒），Debug 聚焦 4/4 通过。日志前缀 `out/ui-vs/3b3-task1-`。
+- 协议空桩实际运行触发 93 条失败断言，锁空桩实际运行失败；移除令牌守卫触发 4 条失败断言，移除网络拒绝 ACE 触发真实对象 ACL 断言失败，恢复后全部通过。不是仅检查源文件文本。
+- 任务 1 裁决：现存 mutex 的 WAIT_ABANDONED 必须拒绝，但最后句柄消失后没有持久状态；不向安装目录写用户标记，持久恢复归 3C 受保护日志。若该职责划分不足，须在开放实际写入前调整恢复协议。
+- 目录锁测试发现属性访问本身不足以阻止空目录重命名，已加入 FILE_LIST_DIRECTORY 并由真实目录/祖先替换测试验证。既有 StablePackage 同时持有叶文件且有祖先替换测试，未据此推断旧验证失效。
+- 主控核对生成项目：更新器库为 MultiThreaded / MultiThreadedDebug，应用核心仍为 MultiThreadedDLL / MultiThreadedDebugDLL。跨用户与不同提权身份的真实运行尚未验收；真实 DACL 检查不替代该环境矩阵。
 
 ## API 参考
 
