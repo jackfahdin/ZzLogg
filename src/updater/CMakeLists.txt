@@ -1,0 +1,6 @@
+zzlogg_update_clean_legacy_crt_flags()
+add_library(zzlogg_updater_handoff STATIC handoffprotocol.cpp installlock_win.cpp)
+target_include_directories(zzlogg_updater_handoff PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_features(zzlogg_updater_handoff PUBLIC cxx_std_17)
+target_link_libraries(zzlogg_updater_handoff PUBLIC zzlogg_updater_execution PRIVATE bcrypt advapi32)
+zzlogg_update_runtime(zzlogg_updater_handoff TRUE)

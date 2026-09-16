@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
 include(cmake/ZzLoggBrand.cmake)
 
 # CMake 4 removed compatibility with policy versions older than 3.5. Some
@@ -223,6 +227,9 @@ add_custom_target(ci_build)
 
 add_subdirectory(3rdparty)
 add_subdirectory(src)
+if(TARGET zzlogg_updater_execution)
+  add_subdirectory(src/updater)
+endif()
 add_subdirectory(website)
 
 enable_testing()
@@ -269,6 +276,9 @@ if(KLOGG_BUILD_UI_TESTS)
   add_subdirectory(tests/ui_acceptance)
   add_subdirectory(tests/update)
   add_subdirectory(tests/updateqt)
+  if(TARGET zzlogg_updater_handoff)
+    add_subdirectory(tests/updater)
+  endif()
   if(ZZLOGG_BUILD_UPDATE_TEST_TOOLS)
     add_subdirectory(tools/update)
   endif()
