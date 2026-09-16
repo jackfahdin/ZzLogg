@@ -1,7 +1,9 @@
 if(NOT EXISTS "${DUMPBIN}" OR NOT EXISTS "${EXECUTABLE}")
   message(FATAL_ERROR "Native dependency inspection requires dumpbin and a built consumer")
 endif()
-execute_process(COMMAND "${DUMPBIN}" /DEPENDENTS "${EXECUTABLE}"
+# /IMPORTS inspects both the normal import table and delay-load import table
+# in the actual linked image, not merely link command flags or PATH contents.
+execute_process(COMMAND "${DUMPBIN}" /IMPORTS "${EXECUTABLE}"
   RESULT_VARIABLE result OUTPUT_VARIABLE dependencies ERROR_VARIABLE error)
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "Cannot inspect real consumer: ${error}")
