@@ -74,7 +74,7 @@ git commit -m "feat: 建立独立更新器静态核心与交接协议" -m "3B.3 
 
 **文件：** 创建进程身份、本地通道、运行副本、协调者及 main 文件；扩展 updater CMake、tests/updater（runtimecopytest、channeltest、coordinatortest、独立 fixture）；更新协议文档。
 
-- [ ] 先为生产启动门禁、复制文件稳定性、真实管道握手失败和成功写运行 RED；测试 fixture 仅在测试目录目标中定义，正式程序不编译测试入口。
+- [x] 先为生产启动门禁、复制文件稳定性、真实管道握手失败和成功写运行 RED；测试 fixture 仅在测试目录目标中定义，正式程序不编译测试入口。
 
 ```cpp
 // Ownership outline, exact concrete names follow task 1 headers.
@@ -92,13 +92,13 @@ git commit -m "feat: 建立独立更新器静态核心与交接协议" -m "3B.3 
 // Coordinator owns process handles and leases through final process exit (not window closure).
 ```
 
-- [ ] 随机数来自 BCryptGenRandom，失败拒绝。管道名只用本地固定前缀及随机事务 ID，名称非认证凭据；严格上限、超时、错身份即关连接不无限重试。令牌只经受限继承 bootstrap 传送，限制继承句柄到该子进程；对端需同时符合真实身份与消息凭据。测试 PID 不匹配、创建时间不匹配、提前退出、截断/超长、重放、错误顺序、超时以及正确链路。
-- [ ] 运行副本目录使用 CREATE_NEW 等价独占创建及限制 DACL，拒绝所有祖先重解析点；目标文件 CREATE_NEW、不可重用其他事务残留。源与目标字节一致仅说明同源，不作为管理员信任根。源验证后释放源租约，让原安装文件可被替换；目标租约保持到真实进程结束。证明子进程执行路径确在新目录，运行时原文件能重命名/替换，副本不可修改、删除、替换且祖先不可重定向；清理只删除持有且身份一致的精确文件/空目录，不递归清理用户路径。失败保留可诊断残留优于宽泛删除。
-- [ ] 独立生产 `ZzLoggUpdate.exe` 完成 bootstrap 身份与协议处理后返回明确 ExecutionDisabled，不接受任意安装器路径或命令参数执行。正常入口不得用任意无签名 EXE 充当安装器。把通道/协议组合成可测试协调接口：fixture 通过独立测试链接驱动该接口，不通过生产 exe 的开关伪装成正式成功。
-- [ ] 协调者依赖注入仅保留在内部算法/测试组合，不新增可伪造 VerifiedPackage 的公有构造。生产安装启动能力仍受 3B.2 校验及缺发布者策略门禁；3B.3 不增加真正 ShellExecute/runas。真实测试安装器 Hello 后保持存活，只有其已认证 AwaitingAppExit 才通知调用方可提交退出；启动成功、普通 Ready、错进程发来的 AwaitingAppExit 均不可。
-- [ ] 测试子进程链覆盖成功、取消、启动失败、握手拒绝/超时、父进程和安装器提前退出、退出消息后进程仍存活（不能提前宣称结束）。已提权父进程禁止自动重启，返回手动启动要求；本阶段不真实启动新版 GUI。不能因测试超时按名称终止其他进程，必要清理仅限本测试拥有的句柄。
-- [ ] 静态 CRT/依赖验收从实际 exe PE imports（包含 delay imports）检查，不依赖 PATH 中的 Qt/MSVC DLL；复制到隔离目录运行生产关闭门禁测试，确认无 Qt DLL / vcruntime DLL / msvcp DLL 依赖。证明执行核心/加密链接目标整个闭包 CRT 一致。ARM64/ARM64EC 不产生支持假象。
-- [ ] 至少对退出前握手守卫和进程身份校验做变异测试、恢复后聚焦通过。完整 Release 构建和 CTest、更新协议和测试边界，中文提交任务 2。
+- [x] 随机数来自 BCryptGenRandom，失败拒绝。管道名只用本地固定前缀及随机事务 ID，名称非认证凭据；严格上限、超时、错身份即关连接不无限重试。令牌只经受限继承 bootstrap 传送，限制继承句柄到该子进程；对端需同时符合真实身份与消息凭据。测试 PID 不匹配、创建时间不匹配、提前退出、截断/超长、重放、错误顺序、超时以及正确链路。
+- [x] 运行副本目录使用 CREATE_NEW 等价独占创建及限制 DACL，拒绝所有祖先重解析点；目标文件 CREATE_NEW、不可重用其他事务残留。源与目标字节一致仅说明同源，不作为管理员信任根。源验证后释放源租约，让原安装文件可被替换；目标租约保持到真实进程结束。证明子进程执行路径确在新目录，运行时原文件能重命名/替换，副本不可修改、删除、替换且祖先不可重定向；清理只删除持有且身份一致的精确文件/空目录，不递归清理用户路径。失败保留可诊断残留优于宽泛删除。
+- [x] 独立生产 `ZzLoggUpdate.exe` 完成 bootstrap 身份与协议处理后返回明确 ExecutionDisabled，不接受任意安装器路径或命令参数执行。正常入口不得用任意无签名 EXE 充当安装器。把通道/协议组合成可测试协调接口：fixture 通过独立测试链接驱动该接口，不通过生产 exe 的开关伪装成正式成功。
+- [x] 协调者依赖注入仅保留在内部算法/测试组合，不新增可伪造 VerifiedPackage 的公有构造。生产安装启动能力仍受 3B.2 校验及缺发布者策略门禁；3B.3 不增加真正 ShellExecute/runas。真实测试安装器 Hello 后保持存活，只有其已认证 AwaitingAppExit 才通知调用方可提交退出；启动成功、普通 Ready、错进程发来的 AwaitingAppExit 均不可。
+- [x] 测试子进程链覆盖成功、取消、启动失败、握手拒绝/超时、父进程和安装器提前退出、退出消息后进程仍存活（不能提前宣称结束）。已提权父进程禁止自动重启，返回手动启动要求；本阶段不真实启动新版 GUI。不能因测试超时按名称终止其他进程，必要清理仅限本测试拥有的句柄。
+- [x] 静态 CRT/依赖验收从实际 exe PE imports（包含 delay imports）检查，不依赖 PATH 中的 Qt/MSVC DLL；复制到隔离目录运行生产关闭门禁测试，确认无 Qt DLL / vcruntime DLL / msvcp DLL 依赖。证明执行核心/加密链接目标整个闭包 CRT 一致。ARM64/ARM64EC 不产生支持假象。
+- [x] 至少对退出前握手守卫和进程身份校验做变异测试、恢复后聚焦通过。完整 Release 构建和 CTest、更新协议和测试边界，中文提交任务 2。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -111,8 +111,8 @@ git commit -m "feat: 实现独立更新进程的受限安全交接" -m "3B.3 任
 
 **文件：** `tests/updateqt/manifestfetchertest.cpp`；仅在需要受控回复时修改测试工具 `tests/updateqt/scriptednetwork.h`。不改生产下载实现和超时策略。
 
-- [ ] 保存并分析主控失败证据 `out/ui-vs/3b3-main-verification-fetcher.txt`：redirectDoesNotResetTotalDeadline 预期两次请求但实际一次，测试在重定向发生前已超时。现有脚本通过九个串行 10ms singleShot 加事件循环等待来完成首个响应，而总期限仅 150ms；调度累计漂移可能耗尽总期限。这不构成重置期限实现缺陷证据。
-- [ ] 将测试调度改为受控响应或少量有清晰间隔的事件，使首响应在总期限之前有充分余量完成，第二响应在原总期限之后、错误重置期限之前完成；保持 `Timeout`、无成功、两次请求断言，不降低覆盖、不靠重试掩盖失败。
+- [x] 保存并分析主控失败证据 `out/ui-vs/3b3-main-verification-fetcher.txt`：redirectDoesNotResetTotalDeadline 预期两次请求但实际一次，测试在重定向发生前已超时。现有脚本通过九个串行 10ms singleShot 加事件循环等待来完成首个响应，而总期限仅 150ms；调度累计漂移可能耗尽总期限。这不构成重置期限实现缺陷证据。
+- [x] 将测试调度改为受控响应或少量有清晰间隔的事件，使首响应在总期限之前有充分余量完成，第二响应在原总期限之后、错误重置期限之前完成；保持 `Timeout`、无成功、两次请求断言，不降低覆盖、不靠重试掩盖失败。
 
 ```cpp
 // Behaviour to preserve, regardless of fixture scheduling details:
@@ -123,8 +123,8 @@ QCOMPARE(network->requests.size(), 2);
 // restore production source and rerun. No production change in the final diff.
 ```
 
-- [ ] 记录新测试针对“重定向重启 total_”变异确实失败的证据并恢复；聚焦测试多次复验，所有失败先保存 Qt 输出，不能只保留 CTest 壳日志。测试时间关系须能区分真实总期限与重置期限，不只是把原有几个毫秒值调大。
-- [ ] 独立小范围审查后提交中文测试修复；最终整阶段全套负责集成验证。
+- [x] 记录新测试针对“重定向重启 total_”变异确实失败的证据并恢复；聚焦测试多次复验，所有失败先保存 Qt 输出，不能只保留 CTest 壳日志。测试时间关系须能区分真实总期限与重置期限，不只是把原有几个毫秒值调大。
+- [x] 独立小范围审查后提交中文测试修复；最终整阶段全套负责集成验证。
 
 ## 验收与交付
 
@@ -144,6 +144,8 @@ QCOMPARE(network->requests.size(), 2);
 - 任务 2 裁决：把独占建目录后另行打开改为系统 NtCreateFile 原子取得目录句柄，避免同登录用户替换窗口；API 不可用时拒绝操作，不回退到有窗口的路径。若兼容性假设不成立，该环境的更新交接保持不可用，须先修正并验收。
 - 任务 2 审查发现忙管道预算变零后 WaitNamedPipeW 会采用服务器默认等待，`9c3a41b8` 已修复。真实忙管道默认等待 500ms 的回归先失败后通过；channel/coordinator 聚焦 2/2 通过（6.07 秒），定向复审无剩余或新增问题。
 - 主控对 `fa447e37` 独立构建成功，新更新器测试全部通过，但全套为 98/99（101.99 秒）；已保存 Qt 详细输出，确认旧 fetcher 重定向期限测试在请求数 1/2 处失败。任务 3 专门修复该测试的短定时器累计调度竞争，生产下载行为不变；不能把此前偶发通过说成已修复。
+- 任务 3 提交 `a1d03fe1`，仅修改测试调度；独立复现旧失败、重启总期限变异失败，恢复后聚焦 10/10、提交后 3/3 通过，独立审查无关键或重要问题。裁决是修测试调度而非改生产超时；若仍复发须重新调查，不能降低断言或以重试掩盖。
+- 辅助直接运行 fetcher 曾缺少 Qt TLS 插件搜索路径而出现警告，审查记为次要证据问题；主控使用项目正式 CTest 环境复验，`out/ui-vs/3b3-final-fetcher.txt` 为 36/36 且无 QWARN。最终 `a1d03fe1` 独立 Release 构建退出 0、整仓 CTest 99/99 通过（102.91 秒），日志为 `out/ui-vs/3b3-final-build.log` 和 `out/ui-vs/3b3-final-tests.log`。
 
 ## API 参考
 
