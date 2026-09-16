@@ -33,9 +33,15 @@ include(ZzReleaseIdentity)
 zzlogg_configure_release_identity(
   "${CMAKE_CURRENT_BINARY_DIR}/generated/zzlogg_release_identity.h")
 
+set(release_identity_source "${SOURCE_ROOT}/src/update/src/releaseidentity.cpp")
+if(TEST_ARM64EC_CPP_GUARD)
+  configure_file(arm64ecwrapper.cpp.in arm64ecwrapper.cpp @ONLY)
+  set(release_identity_source "${CMAKE_CURRENT_BINARY_DIR}/arm64ecwrapper.cpp")
+endif()
+
 add_executable(release_identity_consumer
   consumer.cpp
-  "${SOURCE_ROOT}/src/update/src/releaseidentity.cpp"
+  "${release_identity_source}"
   "${SOURCE_ROOT}/src/update/src/version.cpp")
 target_compile_features(release_identity_consumer PRIVATE cxx_std_17)
 target_include_directories(release_identity_consumer PRIVATE
@@ -46,3 +52,6 @@ target_compile_definitions(release_identity_consumer PRIVATE
   TEST_EXPECT_SEQUENCE=${TEST_EXPECT_SEQUENCE}ULL
   TEST_EXPECT_SCHEMA=${TEST_EXPECT_SCHEMA}U
   TEST_EXPECT_CHANNEL="${TEST_EXPECT_CHANNEL}")
+
+enable_testing()
+add_test(NAME release_identity_consumer COMMAND release_identity_consumer)

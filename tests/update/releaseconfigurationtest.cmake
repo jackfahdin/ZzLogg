@@ -11,7 +11,8 @@ file(REMOVE_RECURSE "${TEST_ROOT}")
 file(MAKE_DIRECTORY "${TEST_ROOT}")
 
 function(run_release_case name expect_success)
-  set(options CLEAR_GENERATOR_PLATFORM CLEAR_TARGET_ARCHITECTURE)
+  set(options
+    ARM64EC_CPP_GUARD CLEAR_GENERATOR_PLATFORM CLEAR_TARGET_ARCHITECTURE)
   set(one_value_args
     OFFICIAL SEQUENCE CHANNEL SCHEMA VERSION TWEAK EXPECT_AVAILABLE
     EXPECT_SEQUENCE EXPECT_SCHEMA EXPECT_CHANNEL SYSTEM_NAME
@@ -32,6 +33,7 @@ function(run_release_case name expect_success)
     "-DZZLOGG_RELEASE_DATA_SCHEMA:STRING=${CASE_SCHEMA}"
     "-DZZLOGG_DISPLAY_VERSION:STRING=${CASE_VERSION}"
     "-DTEST_VERSION_TWEAK:STRING=${CASE_TWEAK}"
+    "-DCMAKE_BUILD_TYPE:STRING=${TEST_BUILD_TYPE}"
     "-DTEST_EXPECT_AVAILABLE:BOOL=${CASE_EXPECT_AVAILABLE}"
     "-DTEST_EXPECT_SEQUENCE:STRING=${CASE_EXPECT_SEQUENCE}"
     "-DTEST_EXPECT_SCHEMA:STRING=${CASE_EXPECT_SCHEMA}"
@@ -63,6 +65,9 @@ function(run_release_case name expect_success)
   if(CASE_CLEAR_GENERATOR_PLATFORM)
     list(APPEND configure_command -DTEST_CLEAR_GENERATOR_PLATFORM:BOOL=ON)
   endif()
+  if(CASE_ARM64EC_CPP_GUARD)
+    list(APPEND configure_command -DTEST_ARM64EC_CPP_GUARD:BOOL=ON)
+  endif()
 
   execute_process(
     COMMAND ${configure_command}
@@ -86,16 +91,22 @@ function(run_release_case name expect_success)
       message(FATAL_ERROR
         "${name}: build failed:\n${build_stdout}\n${build_stderr}")
     endif()
-    set(consumer "${binary_dir}/release_identity_consumer")
+    if(NOT DEFINED CTEST_COMMAND OR CTEST_COMMAND STREQUAL "")
+      message(FATAL_ERROR "${name}: CTest command is required")
+    endif()
+    set(test_command "${CTEST_COMMAND}" --test-dir "${binary_dir}"
+      --output-on-failure)
     if(NOT TEST_CONFIGURATION STREQUAL "")
-      set(consumer "${binary_dir}/${TEST_CONFIGURATION}/release_identity_consumer")
+      list(APPEND test_command -C "${TEST_CONFIGURATION}")
     endif()
-    if(WIN32)
-      string(APPEND consumer ".exe")
-    endif()
-    execute_process(COMMAND "${consumer}" RESULT_VARIABLE consumer_result)
+    execute_process(
+      COMMAND ${test_command}
+      RESULT_VARIABLE consumer_result
+      OUTPUT_VARIABLE consumer_stdout
+      ERROR_VARIABLE consumer_stderr)
     if(NOT consumer_result EQUAL 0)
-      message(FATAL_ERROR "${name}: consumer returned ${consumer_result}")
+      message(FATAL_ERROR
+        "${name}: consumer test failed:\n${consumer_stdout}\n${consumer_stderr}")
     endif()
   else()
     if(configure_result EQUAL 0)
@@ -172,6 +183,10 @@ run_release_case(compiler_architecture_descriptor TRUE
   OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable
   CLEAR_GENERATOR_PLATFORM COMPILER_ARCHITECTURE_ID X64 SYSTEM_PROCESSOR ARM64)
+run_release_case(arm64ec_cpp_guard TRUE
+  OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
+  EXPECT_AVAILABLE OFF EXPECT_SEQUENCE 0 EXPECT_SCHEMA 0 EXPECT_CHANNEL unused
+  ARM64EC_CPP_GUARD)
 run_release_case(preview_maximum TRUE
   OFFICIAL ON SEQUENCE 18446744073709551615 CHANNEL preview SCHEMA 4294967295
   VERSION 26.09.00 TWEAK 0 EXPECT_AVAILABLE ON

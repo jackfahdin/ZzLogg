@@ -5,7 +5,8 @@
 namespace zzlogg::update {
 std::optional<ReleaseIdentity> compiledReleaseIdentity()
 {
-#if defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__))
+#if defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__)) \
+    && !defined(_M_ARM64) && !defined(_M_ARM64EC)
     if (!build_identity::available) return std::nullopt;
 
     const auto version = parseVersion(build_identity::version);

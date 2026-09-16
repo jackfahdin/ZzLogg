@@ -1,0 +1,12 @@
+#include "zzlogg/update/releaseidentity.h"
+#include "zzlogg_release_identity.h"
+
+#ifndef _WIN32
+#define _WIN32 1
+#endif
+#ifndef _M_X64
+#define _M_X64 100
+#endif
+#define _M_ARM64EC 1
+
+#include "@SOURCE_ROOT@/src/update/src/releaseidentity.cpp"
