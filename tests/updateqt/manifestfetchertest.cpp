@@ -151,15 +151,18 @@ private slots:
     void redirectDoesNotResetTotalDeadline() {
         auto* network=new ScriptedNetworkManager;
         NetworkScript redirect; redirect.status=308; redirect.location="/next";
-        redirect.body=QByteArray(10,'a'); redirect.chunkSize=1; redirect.intervalMs=10;
-        NetworkScript slow=redirect; slow.status=200; slow.location.clear();
-        network->scripts={redirect,slow};
-        ManifestFetcher fetcher(network,150,80);
+        redirect.responseDelayMs=200;
+        NetworkScript finalResponse; finalResponse.responseDelayMs=400;
+        network->scripts={redirect,finalResponse};
+        // The final response would arrive at 600 ms: after the original 500 ms
+        // deadline, but before a wrongly restarted deadline at 700 ms.
+        ManifestFetcher fetcher(network,500,1000);
         QSignalSpy success(&fetcher,&ManifestFetcher::succeeded), failure(&fetcher,&ManifestFetcher::failed);
         fetcher.start(feed,hosts);
         QTRY_COMPARE(failure.count(),1);
         QCOMPARE(qvariant_cast<FetchError>(failure[0][0]),FetchError::Timeout);
-        QCOMPARE(success.count(),0); QCOMPARE(network->requests.size(),2);
+        QCOMPARE(success.count(),0);
+        QCOMPARE(network->requests.size(),2);
     }
     void realHttpNeverConnects() {
         QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));

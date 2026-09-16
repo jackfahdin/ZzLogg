@@ -15,6 +15,7 @@ struct NetworkScript {
     QByteArray body = "{}";
     QByteArray location, encoding, length;
     QUrl finalUrl;
+    int responseDelayMs = 0;
     int chunkSize = 4096, intervalMs = 1;
     bool tlsError = false, hang = false, finishedOnly = false;
     QNetworkReply::NetworkError error = QNetworkReply::NoError;
@@ -31,7 +32,7 @@ public:
         if(!script_.encoding.isEmpty()) setRawHeader("Content-Encoding",script_.encoding);
         if(!script_.length.isEmpty()) setRawHeader("Content-Length",script_.length);
         open(QIODevice::ReadOnly);
-        QTimer::singleShot(0,this,[this]{
+        QTimer::singleShot(script_.responseDelayMs,this,[this]{
             const QPointer<ScriptedReply> guard(this);
             if(!script_.finishedOnly) Q_EMIT metaDataChanged();
             if(!guard || aborted_) return;
