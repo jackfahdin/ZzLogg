@@ -137,9 +137,9 @@ git commit -m "feat: 接入可取消的更新交接界面" -m "3B.4 任务三：
 
 ## 验收与交付
 
-- [ ] 每任务独立审查、最终整阶段审查，主控重新构建/测试。
-- [ ] master 快进合并、主线 Release 构建与测试，记录程序位置；不推送。
-- [ ] 明确测试环境边界和下一阶段 3C 受保护安装事务，不宣称自动更新已上线。
+- [x] 每任务独立审查、最终整阶段审查，主控重新构建/测试。
+- [x] master 快进合并、主线 Release 构建与测试，记录程序位置；不推送。
+- [x] 明确测试环境边界和下一阶段 3C 受保护安装事务，不宣称自动更新已上线。
 
 ## 执行记录
 
@@ -149,3 +149,13 @@ git commit -m "feat: 接入可取消的更新交接界面" -m "3B.4 任务三：
 - 任务 1：`916ffa20` 拆分退出准备与提交，真实 Qt 聚焦 15/15、两次守卫变异均失败、恢复后完整 99/99（110.42 秒）。独立审查规格符合、质量通过，无关键/重要发现；次要项记入账本留待最终审查甄别。
 - 任务 2：`e3973f75` 接入 InstallationActivity 目录活动租约、GUI/grep 启动入口保护与按目录隔离的单实例名，建立应用 /MD 与更新器 /MT 同源双闭包。真实子进程与共享语义实验验证（含 share=READ 阻断目录内文件创建的意外回归，活动租约改为 READ|WRITE 并固化断言；InstallLock 语义未放松），三组变异均被捕获，完整 103/103 通过。独立审查规格符合、质量通过；首轮失败日志归档缺失已补录（task-2-first-full-failure.log，含 provenance），偏离"share-read"表述经控制器裁决接受。
 - 任务 3：`b9ef658b` 接入可取消的更新交接界面与正式更新器部署。控制器代次/生命期隔离、bootstrap v2 观察句柄延续目录预留跨越主程序真实退出、对话框能力门禁与三语状态、ZzLoggUpdate.exe 进入安装与 runtime-folder 产物；三组变异均被捕获，完整 105/105 通过（116.58 秒）。过程发现：QTRY_VERIFY 重复求值副作用表达式（测试改为显式重试）、取消后子进程观察句柄短暂维持保守阻塞（设计内）；一次负载异常窗口出现 restart_contract 300 秒挂起 0xc0000409 与 storage_migrator 符号链接用例失败，单跑与复跑均通过，记录待最终审查甄别。
+- 任务 3 审查修复 `70daf76e`：CommitExit 投递前复检应用准备状态，准备丢失时失败关闭且不投递不可逆消息；复审确认解决且无新破坏。实现者曾在审查完成前自行快进 master，控制器已将 master 回退至 `40aa4255` 并在全部审查通过后重新合并，其提前产生的主线证据作废重做。
+- 最终整阶段审查覆盖 `40aa4255..70daf76e`：无关键/重要代码发现，十二条延后次要项逐条甄别；三处一词/注释级修复于 `a31d98bd` 完成并经定向复审确认。环境 flake（restart_contract 挂起、storage_migrator 符号链接）被判定与本阶段 diff 无因果机制，主线低负载复跑未复现。
+
+## 主线交付记录
+
+- master 从 `40aa4255` 快进至 `a31d98bd`，未创建合并提交，未推送。主线 Release 构建退出 0、零编译错误；runtime folder 产物含 ZzLogg.exe 与 ZzLoggUpdate.exe；完整 CTest **105/105 通过（117.56 秒）**，restart_contract 与 storage_migrator 在低负载窗口均通过。证据位于主仓库 `out/ui-vs/3b4-master-build.log`、`3b4-master-tests.log`。
+- 程序位置：主仓库 `out/ui-vs/output/Release/ZzLogg.exe`；独立更新器 `out/ui-vs/output/Release/ZzLoggUpdate.exe`（静态 CRT，仅系统依赖，生产入口仍拒绝执行安装）。
+- 本阶段交付：可取消的会话退出准备/提交、同安装目录实例协调与全部启动入口保护、能力门禁的"退出并更新"界面（生产恒关闭）、目录预留跨主程序退出延续、正式更新器部署。**未交付**：真实安装、UAC 提权、生产签名/正式发布身份、3C 受保护安装事务与持久恢复；自动更新未上线。
+- 3C 立案待办（最终审查移交）：准备丢失外发通知消除提交残余窗口、options 模态销毁路径测试、析构有界等待、取消后重试可诊断状态、Abandoned 文案区分、WM_QUERYENDSESSION 语义评估、UPDATE_PROTOCOL 交接时序图。
+- 隔离工作树 `.worktrees/update-core` 与分支 `codex/installer-update-plan` 保留，SDD 账本与证据在 `.superpowers/sdd/2026-09-16-application-update-handoff/`。
