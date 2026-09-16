@@ -49,7 +49,7 @@
 
 **文件：** `src/app/kloggapp.h`；`src/ui/include/mainwindow.h`、`src/ui/src/mainwindow.cpp`；`tests/ui_acceptance/restartcontracttest.cpp`；必要时抽取 `applicationexitpreparation.*` 并更新 app/tests CMake。
 
-- [ ] 在现有真实 KloggApp 测试中先添加准备不关闭、失败回滚和取消恢复测试；运行证明旧实现缺失。接口为 `prepareApplicationExit()`、`cancelApplicationExitPreparation()`、`commitApplicationExit()`、`isApplicationExitPrepared()`，具体可返回 bool 与保留生命周期令牌，但不暴露测试专用 setter。
+- [x] 在现有真实 KloggApp 测试中先添加准备不关闭、失败回滚和取消恢复测试；运行证明旧实现缺失。接口为 `prepareApplicationExit()`、`cancelApplicationExitPreparation()`、`commitApplicationExit()`、`isApplicationExitPrepared()`，具体可返回 bool 与保留生命周期令牌，但不暴露测试专用 setter。
 
 ```cpp
 QVERIFY(app.prepareApplicationExit());
@@ -61,11 +61,11 @@ QVERIFY(first->isEnabled());
 QVERIFY(!app.isApplicationExitPrepared());
 ```
 
-- [ ] 保存所有窗口并同步 session QSettings 成功后才进入 Prepared，窗口不关闭；准备失败取消已经准备的窗口并恢复原 session exitRequested；无窗口安全处理，重复准备拒绝，取消幂等，提交必须要求准备状态。
-- [ ] Prepared 期间保留窗口但冻结会改变快照的操作：窗口交互、创建窗口、打开文件/拖放/IPC、托盘操作、关闭与普通退出/重启均不得绕过；保留并恢复此前 enabled 状态。非交互文件请求可拒绝并诊断，不默默载入改变保存快照。后台跟随可继续读取，但不能改已保存快照。
-- [ ] 以 QPointer 保存准备窗口集合并检查窗口丢失；任何提交前失败均撤销准备。正常退出/重启复用 prepare+commit；正确绕过托盘关闭，既有重启契约保持。提交关闭不得在第一个窗口关闭之后才发现可预检的拒绝。
-- [ ] 真实多窗口测试涵盖准备失败、同步失败、取消、重复调用、窗口原本 disabled、等待期间 close/newWindow/loadFile 被阻止、提交保留会话及普通重启回归；不新增生产测试开关。至少一个临时守卫变异必须使测试失败，恢复后通过。
-- [ ] 聚焦构建与测试，完整 Release/CTest，自审后提交。
+- [x] 保存所有窗口并同步 session QSettings 成功后才进入 Prepared，窗口不关闭；准备失败取消已经准备的窗口并恢复原 session exitRequested；无窗口安全处理，重复准备拒绝，取消幂等，提交必须要求准备状态。
+- [x] Prepared 期间保留窗口但冻结会改变快照的操作：窗口交互、创建窗口、打开文件/拖放/IPC、托盘操作、关闭与普通退出/重启均不得绕过；保留并恢复此前 enabled 状态。非交互文件请求可拒绝并诊断，不默默载入改变保存快照。后台跟随可继续读取，但不能改已保存快照。
+- [x] 以 QPointer 保存准备窗口集合并检查窗口丢失；任何提交前失败均撤销准备。正常退出/重启复用 prepare+commit；正确绕过托盘关闭，既有重启契约保持。提交关闭不得在第一个窗口关闭之后才发现可预检的拒绝。
+- [x] 真实多窗口测试涵盖准备失败、同步失败、取消、重复调用、窗口原本 disabled、等待期间 close/newWindow/loadFile 被阻止、提交保留会话及普通重启回归；不新增生产测试开关。至少一个临时守卫变异必须使测试失败，恢复后通过。
+- [x] 聚焦构建与测试，完整 Release/CTest，自审后提交。
 
 ```powershell
 $env:CL='/MP8'
@@ -140,3 +140,10 @@ git commit -m "feat: 接入可取消的更新交接界面" -m "3B.4 任务三：
 - [ ] 每任务独立审查、最终整阶段审查，主控重新构建/测试。
 - [ ] master 快进合并、主线 Release 构建与测试，记录程序位置；不推送。
 - [ ] 明确测试环境边界和下一阶段 3C 受保护安装事务，不宣称自动更新已上线。
+
+## 执行记录
+
+- 起点 master `40aa4255`（3B.3 主线验收完成），隔离工作树 `.worktrees/update-core`、分支 `codex/installer-update-plan`；基线 98/99，协调者测试 0xc0000409 无可见断言，证据 `out/ui-vs/3b4-baseline-tests.log`。用户已授权验证完成后自动快进合并 master，不 push。
+- 计划提交 `0e01d720`；起飞前裁决：同目录其他实例保守阻塞并提示手动关闭，不实现跨进程强关；KDSingleApplication 实例名按安装目录隔离；子协调者以 SYNCHRONIZE 观察句柄延续目录预留跨越主程序退出。
+- 任务 0：基线异常根因是协调者测试复用进程临时目录；`5cd5e4f6` 仅修测试（唯一 nonce 加原子创建），定向 RED 复现后转绿，完整 99/99（105.29 秒）。独立审查无发现。
+- 任务 1：`916ffa20` 拆分退出准备与提交，真实 Qt 聚焦 15/15、两次守卫变异均失败、恢复后完整 99/99（110.42 秒）。独立审查规格符合、质量通过，无关键/重要发现；次要项记入账本留待最终审查甄别。
