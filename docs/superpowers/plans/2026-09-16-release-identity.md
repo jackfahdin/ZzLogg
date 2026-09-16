@@ -32,7 +32,7 @@
 
 ## 任务 1：构建身份生成与无 Qt 读取
 
-- [ ] 先创建配置测试，运行真实 CMake 子进程生成头并编译一个最小无 Qt 的消费程序（独立 CMake 工程只编译 releaseidentity.cpp/version.cpp，不重建全应用）。默认构建返回空；有效 stable/preview 构建读取精确版本、序号、schema 和平台。独立测试工程必须继承当前 generator/platform/toolset/compiler，测试使用自己的二进制子目录。
+- [x] 先创建配置测试，运行真实 CMake 子进程生成头并编译一个最小无 Qt 的消费程序（独立 CMake 工程只编译 releaseidentity.cpp/version.cpp，不重建全应用）。默认构建返回空；有效 stable/preview 构建读取精确版本、序号、schema 和平台。独立测试工程必须继承当前 generator/platform/toolset/compiler，测试使用自己的二进制子目录。
 
 接口定义：
 
@@ -58,22 +58,22 @@ if (!r || r->version.year!=26 || r->version.month!=9 || r->version.patch!=0
     || r->updaterProtocol!=1) return 1;
 ```
 
-- [ ] 增加正式输入无效矩阵：缺任意字段、零序号、超上限、前导零、负数、空白、指数、分号/引号注入、错误渠道、无效月份、额外版本分量、不支持目标平台/架构。调用同一生成函数，断言失败而不是创建一个可用身份。开发 OFF 加残留完整字段仍应返回空。支持最大合法序号和 schema。
-- [ ] 运行测试确认因缺少生成功能失败，记录命令及输出。目标架构的配置单测可以使用隔离子进程设置 CMake 目标描述变量，但不能声称在其他架构实际运行。
-- [ ] 添加 CMake 模块，输入名为 ZZLOGG_OFFICIAL_RELEASE（默认 OFF）、ZZLOGG_RELEASE_SEQUENCE、ZZLOGG_RELEASE_CHANNEL、ZZLOGG_RELEASE_DATA_SCHEMA（其余默认空）；生成函数 `zzlogg_configure_release_identity(output)`。从现有 ZZLOGG_DISPLAY_VERSION 取版本，正式模式校验 Windows、64 位且编译目标 x64；VS generator platform 或编译器 architecture ID 优先于宿主 processor，不能使用“指针为 8”作为充分证据。无法确认目标则拒绝正式模式。
-- [ ] 生成字段使用经过约束的字面量，uint64 上限用长度和等长字典序校验，不能经浮点或有符号整数比较失真；生成 ULL 字面量。正式模式同时拒绝非零 PROJECT_VERSION_TWEAK，允许 Windows 数值版本第四段 0。OFF 模式输出不可用且清空所有正式字段。核心 `compiledReleaseIdentity()` 在编译的平台非 Windows x64 时也返回空（防止仅伪造 CMake 变量）。协议版本固定 1。
-- [ ] 注册 `zzlogg_update.release_identity` 和 `zzlogg_update.release_configuration`；版本/序号测试应独立于开发机器当前 Git 标签。运行新测试及核心既有测试，完成一次缺失关键校验的变异检查并恢复。
+- [x] 增加正式输入无效矩阵：缺任意字段、零序号、超上限、前导零、负数、空白、指数、分号/引号注入、错误渠道、无效月份、额外版本分量、不支持目标平台/架构。调用同一生成函数，断言失败而不是创建一个可用身份。开发 OFF 加残留完整字段仍应返回空。支持最大合法序号和 schema。
+- [x] 运行测试确认因缺少生成功能失败，记录命令及输出。目标架构的配置单测可以使用隔离子进程设置 CMake 目标描述变量，但不能声称在其他架构实际运行。
+- [x] 添加 CMake 模块，输入名为 ZZLOGG_OFFICIAL_RELEASE（默认 OFF）、ZZLOGG_RELEASE_SEQUENCE、ZZLOGG_RELEASE_CHANNEL、ZZLOGG_RELEASE_DATA_SCHEMA（其余默认空）；生成函数 `zzlogg_configure_release_identity(output)`。从现有 ZZLOGG_DISPLAY_VERSION 取版本，正式模式校验 Windows、64 位且编译目标 x64；VS generator platform 或编译器 architecture ID 优先于宿主 processor，不能使用“指针为 8”作为充分证据。无法确认目标则拒绝正式模式。
+- [x] 生成字段使用经过约束的字面量，uint64 上限用长度和等长字典序校验，不能经浮点或有符号整数比较失真；生成 ULL 字面量。正式模式同时拒绝非零 PROJECT_VERSION_TWEAK，允许 Windows 数值版本第四段 0。OFF 模式输出不可用且清空所有正式字段。核心 `compiledReleaseIdentity()` 在编译的平台非 Windows x64 时也返回空（防止仅伪造 CMake 变量）。协议版本固定 1。
+- [x] 注册 `zzlogg_update.release_identity` 和 `zzlogg_update.release_configuration`；版本/序号测试应独立于开发机器当前 Git 标签。运行新测试及核心既有测试，完成一次缺失关键校验的变异检查并恢复。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --target zzlogg_update_release_identity_test --parallel 8
 & D:/SoftWare/CMake/bin/ctest.exe --test-dir out/ui-vs -C Release -R '^zzlogg_update\.(release_identity|release_configuration|version|policy)$' --output-on-failure
 ```
 
-- [ ] 提交 `feat: 增加显式构建发布身份（3B.1 任务一）`，正文说明默认关闭、输入校验和测试边界。
+- [x] 提交 `feat: 增加显式构建发布身份（3B.1 任务一）`，正文说明默认关闭、输入校验和测试边界。
 
 ## 任务 2：组合安装与发布身份，保持应用门禁关闭
 
-- [ ] 先创建纯函数测试，不 mock 生产逻辑、不查询真实注册表。接口为：
+- [x] 先创建纯函数测试，不 mock 生产逻辑、不查询真实注册表。接口为：
 
 ```cpp
 std::optional<zzlogg::update::InstalledRelease> makeInstalledRelease(
@@ -83,10 +83,10 @@ std::optional<zzlogg::update::InstalledRelease> makeInstalledRelease(
 ```
 
 声明放在 `zzlogg::updateqt`。有效 fixture 为 `{26,9,0},123,"stable","windows","x64",0,1`，安装身份 `{Registered,"C:/Program Files/ZzLogg"}`，OS `{10,0,22631}`。验证所有返回字段，尤其 Installer、developmentBuild=false 和实际传入 OS，而不是默认零版本。
-- [ ] 参数化覆盖空发布身份、每个非 Registered 枚举、空根、空/未知渠道、错误 OS/架构、无效版本、零序号、非 1 updaterProtocol、OS 主版本为零；全部返回空。正常 stable/preview、schema 0/最大值、UINT64_MAX 序号返回身份（C++ uint64 字段不存在可表示的越界值）。不得仅信任结构体是由构建接口提供。
-- [ ] 注册 `zzlogg_update.installed_release`，先运行确认缺功能失败，再实现最小字段检查与拷贝。复用既有版本规则，避免使用文件标记或用户配置推导正式身份。
-- [ ] 保持 `src/app/kloggapp.h` 中两个服务参数为 std::nullopt，不新增真实 OS 探测，不改 UI 或下载安装策略。更新 UPDATE_PROTOCOL，解释正式构建不等于自动安装授权，以及 3B.2–3B.4/3C 尚未完成。
-- [ ] 运行聚焦测试、Release 全量构建、全套 CTest；对 Registered 或平台条件做变异证明测试捕获。提交 `feat: 组合安装与发布身份供更新选择使用（3B.1 任务二）`，详细正文记录证据与未接线范围。
+- [x] 参数化覆盖空发布身份、每个非 Registered 枚举、空根、空/未知渠道、错误 OS/架构、无效版本、零序号、非 1 updaterProtocol、OS 主版本为零；全部返回空。正常 stable/preview、schema 0/最大值、UINT64_MAX 序号返回身份（C++ uint64 字段不存在可表示的越界值）。不得仅信任结构体是由构建接口提供。
+- [x] 注册 `zzlogg_update.installed_release`，先运行确认缺功能失败，再实现最小字段检查与拷贝。复用既有版本规则，避免使用文件标记或用户配置推导正式身份。
+- [x] 保持 `src/app/kloggapp.h` 中两个服务参数为 std::nullopt，不新增真实 OS 探测，不改 UI 或下载安装策略。更新 UPDATE_PROTOCOL，解释正式构建不等于自动安装授权，以及 3B.2–3B.4/3C 尚未完成。
+- [x] 运行聚焦测试、Release 全量构建、全套 CTest；对 Registered 或平台条件做变异证明测试捕获。提交 `feat: 组合安装与发布身份供更新选择使用（3B.1 任务二）`，详细正文记录证据与未接线范围。
 
 ```powershell
 $env:CL='/MP8'
@@ -99,3 +99,15 @@ $env:CL='/MP8'
 两项全部完成、独立审查和主控复验后交付 3B.1。不得宣称独立更新程序、UAC、自动安装或整个 3B 已完成。
 
 下一阶段 3B.2 的计划围绕原始信封、执行前重验和 Windows 文件稳定性编写；生产签名配置缺失不阻碍纯验证与拒绝分支的开发，但阻止正式上线。
+
+## 执行记录
+
+- 基线 `d6c3a7b7`，隔离工作树 `.worktrees/update-core`，分支 `codex/installer-update-plan`；基线 CTest 81/81 通过（53.00 秒）。
+- 任务 1：`419e7f9a`。真实配置/编译/运行矩阵及核心读取实现，红绿和零序号变异检查完成；Release 完整构建成功，CTest 83/83 通过（87.26 秒）。
+- 第一轮修复 `23cd2bde`：嵌套测试改由 CTest 定位消费者并继承单配置 build type；Windows Ninja Release 实际红绿验证完成。C++ 编译防线显式排除 ARM64EC（微软宏定义说明其也定义 `_M_X64`），受控宏 fixture 红绿通过，不声称在 ARM 机器执行。VS 配置测试 1/1 通过（35.80 秒）。
+- 第二轮修复 `f707c8a0`：测试不再递归删除调用者 TEST_ROOT，只在其下创建随机唯一运行子目录；哨兵文件回归先失败后通过，配置测试 1/1 通过（35.56 秒）。独立脚本最低版本声明对齐应用实际要求 CMake 3.23。
+- 任务 1 独立审查及两次定向复审通过。既有第三方 CMake 弃用/策略与可选依赖探测提示未在本任务整改；新增代码未报告编译警告。
+- 计划自检裁决：序号沿用协议完整 uint64 范围，而非 JSON 时间戳的 2^53−1；代价是配置时需字符串边界比较。正式构建拒绝非零资源版本第四段，防止不同构建的显示身份重合；代价是此类发布流水线需调整版本策略。
+- 任务 2：`d0fafcaf`。组合接口及 QtTest 23 项通过（含初始化和清理）；移除 Registered 门禁后四个拒绝用例失败，恢复后全绿。完整 Release 构建成功，CTest 84/84 通过（89.42 秒），日志保留在 `out/ui-vs/task-2-full-ctest.log`。任务审查无关键或重要问题；误纳入的本轮临时报告移出版本跟踪，验收摘要保留在本节。
+- 主控在 `d0fafcaf` 上独立完整 Release 构建退出码 0、CTest 84/84 通过（88.94 秒），日志为 `out/ui-vs/release-identity-final-build.log` 和 `out/ui-vs/release-identity-final-tests.log`。旧安装探测内两个文件符号链接用例仍因创建权限限制跳过，未算作行为通过；新增组合 QtTest 23 项全部通过、无跳过。
+- 主控确认本阶段未修改 `src/app`、`src/ui` 或 `packaging`，两服务仍为 std::nullopt，当前缓存正式构建开关 OFF、其他发布字段为空。未合并或推送，也未执行真实安装器/UAC或跨平台实际运行测试。
