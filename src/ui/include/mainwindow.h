@@ -41,6 +41,7 @@
 
 #include <QMainWindow>
 #include <QMenu>
+#include <QPointer>
 #include <QSystemTrayIcon>
 #include <QTemporaryDir>
 
@@ -112,6 +113,9 @@ class MainWindow : public QMainWindow {
     bool event( QEvent* event ) override;
 
   private:
+    friend class KloggApp;
+    bool canCommitApplicationExit() const;
+    bool commitPreparedApplicationExit();
     enum class ActionInitiator { User, App };
     MainWindow(WindowSession session, const UiThemeContext* context);
     std::unique_ptr<WindowChrome> chrome_;
@@ -343,6 +347,9 @@ class MainWindow : public QMainWindow {
     bool isMaximized_ = false;
     bool isCloseFromTray_ = false;
     bool applicationExitPrepared_ = false;
+    bool applicationExitCommitting_ = false;
+    bool enabledBeforeExitPreparation_ = true;
+    QList<std::pair<QPointer<QAction>, bool>> actionsBeforeExitPreparation_;
 
     std::once_flag screenChangesConnect_;
 };

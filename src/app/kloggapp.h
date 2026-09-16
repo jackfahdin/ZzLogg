@@ -156,6 +156,7 @@ class KloggApp : public QApplication {
 
     MainWindow* reloadSession()
     {
+        if ( exitPreparationState_ != ExitPreparationState::Idle ) return nullptr;
         if ( !session_ ) {
             session_ = std::make_shared<Session>();
         }
@@ -177,6 +178,7 @@ class KloggApp : public QApplication {
 
     void clearInactiveSessions()
     {
+        if ( exitPreparationState_ != ExitPreparationState::Idle ) return;
         LOG_INFO << "Clear inactive sessions";
 
         auto existingSessions = session_->windowSessions();
@@ -198,6 +200,10 @@ class KloggApp : public QApplication {
 
     MainWindow* newWindow()
     {
+        if ( exitPreparationState_ != ExitPreparationState::Idle ) {
+            LOG_WARNING << "Window creation rejected while application exit is prepared";
+            return nullptr;
+        }
         if ( !session_ ) {
             session_ = std::make_shared<Session>();
         }
@@ -217,6 +223,10 @@ class KloggApp : public QApplication {
 
     void loadFileNonInteractive( const QString& file )
     {
+        if ( exitPreparationState_ != ExitPreparationState::Idle ) {
+            LOG_WARNING << "File request rejected while application exit is prepared: " << file;
+            return;
+        }
         while ( !activeWindows_.empty() && activeWindows_.top().isNull() ) {
             activeWindows_.pop();
         }
@@ -226,6 +236,83 @@ class KloggApp : public QApplication {
         }
 
         activeWindows_.top()->loadFileNonInteractive( file );
+    }
+
+    // Preparation owns the saved session snapshot until explicitly cancelled or committed.
+    // No event loop is entered between commit preflight and closing the participants.
+    bool prepareApplicationExit()
+    {
+        if ( exitPreparationState_ != ExitPreparationState::Idle ) return false;
+        previousExitRequested_ = session_ && session_->exitRequested();
+        exitPreparationState_ = ExitPreparationState::Preparing;
+        preparedWindows_.clear();
+        for ( auto it = mainWindows_.crbegin(); it != mainWindows_.crend(); ++it ) {
+            preparedWindows_.append( it->second );
+        }
+        const auto participants = preparedWindows_;
+        for ( const auto& window : participants ) {
+            if ( exitPreparationState_ != ExitPreparationState::Preparing ) return false;
+            if ( !window || !window->prepareForApplicationExit() ) {
+                cancelApplicationExitPreparation();
+                return false;
+            }
+        }
+        if ( exitPreparationState_ != ExitPreparationState::Preparing ) return false;
+        if ( session_ ) {
+            auto& settings = PersistentInfo::getSettings( session_settings{} );
+            settings.sync();
+            if ( settings.status() != QSettings::NoError
+                 || property( "zzlogg.test.failSessionSync" ).toBool() ) {
+                cancelApplicationExitPreparation();
+                return false;
+            }
+        }
+        exitPreparationState_ = ExitPreparationState::Prepared;
+        return true;
+    }
+
+    void cancelApplicationExitPreparation()
+    {
+        if ( exitPreparationState_ == ExitPreparationState::Idle
+             || exitPreparationState_ == ExitPreparationState::Cancelling
+             || exitPreparationState_ == ExitPreparationState::Committing ) return;
+        exitPreparationState_ = ExitPreparationState::Cancelling;
+        const auto participants = preparedWindows_;
+        preparedWindows_.clear();
+        for ( const auto& window : participants ) {
+            if ( window ) window->cancelApplicationExitPreparation();
+        }
+        if ( session_ ) session_->setExitRequested( previousExitRequested_ );
+        exitPreparationState_ = ExitPreparationState::Idle;
+    }
+
+    bool isApplicationExitPrepared() const
+    {
+        return exitPreparationState_ == ExitPreparationState::Prepared;
+    }
+
+    bool commitApplicationExit()
+    {
+        if ( !isApplicationExitPrepared() ) return false;
+        const auto participants = preparedWindows_;
+        for ( const auto& window : participants ) {
+            if ( !window || !window->canCommitApplicationExit() ) {
+                cancelApplicationExitPreparation();
+                return false;
+            }
+        }
+        exitPreparationState_ = ExitPreparationState::Committing;
+        if ( session_ ) session_->setExitRequested( true );
+        for ( const auto& window : participants ) {
+            if ( !window || !window->commitPreparedApplicationExit() ) {
+                exitPreparationState_ = ExitPreparationState::Prepared;
+                cancelApplicationExitPreparation();
+                return false;
+            }
+        }
+        preparedWindows_.clear();
+        exitPreparationState_ = ExitPreparationState::Idle;
+        return true;
     }
 
     void startBackgroundTasks()
@@ -269,7 +356,22 @@ class KloggApp : public QApplication {
         activeWindows_.push( QPointer<MainWindow>( window ) );
 
         LOG_INFO << "Window " << &window << " created";
-        connect( window, &MainWindow::newWindow, [ = ]() { newWindow()->show(); } );
+        connect( window, &MainWindow::newWindow, this, [ this ] {
+            if ( auto* createdWindow = newWindow() ) createdWindow->show();
+        } );
+        connect( window, &QObject::destroyed, this, [this, window] {
+            mainWindows_.remove_if( [window]( const auto& entry ) {
+                return entry.second == window;
+            } );
+            // QWidget emits destroyed before all of its children are gone. Never
+            // restore actions on that half-destructed participant during rollback.
+            const auto removed = preparedWindows_.removeIf( [window]( const auto& participant ) {
+                return participant.isNull() || participant.data() == window;
+            } );
+            if ( removed && ( exitPreparationState_ == ExitPreparationState::Prepared
+                              || exitPreparationState_ == ExitPreparationState::Preparing ) )
+                cancelApplicationExitPreparation();
+        } );
         connect( window, &MainWindow::windowActivated,
                  [ this, window ]() { onWindowActivated( *window ); } );
         connect( window, &MainWindow::windowClosed,
@@ -327,54 +429,12 @@ class KloggApp : public QApplication {
 
     bool closeAllWindowsForApplicationExit()
     {
-        if ( !session_ ) {
-            return true;
-        }
-        const bool previousExitRequested = session_->exitRequested();
-        auto mainWindows = mainWindows_;
-        mainWindows.reverse();
-        QList<MainWindow*> prepared;
-        for ( const auto& [ session, window ] : mainWindows ) {
-            Q_UNUSED( session );
-            if ( window == nullptr || !window->prepareForApplicationExit() ) {
-                for ( MainWindow* preparedWindow : prepared ) {
-                    preparedWindow->cancelApplicationExitPreparation();
-                }
-                session_->setExitRequested( previousExitRequested );
-                return false;
-            }
-            prepared.append( window );
-        }
-
-        auto& sessionSettings = PersistentInfo::getSettings( session_settings{} );
-        sessionSettings.sync();
-        const bool synced = sessionSettings.status() == QSettings::NoError
-                            && !property( "zzlogg.test.failSessionSync" ).toBool();
-        if ( !synced ) {
-            for ( MainWindow* preparedWindow : prepared ) {
-                preparedWindow->cancelApplicationExitPreparation();
-            }
-            session_->setExitRequested( previousExitRequested );
-            return false;
-        }
-
-        session_->setExitRequested( true );
-        for ( const auto& [ session, window ] : mainWindows ) {
-            Q_UNUSED( session );
-            if ( window != nullptr && !window->closeForApplicationExit() ) {
-                for ( MainWindow* preparedWindow : prepared ) {
-                    preparedWindow->cancelApplicationExitPreparation();
-                }
-                session_->setExitRequested( previousExitRequested );
-                return false;
-            }
-        }
-        return true;
+        return prepareApplicationExit() && commitApplicationExit();
     }
 
     void restartApplication()
     {
-        if ( restartInProgress_ ) {
+        if ( restartInProgress_ || exitPreparationState_ != ExitPreparationState::Idle ) {
             return;
         }
         restartInProgress_ = true;
@@ -501,6 +561,10 @@ class KloggApp : public QApplication {
     QPointer<UpdateCheckDialog> updateDialog_;
     bool updateDialogDismissed_=false;
     bool restartInProgress_ = false;
+    enum class ExitPreparationState { Idle, Preparing, Prepared, Cancelling, Committing };
+    ExitPreparationState exitPreparationState_ = ExitPreparationState::Idle;
+    QList<QPointer<MainWindow>> preparedWindows_;
+    bool previousExitRequested_ = false;
 };
 
 #endif // KLOGG_KLOGGAPP_H

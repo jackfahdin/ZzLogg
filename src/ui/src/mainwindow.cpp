@@ -260,6 +260,7 @@ void MainWindow::reloadGeometry()
 
 void MainWindow::reloadSession()
 {
+    if ( applicationExitPrepared_ ) return;
     const auto& config = Configuration::get();
     const auto followFileOnLoad = config.followFileOnLoad() && config.anyFileWatchEnabled();
 
@@ -761,8 +762,11 @@ void MainWindow::createTrayIcon()
     trayMenu->addAction( trayOpenAction );
     trayMenu->addAction( trayQuitAction );
 
-    connect( trayOpenAction, &QAction::triggered, this, &QMainWindow::show );
+    connect( trayOpenAction, &QAction::triggered, this, [this] {
+        if ( !applicationExitPrepared_ ) show();
+    } );
     connect( trayQuitAction, &QAction::triggered, [ this ] {
+        if ( applicationExitPrepared_ ) return;
         this->isCloseFromTray_ = true;
         this->close();
     } );
@@ -773,6 +777,7 @@ void MainWindow::createTrayIcon()
 
     connect( trayIcon_, &QSystemTrayIcon::activated,
              [ this ]( QSystemTrayIcon::ActivationReason reason ) {
+                 if ( applicationExitPrepared_ ) return;
                  switch ( reason ) {
                  case QSystemTrayIcon::Trigger:
                      if ( !this->isVisible() ) {
@@ -929,6 +934,7 @@ void MainWindow::closeTab( ActionInitiator initiator )
 // Close all tabs
 void MainWindow::closeAll( ActionInitiator initiator )
 {
+    if ( applicationExitPrepared_ && !applicationExitCommitting_ ) return;
     while ( workspace_.count() ) {
         closeTab( 0, initiator );
     }
@@ -1285,6 +1291,7 @@ void MainWindow::handleFilteredViewChanged()
 
 void MainWindow::closeTab( int index, ActionInitiator initiator )
 {
+    if ( applicationExitPrepared_ && !applicationExitCommitting_ ) return;
     const QString path = workspace_.closeDocument( index );
     if ( !path.isEmpty() && initiator == ActionInitiator::User )
         addRecentFile( path );
@@ -1326,6 +1333,10 @@ void MainWindow::changeQFPattern( const QString& newPattern )
 
 void MainWindow::loadFileNonInteractive( const QString& file_name )
 {
+    if ( applicationExitPrepared_ ) {
+        LOG_WARNING << "File request rejected while application exit is prepared: " << file_name;
+        return;
+    }
     LOG_DEBUG << "loadFileNonInteractive( " << file_name.toStdString() << " )";
 
     loadFile( file_name );
@@ -1371,21 +1382,50 @@ void MainWindow::loadFileNonInteractive( const QString& file_name )
 
 bool MainWindow::prepareForApplicationExit()
 {
-    if ( property( "zzlogg.test.rejectApplicationClose" ).toBool() ) {
+    if ( applicationExitPrepared_ || property( "zzlogg.test.rejectApplicationClose" ).toBool() ) {
         return false;
     }
-    writeSettings();
     applicationExitPrepared_ = true;
+    enabledBeforeExitPreparation_ = isEnabled();
+    actionsBeforeExitPreparation_.clear();
+    for ( auto* action : findChildren<QAction*>() ) {
+        actionsBeforeExitPreparation_.append( { action, action->isEnabled() } );
+        action->setEnabled( false );
+    }
+    setEnabled( false );
+    writeSettings();
     return true;
 }
 
 void MainWindow::cancelApplicationExitPreparation()
 {
+    if ( !applicationExitPrepared_ ) return;
     applicationExitPrepared_ = false;
+    setEnabled( enabledBeforeExitPreparation_ );
+    for ( const auto& entry : actionsBeforeExitPreparation_ ) {
+        if ( entry.first ) entry.first->setEnabled( entry.second );
+    }
+    actionsBeforeExitPreparation_.clear();
+}
+
+bool MainWindow::canCommitApplicationExit() const
+{
+    return applicationExitPrepared_
+           && !property( "zzlogg.test.rejectApplicationClose" ).toBool();
+}
+
+bool MainWindow::commitPreparedApplicationExit()
+{
+    if ( !canCommitApplicationExit() ) return false;
+    applicationExitCommitting_ = true;
+    const bool closed = closeForApplicationExit();
+    applicationExitCommitting_ = false;
+    return closed;
 }
 
 bool MainWindow::closeForApplicationExit()
 {
+    if ( applicationExitPrepared_ && !applicationExitCommitting_ ) return false;
     const bool previousCloseFromTray = isCloseFromTray_;
     isCloseFromTray_ = true;
     const bool closed = close();
@@ -1398,6 +1438,10 @@ bool MainWindow::closeForApplicationExit()
 // Closes the application
 void MainWindow::closeEvent( QCloseEvent* event )
 {
+    if ( applicationExitPrepared_ && !applicationExitCommitting_ ) {
+        event->ignore();
+        return;
+    }
     if ( !isCloseFromTray_ && this->isVisible() && Configuration::get().minimizeToTray() ) {
         event->ignore();
         trayIcon_->show();
@@ -1455,6 +1499,7 @@ void MainWindow::changeEvent( QEvent* event )
 // Accepts the drag event if it looks like a filename
 void MainWindow::dragEnterEvent( QDragEnterEvent* event )
 {
+    if ( applicationExitPrepared_ ) { event->ignore(); return; }
     if ( event->mimeData()->hasFormat( "text/uri-list" ) )
         event->acceptProposedAction();
 }
@@ -1462,6 +1507,7 @@ void MainWindow::dragEnterEvent( QDragEnterEvent* event )
 // Tries and loads the file if the URL dropped is local
 void MainWindow::dropEvent( QDropEvent* event )
 {
+    if ( applicationExitPrepared_ ) { event->ignore(); return; }
     const QList<QUrl> urls = event->mimeData()->urls();
 
     for ( const auto& url : urls ) {
@@ -1582,6 +1628,10 @@ bool MainWindow::extractAndLoadFile( const QString& fileName )
 // The loading is done asynchronously.
 bool MainWindow::loadFile( const QString& fileName, bool followFile )
 {
+    if ( applicationExitPrepared_ ) {
+        LOG_WARNING << "File request rejected while application exit is prepared: " << fileName;
+        return false;
+    }
     LOG_DEBUG << "loadFile ( " << fileName.toStdString() << " )";
 
     // First check if the file is already open...
