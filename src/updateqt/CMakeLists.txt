@@ -1,4 +1,5 @@
 add_library(zzlogg_update_qt STATIC src/updatestate.cpp src/manifestfetcher.cpp src/installationidentity.cpp
+  src/installedrelease.cpp include/zzlogg/updateqt/installedrelease.h
   include/zzlogg/updateqt/manifestfetcher.h
   include/zzlogg/updateqt/installationidentity.h
   src/packagecache.cpp include/zzlogg/updateqt/packagecache.h)

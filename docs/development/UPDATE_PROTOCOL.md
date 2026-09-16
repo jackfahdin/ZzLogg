@@ -4,7 +4,7 @@
 
 静态 C++ 验证核心提供版本解析、Ed25519 验签、严格清单解析、防回放和发布载荷选择。核心不依赖 Qt；独立 Qt 层已实现 HTTPS 检查、状态持久化、包下载与校验，主程序已有对应设置、检查和进度界面。更新代码不写注册表、不替换安装目录，也不修改用户日志数据。
 
-**这不代表生产在线更新已上线。** 正式托管、公钥和发布身份尚未配置；安装器执行和失败恢复尚未实现。已确认只给安装版提供在线更新，便携版手动更新，不开发便携自动替换。当前只支持全量包下载，不支持增量更新或自动安装。范围及实施顺序见 [仅安装版在线更新设计](../superpowers/specs/2026-09-15-installer-only-update-design.md)。
+**这不代表生产在线更新已上线。** 正式托管、公钥和发布流水线输入尚未配置；安装器执行和失败恢复尚未实现。已确认只给安装版提供在线更新，便携版手动更新，不开发便携自动替换。当前只支持全量包下载，不支持增量更新或自动安装。范围及实施顺序见 [仅安装版在线更新设计](../superpowers/specs/2026-09-15-installer-only-update-design.md)。
 
 ## 代码入口
 
@@ -14,6 +14,7 @@
 | src/update/include/zzlogg/update/signature.h | Ed25519 原始消息验签 |
 | src/update/include/zzlogg/update/manifest.h | 信任上下文、只读已验证清单、接受记录 |
 | src/update/include/zzlogg/update/policy.h | 当前安装信息与发布选择结果 |
+| src/update/include/zzlogg/update/releaseidentity.h | 编译生成的正式发布身份读取；开发构建返回空 |
 | src/update/src/strictjson.cpp | JSON 重复键、深度、编码与规范 Base64 |
 | src/update/src/manifest.cpp | 内部签名封装验证，不授予安装资格 |
 | src/update/src/payload.cpp | 完整负载、期限、域名与防回放 |
@@ -21,6 +22,7 @@
 | tests/update | 标准向量、真实签名和错误边界测试 |
 | tools/update | 默认关闭的离线测试清单工具 |
 | src/updateqt | Qt 检查服务、状态存储、流式包缓存与下载协调 |
+| src/updateqt/include/zzlogg/updateqt/installedrelease.h | 纯发布身份与只读安装身份组合，不执行系统探测 |
 | src/ui/src/updatecheckdialog.cpp | 检查、下载进度与用户操作窗口 |
 | tests/updateqt | 脚本网络、真实验签/缓存及生命周期回归 |
 
@@ -214,3 +216,20 @@ UAC、文件替换或注册表写入。真实 NSIS/UAC 安装验收尚未执行�
 其中判定矩阵 QtTest 为 14 项通过，探测 QtTest 为 76 项通过、2 项文件符号链接创建受限而跳过
 （这些 QtTest 数量均含初始化和清理）。根/祖先 junction 和大小写敏感目录测试实际执行通过；
 未将跳过项计为功能验收通过。
+
+## 正式构建发布身份与组合
+
+3B.1 提供默认关闭的编译期发布身份。`ZZLOGG_OFFICIAL_RELEASE` 默认为 `OFF`；只有正式发布流水线显式开启并提供全部字段时才生成身份，残留字段不会让开发构建获得正式身份。
+
+| 配置项 / 字段 | 规则 |
+| --- | --- |
+| `ZZLOGG_DISPLAY_VERSION` / `version` | `YY.MM.PP`，每段两位 ASCII 数字，月份 01–12；非零第四版本分量拒绝 |
+| `ZZLOGG_RELEASE_SEQUENCE` / `releaseSequence` | 1–18446744073709551615 的规范十进制，不接受前导零、符号、空白、小数或指数 |
+| `ZZLOGG_RELEASE_CHANNEL` / `channel` | `stable` 或 `preview` |
+| 编译目标 / `os`、`arch` | 仅 Windows x64，生成值固定为 `windows`、`x64` |
+| `ZZLOGG_RELEASE_DATA_SCHEMA` / `dataSchema` | 0–4294967295 的规范十进制；0 只能由流水线显式声明，且不表示现有配置文件已有统一 schema |
+| `updaterProtocol` | 当前固定为 1 |
+
+无 Qt 核心读取上述编译常量；非 Windows x64 的编译结果仍返回空。Qt 适配层的纯函数只在发布身份再次通过字段校验、安装身份是 `Registered` 且根目录非空、调用方传入的操作系统主版本非零时，组合出 `Installer` 类型的 `InstalledRelease`。它不读取注册表、文件标记、用户配置或数据目录，也不自行探测操作系统版本。
+
+正式发布身份只是用于比较的元数据，**不等于安装授权**。主程序目前仍向检查服务和下载服务传入 `std::nullopt`，没有把组合函数接入应用，也没有开放自动安装。3B.2 的执行前签名与文件稳定性重验、3B.3 的独立交接进程、3B.4 的保存/退出/UI 接线以及 3C 的受保护安装事务和恢复均未完成；在这些门禁和生产配置完成前，不得启动安装器或写入 HKLM。
