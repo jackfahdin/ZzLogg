@@ -111,3 +111,8 @@ $env:CL='/MP8'
 - 任务 2：`d0fafcaf`。组合接口及 QtTest 23 项通过（含初始化和清理）；移除 Registered 门禁后四个拒绝用例失败，恢复后全绿。完整 Release 构建成功，CTest 84/84 通过（89.42 秒），日志保留在 `out/ui-vs/task-2-full-ctest.log`。任务审查无关键或重要问题；误纳入的本轮临时报告移出版本跟踪，验收摘要保留在本节。
 - 主控在 `d0fafcaf` 上独立完整 Release 构建退出码 0、CTest 84/84 通过（88.94 秒），日志为 `out/ui-vs/release-identity-final-build.log` 和 `out/ui-vs/release-identity-final-tests.log`。旧安装探测内两个文件符号链接用例仍因创建权限限制跳过，未算作行为通过；新增组合 QtTest 23 项全部通过、无跳过。
 - 主控确认本阶段未修改 `src/app`、`src/ui` 或 `packaging`，两服务仍为 std::nullopt，当前缓存正式构建开关 OFF、其他发布字段为空。未合并或推送，也未执行真实安装器/UAC或跨平台实际运行测试。
+- 整阶段审查补充发现：读取测试不能对合法正式 ON 构建继续断言空，配置矩阵也不能在非 Windows x64 开发工具链上无条件要求正式构建成功。前述 84/84 证据只覆盖 Windows x64 OFF。两项合并为一轮最终测试修复，不改变正式更新支持平台或应用门禁。
+- 最终修复 `a9e77043`：读取测试按真实构建输入断言，配置矩阵按目标描述选择正式成功或拒绝预期；新增 Linux/ARM64 受控目标描述路由测试，不代表实际跨平台编译运行。Windows x64 真实 ON 配置先复现失败，修复后读取与配置矩阵 2/2 通过；之后恢复 OFF 和三项空发布参数，原 BUILD_VERSION 不变。
+- 最终修复者的默认 Release 构建成功；首轮全套 85/86，唯一失败为未修改的 `redirectDoesNotResetTotalDeadline()`（请求数实际 1、期望 2；脚本 10ms 分块，总时限 150ms）。原样聚焦连续三次通过，再原样全套 86/86 通过（97.00 秒）。只确认偶发时序敏感，调度根因未确定，没有修改网络逻辑或宣称修复此用例。首轮、失败详情、聚焦和全套复跑日志分别为 `out/final-fix-default-ctest.log`、`out/final-fix-fetcher-first-failure.log`、`out/final-fix-fetcher-recheck.log`、`out/final-fix-default-ctest-recheck.log`。
+- 最终定向复审确认上述两项均已解决，未发现修复引入新的关键或重要问题。主控在 `a9e77043` 上再次独立完整 Release 构建成功，CTest 86/86 通过（97.62 秒）；日志为 `out/ui-vs/release-identity-accepted-build.log` 和 `out/ui-vs/release-identity-accepted-tests.log`。安装探测的两项权限跳过与既有网络时序用例偶发失败仍按上述边界记录，不宣称已解决。
+- 3B.1 验收完成；本轮临时审查资料清理前已将裁决、提交和验证结论归档于本节。保留开发分支、工作树和构建日志，等待集成选择；3B.2 尚未开始，正式安装执行仍未启用。
