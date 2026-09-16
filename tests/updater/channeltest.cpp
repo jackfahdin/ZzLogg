@@ -10,6 +10,28 @@ int wmain(int argc,wchar_t**) {
     int failures=0;auto check=[&](bool ok,const char* name){if(!ok){++failures;std::cerr<<"FAIL: "<<name<<'\n';}};
     ProcessIdentity self;check(self.open(GetCurrentProcessId()),"real self identity opened");
     {
+        // Regression: zero passed to WaitNamedPipeW selects the untrusted
+        // server's default wait. Reproduce a deadline expiring after busy open
+        // deterministically at the exact availability-wait boundary.
+        TransactionId id{};randomBytes(id.data(),16);const auto name=endpointName(id);
+        Handle server(CreateNamedPipeW(name.c_str(),PIPE_ACCESS_DUPLEX|FILE_FLAG_FIRST_PIPE_INSTANCE,
+            PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT|PIPE_REJECT_REMOTE_CLIENTS,1,60,60,500,nullptr));
+        Handle occupied(CreateFileW(name.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,OPEN_EXISTING,
+            SECURITY_SQOS_PRESENT|SECURITY_IDENTIFICATION,nullptr));
+        check(server && occupied,"busy pipe with long server default established");
+        Handle rejected(CreateFileW(name.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,OPEN_EXISTING,0,nullptr));
+        check(!rejected && GetLastError()==ERROR_PIPE_BUSY,"occupied pipe really reports busy");
+        auto began=GetTickCount64();
+        check(!waitForPipeInstance(name,began) && GetTickCount64()-began<200,
+            "expired busy-pipe deadline cannot select server default wait");
+        began=GetTickCount64();
+        check(!waitForPipeInstance(name,after(20)) && GetTickCount64()-began<200,
+            "positive busy-pipe wait stays within caller budget");
+        LocalChannel client;began=GetTickCount64();
+        check(!client.connect(id,self,after(30)) && GetTickCount64()-began<200,
+            "busy-pipe connect observes total deadline");
+    }
+    {
         TransactionId id{};randomBytes(id.data(),16);LocalChannel server;check(server.create(id),"ACL fixture endpoint created");
         Handle client(CreateFileW(endpointName(id).c_str(),READ_CONTROL|GENERIC_READ|GENERIC_WRITE,0,nullptr,OPEN_EXISTING,
             SECURITY_SQOS_PRESENT|SECURITY_IDENTIFICATION,nullptr));

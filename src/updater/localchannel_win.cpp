@@ -3,6 +3,13 @@
 namespace zzlogg::updater::detail {
 Deadline after(DWORD ms){return GetTickCount64()+ms;}
 DWORD remaining(Deadline deadline){auto now=GetTickCount64();return now>=deadline?0:static_cast<DWORD>((std::min)(deadline-now,ULONGLONG(MAXDWORD-1)));}
+bool waitForPipeInstance(const std::wstring& name,Deadline deadline){
+    const DWORD budget=remaining(deadline);
+    // Zero means NMPWAIT_USE_DEFAULT_WAIT, not an immediate timeout. Never
+    // let an unauthenticated server replace the caller's exhausted budget.
+    if(!budget)return false;
+    return WaitNamedPipeW(name.c_str(),(std::min)(budget,DWORD(20)))!=FALSE;
+}
 namespace {
 bool completeIo(HANDLE pipe,OVERLAPPED& operation,Deadline deadline,DWORD& bytes) {
     if(WaitForSingleObject(operation.hEvent,remaining(deadline))==WAIT_OBJECT_0)
@@ -41,7 +48,7 @@ bool LocalChannel::connect(const TransactionId& id,const ProcessIdentity& expect
             FILE_FLAG_OVERLAPPED|SECURITY_SQOS_PRESENT|SECURITY_IDENTIFICATION,nullptr));
         if(pipe_)break;
         if(GetLastError()!=ERROR_PIPE_BUSY)return false;
-        WaitNamedPipeW(name.c_str(),(std::min)(remaining(deadline),DWORD(20)));
+        waitForPipeInstance(name,deadline);
     }
     DWORD mode=PIPE_READMODE_MESSAGE;
     if(!pipe_ || !SetNamedPipeHandleState(pipe_.get(),&mode,nullptr,nullptr) || !peer(pipe_.get(),expected,false)){close();return false;}return true;

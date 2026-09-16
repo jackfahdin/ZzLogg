@@ -6,6 +6,8 @@ namespace zzlogg::updater::detail {
 using Deadline=ULONGLONG;
 Deadline after(DWORD milliseconds);
 DWORD remaining(Deadline);
+// One bounded availability wait after CreateFile reports ERROR_PIPE_BUSY.
+bool waitForPipeInstance(const std::wstring&,Deadline);
 std::wstring endpointName(const TransactionId&);
 class LocalChannel {
 public:
