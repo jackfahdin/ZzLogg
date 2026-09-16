@@ -1,0 +1,14 @@
+#pragma once
+
+#include <cstdint>
+
+namespace zzlogg::update::build_identity {
+inline constexpr bool available = @ZZLOGG_RELEASE_IDENTITY_AVAILABLE@;
+inline constexpr char version[] = "@ZZLOGG_RELEASE_IDENTITY_VERSION@";
+inline constexpr std::uint64_t releaseSequence = @ZZLOGG_RELEASE_IDENTITY_SEQUENCE@;
+inline constexpr char channel[] = "@ZZLOGG_RELEASE_IDENTITY_CHANNEL@";
+inline constexpr char os[] = "@ZZLOGG_RELEASE_IDENTITY_OS@";
+inline constexpr char arch[] = "@ZZLOGG_RELEASE_IDENTITY_ARCH@";
+inline constexpr std::uint32_t dataSchema = @ZZLOGG_RELEASE_IDENTITY_DATA_SCHEMA@;
+inline constexpr std::uint32_t updaterProtocol = @ZZLOGG_RELEASE_IDENTITY_UPDATER_PROTOCOL@;
+}

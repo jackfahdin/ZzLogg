@@ -9,6 +9,7 @@ function(zzlogg_update_test suffix source)
   endif()
 endfunction()
 zzlogg_update_test(version versiontest.cpp)
+zzlogg_update_test(release_identity releaseidentitytest.cpp)
 zzlogg_update_test(signature signaturetest.cpp)
 zzlogg_update_test(strictjson strictjsontest.cpp)
 zzlogg_update_test(manifest manifesttest.cpp)
@@ -21,3 +22,17 @@ target_include_directories(zzlogg_update_strictjson_test PRIVATE "../../src/upda
 target_link_libraries(zzlogg_update_strictjson_test PRIVATE zzlogg_update_json)
 target_compile_definitions(zzlogg_update_signature_test PRIVATE
   UPDATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+
+add_test(
+  NAME zzlogg_update.release_configuration
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    "-DFIXTURE_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/release-configuration"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+    "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+    "-DGENERATOR_INSTANCE=${CMAKE_GENERATOR_INSTANCE}"
+    "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+    "-DTEST_CONFIGURATION=$<CONFIG>"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/releaseconfigurationtest.cmake")
