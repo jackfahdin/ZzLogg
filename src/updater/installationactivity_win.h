@@ -29,8 +29,9 @@ public:
     bool entered() const;
     bool updateReserved() const;
     bool identityUnchanged() const;
-    // Leaf directory identity; immutable while entered. Consumers (task3)
-    // derive the observer mutex name from it via InstallLock::mutexName.
+    // Leaf directory identity; immutable while entered. Consumers (the update
+    // handoff controller) derive the observer mutex name from it via
+    // InstallLock::mutexName.
     DirectoryIdentity identity() const;
     // Resolves the directory identity without retaining any lease. Used for
     // directory-scoped single-instance naming at entry points.

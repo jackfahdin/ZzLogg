@@ -64,7 +64,7 @@ class ApplicationUpdateGuard {
     Status enter( const QString& applicationDir );
     Status status() const;
 
-    // Update reservation for the task3 handoff UI. Failures are reported
+    // Update reservation for the update handoff controller. Failures are reported
     // read-only through errorText(); the activity lease is unaffected.
     bool reserveUpdate();
     void cancelUpdate();
@@ -74,8 +74,9 @@ class ApplicationUpdateGuard {
     // from it; there is deliberately no setter.
     std::optional<zzlogg::updater::DirectoryIdentity> reservedIdentity() const;
 
-    // Technical detail of the last failure (English diagnostic, not for direct
-    // display; map Status to translated UI text).
+    // Technical detail of the last failure (English diagnostic). UI maps Status
+    // to translated text first; the detail may be appended after the translated
+    // message for diagnosis, as the startup guard failure report does.
     QString errorText() const;
 
     // Directory-scoped single-instance name. Two directories of the same

@@ -27,7 +27,7 @@ if(NOT dumpbin_result EQUAL 0)
   message(FATAL_ERROR "dumpbin /DEPENDENTS failed: ${dumpbin_error}")
 endif()
 string(TOUPPER "${dumpbin_output}" dumpbin_upper)
-foreach(forbidden_pattern IN ITEMS "QT6" "MSVCP" "VCRUNTIME" "MFC" "UCRTBASED")
+foreach(forbidden_pattern IN ITEMS "QT6" "MSVCP" "VCRUNTIME" "MFC" "UCRTBASE")
   if(dumpbin_upper MATCHES "${forbidden_pattern}")
     message(FATAL_ERROR
       "Deployed update helper has a forbidden dynamic dependency "
