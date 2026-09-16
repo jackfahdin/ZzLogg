@@ -17,3 +17,10 @@ target_include_directories(zzlogg_update_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR
 target_include_directories(zzlogg_update_core PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_compile_features(zzlogg_update_core PUBLIC cxx_std_17)
 target_link_libraries(zzlogg_update_core PRIVATE zzlogg_update_monocypher zzlogg_update_json)
+
+if(WIN32)
+  add_library(zzlogg_update_execution STATIC src/stablepackage_win.cpp
+    src/authenticode_policy.cpp src/authenticode_win.cpp src/packageverification.cpp)
+  target_link_libraries(zzlogg_update_execution PUBLIC zzlogg_update_core PRIVATE bcrypt wintrust crypt32)
+  target_compile_features(zzlogg_update_execution PUBLIC cxx_std_17)
+endif()
