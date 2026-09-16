@@ -107,6 +107,25 @@ git commit -m "feat: 建立独立更新器静态核心与交接协议" -m "3B.3 
 git commit -m "feat: 实现独立更新进程的受限安全交接" -m "3B.3 任务二：验证事务运行副本、真实进程身份和本地握手，生产安装保持关闭，测试替身不部署。"
 ```
 
+## 任务 3：消除全套验收中的重定向期限测试竞争
+
+**文件：** `tests/updateqt/manifestfetchertest.cpp`；仅在需要受控回复时修改测试工具 `tests/updateqt/scriptednetwork.h`。不改生产下载实现和超时策略。
+
+- [ ] 保存并分析主控失败证据 `out/ui-vs/3b3-main-verification-fetcher.txt`：redirectDoesNotResetTotalDeadline 预期两次请求但实际一次，测试在重定向发生前已超时。现有脚本通过九个串行 10ms singleShot 加事件循环等待来完成首个响应，而总期限仅 150ms；调度累计漂移可能耗尽总期限。这不构成重置期限实现缺陷证据。
+- [ ] 将测试调度改为受控响应或少量有清晰间隔的事件，使首响应在总期限之前有充分余量完成，第二响应在原总期限之后、错误重置期限之前完成；保持 `Timeout`、无成功、两次请求断言，不降低覆盖、不靠重试掩盖失败。
+
+```cpp
+// Behaviour to preserve, regardless of fixture scheduling details:
+QCOMPARE(qvariant_cast<FetchError>(failure[0][0]), FetchError::Timeout);
+QCOMPARE(success.count(), 0);
+QCOMPARE(network->requests.size(), 2);
+// Temporarily restart total_ when handling a valid redirect: test MUST fail;
+// restore production source and rerun. No production change in the final diff.
+```
+
+- [ ] 记录新测试针对“重定向重启 total_”变异确实失败的证据并恢复；聚焦测试多次复验，所有失败先保存 Qt 输出，不能只保留 CTest 壳日志。测试时间关系须能区分真实总期限与重置期限，不只是把原有几个毫秒值调大。
+- [ ] 独立小范围审查后提交中文测试修复；最终整阶段全套负责集成验证。
+
 ## 验收与交付
 
 - [ ] 每个任务独立审查；最终整阶段审查及主控独立构建/测试。
