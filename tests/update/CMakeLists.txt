@@ -10,6 +10,15 @@ function(zzlogg_update_test suffix source)
 endfunction()
 zzlogg_update_test(version versiontest.cpp)
 zzlogg_update_test(release_identity releaseidentitytest.cpp)
+target_compile_definitions(zzlogg_update_release_identity_test PRIVATE
+  TEST_OFFICIAL_RELEASE=$<BOOL:${ZZLOGG_OFFICIAL_RELEASE}>)
+if(ZZLOGG_OFFICIAL_RELEASE)
+  target_compile_definitions(zzlogg_update_release_identity_test PRIVATE
+    TEST_RELEASE_VERSION="${ZZLOGG_DISPLAY_VERSION}"
+    TEST_RELEASE_SEQUENCE=${ZZLOGG_RELEASE_SEQUENCE}ULL
+    TEST_RELEASE_CHANNEL="${ZZLOGG_RELEASE_CHANNEL}"
+    TEST_RELEASE_DATA_SCHEMA=${ZZLOGG_RELEASE_DATA_SCHEMA}U)
+endif()
 zzlogg_update_test(signature signaturetest.cpp)
 zzlogg_update_test(strictjson strictjsontest.cpp)
 zzlogg_update_test(manifest manifesttest.cpp)
@@ -30,19 +39,30 @@ set(release_configuration_caller_sentinel
 file(MAKE_DIRECTORY "${release_configuration_test_root}")
 file(WRITE "${release_configuration_caller_sentinel}" "caller-owned\n")
 
-add_test(
-  NAME zzlogg_update.release_configuration
-  COMMAND "${CMAKE_COMMAND}"
-    "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
-    "-DFIXTURE_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture"
-    "-DTEST_ROOT=${release_configuration_test_root}"
-    "-DTEST_CALLER_SENTINEL=${release_configuration_caller_sentinel}"
-    "-DGENERATOR=${CMAKE_GENERATOR}"
-    "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
-    "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
-    "-DGENERATOR_INSTANCE=${CMAKE_GENERATOR_INSTANCE}"
-    "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
-    "-DCTEST_COMMAND=${CMAKE_CTEST_COMMAND}"
-    "-DTEST_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-    "-DTEST_CONFIGURATION=$<CONFIG>"
-    -P "${CMAKE_CURRENT_SOURCE_DIR}/releaseconfigurationtest.cmake")
+function(zzlogg_release_configuration_test suffix)
+  add_test(
+    NAME zzlogg_update.release_configuration${suffix}
+    COMMAND "${CMAKE_COMMAND}"
+      "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+      "-DFIXTURE_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture"
+      "-DTEST_ROOT=${release_configuration_test_root}"
+      "-DTEST_CALLER_SENTINEL=${release_configuration_caller_sentinel}"
+      "-DGENERATOR=${CMAKE_GENERATOR}"
+      "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+      "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+      "-DGENERATOR_INSTANCE=${CMAKE_GENERATOR_INSTANCE}"
+      "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      "-DCTEST_COMMAND=${CMAKE_CTEST_COMMAND}"
+      "-DTEST_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+      "-DTEST_CONFIGURATION=$<CONFIG>"
+      ${ARGN}
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/releaseconfigurationtest.cmake")
+endfunction()
+zzlogg_release_configuration_test("")
+# These exercise descriptor-based test routing using the current compiler;
+# they are not executions on Linux or ARM64.
+foreach(descriptor IN ITEMS linux arm64)
+  zzlogg_release_configuration_test(_${descriptor}_descriptor
+    "-DTEST_TARGET_DESCRIPTION_FILE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture/${descriptor}-description.cmake"
+    -DTEST_NATIVE_CASES_ONLY=ON)
+endforeach()

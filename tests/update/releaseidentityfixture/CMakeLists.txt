@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 3.23)
 project(zzlogg_release_identity_fixture LANGUAGES CXX)
 
+# Test-only descriptor overrides exercise routing, not cross-platform execution.
+if(DEFINED TEST_TARGET_DESCRIPTION_FILE)
+  include("${TEST_TARGET_DESCRIPTION_FILE}")
+endif()
+set(native_architecture "${CMAKE_SYSTEM_PROCESSOR}")
+if(NOT "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "")
+  set(native_architecture "${CMAKE_GENERATOR_PLATFORM}")
+elseif(NOT "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}" STREQUAL "")
+  set(native_architecture "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
+endif()
+string(TOLOWER "${native_architecture}" native_architecture)
+set(native_official_supported FALSE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_SIZEOF_VOID_P EQUAL 8
+    AND native_architecture MATCHES "^(x64|amd64|x86_64)$")
+  set(native_official_supported TRUE)
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/native-target.cmake"
+  "set(native_official_supported ${native_official_supported})\n")
+
 set(PROJECT_VERSION_TWEAK "${TEST_VERSION_TWEAK}")
 
 if(DEFINED TEST_SYSTEM_NAME)
