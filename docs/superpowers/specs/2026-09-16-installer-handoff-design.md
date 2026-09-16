@@ -10,9 +10,9 @@
 
 显示版本继续使用现有 `YY.MM.PP`。发布序号与显示版本独立，由发布流水线显式提供，不从 Git 提交数、当前日期、安装标记或注册表猜测。
 
-CMake 增加 `ZZLOGG_OFFICIAL_RELEASE`（默认 OFF）、`ZZLOGG_RELEASE_SEQUENCE`、`ZZLOGG_RELEASE_CHANNEL`、`ZZLOGG_RELEASE_DATA_SCHEMA`。后三者默认空；正式构建要求全部明确提供。序号为 1 到 9007199254740991 的规范十进制整数；数据 schema 为 0 到 4294967295 的规范十进制整数；渠道只接受 stable 或 preview。0 是可显式声明的数据 schema，不暗自把当前存储文件格式当成统一迁移版本。
+CMake 增加 `ZZLOGG_OFFICIAL_RELEASE`（默认 OFF）、`ZZLOGG_RELEASE_SEQUENCE`、`ZZLOGG_RELEASE_CHANNEL`、`ZZLOGG_RELEASE_DATA_SCHEMA`。后三者默认空；正式构建要求全部明确提供。序号为 1 到 18446744073709551615 的规范十进制整数，与清单中的 uint64 字符串一致；数据 schema 为 0 到 4294967295 的规范十进制整数；渠道只接受 stable 或 preview。0 是可显式声明的数据 schema，不暗自把当前存储文件格式当成统一迁移版本。
 
-身份版本来自 `ZZLOGG_DISPLAY_VERSION`，要求恰好两位数字的三个分量，月份 01–12，不支持额外构建号。正式构建只支持 Windows x64；同时检查编译目标架构与位宽，不能把 ARM64 当成 x64。开发构建即使残留正式字段也不产生正式身份。
+身份版本来自 `ZZLOGG_DISPLAY_VERSION`，要求恰好两位数字的三个分量，月份 01–12，不支持额外非零构建号（Windows 数值资源第四段为 0 不影响显示）。同时检查 PROJECT_VERSION_TWEAK，避免其被显示版本归一化隐藏。正式构建只支持 Windows x64；同时检查编译目标架构与位宽，不能把 ARM64 当成 x64。开发构建即使残留正式字段也不产生正式身份。
 
 生成头文件只包含经过验证的数值和受限字符串，挂接在无 Qt 的 `zzlogg_update_core`。身份读取返回 optional；身份是可比较的发布元数据，不是签名证明，也不授予启动安装器的权限。
 
