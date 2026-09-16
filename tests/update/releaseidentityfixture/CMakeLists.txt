@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.23)
 project(zzlogg_release_identity_fixture LANGUAGES CXX)
 
 set(PROJECT_VERSION_TWEAK "${TEST_VERSION_TWEAK}")

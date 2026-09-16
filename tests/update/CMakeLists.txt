@@ -23,12 +23,20 @@ target_link_libraries(zzlogg_update_strictjson_test PRIVATE zzlogg_update_json)
 target_compile_definitions(zzlogg_update_signature_test PRIVATE
   UPDATE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 
+set(release_configuration_test_root
+  "${CMAKE_CURRENT_BINARY_DIR}/release-configuration")
+set(release_configuration_caller_sentinel
+  "${release_configuration_test_root}/caller-sentinel.txt")
+file(MAKE_DIRECTORY "${release_configuration_test_root}")
+file(WRITE "${release_configuration_caller_sentinel}" "caller-owned\n")
+
 add_test(
   NAME zzlogg_update.release_configuration
   COMMAND "${CMAKE_COMMAND}"
     "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
     "-DFIXTURE_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture"
-    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/release-configuration"
+    "-DTEST_ROOT=${release_configuration_test_root}"
+    "-DTEST_CALLER_SENTINEL=${release_configuration_caller_sentinel}"
     "-DGENERATOR=${CMAKE_GENERATOR}"
     "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
     "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"

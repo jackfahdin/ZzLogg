@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.23)
 if(POLICY CMP0174)
   cmake_policy(SET CMP0174 NEW)
 endif()
@@ -7,8 +7,19 @@ if(NOT DEFINED SOURCE_ROOT OR NOT DEFINED FIXTURE_SOURCE OR NOT DEFINED TEST_ROO
   message(FATAL_ERROR "Release configuration test paths are required")
 endif()
 
-file(REMOVE_RECURSE "${TEST_ROOT}")
-file(MAKE_DIRECTORY "${TEST_ROOT}")
+if(DEFINED TEST_CALLER_SENTINEL AND NOT EXISTS "${TEST_CALLER_SENTINEL}")
+  message(FATAL_ERROR "Release configuration caller sentinel is missing")
+endif()
+string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef run_suffix)
+set(test_run_root "${TEST_ROOT}/run-${run_suffix}")
+if(EXISTS "${test_run_root}")
+  message(FATAL_ERROR "Release configuration run directory already exists")
+endif()
+file(MAKE_DIRECTORY "${test_run_root}")
+if(DEFINED TEST_CALLER_SENTINEL AND NOT EXISTS "${TEST_CALLER_SENTINEL}")
+  message(FATAL_ERROR "Release configuration test removed its caller sentinel")
+endif()
+set(TEST_ROOT "${test_run_root}")
 
 function(run_release_case name expect_success)
   set(options
