@@ -51,6 +51,8 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrunner.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationrestart.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
@@ -61,6 +63,8 @@ set(KLOGG_UI_COMMON_SOURCES
 
 set(KLOGG_GREP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/klogg_grep.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
@@ -114,6 +118,19 @@ target_compile_features(klogg PRIVATE cxx_std_20)
 target_link_libraries(klogg PUBLIC ${MAIN_LIBS} klogg_ui zzlogg_ui_runtime)
 klogg_copy_ui_runtime_dlls(klogg)
 target_link_libraries(klogg_grep PUBLIC ${MAIN_LIBS})
+
+# The update guard header consumes the updater's portable identity types; the
+# native coordination itself is only linked where the dynamic-CRT closure of
+# the updater sources exists (Windows x64). Other platforms keep the no-update
+# compile boundary through the guard's stub path.
+target_include_directories(klogg PRIVATE "${CMAKE_SOURCE_DIR}/src/updater")
+target_include_directories(klogg_grep PRIVATE "${CMAKE_SOURCE_DIR}/src/updater")
+if(TARGET zzlogg_update_handoff)
+  target_compile_definitions(klogg PRIVATE ZZLOGG_HAS_INSTALLATION_ACTIVITY)
+  target_link_libraries(klogg PUBLIC zzlogg_update_handoff)
+  target_compile_definitions(klogg_grep PRIVATE ZZLOGG_HAS_INSTALLATION_ACTIVITY)
+  target_link_libraries(klogg_grep PUBLIC zzlogg_update_handoff)
+endif()
 
 if(WIN32)
 

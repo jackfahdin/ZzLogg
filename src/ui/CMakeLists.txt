@@ -160,7 +160,7 @@ target_link_libraries(klogg_ui PUBLIC Zz::FluentUI Zz::FluentFoundation Zz::Wind
 target_sources(klogg_ui PRIVATE src/mainwindowmenus.cpp src/mainwindowtoolbar.cpp)
 add_library(zzlogg_ui_runtime STATIC include/uiruntime.h src/uiruntime.cpp)
 target_include_directories(zzlogg_ui_runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+  PRIVATE "${PROJECT_SOURCE_DIR}/src/app" "${PROJECT_SOURCE_DIR}/src/updater")
 target_link_libraries(zzlogg_ui_runtime PUBLIC klogg_ui klogg_settings
   PRIVATE klogg_support kdsingleapp)
 set_target_properties(zzlogg_ui_runtime PROPERTIES AUTOMOC ON)

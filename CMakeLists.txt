@@ -227,9 +227,6 @@ add_custom_target(ci_build)
 
 add_subdirectory(3rdparty)
 add_subdirectory(src)
-if(TARGET zzlogg_updater_execution)
-  add_subdirectory(src/updater)
-endif()
 add_subdirectory(website)
 
 enable_testing()

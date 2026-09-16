@@ -26,6 +26,7 @@
 #include "logger.h"
 
 #include "cli.h"
+#include "applicationupdateguard.h"
 #include "storagebootstrap.h"
 #include "zzloggapplicationidentity.h"
 
@@ -46,6 +47,21 @@ int main( int argc, char* argv[] )
 
     if ( parameters.pattern.isEmpty() || parameters.filenames.empty() ) {
         std::cerr << parameters.help_text.toStdString();
+        return EXIT_FAILURE;
+    }
+
+    // Enter the installation activity lease before the storage bootstrap; an
+    // observed update reservation or identity failure aborts startup.
+    ApplicationUpdateGuard updateGuard;
+    const auto guardStatus = updateGuard.enter( QCoreApplication::applicationDirPath() );
+    if ( guardStatus == ApplicationUpdateGuard::Status::Blocked
+         || guardStatus == ApplicationUpdateGuard::Status::Unavailable ) {
+        std::cerr << "ZzLogg startup guard failure: "
+                  << ( guardStatus == ApplicationUpdateGuard::Status::Blocked
+                           ? "this installation is currently being updated"
+                           : "the installation directory could not be verified" )
+                  << "\n"
+                  << updateGuard.errorText().toStdString() << "\n";
         return EXIT_FAILURE;
     }
 

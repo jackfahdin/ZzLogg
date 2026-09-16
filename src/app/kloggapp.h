@@ -46,6 +46,7 @@
 
 #include "configuration.h"
 #include "applicationrunner.h"
+#include "applicationupdateguard.h"
 #include "klogg_version.h"
 #include "log.h"
 #include "logger.h"
@@ -108,6 +109,13 @@ class KloggApp : public QApplication {
 
     qint64 primaryPid() const {
         return singleApplication_.primaryPid();
+    }
+
+    // Installation activity lease for this process. runKloggApplication enters
+    // it before any single-instance forwarding; the update handoff UI drives
+    // reserve/cancel from the UI thread.
+    ApplicationUpdateGuard& updateGuard() {
+        return updateGuard_;
     }
 
     void sendFilesToPrimaryInstance( std::vector<QString> filenames )
@@ -545,9 +553,14 @@ class KloggApp : public QApplication {
     }
 
   private:
-    KDSingleApplication singleApplication_;
+    // Directory-scoped instance name: same installation directory (any path
+    // casing) forwards, different installation directories stay independent.
+    KDSingleApplication singleApplication_{ ApplicationUpdateGuard::singleInstanceName(
+        QCoreApplication::applicationDirPath(), QCoreApplication::applicationFilePath() ) };
 
     MessageReceiver messageReceiver_;
+
+    ApplicationUpdateGuard updateGuard_;
 
     std::shared_ptr<Session> session_;
 

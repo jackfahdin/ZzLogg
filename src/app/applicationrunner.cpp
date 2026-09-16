@@ -105,6 +105,18 @@ void reportStorageBootstrapFailure( const QString& error, bool showDialog )
     }
 }
 
+void reportStartupGuardFailure( const QString& message, const QString& detail, bool showDialog )
+{
+    const QString diagnostic = detail.isEmpty() ? message : message + "\n" + detail;
+    const QByteArray utf8
+        = QStringLiteral( "ZzLogg startup guard failure: %1\n" ).arg( diagnostic ).toLocal8Bit();
+    std::fwrite( utf8.constData(), 1, static_cast<size_t>( utf8.size() ), stderr );
+    std::fflush( stderr );
+    if ( showDialog ) {
+        QMessageBox::critical( nullptr, QApplication::applicationDisplayName(), diagnostic );
+    }
+}
+
 struct UiSmokeState {
     KloggApp* app = nullptr;
     QPointer<QTimer> timer;
@@ -488,16 +500,50 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     KloggApp app{ argc, argv };
     CliParameters parameters{ app };
 
-    if ( !parameters.multi_instance && app.isSecondary() ) {
-        app.sendFilesToPrimaryInstance( parameters.filenames );
-        return app.exec();
-    }
-
     const auto startupPlan = planApplicationSmokeStartup(
         qEnvironmentVariable( "ZZLOGG_UI_SMOKE_MS" ),
         qEnvironmentVariable( "ZZLOGG_UI_SMOKE_MODE" ),
         static_cast<bool>( options.createUiRuntime ) );
     const ApplicationSmokeRequest& uiSmoke = startupPlan.smokeRequest;
+    const bool showStorageBootstrapFailureDialog
+        = shouldShowStorageBootstrapFailureDialog( uiSmoke.requested, uiSmoke.mode );
+
+    // The pre-bootstrap language install is read-only; do it before any
+    // startup guard diagnostics so failures are understandable in the GUI.
+    const QString bootstrapLanguage = preBootstrapLanguage( QLocale::system() );
+    if ( MainWindow::installLanguage( bootstrapLanguage ) != 0 ) {
+        reportStorageBootstrapFailure(
+            QStringLiteral( "failed to install pre-bootstrap language: %1" )
+                .arg( bootstrapLanguage ),
+            showStorageBootstrapFailureDialog );
+        return EXIT_FAILURE;
+    }
+
+    // Enter the installation activity lease before the single-instance
+    // forwarding and --multi branches: forwarding processes must also respect
+    // an update reservation. Unsupported path forms keep manual use with the
+    // update capability off; observed reservations or identity failures never
+    // proceed and never reach the storage selector.
+    const auto guardStatus = app.updateGuard().enter( QCoreApplication::applicationDirPath() );
+    if ( guardStatus == ApplicationUpdateGuard::Status::Blocked
+         || guardStatus == ApplicationUpdateGuard::Status::Unavailable ) {
+        const QString message
+            = guardStatus == ApplicationUpdateGuard::Status::Blocked
+                  ? QApplication::translate( "ApplicationRunner",
+                                             "This ZzLogg installation is currently being updated. "
+                                             "Start ZzLogg again after the update has finished." )
+                  : QApplication::translate( "ApplicationRunner",
+                                             "ZzLogg could not verify its installation directory. "
+                                             "Startup was cancelled to protect the installation." );
+        reportStartupGuardFailure( message, app.updateGuard().errorText(),
+                                   showStorageBootstrapFailureDialog );
+        return EXIT_FAILURE;
+    }
+
+    if ( !parameters.multi_instance && app.isSecondary() ) {
+        app.sendFilesToPrimaryInstance( parameters.filenames );
+        return app.exec();
+    }
 
     QString iconError;
     if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
@@ -525,20 +571,10 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
                 QStandardPaths::writableLocation( QStandardPaths::AppDataLocation ),
                 QFileInfo{ legacySettings.fileName() }.absolutePath(), {}, false };
         } );
-    const bool showStorageBootstrapFailureDialog
-        = shouldShowStorageBootstrapFailureDialog( uiSmoke.requested, uiSmoke.mode );
     const QString appConfigDirectory = smokeStoragePaths.appConfigDirectory;
     const QString userDataDirectory = smokeStoragePaths.userDataDirectory;
     const QString legacyUserSettingsDirectory
         = smokeStoragePaths.legacyUserSettingsDirectory;
-    const QString bootstrapLanguage = preBootstrapLanguage( QLocale::system() );
-    if ( MainWindow::installLanguage( bootstrapLanguage ) != 0 ) {
-        reportStorageBootstrapFailure(
-            QStringLiteral( "failed to install pre-bootstrap language: %1" )
-                .arg( bootstrapLanguage ),
-            showStorageBootstrapFailureDialog );
-        return EXIT_FAILURE;
-    }
     const auto storageResult = bootstrapStorage(
         applicationDirectory, appConfigDirectory, userDataDirectory,
         legacyUserSettingsDirectory,
