@@ -228,8 +228,13 @@ TxJournalError TxJournal::replay(const std::wstring& directory,std::uint64_t txi
         return TxJournalError::InvalidRoot;
     std::vector<detail::Handle> ancestors;
     if(!pinAncestors(directory,ancestors))return TxJournalError::Unavailable;
-    // Read-only replay never shares write access: a writer holding the
-    // journal fails the open instead of letting recovery parse live bytes.
+    // Concurrent read-only replay during a live append is by design: the
+    // writer holds journal.log open for the whole transaction, and observers
+    // (txengine interruption polling) parse the growing journal, treating a
+    // torn tail as Corrupt and retrying. FILE_SHARE_WRITE is what makes that
+    // possible — tightening it away made every replay fail with sharing
+    // violations until the transaction closed (stage 4 triage #6, revert
+    // b349b05d). Do not remove the write share.
     detail::Handle file(CreateFileW((directory+L"\\journal.log").c_str(),GENERIC_READ,
         FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
     if(!file)return TxJournalError::Unavailable;
