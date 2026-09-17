@@ -228,8 +228,10 @@ TxJournalError TxJournal::replay(const std::wstring& directory,std::uint64_t txi
         return TxJournalError::InvalidRoot;
     std::vector<detail::Handle> ancestors;
     if(!pinAncestors(directory,ancestors))return TxJournalError::Unavailable;
+    // Read-only replay never shares write access: a writer holding the
+    // journal fails the open instead of letting recovery parse live bytes.
     detail::Handle file(CreateFileW((directory+L"\\journal.log").c_str(),GENERIC_READ,
-        FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
+        FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
     if(!file)return TxJournalError::Unavailable;
     BY_HANDLE_FILE_INFORMATION info{};
     if(!GetFileInformationByHandle(file.get(),&info) || (info.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)

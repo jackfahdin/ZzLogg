@@ -217,37 +217,57 @@ int wmain() {
         options.flush=[](void*){return true;};
         const std::uint64_t byteCap=64ull<<20,countCap=100000;
         {
-            TxJournal journal;
-            check(journal.open(txroot,0x3001,options)==TxJournalError::None,"byte-cap journal opens");
-            TxJournalRecord bulky{}; bulky.op=TxOperation::Registry;
-            bulky.target=L"HKLM\\SOFTWARE\\ZzLogg\\cap";
-            bulky.oldRegistryValue=std::wstring(4096,L'v');
-            const auto each=recordBytes(bulky);
-            const auto expected=(byteCap-32)/each;
             std::uint64_t appended=0;
-            for(;appended<expected+2;++appended){ bulky.seq=appended+1; if(journal.append(bulky)!=TxJournalError::None) break; }
-            check(appended==expected && 32+appended*each<=byteCap && 32+(appended+1)*each>byteCap,
-                "append refuses the record that would cross the replay byte cap");
-            TxJournalRecord complete{}; complete.seq=appended+1; complete.op=TxOperation::Complete;
-            check(32+appended*each+recordBytes(complete)<=byteCap,"cap fixture leaves room for Complete");
-            check(journal.append(complete)==TxJournalError::None,"byte-cap refusal does not latch the journal failed");
+            {
+                TxJournal journal;
+                check(journal.open(txroot,0x3001,options)==TxJournalError::None,"byte-cap journal opens");
+                TxJournalRecord bulky{}; bulky.op=TxOperation::Registry;
+                bulky.target=L"HKLM\\SOFTWARE\\ZzLogg\\cap";
+                bulky.oldRegistryValue=std::wstring(4096,L'v');
+                const auto each=recordBytes(bulky);
+                const auto expected=(byteCap-32)/each;
+                for(;appended<expected+2;++appended){ bulky.seq=appended+1; if(journal.append(bulky)!=TxJournalError::None) break; }
+                check(appended==expected && 32+appended*each<=byteCap && 32+(appended+1)*each>byteCap,
+                    "append refuses the record that would cross the replay byte cap");
+                TxJournalRecord complete{}; complete.seq=appended+1; complete.op=TxOperation::Complete;
+                check(32+appended*each+recordBytes(complete)<=byteCap,"cap fixture leaves room for Complete");
+                check(journal.append(complete)==TxJournalError::None,"byte-cap refusal does not latch the journal failed");
+            }
             std::vector<TxJournalRecord> out;
             check(TxJournal::replay(txroot+L"\\0000000000003001",0x3001,out)==TxJournalError::None
                 && out.size()==appended+1,"byte-capped journal still replays");
         }
         {
-            TxJournal journal;
-            check(journal.open(txroot,0x3002,options)==TxJournalError::None,"count-cap journal opens");
-            auto tiny=fileRecord(1,TxOperation::Create,root);
-            std::uint64_t appended=0;
-            for(;appended<countCap+8;++appended){ tiny.seq=appended+1; if(journal.append(tiny)!=TxJournalError::None) break; }
-            check(appended==countCap,"append refuses records beyond the replay record cap");
-            TxJournalRecord complete{}; complete.seq=countCap+1; complete.op=TxOperation::Complete;
-            check(journal.append(complete)!=TxJournalError::None,"Complete beyond the record cap is refused");
+            {
+                TxJournal journal;
+                check(journal.open(txroot,0x3002,options)==TxJournalError::None,"count-cap journal opens");
+                auto tiny=fileRecord(1,TxOperation::Create,root);
+                std::uint64_t appended=0;
+                for(;appended<countCap+8;++appended){ tiny.seq=appended+1; if(journal.append(tiny)!=TxJournalError::None) break; }
+                check(appended==countCap,"append refuses records beyond the replay record cap");
+                TxJournalRecord complete{}; complete.seq=countCap+1; complete.op=TxOperation::Complete;
+                check(journal.append(complete)!=TxJournalError::None,"Complete beyond the record cap is refused");
+            }
             std::vector<TxJournalRecord> out;
             check(TxJournal::replay(txroot+L"\\0000000000003002",0x3002,out)==TxJournalError::None
                 && out.size()==countCap,"count-capped journal replays exactly at the cap");
         }
+    }
+    // Replay opens the journal read-only and never shares write access: a
+    // writer holding the file (sharing reads only) must block replay
+    // entirely, while a plain reader does not.
+    {
+        const auto dir=corruptCase(0x3003,1,"share-mode fixture",[&](const fs::path&){});
+        const auto file=fs::path(dir)/L"journal.log";
+        std::vector<TxJournalRecord> out;
+        {Handle reader{CreateFileW(file.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr)};
+         check(reader.value,"reader fixture holds the journal");
+         check(TxJournal::replay(dir,0x3003,out)==TxJournalError::None && out.size()==1,
+             "replay coexists with a read-sharing reader");}
+        {Handle writer{CreateFileW(file.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr)};
+         check(writer.value,"writer fixture holds the journal");
+         check(TxJournal::replay(dir,0x3003,out)==TxJournalError::Unavailable && out.empty(),
+             "replay refuses a writer-held journal");}
     }
     // Root validation: network and reparse roots are refused; junction fixture.
     {
