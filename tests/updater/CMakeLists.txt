@@ -52,6 +52,22 @@ add_test(NAME zzlogg_updater.coordinator COMMAND zzlogg_updater_coordinator_test
 # Reservation-continuity phases add several real process round-trips.
 set_tests_properties(zzlogg_updater.coordinator PROPERTIES TIMEOUT 60)
 add_test(NAME zzlogg_updater.production_gate COMMAND "${CMAKE_COMMAND}" "-DEXECUTABLE=$<TARGET_FILE:ZzLoggUpdate>" -P "${CMAKE_CURRENT_SOURCE_DIR}/productiongatetest.cmake")
+add_executable(zzlogg_updater_txengine_test txenginetest.cpp)
+target_link_libraries(zzlogg_updater_txengine_test PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(zzlogg_updater_txengine_test TRUE)
+add_dependencies(zzlogg_updater_txengine_test zzlogg_updater_handofffixture_test ZzLoggUpdateTx)
+add_test(NAME zzlogg_updater.txengine
+  COMMAND zzlogg_updater_txengine_test $<TARGET_FILE:zzlogg_updater_handofffixture_test> $<TARGET_FILE:ZzLoggUpdateTx>)
+# Real subprocess round-trips plus a 128 MiB interrupted payload.
+set_tests_properties(zzlogg_updater.txengine PROPERTIES TIMEOUT 300)
+if(MSVC)
+  add_test(NAME zzlogg_updater.txengine_dependencies
+    COMMAND "${CMAKE_COMMAND}"
+      "-DDUMPBIN=${updater_dumpbin}"
+      "-DEXECUTABLE=$<TARGET_FILE:ZzLoggUpdateTx>"
+      "-DSTATIC_LIBRARIES=$<TARGET_FILE:zzlogg_updater_handoff>;$<TARGET_FILE:zzlogg_updater_execution>;$<TARGET_FILE:zzlogg_updater_core>;$<TARGET_FILE:zzlogg_updater_monocypher>"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/dependencytest.cmake")
+endif()
 add_executable(zzlogg_updater_channel_test channeltest.cpp)
 target_link_libraries(zzlogg_updater_channel_test PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(zzlogg_updater_channel_test TRUE)

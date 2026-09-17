@@ -5,7 +5,8 @@ zzlogg_update_clean_legacy_crt_flags()
 function(zzlogg_add_updater_handoff prefix static_crt)
   add_library(${prefix}_handoff STATIC handoffprotocol.cpp installlock_win.cpp
     installationactivity_win.cpp runtimecopy_win.cpp processidentity_win.cpp
-    localchannel_win.cpp bootstrap_win.cpp coordinator.cpp txjournal_win.cpp)
+    localchannel_win.cpp bootstrap_win.cpp coordinator.cpp txjournal_win.cpp
+    txengine_win.cpp)
   target_include_directories(${prefix}_handoff PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
   target_compile_features(${prefix}_handoff PUBLIC cxx_std_17)
   target_link_libraries(${prefix}_handoff PUBLIC ${prefix}_execution PRIVATE bcrypt advapi32)
@@ -21,3 +22,9 @@ zzlogg_update_runtime(ZzLoggUpdate TRUE)
 # consumes the staged runtime tree, and the staged install carries the helper
 # next to the application. Execution itself stays closed this phase.
 install(TARGETS ZzLoggUpdate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Payload-embedded transaction engine. Build-only this phase: the NSIS package
+# extracts it into the protected staging (task 4 wiring); it is never installed
+# next to the application and never joins the staged runtime tree.
+add_executable(ZzLoggUpdateTx txengine_main.cpp)
+target_link_libraries(ZzLoggUpdateTx PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(ZzLoggUpdateTx TRUE)
