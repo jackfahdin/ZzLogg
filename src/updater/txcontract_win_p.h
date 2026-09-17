@@ -11,9 +11,16 @@
 namespace zzlogg::updater::detail {
 // 0: applied/recovered/nothing-to-recover; 2: argv contract rejection;
 // 41: bootstrap rejection (BootstrapRejected, bootstrap_win_p.h);
-// 42-46: per terminal outcome below; 47: protocol violation.
+// 42-46: per terminal outcome below; 47: protocol violation;
+// 48: NSIS restricted-entry runtime failure (never an engine exit code).
 inline constexpr int UsageRejected=2;
 inline constexpr int ProtocolViolation=47;
+// Set by the NSIS restricted entries (ZzLogg.nsi) before Abort when the
+// failure is installer-side runtime work rather than a usage rejection or a
+// target-recheck rejection: busy transaction, protected-root/staging creation
+// failure, missing journal, recovery staging failure. The engine never exits
+// with this code; the coordinator treats any nonzero installer exit as Failed.
+inline constexpr int InstallerRuntimeFailure=48;
 inline int exitForOutcome(TxOutcome outcome) {
     switch(outcome) {
     case TxOutcome::Applied: case TxOutcome::Recovered: case TxOutcome::NothingToRecover: return 0;

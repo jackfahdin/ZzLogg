@@ -81,11 +81,16 @@ zzlogg_on_init_done:
     ; Restricted upgrade/recovery entry (design spec section 4). Parsed from the
     ; raw command line; both modes forbid /D= because a restricted run never
     ; changes the registered target, and both Quit before any page can display.
+    ; Every failure branch SetErrorLevel before Abort (a bare Abort exits 0) and
+    ; every MessageBox carries /SD IDOK so a silent run never blocks on a dialog;
+    ; the codes are the engine process contract (txcontract_win_p.h).
     StrCpy $ZzLoggMode ""
     ${StrStr} $2 $0 "/ZzLoggUpgrade="
     StrCmp $2 "" zzlogg_init_recover_check
         StrCmp $1 "" zzlogg_upgrade_switch_ok
-            MessageBox MB_ICONSTOP "Upgrade mode does not accept /D=: the registered installation directory cannot change."
+            MessageBox MB_ICONSTOP "Upgrade mode does not accept /D=: the registered installation directory cannot change." /SD IDOK
+            ; txcontract_win_p.h detail::UsageRejected
+            SetErrorLevel 2
             Abort
         zzlogg_upgrade_switch_ok:
         StrCpy $ZzLoggMode "upgrade"
@@ -99,7 +104,9 @@ zzlogg_on_init_done:
     ${StrStr} $2 $0 "/ZzLoggRecover="
     StrCmp $2 "" zzlogg_init_done
         StrCmp $1 "" zzlogg_recover_switch_ok
-            MessageBox MB_ICONSTOP "Recovery mode does not accept /D=: the registered installation directory cannot change."
+            MessageBox MB_ICONSTOP "Recovery mode does not accept /D=: the registered installation directory cannot change." /SD IDOK
+            ; txcontract_win_p.h detail::UsageRejected
+            SetErrorLevel 2
             Abort
         zzlogg_recover_switch_ok:
         StrCpy $ZzLoggMode "recover"
@@ -110,7 +117,9 @@ zzlogg_on_init_done:
         Call ZzLoggRestrictedRecover
         Quit
     zzlogg_switch_bad:
-        MessageBox MB_ICONSTOP "Malformed restricted-mode locator."
+        MessageBox MB_ICONSTOP "Malformed restricted-mode locator." /SD IDOK
+        ; txcontract_win_p.h detail::UsageRejected
+        SetErrorLevel 2
         Abort
     zzlogg_init_done:
 FunctionEnd
@@ -223,7 +232,9 @@ Function ZzLoggVerifyTarget
     zzlogg_verify_fail_pin:
         System::Call 'kernel32::CloseHandle(p R0)'
     zzlogg_verify_fail:
-        MessageBox MB_ICONSTOP "The registered ZzLogg installation failed the independent target recheck."
+        MessageBox MB_ICONSTOP "The registered ZzLogg installation failed the independent target recheck." /SD IDOK
+        ; txcontract_win_p.h detail::exitForOutcome(TxOutcome::Rejected)
+        SetErrorLevel 42
         Abort
 FunctionEnd
 
@@ -281,10 +292,14 @@ Function ZzLoggRestrictedUpgrade
     SetErrorLevel $3
     Quit
     zzlogg_upgrade_txdir_busy:
-        MessageBox MB_ICONSTOP "A transaction with this locator already exists; use recovery mode."
+        MessageBox MB_ICONSTOP "A transaction with this locator already exists. Use recovery mode." /SD IDOK
+        ; txcontract_win_p.h detail::InstallerRuntimeFailure
+        SetErrorLevel 48
         Abort
     zzlogg_upgrade_txdir_fail:
-        MessageBox MB_ICONSTOP "Cannot create the protected transaction directory."
+        MessageBox MB_ICONSTOP "Cannot create the protected transaction directory." /SD IDOK
+        ; txcontract_win_p.h detail::InstallerRuntimeFailure
+        SetErrorLevel 48
         Abort
 FunctionEnd
 
@@ -303,10 +318,14 @@ Function ZzLoggRestrictedRecover
     SetErrorLevel $3
     Quit
     zzlogg_recover_missing:
-        MessageBox MB_ICONSTOP "No interrupted transaction with this name exists."
+        MessageBox MB_ICONSTOP "No interrupted transaction with this name exists." /SD IDOK
+        ; txcontract_win_p.h detail::InstallerRuntimeFailure
+        SetErrorLevel 48
         Abort
     zzlogg_recover_fail:
-        MessageBox MB_ICONSTOP "Cannot stage the recovery engine."
+        MessageBox MB_ICONSTOP "Cannot stage the recovery engine." /SD IDOK
+        ; txcontract_win_p.h detail::InstallerRuntimeFailure
+        SetErrorLevel 48
         Abort
 FunctionEnd
 

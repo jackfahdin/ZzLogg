@@ -226,6 +226,49 @@ foreach(recover_forbidden IN ITEMS
   forbid_nsis_block_literal(restricted_recover "${recover_forbidden}" "restricted recover")
 endforeach()
 
+# Restricted-entry failure exits: a bare Abort leaves the process exit code at
+# 0, so every failure branch must SetErrorLevel first, and every MessageBox
+# must carry /SD IDOK so silent mode (/S) takes the default instead of
+# blocking on a dialog. The codes link the engine process contract
+# (src/updater/txcontract_win_p.h): UsageRejected=2 for usage rejections
+# (/D= in a restricted mode, malformed locator),
+# exitForOutcome(TxOutcome::Rejected)=42 for the independent target recheck,
+# InstallerRuntimeFailure=48 for installer-side runtime failures (busy
+# transaction, protected-root/staging creation, missing journal).
+function(require_guarded_aborts block_variable block_name expected_count expected_code)
+  string(REGEX MATCHALL "SetErrorLevel ${expected_code}\n[ \t]*Abort"
+    guarded_aborts "${${block_variable}}")
+  list(LENGTH guarded_aborts guarded_count)
+  string(REGEX MATCHALL "\n[ \t]*Abort" all_aborts "${${block_variable}}")
+  list(LENGTH all_aborts abort_count)
+  if(NOT abort_count EQUAL expected_count OR NOT guarded_count EQUAL expected_count)
+    message(FATAL_ERROR
+      "NSIS ${block_name}: expected ${expected_count} Abort(s) each guarded by "
+      "SetErrorLevel ${expected_code} (found ${abort_count} Abort(s), "
+      "${guarded_count} guarded)")
+  endif()
+endfunction()
+
+function(require_messagebox_silent_default block_variable block_name)
+  string(REGEX MATCHALL "MessageBox [^\n]*" boxes "${${block_variable}}")
+  foreach(box IN LISTS boxes)
+    string(FIND "${box}" "/SD IDOK" sd_position)
+    if(sd_position EQUAL -1)
+      message(FATAL_ERROR
+        "NSIS ${block_name}: MessageBox without /SD IDOK blocks silent mode: ${box}")
+    endif()
+  endforeach()
+endfunction()
+
+require_guarded_aborts(installer_on_init "installer .onInit" 3 2)
+require_guarded_aborts(verify_target "target recheck" 1 42)
+require_guarded_aborts(restricted_upgrade "restricted upgrade" 2 48)
+require_guarded_aborts(restricted_recover "restricted recover" 2 48)
+foreach(sd_block IN ITEMS
+    installer_on_init verify_target restricted_upgrade restricted_recover)
+  require_messagebox_silent_default(${sd_block} "restricted entry")
+endforeach()
+
 # --- Landing-manifest generator: real PowerShell execution ---
 
 set(manifest_generator "${SOURCE_ROOT}/packaging/windows/GenerateNsisManifest.ps1")
