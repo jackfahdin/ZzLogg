@@ -174,8 +174,8 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 ## 验收与交付
 
 - [x] 每任务独立审查、最终整阶段审查，主控重新构建/测试。
-- [ ] master 快进合并、主线 Release 构建与测试，记录程序位置；不推送。
-- [ ] 明确本机验收边界（无真实 UAC/HKLM/NSIS 运行），阶段 4 隔离环境验收清单完整移交；不宣称自动更新已上线。
+- [x] master 快进合并、主线 Release 构建与测试，记录程序位置；不推送。
+- [x] 明确本机验收边界（无真实 UAC/HKLM/NSIS 运行），阶段 4 隔离环境验收清单完整移交；不宣称自动更新已上线。
 
 ## 执行记录
 
@@ -188,4 +188,12 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 - 任务 5：`b3c989cb` 协调者生产链路：凭据文件（CREATE_NEW+用户 DACL+属主/形状/定位名/活身份四层校验、读后即删、三路径清理）、受限开关启动安装器（可注入 seam）、Complete 后复核登记/标记/清单并以原用户身份重启（仅 --data-dir 参数、目录作用域端点有界确认）、ManualRestartRequired 保持。两条对齐项定稿：argv 契约（协调者→NSIS 仅定位名、NSIS→引擎五组 flag/value）与定位名 16 位小写 hex 四方逐字节一致。Request 增加 packagePath/releaseVersion，生产工厂仍缺席。两组变异被捕获，完整 109/109 通过。独立审查规格符合、质量通过，无关键/重要发现；NSIS 改动逐行语义审查未见分支缺陷；跨完整性级别令牌验证可行性归阶段 4。
 - 任务 6：`61dd7665` + 审查修复 `678b154d` 移交收口：准备丢失外发信号闭合 CommitExit 在飞残余窗口（门闩会话实证迟到成功被代次丢弃）、options 模态销毁路径、15 秒有界析构+诊断、CancellationInProgress 可诊断重复 begin、Abandoned/Blocked 三语文案区分、WM_QUERYENDSESSION 评估（有界可接受不改代码）、UPDATE_PROTOCOL.md 新增 3C 全章。updaterProtocol 裁决保持 1（清单协商能力号与线协议独立演进）；审查发现裁决理由"两端同构建"表述失真（引擎↔协调者腿跨构建版本），已修正并补失败关闭边界。完整 109/109 通过。
 - 最终整阶段审查覆盖 `3dfbe546..67a2e312`：发现 2 条关键（NSIS 预建事务目录与引擎 journal 独占创建必然冲突，升级链 100% Rejected；引擎受保护根 ACL 断言对真实 ProgramData 继承 ACE 必然失败）与 1 条重要（启动确认忙等烧核）——这是静态契约与注入 seam 结构性覆盖不到的真实运行交互。修复 `51343429`：NSIS 不再预建 journal 目录（暂存改 staging-<locator> 兄弟目录）、UpdateTransactions 根创建即加固（BA/SYSTEM 完全+AU 只读）、确认循环 Sleep(20)、restart 单次闸；定向复审逐条确认解决且无新破坏。25 条延后项逐条甄别：无一阻塞合并；InstallLock 断言双值接受顺延至阶段 4 固定为单一预期（承诺台账记录在案）；flake 家族未发现新加剧机制。
-- 任务 2：`96ece89d` 持久事务日志与受保护事务目录。`txjournal_win` 二进制日志（32 字节头 + 68 字节定长记录头 + 长度前缀 UTF-16 体，显式小端编码），open 独占创建 `<根>\<txid 十六进制>`（`createExclusiveDirectory` 扩展注入安全描述符，祖先钉住复用 installlock 共享原语），append 先写后刷（flush 可注入观察，生产默认 FlushFileBuffers），replay 严格解析：撕裂/未知操作/未知 flags/错序/事务 ID 不符均 Corrupt 且重放为零操作，Complete 后拒绝追加，重放只读幂等。ACL 主体经 TxJournalOptions 注入（生产 Administrators/SYSTEM 写 + 已验证用户读），测试以当前用户注入并读回真实 DACL 断言（受保护、OICI 继承、读者无法建 journal 的行为证明）。checkVolumeSpace 饱和加法 + 1MiB 日志预留 + 最近现存非重解析祖先查询。TDD 红灯 47 项失败、两组变异均被捕获，完整 106/106 通过。
+
+## 主线交付记录
+
+- master 从 `3dfbe546` 快进至 `830e1e3a`，未创建合并提交，未推送。主线 Release 构建退出 0；runtime folder 产物正常；完整 CTest **109/109 通过（164.34 秒）**，低负载窗口未复现 flake。证据位于主仓库 `out/ui-vs/3c-master-build.log`、`3c-master-tests.log`。
+- 程序位置：主仓库 `out/ui-vs/output/Release/ZzLogg.exe` 与 `ZzLoggUpdate.exe`；事务引擎 `ZzLoggUpdateTx.exe` 仅编译入安装包载荷（CI 打包暂存步骤已接线），不部署到运行目录。
+- 本阶段交付：协议 v2 Proceed 闸门（应用真实退出后才放行文件操作）与 bootstrap v3 受限数据目录；追加式持久事务日志与幂等恢复；差分文件集与登记同事务的引擎（普通失败自动逆序恢复、中断恢复需明确授权）；schema 2 落地清单与 NSIS 受限升级/恢复入口；协调者凭据文件链路与普通权限重启及有界启动确认；3B.4 移交项全部收口。
+- **未交付**：真实 UAC、真实 HKLM/ProgramData 写入、真实 NSIS 运行、生产签名与正式发布身份；"退出并更新"生产可见性仍关闭。自动更新未上线。
+- 阶段 4 立案前置（UPDATE_PROTOCOL.md 已列清单）：隔离 Windows 环境真实验收（含真实 ProgramData ACL 下引擎 accept 路径、跨完整性级别令牌验证、真实 makensis 产物 /ZzLoggUpgrade 冒烟、分卷空间预检端到端）；InstallLock 断言固定为单一预期；启动确认/恢复模式的提权 harness 覆盖。
+- 隔离工作树 `.worktrees/update-core` 与分支 `codex/installer-update-plan` 保留，SDD 账本与证据在 `.superpowers/sdd/2026-09-17-install-transaction/`。
