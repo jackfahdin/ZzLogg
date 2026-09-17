@@ -122,12 +122,12 @@ git commit -m "feat: 实现差分文件集与登记的事务引擎" -m "3C 任�
 
 **文件：** 修改 `packaging/windows/ZzLogg.nsi`、`packaging/windows/GenerateNsisUninstallManifest.ps1`（提取共享枚举逻辑）或新增 `GenerateNsisManifest.ps1`；`.github/actions/agent-package-win/action.yml`；`tests/ui_acceptance/windowsinstallercontracttest.cmake`、新增 `tests/ui_acceptance/upgrademodecontracttest.cmake`；`src/updateqt/src/installationprobe.cpp`（schema 2 + 落地清单校验）与 `installationidentity.cpp`、相应测试。
 
-- [ ] 安装段增写 `.zzlogg-files.manifest`（打包期由 PowerShell 生成器随卸载清单同源生成，含每文件尺寸+SHA-256）；`UpdateIdentitySchema` 升为 2；卸载清单追加删除该文件；既有登记/卸载顺序契约保持。
-- [ ] 探测侧：schema 1 判定为 Legacy（不自动升级）；schema 2 要求清单存在且格式有界有效，否则 Invalid。更新 3A 测试矩阵。
-- [ ] NSIS 受限模式：`.onInit` 解析 `/ZzLoggUpgrade=<定位名>` 与 `/ZzLoggRecover=<事务目录名>`；升级模式禁止 `/D=`（先检测到 `/ZzLoggUpgrade` 即拒绝并存 `/D=` 的命令行，保持既有 `/D=` 检查顺序契约）；跳过交互页；独立核对登记/标记/路径/身份；创建受保护事务目录、提取载荷引擎与新版清单、启动引擎并传播退出码；恢复模式只允许对已存在事务目录调用引擎恢复模式。
-- [ ] NSIS 不能本机运行：全部以静态契约测试验收（剥注释后的结构断言，沿用 windowsinstallercontracttest 模式），并为清单生成器写真实 PowerShell 执行测试（含 `$` 转义、哈希正确性、与卸载清单同源一致性）。契约必须断言：受限模式不读 `/D=`、不展示目录页、登记核对先于任何写入。
-- [ ] CI 打包步骤：生成落地清单先于 makensis（与卸载清单同一顺序约束）；契约测试覆盖 action.yml 步骤顺序。
-- [ ] 完整构建/CTest，中文提交。
+- [x] 安装段增写 `.zzlogg-files.manifest`（打包期由 PowerShell 生成器随卸载清单同源生成，含每文件尺寸+SHA-256）；`UpdateIdentitySchema` 升为 2；卸载清单追加删除该文件；既有登记/卸载顺序契约保持。
+- [x] 探测侧：schema 1 判定为 Legacy（不自动升级）；schema 2 要求清单存在且格式有界有效，否则 Invalid。更新 3A 测试矩阵。
+- [x] NSIS 受限模式：`.onInit` 解析 `/ZzLoggUpgrade=<定位名>` 与 `/ZzLoggRecover=<事务目录名>`；升级模式禁止 `/D=`（先检测到 `/ZzLoggUpgrade` 即拒绝并存 `/D=` 的命令行，保持既有 `/D=` 检查顺序契约）；跳过交互页；独立核对登记/标记/路径/身份（含逐级拒绝重解析点）；创建受保护事务目录、提取载荷引擎与新版清单、启动引擎并传播退出码；恢复模式只允许对已存在事务目录调用引擎恢复模式。
+- [x] NSIS 不能本机运行：全部以静态契约测试验收（剥注释后的结构断言，沿用 windowsinstallercontracttest 模式），并为清单生成器写真实 PowerShell 执行测试（含 `$` 转义、哈希正确性、与卸载清单同源一致性）。契约必须断言：受限模式不读 `/D=`、不展示目录页、登记核对先于任何写入；System::Call 结构体形状/标志位/逐级闸门逐字钉住并附分支语义注释。
+- [x] CI 打包步骤：生成落地清单先于 makensis（与卸载清单同一顺序约束）；契约测试覆盖 action.yml 步骤顺序。
+- [x] 完整构建/CTest，中文提交。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -184,4 +184,5 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 - 任务 1：`4f27556b` 协议 v2（Proceed=8、版本字节 2、ExitConfirmed 状态）与 bootstrap v3（240 wchar 受限数据目录，旧版本/控制字符/相对路径/未终止拒绝）。协调者复制应用进程句柄并以 adopt 防 PID 复用，存活返回 PeerRunning、退出后幂等发 Proceed。真实子进程 TDD 红绿与两组变异证据完整，完整 105/105 通过。独立审查规格符合、质量通过，无关键/重要发现；Proceed 判定句柄持有方改为协调者侧复制被裁定为对简报草图的合理偏离（语义等价、不信任引擎自报）；`updaterProtocol=1` 与线协议号的关系移交任务 6 显式裁决（已补入任务 6）。
 - 任务 2：`96ece89d` 追加式持久事务日志（先写后刷、严格 fail-closed 解析、重放幂等）、受保护事务目录（ACL 主体可注入、真实 DACL 断言）、卷空间预检；两组变异被捕获，完整 106/106 通过。独立审查无关键/重要发现；撕裂/损坏日志整体拒绝自动恢复（交授权路径）的裁决记录入账本。
 - 任务 3：`0e3a71b1` + 审查修复 `86e75848` 差分文件集与登记事务引擎：清单有界敌意解析、先写日志后操作、普通失败逆序回滚、中断幂等授权恢复、登记白名单精确到卸载项键、Corrupt/0 字节日志呈现为保留现场需授权恢复；两卷空间预检（审查修复）。两组变异重跑归档，完整 108/108 通过。复审确认全部发现解决且无新破坏；分卷预检端到端与本机单固定盘环境受限，归阶段 4 验收。
+- 任务 4：`20f8030c` + 两轮审查修复 `16777d4c`、`7f8efcdb` 落地清单（ZZTXMAN1 与引擎解析器逐字节同源、共享枚举生成器）与 NSIS 受限升级/恢复入口（禁 /D=、Quit 跳页、VerifyTarget 逐级拒 reparse、受保护目录、退出码传播）。审查发现 System::Call 结构体尺寸/字段错位（提权进程内存破坏+身份捕获失效）、逐级 reparse 缺口、契约断言强度不足，及修复引入的两处 IntCmp 分支反转（恒拒合法目标）——全部修复并经两轮复审确认；新增全分支语义审计与契约语义注释。makensis 3.11 真实编译通过，完整 109/109 通过。升级模式引擎 argv 形态与恢复定位名精确格式移交任务 5 对齐。
 - 任务 2：`96ece89d` 持久事务日志与受保护事务目录。`txjournal_win` 二进制日志（32 字节头 + 68 字节定长记录头 + 长度前缀 UTF-16 体，显式小端编码），open 独占创建 `<根>\<txid 十六进制>`（`createExclusiveDirectory` 扩展注入安全描述符，祖先钉住复用 installlock 共享原语），append 先写后刷（flush 可注入观察，生产默认 FlushFileBuffers），replay 严格解析：撕裂/未知操作/未知 flags/错序/事务 ID 不符均 Corrupt 且重放为零操作，Complete 后拒绝追加，重放只读幂等。ACL 主体经 TxJournalOptions 注入（生产 Administrators/SYSTEM 写 + 已验证用户读），测试以当前用户注入并读回真实 DACL 断言（受保护、OICI 继承、读者无法建 journal 的行为证明）。checkVolumeSpace 饱和加法 + 1MiB 日志预留 + 最近现存非重解析祖先查询。TDD 红灯 47 项失败、两组变异均被捕获，完整 106/106 通过。
