@@ -141,6 +141,14 @@ class KloggApp : public QApplication {
         return updateGuard_;
     }
 
+  Q_SIGNALS:
+    // Involuntary exit-preparation loss: a prepared participant was destroyed
+    // and the preparation has already been cancelled. An explicit
+    // cancelApplicationExitPreparation() is not a loss and stays silent.
+    void applicationExitPreparationLost();
+
+  public:
+
     void sendFilesToPrimaryInstance( std::vector<QString> filenames )
     {
 #ifdef Q_OS_WIN
@@ -400,8 +408,10 @@ class KloggApp : public QApplication {
                 return participant.isNull() || participant.data() == window;
             } );
             if ( removed && ( exitPreparationState_ == ExitPreparationState::Prepared
-                              || exitPreparationState_ == ExitPreparationState::Preparing ) )
+                              || exitPreparationState_ == ExitPreparationState::Preparing ) ) {
                 cancelApplicationExitPreparation();
+                Q_EMIT applicationExitPreparationLost();
+            }
         } );
         connect( window, &MainWindow::windowActivated,
                  [ this, window ]() { onWindowActivated( *window ); } );
@@ -628,12 +638,16 @@ class KloggApp : public QApplication {
         case H::Failure::ExecutionClosed: return D::UpdateHandoffError::Closed;
         case H::Failure::PreparationFailed: return D::UpdateHandoffError::Preparation;
         case H::Failure::ReservationBlocked: return D::UpdateHandoffError::Blocked;
+        case H::Failure::ReservationAbandoned: return D::UpdateHandoffError::Abandoned;
         case H::Failure::ReservationUnavailable: return D::UpdateHandoffError::Unavailable;
         case H::Failure::LaunchFailed:
         case H::Failure::PeerRejected:
         case H::Failure::PeerLost: return D::UpdateHandoffError::Helper;
         case H::Failure::CommitRejected: return D::UpdateHandoffError::Commit;
         case H::Failure::ApprovalDeclined: return D::UpdateHandoffError::ApprovalDeclined;
+        // Diagnostic-only: the snapshot state stays Cancelled, so the dialog
+        // keeps presenting the ordinary cancelled text.
+        case H::Failure::CancellationInProgress: return D::UpdateHandoffError::None;
         }
         return D::UpdateHandoffError::Helper;
     }

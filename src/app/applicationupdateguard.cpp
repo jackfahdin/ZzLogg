@@ -45,6 +45,7 @@ struct ApplicationUpdateGuard::Impl {
     std::unique_ptr<zzlogg::updater::InstallationActivity> activity;
 #endif
     Status status = Status::Inactive;
+    ReservationError reservationError = ReservationError::None;
     QString errorText;
 };
 
@@ -106,22 +107,45 @@ bool ApplicationUpdateGuard::reserveUpdate()
 {
 #ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
     if ( !impl_->activity || impl_->status != Status::Active ) {
+        impl_->reservationError = ReservationError::Unavailable;
         impl_->errorText = QStringLiteral( "no active installation activity lease" );
         return false;
     }
     const auto result = impl_->activity->reserveUpdate();
     if ( result == zzlogg::updater::ActivityError::None ) {
+        impl_->reservationError = ReservationError::None;
         impl_->errorText.clear();
         return true;
     }
-    impl_->errorText = result == zzlogg::updater::ActivityError::Blocked
-        ? QStringLiteral( "another instance is active in the installation directory" )
-        : QStringLiteral( "the installation directory could not be exclusively verified" );
+    switch ( result ) {
+    case zzlogg::updater::ActivityError::Blocked:
+        impl_->reservationError = ReservationError::Blocked;
+        impl_->errorText
+            = QStringLiteral( "another instance is active in the installation directory" );
+        break;
+    case zzlogg::updater::ActivityError::Abandoned:
+        impl_->reservationError = ReservationError::Abandoned;
+        impl_->errorText = QStringLiteral(
+            "a previous update reservation was abandoned by a holder that exited without "
+            "releasing it" );
+        break;
+    default:
+        impl_->reservationError = ReservationError::Unavailable;
+        impl_->errorText
+            = QStringLiteral( "the installation directory could not be exclusively verified" );
+        break;
+    }
     return false;
 #else
+    impl_->reservationError = ReservationError::Unavailable;
     impl_->errorText = QStringLiteral( "automatic update is not supported on this platform" );
     return false;
 #endif
+}
+
+ApplicationUpdateGuard::ReservationError ApplicationUpdateGuard::reservationError() const
+{
+    return impl_->reservationError;
 }
 
 void ApplicationUpdateGuard::cancelUpdate()

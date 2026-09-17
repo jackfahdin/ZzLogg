@@ -14,7 +14,12 @@
 #include "kloggapp.h"
 #include "localchannel_win_p.h"
 #include "mainwindow.h"
+#include "optionsdialog.h"
 #include "storagecontext.h"
+#include "updatecheckdialog.h"
+
+#include <atomic>
+#include <thread>
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -123,6 +128,90 @@ Handoff::SessionFactory scriptedSessionFactory( Failure result, bool canCommit =
                -> std::unique_ptr<Handoff::CoordinationSession> {
         return std::make_unique<ScriptedSession>( result, canCommit );
     };
+}
+
+// CommitExit blocks until the test opens the gate, so the harness can destroy
+// a prepared participant while the irreversible message is in flight on the
+// worker thread. cancel() only records the call.
+class GatedCommitSession final : public Handoff::CoordinationSession {
+  public:
+    GatedCommitSession( std::shared_ptr<std::atomic<bool>> started,
+                        std::shared_ptr<std::atomic<bool>> release,
+                        std::shared_ptr<std::atomic<bool>> cancelled )
+        : started_( std::move( started ) )
+        , release_( std::move( release ) )
+        , cancelled_( std::move( cancelled ) )
+    {
+    }
+    Failure start() override { return Failure::None; }
+    bool canCommitExit() const override { return true; }
+    bool commitExit() override
+    {
+        started_->store( true );
+        while ( !release_->load() ) {
+            QThread::msleep( 5 );
+        }
+        return true; // a late "successful" commit must be staled by the controller
+    }
+    void cancel() override { cancelled_->store( true ); }
+
+  private:
+    std::shared_ptr<std::atomic<bool>> started_;
+    std::shared_ptr<std::atomic<bool>> release_;
+    std::shared_ptr<std::atomic<bool>> cancelled_;
+};
+
+Handoff::SessionFactory gatedCommitSessionFactory( std::shared_ptr<std::atomic<bool>> started,
+                                                   std::shared_ptr<std::atomic<bool>> release,
+                                                   std::shared_ptr<std::atomic<bool>> cancelled )
+{
+    return [ started = std::move( started ), release = std::move( release ),
+             cancelled = std::move( cancelled ) ]( const Handoff::Request& )
+               -> std::unique_ptr<Handoff::CoordinationSession> {
+        return std::make_unique<GatedCommitSession>( started, release, cancelled );
+    };
+}
+
+// start() never returns until the process ends: the controller destructor
+// must stop waiting within its bounded budget and diagnose instead of
+// blocking teardown forever.
+class BlockingSession final : public Handoff::CoordinationSession {
+  public:
+    explicit BlockingSession( std::shared_ptr<std::atomic<bool>> started )
+        : started_( std::move( started ) )
+    {
+    }
+    Failure start() override
+    {
+        started_->store( true );
+        for ( ;; ) {
+            QThread::msleep( 20 );
+        }
+    }
+    bool canCommitExit() const override { return false; }
+    bool commitExit() override { return false; }
+    void cancel() override {}
+
+  private:
+    std::shared_ptr<std::atomic<bool>> started_;
+};
+
+Handoff::SessionFactory blockingSessionFactory( std::shared_ptr<std::atomic<bool>> started )
+{
+    return [ started = std::move( started ) ]( const Handoff::Request& )
+               -> std::unique_ptr<Handoff::CoordinationSession> {
+        return std::make_unique<BlockingSession>( started );
+    };
+}
+
+// Qt message handlers are plain function pointers, so the capture target for
+// the destructor diagnostic test lives here.
+QStringList* warningCapture = nullptr;
+void captureWarnings( QtMsgType type, const QMessageLogContext&, const QString& message )
+{
+    if ( type == QtWarningMsg && warningCapture ) {
+        warningCapture->append( message );
+    }
 }
 
 // Captures the request a composed factory actually received (3C task 5: the
@@ -620,6 +709,208 @@ class UpdateHandoffTest final : public QObject {
         QVERIFY( replacement != nullptr );
         replacement->show();
         QVERIFY( replacement->isEnabled() );
+    }
+
+    // 3C task 6: the preparation-lost notification cancels a waiting session
+    // without anyone calling cancel(); the real child receives Cancel and the
+    // directory gate evaporates.
+    void preparationLostDuringWaitingCancelsWaitingSession()
+    {
+        setFixtureMode( L"success" );
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, fixtureSessionFactory( fixtureExecutable(), nextRuntimeBase() ) );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        QVERIFY( app_.isApplicationExitPrepared() );
+        QVERIFY( app_.updateGuard().isUpdateReserved() );
+        delete window;
+        QTRY_COMPARE( handoff.snapshot().state, State::Failed );
+        QCOMPARE( handoff.snapshot().failure, Failure::PreparationFailed );
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        // The real child was cancelled, so the observed directory gate
+        // evaporates quickly instead of lingering for its own deadline.
+        const auto nativeInstall = QDir::toNativeSeparators( installDir_ ).toStdWString();
+        QTRY_VERIFY_WITH_TIMEOUT(
+            [ &nativeInstall ] {
+                InstallationActivity probe;
+                return probe.enter( nativeInstall ) == ActivityError::None;
+            }(),
+            8000 );
+        auto* replacement = app_.newWindow();
+        QVERIFY( replacement != nullptr );
+        replacement->show();
+        QVERIFY( replacement->isEnabled() );
+    }
+
+    // 3C task 6 residual-window evidence: a participant destroyed while the
+    // irreversible CommitExit is in flight must stale the late completion;
+    // the handoff fails fast with PreparationFailed, never emits
+    // exitCommitted and never reaches CommitRejected afterwards.
+    void commitExitInFlightParticipantLossStalesTheCompletion()
+    {
+        auto started = std::make_shared<std::atomic<bool>>( false );
+        auto release = std::make_shared<std::atomic<bool>>( false );
+        auto cancelled = std::make_shared<std::atomic<bool>>( false );
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, gatedCommitSessionFactory( started, release, cancelled ) );
+        QSignalSpy committed( &handoff, &ApplicationUpdateHandoff::exitCommitted );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        QVERIFY( handoff.commitExit() );
+        QTRY_VERIFY( started->load() ); // CommitExit is in flight on the worker
+        delete window;
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        // The notification fails the handoff before the in-flight completion
+        // can arrive; the reservation is released synchronously.
+        QCOMPARE( handoff.snapshot().state, State::Failed );
+        QCOMPARE( handoff.snapshot().failure, Failure::PreparationFailed );
+        QVERIFY( !app_.updateGuard().isUpdateReserved() );
+        release->store( true ); // let the late "successful" commit arrive
+        QTRY_VERIFY( cancelled->load() ); // the session was discarded on the worker
+        QTest::qWait( 300 );
+        QCoreApplication::processEvents();
+        QCOMPARE( committed.count(), 0 );
+        QCOMPARE( handoff.snapshot().state, State::Failed );
+        QCOMPARE( handoff.snapshot().failure, Failure::PreparationFailed );
+        auto* replacement = app_.newWindow();
+        QVERIFY( replacement != nullptr );
+        replacement->show();
+        QVERIFY( replacement->isEnabled() );
+    }
+
+    // 3C task 6: the update dialog is parented to the active modal (options)
+    // dialog in production; destroying that parent mid-handoff destroys the
+    // dialog, whose destructor cancellation cancels the session and restores
+    // the prepared window.
+    void optionsModalParentDestructionCancelsHandoff()
+    {
+        setFixtureMode( L"success" );
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, fixtureSessionFactory( fixtureExecutable(), nextRuntimeBase() ) );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        QVERIFY( !window->isEnabled() );
+        auto* options = new OptionsDialog( window );
+        auto* dialog = new UpdateCheckDialog( options );
+        dialog->setHandoffState( UpdateCheckDialog::UpdateHandoffState::Waiting );
+        QSignalSpy cancelSpy( dialog, &UpdateCheckDialog::installCancelRequested );
+        QVERIFY( cancelSpy.isValid() );
+        QObject::connect( dialog, &UpdateCheckDialog::installCancelRequested, &handoff,
+                          &ApplicationUpdateHandoff::cancel );
+        delete options; // the dialog dies with its modal parent
+        QCOMPARE( cancelSpy.count(), 1 );
+        QCOMPARE( handoff.snapshot().state, State::Cancelled );
+        QTRY_VERIFY( window->isEnabled() );
+        QVERIFY( window->isVisible() );
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        QVERIFY( !handoff.commitExit() );
+    }
+
+    // 3C task 6: while a cancellation still holds the reservation on the
+    // worker, a repeated begin is refused with a diagnosable snapshot instead
+    // of a silent false.
+    void beginDuringCancellationReportsDiagnosableBusy()
+    {
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, scriptedSessionFactory( Failure::None, /*canCommit*/ true ) );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        handoff.cancel();
+        QCOMPARE( handoff.snapshot().state, State::Cancelled );
+        QVERIFY( !handoff.begin() );
+        QCOMPARE( handoff.snapshot().state, State::Cancelled );
+        QCOMPARE( handoff.snapshot().failure, Failure::CancellationInProgress );
+        QVERIFY( !handoff.snapshot().detail.isEmpty() );
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
+        // Once the release completes, a fresh begin works again.
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        handoff.cancel();
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
+    }
+
+    // 3C task 6: an abandoned reservation object (previous holder thread died
+    // without releasing) is diagnosed distinctly from a live blocking
+    // instance.
+    void abandonedReservationIsDistinguishedFromBlocked()
+    {
+        const auto nativeInstall = QDir::toNativeSeparators( installDir_ ).toStdWString();
+        DirectoryIdentity identity{};
+        QVERIFY( InstallationActivity::probeIdentity( nativeInstall, identity ) );
+        const auto name = InstallLock::mutexName( identity );
+        QVERIFY( !name.empty() );
+        // The leaver thread creates and owns the reservation mutex, then exits
+        // without releasing it; the object survives only through the duplicate
+        // the test holds, so cleanup can destroy it deterministically.
+        HANDLE orphan = nullptr;
+        std::atomic<bool> ready{ false };
+        std::thread leaver( [ & ] {
+            HANDLE raw = CreateMutexW( nullptr, TRUE, reinterpret_cast<LPCWSTR>( name.c_str() ) );
+            if ( !raw ) {
+                return;
+            }
+            DuplicateHandle( GetCurrentProcess(), raw, GetCurrentProcess(), &orphan, SYNCHRONIZE,
+                             FALSE, 0 );
+            ready.store( true );
+            CloseHandle( raw );
+        } );
+        leaver.join();
+        QVERIFY( ready.load() );
+        QVERIFY( orphan != nullptr );
+        const auto orphanCleanup = qScopeGuard( [ & ] { CloseHandle( orphan ); } );
+        auto* window = app_.newWindow();
+        window->show();
+        ApplicationUpdateHandoff handoff(
+            app_, fixtureSessionFactory( fixtureExecutable(), nextRuntimeBase() ) );
+        QVERIFY( !handoff.begin() );
+        QCOMPARE( handoff.snapshot().state, State::Failed );
+        QCOMPARE( handoff.snapshot().failure, Failure::ReservationAbandoned );
+        QCOMPARE( handoff.snapshot().detail, app_.updateGuard().errorText() );
+        QVERIFY( handoff.snapshot().detail.contains( QStringLiteral( "abandoned" ) ) );
+        QVERIFY( window->isVisible() );
+        QVERIFY( window->isEnabled() );
+        QVERIFY( !app_.updateGuard().isUpdateReserved() );
+        QVERIFY( !app_.isApplicationExitPrepared() );
+    }
+
+    // 3C task 6: destruction with a hung worker step must not block teardown
+    // forever; the wait is bounded, diagnosed, and the GUI-thread reservation
+    // is still released. Declared last: the leaked worker keeps spinning
+    // until process exit.
+    void destructorWaitIsBoundedAndDiagnosed()
+    {
+        auto started = std::make_shared<std::atomic<bool>>( false );
+        auto* window = app_.newWindow();
+        window->show();
+        auto* handoff = new ApplicationUpdateHandoff( app_, blockingSessionFactory( started ) );
+        QVERIFY( beginWithRetry( *handoff ) );
+        QTRY_VERIFY( started->load() ); // the worker is inside the hung step
+        QStringList warnings;
+        warningCapture = &warnings;
+        const auto previousHandler = qInstallMessageHandler( captureWarnings );
+        QElapsedTimer timer;
+        timer.start();
+        delete handoff;
+        const auto elapsed = timer.elapsed();
+        qInstallMessageHandler( previousHandler );
+        warningCapture = nullptr;
+        QVERIFY( elapsed >= 14000 ); // bounded wait exhausted (15 s budget)
+        QVERIFY( elapsed < 30000 );
+        QVERIFY( warnings.join( QStringLiteral( "\n" ) )
+                     .contains( QStringLiteral( "did not finish" ) ) );
+        QVERIFY( !app_.updateGuard().isUpdateReserved() );
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        QVERIFY( window->isEnabled() );
     }
 
   private:

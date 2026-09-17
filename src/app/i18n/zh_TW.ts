@@ -2762,6 +2762,10 @@ Channel: %2</source>
         <translation>另一個 ZzLogg 執行個體正在使用此安裝目錄，請關閉後重試。</translation>
     </message>
     <message>
+        <source>A previous update did not finish cleanly. Wait a moment and try again.</source>
+        <translation>上一次更新未正常完成。請稍候再試。</translation>
+    </message>
+    <message>
         <source>The installation directory could not be verified. The update was not started.</source>
         <translation>無法驗證安裝目錄，未啟動更新。</translation>
     </message>

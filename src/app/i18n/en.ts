@@ -2684,6 +2684,10 @@ Channel: %2</translation>
         <translation>Another ZzLogg instance is active in this installation. Close it and try again.</translation>
     </message>
     <message>
+        <source>A previous update did not finish cleanly. Wait a moment and try again.</source>
+        <translation>A previous update did not finish cleanly. Wait a moment and try again.</translation>
+    </message>
+    <message>
         <source>The installation directory could not be verified. The update was not started.</source>
         <translation>The installation directory could not be verified. The update was not started.</translation>
     </message>

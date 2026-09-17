@@ -26,6 +26,13 @@
 
 #include "kloggapp.h"
 
+namespace {
+// Worker steps are bounded by the session deadlines (seconds), so quitting
+// and waiting this budget is enough; the budget comfortably outlasts the
+// launch + authenticate + await chain of a well-behaved coordinator.
+constexpr unsigned long kDestructWaitMs = 15000;
+} // namespace
+
 struct ApplicationUpdateHandoff::Impl {
     Impl( KloggApp& ownApp, SessionFactory ownFactory )
         : app( ownApp )
@@ -75,6 +82,11 @@ ApplicationUpdateHandoff::ApplicationUpdateHandoff( KloggApp& app, SessionFactor
     , impl_( std::make_unique<Impl>( app, std::move( factory ) ) )
 {
     qRegisterMetaType<Snapshot>( "ApplicationUpdateHandoff::Snapshot" );
+    // A destroyed prepared participant silently cancels the application
+    // preparation; the notification cancels the in-flight session here so the
+    // loss is handled at once instead of only at commit time.
+    connect( &app, &KloggApp::applicationExitPreparationLost, this,
+             &ApplicationUpdateHandoff::onPreparationLost );
 }
 
 ApplicationUpdateHandoff::~ApplicationUpdateHandoff()
@@ -90,7 +102,21 @@ ApplicationUpdateHandoff::~ApplicationUpdateHandoff()
         // session references) here cannot race the native coordinator. The
         // coordinator's own reaper still covers a live child to its real end.
         d.thread.quit();
-        d.thread.wait();
+        if ( !d.thread.wait( kDestructWaitMs ) ) {
+            // A hung native step must never block application teardown: release
+            // the GUI-thread reservation, then deliberately leak the worker
+            // (thread, context and session references) instead of waiting
+            // forever or racing the still-running coordinator. Plain qWarning
+            // on purpose: this diagnostic must survive disabled file logging.
+            qWarning() << "ApplicationUpdateHandoff worker did not finish within"
+                       << kDestructWaitMs << "ms during destruction; leaking the worker";
+            if ( !d.committed && d.reservationHeld ) {
+                d.app.updateGuard().cancelUpdate();
+                d.reservationHeld = false;
+            }
+            impl_.release();
+            return;
+        }
         delete d.workerContext;
         d.workerContext = nullptr;
     }
@@ -121,7 +147,17 @@ bool ApplicationUpdateHandoff::begin()
 {
     auto& d = *impl_;
     if ( d.snapshot.state == State::Preparing || d.snapshot.state == State::Waiting
-         || d.committed || d.reservationHeld ) {
+         || d.committed ) {
+        return false;
+    }
+    if ( d.reservationHeld ) {
+        // The previous cancellation is still releasing the reservation on the
+        // worker thread; refuse with a diagnosable snapshot, not silence.
+        d.setSnapshot( this,
+                       { d.snapshot.state, Failure::CancellationInProgress,
+                         QStringLiteral(
+                             "the previous cancellation is still releasing the installation "
+                             "reservation" ) } );
         return false;
     }
     const auto fail = [ this, &d ]( Failure failure, const QString& detail ) {
@@ -137,10 +173,12 @@ bool ApplicationUpdateHandoff::begin()
                      QStringLiteral( "session preparation failed" ) );
     }
     if ( !d.app.updateGuard().reserveUpdate() ) {
-        const auto guardStatus = d.app.updateGuard().status();
-        const auto failure = guardStatus == ApplicationUpdateGuard::Status::Active
+        const auto reservationError = d.app.updateGuard().reservationError();
+        const auto failure = reservationError == ApplicationUpdateGuard::ReservationError::Blocked
             ? Failure::ReservationBlocked
-            : Failure::ReservationUnavailable;
+            : reservationError == ApplicationUpdateGuard::ReservationError::Abandoned
+                ? Failure::ReservationAbandoned
+                : Failure::ReservationUnavailable;
         const auto detail = d.app.updateGuard().errorText();
         d.app.cancelApplicationExitPreparation();
         return fail( failure, detail );
@@ -307,6 +345,21 @@ void ApplicationUpdateHandoff::onCommitFinished(
     d.committed = true;
     d.setSnapshot( this, { State::ExitCommitted, Failure::None, {} } );
     Q_EMIT exitCommitted();
+}
+
+void ApplicationUpdateHandoff::onPreparationLost()
+{
+    auto& d = *impl_;
+    if ( d.snapshot.state != State::Preparing && d.snapshot.state != State::Waiting ) {
+        return;
+    }
+    // The preparation is already gone; stale every pending completion (start
+    // or commit) so a late "successful" CommitExit can never commit the exit
+    // of an application that just stayed alive.
+    ++d.generation;
+    d.commitPending = false;
+    failFromWaiting( Failure::PreparationFailed,
+                     QStringLiteral( "the prepared session was lost during the handoff" ) );
 }
 
 void ApplicationUpdateHandoff::failFromWaiting( Failure failure, const QString& detail )

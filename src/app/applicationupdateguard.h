@@ -69,6 +69,12 @@ class ApplicationUpdateGuard {
     bool reserveUpdate();
     void cancelUpdate();
     bool isUpdateReserved() const;
+    // Precise kind of the last reserveUpdate() failure. Abandoned means the
+    // reservation object outlived a holder that died without releasing it, as
+    // opposed to Blocked (a live instance or lock object) and Unavailable
+    // (identity could not be verified, or no active lease).
+    enum class ReservationError { None, Blocked, Abandoned, Unavailable };
+    ReservationError reservationError() const;
     // Immutable directory identity of the reserved installation; present only
     // while a reservation is held. Consumers derive the observer mutex name
     // from it; there is deliberately no setter.

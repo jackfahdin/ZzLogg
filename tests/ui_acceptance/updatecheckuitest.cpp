@@ -397,6 +397,7 @@ private Q_SLOTS:
         const QList<QPair<E,QString>> cases{
             {E::Preparation,QString("Unable to prepare the update. Your session is unchanged.")},
             {E::Blocked,QString("Another ZzLogg instance is active in this installation. Close it and try again.")},
+            {E::Abandoned,QString("A previous update did not finish cleanly. Wait a moment and try again.")},
             {E::Unavailable,QString("The installation directory could not be verified. The update was not started.")},
             {E::Helper,QString("The update helper could not be started. Your session is unchanged.")},
             {E::Commit,QString("The update could not be committed. Your session is unchanged.")},
@@ -414,6 +415,7 @@ private Q_SLOTS:
     }
     // Handoff strings switch live between English, simplified and traditional.
     void handoffStringsTranslateLive() {
+        using E=UpdateCheckDialog::UpdateHandoffError;
         using S=UpdateCheckDialog::UpdateHandoffState;
         UpdateCheckDialog dialog;
         dialog.setSnapshot(availableRelease());
@@ -425,6 +427,8 @@ private Q_SLOTS:
             "正在准备更新，会话正在保存...","正在準備更新，工作階段正在儲存..."};
         const QStringList cancelledTexts{"Update cancelled. Your session is unchanged.",
             "更新已取消，会话未更改。","更新已取消，工作階段未變更。"};
+        const QStringList abandonedTexts{"A previous update did not finish cleanly. Wait a moment and try again.",
+            "上一次更新未正常完成。请稍候再试。","上一次更新未正常完成。請稍候再試。"};
         for(int i=0;i<3;++i) {
             QTranslator translator;
             QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+languages[i]+".qm"));
@@ -437,6 +441,8 @@ private Q_SLOTS:
             QCOMPARE(status->text(),preparingTexts[i]);
             dialog.setHandoffState(S::Cancelled);
             QCOMPARE(status->text(),cancelledTexts[i]);
+            dialog.setHandoffState(S::Failed,E::Abandoned);
+            QCOMPARE(status->text(),abandonedTexts[i]);
             dialog.setHandoffState(S::Idle);
             qApp->removeTranslator(&translator);
         }

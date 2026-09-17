@@ -50,12 +50,16 @@ class ApplicationUpdateHandoff : public QObject
         ExecutionClosed,        // production execution capability is closed
         PreparationFailed,      // session save/preparation failed
         ReservationBlocked,     // another instance is active in the directory
+        ReservationAbandoned,   // a previous reservation holder died without releasing
         ReservationUnavailable, // directory identity could not be verified
         LaunchFailed,           // helper process could not be started
         PeerRejected,           // handshake rejected or timed out
         PeerLost,               // peer exited early
         CommitRejected,         // exit commit failed after AwaitingAppExit
         ApprovalDeclined,       // elevation declined (mapping only; no real UAC this phase)
+        // Diagnostic only: a repeated begin while the previous cancellation
+        // still holds the reservation. The snapshot state stays Cancelled.
+        CancellationInProgress,
     };
     Q_ENUM( Failure )
     struct Snapshot {
@@ -129,6 +133,7 @@ class ApplicationUpdateHandoff : public QObject
                           Failure failure, bool canCommit );
     void onCommitFinished( quint64 generation, std::shared_ptr<CoordinationSession> session,
                            bool committed );
+    void onPreparationLost();
     void failFromWaiting( Failure failure, const QString& detail );
     void releaseReservation();
     void discardSessionOnWorker( std::shared_ptr<CoordinationSession> session );

@@ -14,7 +14,7 @@ public:
     // maps its own state/failure enums onto these. Presentation only, never
     // authority over execution.
     enum class UpdateHandoffState { Idle, Preparing, Waiting, ExitCommitted, Cancelled, Failed };
-    enum class UpdateHandoffError { None, Preparation, Blocked, Unavailable, Helper, Commit,
+    enum class UpdateHandoffError { None, Preparation, Blocked, Abandoned, Unavailable, Helper, Commit,
         ApprovalDeclined, Closed };
     explicit UpdateCheckDialog(QWidget* parent=nullptr);
     ~UpdateCheckDialog() override;

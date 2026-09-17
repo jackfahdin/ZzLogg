@@ -172,6 +172,27 @@ private Q_SLOTS:
         QCOMPARE( app_.mainWindows().size(), 1 );
     }
 
+    // Participant loss is announced so an in-flight update handoff cancels its
+    // session instead of discovering the loss only at commit time; an explicit
+    // cancel is not a loss and stays silent.
+    void destroyedParticipantEmitsPreparationLost()
+    {
+        MainWindow* first = app_.newWindow();
+        MainWindow* second = app_.newWindow();
+        second->show();
+        QSignalSpy lost{ &app_, &KloggApp::applicationExitPreparationLost };
+        QVERIFY( lost.isValid() );
+        QVERIFY( app_.prepareApplicationExit() );
+        delete first;
+        QCOMPARE( lost.count(), 1 );
+        QVERIFY( !app_.isApplicationExitPrepared() );
+        QVERIFY( second->isEnabled() && second->isVisible() );
+        QVERIFY( app_.prepareApplicationExit() );
+        app_.cancelApplicationExitPreparation();
+        QCOMPARE( lost.count(), 1 );
+        QVERIFY( second->isEnabled() );
+    }
+
     // A deferred deletion from an earlier normal close is not a lost participant.
     void retiredWindowDestructionDoesNotCancelCurrentPreparation()
     {

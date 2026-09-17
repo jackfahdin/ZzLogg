@@ -228,7 +228,7 @@ UAC、文件替换或注册表写入。真实 NSIS/UAC 安装验收尚未执行�
 | `ZZLOGG_RELEASE_CHANNEL` / `channel` | `stable` 或 `preview` |
 | 编译目标 / `os`、`arch` | 仅 Windows x64，生成值固定为 `windows`、`x64` |
 | `ZZLOGG_RELEASE_DATA_SCHEMA` / `dataSchema` | 0–4294967295 的规范十进制；0 只能由流水线显式声明，且不表示现有配置文件已有统一 schema |
-| `updaterProtocol` | 当前固定为 1 |
+| `updaterProtocol` | 当前固定为 1（清单协商能力号，与线协议号独立演进；裁决见 3C 节） |
 
 无 Qt 核心读取上述编译常量；非 Windows x64 的编译结果仍返回空。Qt 适配层的纯函数只在发布身份再次通过字段校验、安装身份是 `Registered` 且根目录非空、调用方传入的操作系统主版本非零时，组合出 `Installer` 类型的 `InstalledRelease`。它不读取注册表、文件标记、用户配置或数据目录，也不自行探测操作系统版本。
 
@@ -375,3 +375,150 @@ DACL 仅授权精确登录 SID；客户端使用 SECURITY_IDENTIFICATION。双�
 
 3B.4 基线曾出现协调者测试 0xc0000409：根因是测试复用进程临时目录名（PID 复用时
 撞目录），修复为密码学随机目录名加原子创建（任务 0，仅修测试）。
+
+3C 任务六对上述接线做了收口：参与者销毁导致的准备丢失经
+`KloggApp::applicationExitPreparationLost` 外发，控制器收到后立即失效在飞完成
+（代次失效）并以 PreparationFailed 失败关闭，消除"复检与在飞 CommitExit 之间"的
+残余窗口；析构改为 15 秒有界等待，超时诊断日志后释放 GUI 线程预留并故意泄漏
+工作线程（不阻塞应用拆卸、不与仍在运行的协调者竞争）；取消尚未释放预留期间的
+重复 begin 返回可诊断快照（状态保持 Cancelled，失败枚举 CancellationInProgress）
+而非静默 false；Abandoned 预留与 Blocked 在守卫诊断与三语文案上明确区分。
+
+## 安装事务与恢复（3C）
+
+3C 交付协议 v2、bootstrap v3、持久事务日志、登记事务引擎、NSIS 受限入口与协调者
+生产链路。**生产门禁不变**：应用内组合真实协调者的生产会话工厂仍缺席，"退出并
+更新"不开放生产可见性；本节全部机制只在专用测试目标中真实执行。
+
+### 线协议 v2 与 Proceed
+
+应用与协调者之间的本地通道消息集显式补齐 Proceed（=8），版本字节升为 2。消息
+仍为 60 字节定长："ZZUP"、小端 uint32 版本、kind、16 事务字节、32 令牌字节；
+截断/超长、错凭据、重放、错序一律关闭。状态机为 Connecting→Ready→
+AwaitingAppExit→ExitCommitted→ExitConfirmed→Complete（或 Aborted）：ExitCommitted
+只有经 Proceed 才升为 ExitConfirmed，Complete 只在 ExitConfirmed 合法。Proceed 由
+协调者持有方在观察其**复制的应用进程句柄**真实退出后发送（不相信对端自报；
+句柄以 adopt 防 PID 复用）；应用仍存活时查询返回 PeerRunning，已发送后幂等返回
+ProceedSent。**引擎在收到 Proceed 之前不得修改安装目录，也不得报告 Complete**；
+违约由 fixture 违约模式（engine-violation、early-complete）真实证明协调者拒绝。
+
+### bootstrap v3
+
+bootstrap 映射版本升为 3，新增 240 wchar 容量的 `dataDirectory` 可选字段：非空时
+必须是绝对路径（本地盘或 UNC）、容量内 NUL 终止、不含控制字符；旧版本、畸形、
+相对路径、未终止一律拒绝。数据目录只是事务后重启上下文，不是安装授权。v2 引入
+的 DirectoryReserved 观察句柄语义不变。
+
+### "准备→预留→握手→提交/取消"时序
+
+1. 准备：`prepareApplicationExit()` 保存全部窗口并同步会话后进入 Prepared，
+   窗口保留但冻结一切快照变更。
+2. 预留：`reserveUpdate()` 在目录身份 mutex 下证明无其他实例后持有预留；
+   Abandoned（前持有线程未释放即终止）与 Blocked（活实例）分别诊断。
+3. 握手：工作线程有界启动运行副本，Hello/Ready 认证后等待 AwaitingAppExit；
+   GUI 线程从不阻塞在通道 IO 或进程等待上。
+4. 提交：仅 Waiting 且本地仍 Prepared、对端活着且已认证 AwaitingAppExit 才可
+   提交；CommitExit 成功后才 `commitApplicationExit()`，随后宿主显式 `exit(0)`
+   （绝不用重启码 773）。预留刻意保持：子协调者在 Hello 前以 SYNCHRONIZE 打开并
+   持有预留 mutex 的观察句柄（不等待、不释放、不移动所有权），父进程退出后对象
+   经观察句柄存续，任何新进入/加锁失败关闭，直到子协调者结束。
+5. 取消：GUI 线程立即恢复窗口，对端取消完成后才释放预留；迟到完成被代次
+   隔离丢弃，永远不能提交退出。
+6. 准备丢失：参与窗口销毁使 KloggApp 取消准备并发出
+   `applicationExitPreparationLost`，控制器失效在飞完成、取消会话、释放预留，
+   以 PreparationFailed 失败关闭。
+7. 应用真实退出后协调者发 Proceed，引擎才开始事务；Complete 后协调者复核
+   登记/标记/清单，以原用户身份重启应用（仅 `--data-dir` 参数，目录作用域
+   单实例端点有界确认）；已提权宿主返回 ManualRestartRequired，不自动重启。
+
+### 事务日志与受保护事务目录
+
+追加式持久事务日志（txjournal_win）：32 字节头 + 68 字节定长记录头 + 长度前缀
+UTF-16 体，显式小端编码。打开时以原子 NtCreateFile 独占创建 `<根>\<txid 十六进制>`
+事务目录（祖先钉住防改名/重解析，ACL 主体可注入；生产为 Administrators/SYSTEM
+写 + 已验证用户读）。每条记录先写后刷（FlushFileBuffers，可注入观察）再执行其
+描述的操作；Complete 后拒绝追加；任何写/刷失败锁死日志。重放严格 fail-closed：
+撕裂尾、未知操作、未知 flags、序号缺口、事务 ID 不符均判 Corrupt 且重放为零
+操作；重放只读幂等。卷空间预检采用饱和加法、1 MiB 日志预留和最近现存非重解析
+祖先查询，暂存卷与备份卷分别预检。
+
+### 登记事务引擎与恢复边界
+
+引擎（txengine_win）先写日志后操作：清单（ZZTXMAN1：16 字节头
+magic+version(1)+count，随后逐条目）有界敌意解析，与应用侧 NSIS 清单生成器
+逐字节同源（共享枚举生成器）。普通失败逆序回滚；中断（杀进程/断电点）后经
+授权路径幂等恢复；登记白名单精确到卸载项键，要求 `UpdateIdentitySchema==2`；
+Corrupt 或 0 字节日志呈现为 NeedsAuthorizedRecovery（保留现场，交授权恢复，
+绝不自动继续）。退出码：Applied/Recovered/NothingToRecover=0、Rejected=42、
+Conflict=43、RolledBack=44、NeedsAuthorizedRecovery=45、RecoveryFailed=46。
+
+### 落地清单 schema 2 与 NSIS 受限入口
+
+新安装写入 `UpdateIdentitySchema=2`（HKLM 卸载项）；schema 1 或缺失按 Legacy
+处理，引擎对非 2 一律 Rejected。NSIS 提供两个受限入口：
+`/ZzLoggUpgrade=<16 位小写 hex 定位名>` 与 `/ZzLoggRecover=<定位名>`。两种模式
+都禁止 `/D=`（受限运行绝不改变登记目标）、在任何页面显示前 Quit、VerifyTarget
+逐级拒绝 reparse、使用受保护事务目录并传播引擎退出码。升级模式按定稿 argv
+契约以五组 flag/value（--install/--staging/--txroot/--txid/--version）启动引擎；
+定位名格式在协调者、NSIS、引擎、凭据文件四方逐字节一致。
+
+### 协调者生产链路
+
+协调者→安装器/引擎的受限 bootstrap 使用凭据文件：当前用户私有临时目录下随机
+定位名命名、CREATE_NEW、当前用户 DACL；引擎做属主、形状、定位名一致性、活
+协调者身份四层校验，读后即删，失败路径同样清理。安装器经可注入 seam 以
+ShellExecuteEx runas 启动，命令行只带受限开关（令牌不进命令行或普通日志）；
+ERROR_CANCELLED 映射为 Cancelled（UAC 拒绝）。Complete 后协调者复核登记、标记、
+清单一致，再以原用户身份重启应用；确认失败保留事务备份供授权恢复。
+
+### 发布身份 updaterProtocol 与线协议号的关系（裁决）
+
+**裁决：发布身份 `updaterProtocol` 保持 1，与线协议号独立演进。** 理由与边界：
+
+- 发布身份 `updaterProtocol` 是清单协商能力号：发布清单的 `minUpdaterProtocol`
+  与已安装发布身份比较（selectUpdate → ProtocolUnsupported），表达"安装此版本
+  所需的最低更新执行能力"。该语义自 3B.1 起未变，并由
+  installedrelease/releaseidentity 断言矩阵锁定为 1；3C 交付的是事务与恢复
+  机制，没有新增需要清单侧协商的执行能力，升为 2 会虚假声明一个清单可协商的
+  新能力。
+- 线协议号（bootstrap v3、通道消息版本 2）是同一构建内 ZzLogg.exe 与
+  ZzLoggUpdate.exe 之间的内部契约：两端始终同构建、同版本部署，不经清单协商，
+  不存在跨版本互操作，其演进不需要发布身份号同步。
+- 边界：仅当发布执行语义出现需要清单侧协商的变化（例如新的执行或恢复能力
+  要求旧版本应用拒绝安装）时才升 `updaterProtocol`，并同步更新
+  installedrelease/releaseidentity 测试矩阵；线协议（bootstrap/通道消息）变更
+  本身不构成升级理由。
+
+### Prepared 期 WM_QUERYENDSESSION 评估
+
+Prepared 期间窗口 closeEvent 无条件 ignore。Windows 会话结束（注销/关机）时
+系统向顶层窗口发 WM_QUERYENDSESSION，Qt 将其转换为关闭事件；被忽略即对本次
+关机投否决票，系统呈现"应用阻止关机"界面并允许用户强制继续。评估结论：**有界
+且可接受，不引入代码改动**。Prepared 窗口期被设计为秒级——交接到达 Waiting 后
+KloggApp 立即提交退出；取消路径同步恢复；准备丢失通知保证参与者销毁时窗口期
+立即结束。否决只发生在该窗口内，随后要么提交退出（进程真实退出，关机继续），
+要么取消恢复（正常响应后续关机请求）。在 Prepared 期特化处理会话结束（例如
+自动取消交接）会破坏"取消必须先恢复窗口、对端取消完成后才释放预留"的顺序
+保证，并把会话结束竞争引入不可逆提交流程。真实关机/注销交互抽查列入阶段 4
+验收。
+
+### 3C 未交付项与阶段 4 真实环境验收清单
+
+仍未交付（不宣称自动更新上线）：应用内组合真实协调者的生产会话工厂（"退出并
+更新"生产可见性不开放）；生产发布者证书指纹允许列表（仍为空，任何生产输入
+PublisherPolicyMissing）；生产签名工具与正式发布流水线；生产 HTTPS 地址与公钥
+配置。
+
+阶段 4 隔离环境验收清单（本机验收边界：不弹真实 UAC、不写真实 HKLM、不改真实
+安装目录、不运行真实 NSIS 安装包）：
+
+- 真实 UAC 提权链路（含用户拒绝路径）与跨完整性级别令牌/身份验证可行性；
+- 真实 HKLM 写入（卸载项、UpdateIdentitySchema=2）与登记回滚恢复；
+- 真实 NSIS 安装/升级/恢复包端到端（VerifyTarget、禁 /D=、退出码传播、
+  静默页面行为）；
+- 真实安装目录文件替换事务与中断恢复（杀进程/断电注入点）；
+- 分卷（暂存与备份不同卷）空间预检端到端（本机单固定盘环境受限）；
+- NtCreateFile 原子目录创建与目录租约在目标 Windows 版本上的兼容性；
+- 生产签名链成功、证书轮换与撤销/离线验收；
+- 关机/注销（WM_QUERYENDSESSION）与 Prepared 窗口的真实交互抽查；
+- 长路径与非 NTFS 文件系统兼容性（若声明支持）。

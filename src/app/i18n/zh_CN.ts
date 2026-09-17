@@ -2762,6 +2762,10 @@ Channel: %2</source>
         <translation>另一个 ZzLogg 实例正在使用此安装目录，请关闭后重试。</translation>
     </message>
     <message>
+        <source>A previous update did not finish cleanly. Wait a moment and try again.</source>
+        <translation>上一次更新未正常完成。请稍候再试。</translation>
+    </message>
+    <message>
         <source>The installation directory could not be verified. The update was not started.</source>
         <translation>无法验证安装目录，未启动更新。</translation>
     </message>
