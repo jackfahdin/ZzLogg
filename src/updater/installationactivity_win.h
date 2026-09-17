@@ -40,4 +40,8 @@ private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
+// Full named-pipe path of the directory-scoped single-instance endpoint for
+// the current session, identical to what the GUI's KDSingleApplication
+// listens on. The restart confirmation probes it; it is never written to.
+std::wstring singleInstancePipeName(const DirectoryIdentity&, const std::wstring& imageFileName);
 }

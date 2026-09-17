@@ -1,4 +1,5 @@
 #include "bootstrap_win_p.h"
+#include "installationactivity_win.h"
 #include "txengine_win.h"
 #include <sddl.h>
 #include <filesystem>
@@ -107,29 +108,13 @@ TxEngineOptions fixtureOptions(TxRegistry& registry) {
     options.protectedImage=[](const std::wstring&,const std::wstring&){return true;};
     return options;
 }
-TxEngineRequest fixtureRequest() {
-    TxEngineRequest request;
-    request.installRoot=envVar(L"ZZLOGG_TX_INSTALL");
-    request.stagingDir=envVar(L"ZZLOGG_TX_STAGING");
-    request.journalRoot=envVar(L"ZZLOGG_TX_TXROOT");
-    request.txid=parseHex(envVar(L"ZZLOGG_TX_TXID"));
-    request.displayVersion=envVar(L"ZZLOGG_TX_VERSION");
-    return request;
-}
-// Engine stand-in: the real TxEngine library driven as a protocol client with
-// injected registry/protected-root seams, exactly the production sequence
-// Hello -> recheck -> AwaitingAppExit -> CommitExit -> Proceed -> transaction
-// -> Complete/Failed.
-int runEngineFixture(const std::wstring& mode,ChildBootstrap& bootstrap) {
-    LocalChannel channel;
-    if(!channel.connect(bootstrap.data().transaction,bootstrap.parent(),after(3000)))return 52;
-    Message message{MessageKind::Hello,bootstrap.data().transaction,bootstrap.data().token};
-    if(!channel.send(message,after(1000)))return 53;
-    const auto ready=channel.receive(after(1500));
-    if(!ready || ready->kind!=MessageKind::Ready)return 0;
-    recordKind(*ready);
+// Full transaction protocol body after a validated Ready: the real TxEngine
+// driven as a protocol client with injected registry/protected-root seams,
+// exactly the production sequence recheck -> AwaitingAppExit -> CommitExit ->
+// Proceed -> transaction -> Complete/Failed.
+int runEngineProtocol(const std::wstring& mode,LocalChannel& channel,Message message,const TxEngineRequest& request) {
     FileRegistry registry(envVar(L"ZZLOGG_TX_FAKEREG"));
-    TxEngine engine(fixtureRequest(),fixtureOptions(registry));
+    TxEngine engine(request,fixtureOptions(registry));
     const auto prepared=engine.prepare();
     record(L"engine prepare="+std::to_wstring(static_cast<int>(prepared.outcome)));
     if(prepared.outcome!=TxOutcome::Prepared) {
@@ -157,6 +142,109 @@ int runEngineFixture(const std::wstring& mode,ChildBootstrap& bootstrap) {
     channel.send(message,after(1000));
     return exitForOutcome(done.outcome);
 }
+// Engine stand-in on the finalized argv contract: credentials arrive only
+// through the current-user-private credential file named by --txid, are
+// validated and deleted, then the protocol runs against the live coordinator.
+int runCredentialEngine(int argc,wchar_t** argv) {
+    std::wstring install,staging,txroot,txid,version;
+    bool seenInstall=false,seenStaging=false,seenTxroot=false,seenTxid=false,seenVersion=false;
+    for(int i=2;i<argc;++i) {
+        const std::wstring flag=argv[i];
+        std::wstring* value=nullptr;bool* seen=nullptr;
+        if(flag==L"--install"){value=&install;seen=&seenInstall;}
+        else if(flag==L"--staging"){value=&staging;seen=&seenStaging;}
+        else if(flag==L"--txroot"){value=&txroot;seen=&seenTxroot;}
+        else if(flag==L"--txid"){value=&txid;seen=&seenTxid;}
+        else if(flag==L"--version"){value=&version;seen=&seenVersion;}
+        else return 2;
+        if(*seen || i+1>=argc) return 2;
+        *value=argv[++i];*seen=true;
+    }
+    if(!seenInstall || !seenStaging || !seenTxroot || !seenTxid || !seenVersion) return 2;
+    const auto txidValue=parseHex(txid);
+    if(!txidValue) return 2;
+    CredentialData credential;
+    if(!readCredentialFile(txid,credential)) return 41;
+    if(!deleteCredentialFile(txid)) return 41;
+    record(L"engine txid="+txid);
+    ProcessIdentity server;
+    const ProcessStamp serverStamp{static_cast<DWORD>(credential.coordinatorPid),credential.coordinatorCreated};
+    if(!server.open(serverStamp.pid) || !server.matches(serverStamp)) return 41;
+    LocalChannel channel;
+    if(!channel.connect(credential.transaction,server,after(3000))) return 52;
+    Message message{MessageKind::Hello,credential.transaction,credential.token};
+    if(!channel.send(message,after(1000))) return 53;
+    const auto ready=channel.receive(after(1500));
+    if(!ready || ready->kind!=MessageKind::Ready) return 0;
+    recordKind(*ready);
+    const auto behavior=envVar(L"ZZLOGG_FIXTURE_ENGINE");
+    if(behavior==L"prepare-fail") {
+        message.kind=MessageKind::Failed;channel.send(message,after(1000));return 42;
+    }
+    const auto mode=envVar(L"ZZLOGG_HANDOFF_FIXTURE");
+    if(mode==L"engine" || mode==L"engine-violation")
+        return runEngineProtocol(mode,channel,message,{install,staging,txroot,txidValue,version});
+    // Protocol-only stand-in: no payload transaction work.
+    message.kind=MessageKind::AwaitingAppExit;
+    if(!channel.send(message,after(1000))) return 54;
+    const auto commit=channel.receive(after(5000));
+    if(!commit || commit->kind!=MessageKind::CommitExit) return 56;
+    recordKind(*commit);
+    const auto proceed=channel.receive(after(15000));
+    if(proceed) recordKind(*proceed);
+    if(!proceed || proceed->kind!=MessageKind::Proceed) return 56;
+    message.kind=MessageKind::Complete;
+    channel.send(message,after(1000));
+    return 0;
+}
+// NSIS restricted-entry stand-in: validates the locator shape, then runs the
+// engine with the finalized argv contract and propagates its exit code
+// (ExecWait model). What NSIS would know independently (target, staging, tx
+// root, payload version) arrives through the fixture environment.
+int runInstallerFixture(const std::wstring& switchArg) {
+    record(L"installer switch="+switchArg);
+    if(switchArg.rfind(L"/ZzLoggUpgrade=",0)!=0) return 2;
+    const auto locator=switchArg.substr(15);
+    if(!parseHex(locator)) return 2;
+    wchar_t self[32768]{};const auto length=GetModuleFileNameW(nullptr,self,32768);
+    if(!length || length>=32768) return 2;
+    std::wstring command=L"\""+std::wstring(self,length)+L"\" --tx-engine"
+        +L" --install \""+envVar(L"ZZLOGG_TX_INSTALL")+L"\""
+        +L" --staging \""+envVar(L"ZZLOGG_TX_STAGING")+L"\""
+        +L" --txroot \""+envVar(L"ZZLOGG_TX_TXROOT")+L"\""
+        +L" --txid "+locator
+        +L" --version \""+envVar(L"ZZLOGG_TX_VERSION")+L"\"";
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(self,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process)) return 2;
+    Handle child(process.hProcess),thread(process.hThread);
+    if(WaitForSingleObject(child.get(),120000)!=WAIT_OBJECT_0){TerminateProcess(child.get(),90);return 90;}
+    DWORD code=90;GetExitCodeProcess(child.get(),&code);
+    return static_cast<int>(code);
+}
+// Restarted-GUI stand-in (fixture copied under the production executable
+// name): records the received --data-dir, then creates the directory-scoped
+// single-instance endpoint exactly where KDSingleApplication would listen,
+// unless the behavior variable asks for an early death or a missing endpoint.
+int runGuiFixture(int argc,wchar_t** argv) {
+    std::wstring dataDir;
+    for(int i=1;i+1<argc;++i) if(std::wstring(argv[i])==L"--data-dir"){dataDir=argv[i+1];break;}
+    record(L"gui pid="+std::to_wstring(GetCurrentProcessId())+L" datadir="+dataDir);
+    const auto behavior=envVar(L"ZZLOGG_FIXTURE_GUI");
+    if(behavior==L"die") return 7;
+    if(behavior==L"noendpoint"){Sleep(8000);return 0;}
+    wchar_t self[32768]{};const auto length=GetModuleFileNameW(nullptr,self,32768);
+    if(!length || length>=32768) return 8;
+    const fs::path image(std::wstring(self,length));
+    DirectoryIdentity identity{};
+    if(!InstallationActivity::probeIdentity(image.parent_path().wstring(),identity)) return 8;
+    const auto name=singleInstancePipeName(identity,image.filename().wstring());
+    if(name.empty()) return 8;
+    Handle pipe(CreateNamedPipeW(name.c_str(),PIPE_ACCESS_DUPLEX,
+        PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT|PIPE_REJECT_REMOTE_CLIENTS,1,64,64,0,nullptr));
+    if(!pipe) return 8;
+    Sleep(4000);
+    return 0;
+}
 // Authorized recovery stand-in: no handshake, target recheck plus strict
 // journal-driven reverse replay only. Models the NSIS restricted entry.
 int runEngineRecovery() {
@@ -174,10 +262,19 @@ int wmain(int argc,wchar_t** argv) {
     // sleeper with no bootstrap and no channel.
     if(argc==3 && std::wstring(argv[1])==L"--app"){Sleep(static_cast<DWORD>(std::wcstoul(argv[2],nullptr,10)));return 0;}
     if(argc==2 && std::wstring(argv[1])==L"--engine-recover")return runEngineRecovery();
+    // 3C installer chain: the fixture plays the NSIS restricted entry, the
+    // credential-bootstrapped engine, or (renamed to the production
+    // executable name) the restarted GUI.
+    if(argc==2 && std::wstring(argv[1]).rfind(L"/ZzLoggUpgrade=",0)==0)return runInstallerFixture(argv[1]);
+    if(argc>=2 && std::wstring(argv[1])==L"--tx-engine")return runCredentialEngine(argc,argv);
+    {
+        wchar_t self[32768]{};const auto length=GetModuleFileNameW(nullptr,self,32768);
+        if(length && length<32768 && fs::path(std::wstring(self,length)).filename()==L"ZzLogg.exe")
+            return runGuiFixture(argc,argv);
+    }
     ChildBootstrap bootstrap;if(!bootstrap.open(argc,argv))return 51;
     record(L"datadir="+std::wstring(bootstrap.data().dataDirectory));
     wchar_t modeText[80]{};GetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",modeText,80);std::wstring mode=modeText;
-    if(mode==L"engine" || mode==L"engine-violation")return runEngineFixture(mode,bootstrap);
     if(mode==L"early")return 0;
     if(mode==L"timeout"){Sleep(500);return 0;}
     LocalChannel channel;

@@ -1,5 +1,7 @@
 #include "bootstrap_win_p.h"
 #include "stablepackage_p.h"
+#include <sddl.h>
+#include <aclapi.h>
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -7,7 +9,7 @@ namespace zzlogg::updater::detail {
 namespace {
 // The data directory is restart context, never installation authority: it
 // must be an absolute local or UNC path without control characters.
-bool dataDirectoryPlausible(const wchar_t* text,std::size_t length) {
+bool dataDirectoryPlausibleImpl(const wchar_t* text,std::size_t length) {
     if(!length)return true;
     for(std::size_t i=0;i<length;++i)if(static_cast<uint16_t>(text[i])<0x20)return false;
     const bool drive=length>=3 && ((text[0]>=L'A' && text[0]<=L'Z') || (text[0]>=L'a' && text[0]<=L'z'))
@@ -15,6 +17,21 @@ bool dataDirectoryPlausible(const wchar_t* text,std::size_t length) {
     const bool unc=length>=2 && text[0]==L'\\' && text[1]==L'\\';
     return drive || unc;
 }
+// Exactly 16 lowercase hexadecimal digits, nonzero: the locator shape shared
+// by the credential path, the NSIS restricted entry and the engine parser.
+bool locatorPlausible(const std::wstring& locator) {
+    if(locator.size()!=16)return false;
+    bool nonzero=false;
+    for(const auto c:locator) {
+        const bool digit=c>=L'0' && c<=L'9',lower=c>=L'a' && c<=L'f';
+        if(!digit && !lower)return false;
+        nonzero=nonzero || c!=L'0';
+    }
+    return nonzero;
+}
+}
+bool dataDirectoryPlausible(const wchar_t* text,std::size_t length) {
+    return dataDirectoryPlausibleImpl(text,length);
 }
 struct ChildBootstrap::Impl {
     update::detail::StablePackage self;
@@ -106,5 +123,69 @@ bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const S
     // Failure still transfers process ownership to the coordinator's reaper;
     // no post-launch identity failure can turn start() into an unbounded wait.
     return child.adopt(limited,{process.dwProcessId,stamp});
+}
+std::wstring credentialLocator(const TransactionId& id){
+    bool nonzero=false;for(std::size_t i=0;i<8;++i)nonzero=nonzero || id[i]!=0;
+    if(!nonzero)return {};
+    std::wstring locator;constexpr wchar_t hex[]=L"0123456789abcdef";
+    for(std::size_t i=0;i<8;++i){locator+=hex[id[i]>>4];locator+=hex[id[i]&15];}
+    return locator;
+}
+std::wstring credentialPath(const std::wstring& locator){
+    if(!locatorPlausible(locator))return {};
+    wchar_t temp[32768]{};const auto length=GetTempPathW(32768,temp);
+    if(!length || length>=32768)return {};
+    return std::wstring(temp,temp+length)+L"ZzLoggTx-"+locator+L".cred";
+}
+bool writeCredentialFile(const CredentialData& data){
+    const auto path=credentialPath(credentialLocator(data.transaction));if(path.empty())return false;
+    const auto sddl=userSecurityDescriptor();if(sddl.empty())return false;
+    PSECURITY_DESCRIPTOR descriptor=nullptr;
+    if(!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(),SDDL_REVISION_1,&descriptor,nullptr))return false;
+    SECURITY_ATTRIBUTES attributes{sizeof(attributes),descriptor,FALSE};
+    Handle file(CreateFileW(path.c_str(),GENERIC_WRITE,0,&attributes,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+    LocalFree(descriptor);
+    if(!file)return false;
+    DWORD written=0;
+    return WriteFile(file.get(),&data,sizeof(data),&written,nullptr) && written==sizeof(data);
+}
+bool readCredentialFile(const std::wstring& locator,CredentialData& data){
+    const auto path=credentialPath(locator);if(path.empty())return false;
+    Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+        nullptr,OPEN_EXISTING,0,nullptr));
+    if(!file)return false;
+    LARGE_INTEGER size{};
+    if(!GetFileSizeEx(file.get(),&size) || size.QuadPart!=static_cast<LONGLONG>(sizeof(CredentialData)))return false;
+    DWORD read=0;
+    if(!ReadFile(file.get(),&data,sizeof(data),&read,nullptr) || read!=sizeof(data))return false;
+    // The file must belong to the current user: an over-the-shoulder elevated
+    // engine (different account) never adopts another user's credentials.
+    PSID owner=nullptr;PSECURITY_DESCRIPTOR descriptor=nullptr;
+    if(GetSecurityInfo(file.get(),SE_FILE_OBJECT,OWNER_SECURITY_INFORMATION,&owner,nullptr,nullptr,nullptr,&descriptor)!=ERROR_SUCCESS)return false;
+    HANDLE rawToken=nullptr;bool owned=false;
+    if(OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&rawToken)) {
+        Handle token(rawToken);DWORD sizeNeeded=0;
+        GetTokenInformation(token.get(),TokenUser,nullptr,0,&sizeNeeded);
+        if(sizeNeeded && sizeNeeded<=4096) {
+            std::vector<BYTE> bytes(sizeNeeded);
+            if(GetTokenInformation(token.get(),TokenUser,bytes.data(),sizeNeeded,&sizeNeeded))
+                owned=EqualSid(owner,reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid)!=FALSE;
+        }
+    }
+    LocalFree(descriptor);
+    if(!owned || data.magic!=0x43555a5a || data.version!=1
+        || credentialLocator(data.transaction)!=locator
+        || std::all_of(data.token.begin(),data.token.end(),[](auto b){return b==0;})
+        || !data.coordinatorPid || data.coordinatorPid>0xffffffffull || !data.coordinatorCreated)return false;
+    // The issuing coordinator must be the live same-principal process with the
+    // exact creation time; a recycled PID never validates.
+    ProcessIdentity coordinator,self;
+    const ProcessStamp stamp{static_cast<DWORD>(data.coordinatorPid),data.coordinatorCreated};
+    return coordinator.open(stamp.pid) && coordinator.matches(stamp) && coordinator.alive()
+        && self.open(GetCurrentProcessId()) && self.samePrincipal(coordinator);
+}
+bool deleteCredentialFile(const std::wstring& locator){
+    const auto path=credentialPath(locator);
+    return !path.empty() && DeleteFileW(path.c_str())!=FALSE;
 }
 }

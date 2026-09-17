@@ -24,3 +24,23 @@ execute_process(COMMAND "${CMAKE_COMMAND}" -E remove_directory "${isolated}" RES
 if(NOT cleaned EQUAL 0)
   message(FATAL_ERROR "Could not clean isolated gate fixture")
 endif()
+
+# The transaction engine speaks only the restricted argv contract: flag/value
+# pairs with non-secret parameters. Transaction credentials travel solely
+# through the current-user-private credential file named by the txid locator;
+# a token on the command line is a usage rejection, and a missing credential
+# file rejects before any handshake.
+execute_process(COMMAND "${TXEXECUTABLE}" RESULT_VARIABLE engine_noargs TIMEOUT 5)
+if(NOT engine_noargs EQUAL 2)
+  message(FATAL_ERROR "Engine without arguments must be a usage rejection (2), got ${engine_noargs}")
+endif()
+execute_process(COMMAND "${TXEXECUTABLE}" --install x --staging y --txroot z
+  --txid 0000000000000001 --version 2 RESULT_VARIABLE engine_missing TIMEOUT 5)
+if(NOT engine_missing EQUAL 41)
+  message(FATAL_ERROR "Engine with a missing credential file must reject (41), got ${engine_missing}")
+endif()
+execute_process(COMMAND "${TXEXECUTABLE}" --install x --staging y --txroot z
+  --txid 0000000000000001 --version 2 f1e2d3c4b5a69788 RESULT_VARIABLE engine_token TIMEOUT 5)
+if(NOT engine_token EQUAL 2)
+  message(FATAL_ERROR "Engine must never accept a token on the command line, got ${engine_token}")
+endif()

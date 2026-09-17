@@ -112,6 +112,28 @@ class KloggApp : public QApplication {
         return singleApplication_.primaryPid();
     }
 
+    // The verified installer package (3B.2 download output) and the release
+    // version it was verified for, offered to an update handoff request.
+    // Empty unless a package is verified; data only, never an execution
+    // capability.
+    std::pair<QString, QString> verifiedUpdateOffer() const
+    {
+        if ( !updateDownloadService_
+             || updateDownloadService_->snapshot().status
+                    != zzlogg::updateqt::DownloadStatus::Verified ) {
+            return {};
+        }
+        QString version;
+        if ( updateService_ && updateService_->snapshot().release ) {
+            const auto& release = updateService_->snapshot().release->manifest().version;
+            version = QString( "%1.%2.%3" )
+                          .arg( release.year, 2, 10, QChar( '0' ) )
+                          .arg( release.month, 2, 10, QChar( '0' ) )
+                          .arg( release.patch, 2, 10, QChar( '0' ) );
+        }
+        return { updateDownloadService_->snapshot().verifiedPath, version };
+    }
+
     // Installation activity lease for this process. runKloggApplication enters
     // it before any single-instance forwarding; the update handoff UI drives
     // reserve/cancel from the UI thread.
@@ -542,9 +564,13 @@ class KloggApp : public QApplication {
         if (foreground) { updateDialog_->raise(); updateDialog_->activateWindow(); }
     }
 
+
     // Lazily owned restricted handoff controller. The production factory is
     // closed, so begin() always refuses; the wiring only forwards the dialog
-    // requests and arranges the real exit after a committed handoff.
+    // requests and arranges the real exit after a committed handoff. The
+    // session request carries the reserved directory identity plus the
+    // verified package offer above; production never composes a factory, so
+    // that data can never become execution authority this phase.
     ApplicationUpdateHandoff& updateHandoff()
     {
         if ( !updateHandoff_ ) {

@@ -147,6 +147,11 @@ bool ApplicationUpdateHandoff::begin()
     }
     d.reservationHeld = true;
     Request request{ d.app.updateGuard().reservedIdentity() };
+    // The verified package offer is request data only: the production factory
+    // stays absent, so it can never become execution authority this phase.
+    const auto offer = d.app.verifiedUpdateOffer();
+    request.packagePath = offer.first;
+    request.releaseVersion = offer.second;
     auto session = d.factory( request );
     if ( !session ) {
         d.app.updateGuard().cancelUpdate();

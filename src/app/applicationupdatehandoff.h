@@ -85,6 +85,12 @@ class ApplicationUpdateHandoff : public QObject
         // Reserved installation directory identity; present only while the
         // application holds the update reservation.
         std::optional<zzlogg::updater::DirectoryIdentity> directory;
+        // Verified installer package path (3B.2 output) and the selected
+        // release version it was verified for. Data only, never execution
+        // authority; the production capability stays closed this phase and
+        // only dedicated test fixtures consume these fields.
+        QString packagePath;
+        QString releaseVersion;
     };
     using SessionFactory
         = std::function<std::unique_ptr<CoordinationSession>( const Request& )>;

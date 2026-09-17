@@ -125,6 +125,29 @@ Handoff::SessionFactory scriptedSessionFactory( Failure result, bool canCommit =
     };
 }
 
+// Captures the request a composed factory actually received (3C task 5: the
+// request carries the verified package path and selection context alongside
+// the reserved directory identity).
+struct CapturedRequest {
+    std::optional<DirectoryIdentity> directory;
+    QString packagePath;
+    QString releaseVersion;
+};
+
+Handoff::SessionFactory capturingSessionFactory( QString fixture, QString base,
+                                                 std::shared_ptr<CapturedRequest> capture )
+{
+    return [ fixture = QDir::toNativeSeparators( fixture ),
+             base = QDir::toNativeSeparators( base ),
+             capture = std::move( capture ) ]( const Handoff::Request& request )
+               -> std::unique_ptr<Handoff::CoordinationSession> {
+        capture->directory = request.directory;
+        capture->packagePath = request.packagePath;
+        capture->releaseVersion = request.releaseVersion;
+        return std::make_unique<FixtureSession>( fixture, base, request.directory );
+    };
+}
+
 QString fixtureExecutable()
 {
     return QProcessEnvironment::systemEnvironment().value( "ZZLOGG_HANDOFF_FIXTURE_EXE" );
@@ -459,6 +482,33 @@ class UpdateHandoffTest final : public QObject {
         QVERIFY( app_.updateGuard().isUpdateReserved() );
         app_.updateGuard().cancelUpdate(); // test-side cleanup only
         QVERIFY( !app_.updateGuard().isUpdateReserved() );
+    }
+
+    // 3C task 5: the coordination request carries the reserved directory
+    // identity plus the verified installer package path and release version
+    // offered by the application. The offer comes from the app's own
+    // download snapshot (empty in this uninstalled test environment); the
+    // production capability stays closed regardless.
+    void beginRequestCarriesPackageContext()
+    {
+        setFixtureMode( L"success" );
+        auto* window = app_.newWindow();
+        window->show();
+        auto capture = std::make_shared<CapturedRequest>();
+        ApplicationUpdateHandoff handoff(
+            app_, capturingSessionFactory( fixtureExecutable(), nextRuntimeBase(), capture ) );
+        QVERIFY( beginWithRetry( handoff ) );
+        QTRY_VERIFY( handoff.isWaiting() );
+        QVERIFY( capture->directory.has_value() );
+        QVERIFY( app_.updateGuard().reservedIdentity().has_value() );
+        QCOMPARE( capture->directory->volumeSerial,
+                  app_.updateGuard().reservedIdentity()->volumeSerial );
+        QCOMPARE( capture->directory->fileId, app_.updateGuard().reservedIdentity()->fileId );
+        const auto offer = app_.verifiedUpdateOffer();
+        QCOMPARE( capture->packagePath, offer.first );
+        QCOMPARE( capture->releaseVersion, offer.second );
+        handoff.cancel();
+        QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
     }
 
     // The whole success chain in an independent process: the GUI really exits

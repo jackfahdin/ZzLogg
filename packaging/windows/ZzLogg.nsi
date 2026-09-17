@@ -114,22 +114,30 @@ zzlogg_on_init_done:
 FunctionEnd
 
 Function ZzLoggValidateLocator
-    ; The locator is an opaque coordinator-issued name: bounded length, no
-    ; separators, dot segments or quotes. The engine revalidates it strictly.
+    ; The locator is byte-identical to the engine's parseTxid acceptance:
+    ; exactly 16 lowercase hexadecimal digits, nonzero. IntCmp label order is
+    ; (equal, less, greater): only an exactly-16 length falls into the scan;
+    ; shorter and longer both reject. The per-character scan requires each
+    ; character inside the lowercase hex alphabet (StrStr yields "" for any
+    ; other character) and tracks whether any non-zero digit was seen.
     StrLen $3 $ZzLoggLocator
-    IntCmp $3 8 zzlogg_locator_length zzlogg_locator_bad zzlogg_locator_length
-    zzlogg_locator_length:
-    IntCmp $3 65 zzlogg_locator_bad 0 zzlogg_locator_bad
-    ${StrStr} $4 $ZzLoggLocator " "
-    StrCmp $4 "" 0 zzlogg_locator_bad
-    ${StrStr} $4 $ZzLoggLocator '\'
-    StrCmp $4 "" 0 zzlogg_locator_bad
-    ${StrStr} $4 $ZzLoggLocator "/"
-    StrCmp $4 "" 0 zzlogg_locator_bad
-    ${StrStr} $4 $ZzLoggLocator "."
-    StrCmp $4 "" 0 zzlogg_locator_bad
-    ${StrStr} $4 $ZzLoggLocator '"'
-    StrCmp $4 "" 0 zzlogg_locator_bad
+    IntCmp $3 16 zzlogg_locator_scan_init zzlogg_locator_bad zzlogg_locator_bad
+    zzlogg_locator_scan_init:
+    StrCpy $5 0
+    StrCpy $6 0
+    zzlogg_locator_scan:
+        IntCmp $5 16 zzlogg_locator_scanned 0 zzlogg_locator_scanned
+        StrCpy $4 $ZzLoggLocator 1 $5
+        ${StrStr} $7 "0123456789abcdef" $4
+        StrCmp $7 "" zzlogg_locator_bad
+        StrCmp $4 "0" zzlogg_locator_scan_next
+        StrCpy $6 1
+        zzlogg_locator_scan_next:
+        IntOp $5 $5 + 1
+        Goto zzlogg_locator_scan
+    zzlogg_locator_scanned:
+    StrCmp $6 1 zzlogg_locator_ok zzlogg_locator_bad
+    zzlogg_locator_ok:
     Push "ok"
     Return
     zzlogg_locator_bad:
@@ -247,7 +255,10 @@ Function ZzLoggRestrictedUpgrade
     FileOpen $4 "$ZzLoggTxDir\nsis-entry.log" w
     FileWrite $4 "mode=upgrade locator=$ZzLoggLocator target=$ZzLoggTarget identity=$ZzLoggIdentity$\r$\n"
     FileClose $4
-    ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "$ZzLoggLocator"' $3
+    ; Finalized engine argv (3C task 5): only non-secret parameters as
+    ; flag/value pairs; transaction credentials travel solely through the
+    ; current-user-private credential file named by the locator.
+    ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggTxDir\staging" --txroot "$APPDATA\ZzLogg\UpdateTransactions" --txid "$ZzLoggLocator" --version "${VERSION}"' $3
     Call ZzLoggCloseTargetPin
     SetErrorLevel $3
     Quit

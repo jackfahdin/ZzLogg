@@ -29,6 +29,31 @@ struct BootstrapData {
 inline constexpr uint32_t DirectoryReserved=1;
 bool launchCopy(const RuntimeCopy&,const TransactionId&,const SessionToken&,const DirectoryIdentity* reserved,
     const std::wstring& dataDirectory,ProcessIdentity&);
+// The data directory is restart context, never installation authority: it
+// must be an absolute local or UNC path without control characters.
+bool dataDirectoryPlausible(const wchar_t* text,std::size_t length);
+// Credential file: the coordinator -> installer/engine restricted bootstrap
+// (design spec section 3). The restricted switch carries only the locator;
+// the file lives in the current user's private temp under a random name with
+// a current-user-only DACL. The engine validates ownership, shape, locator
+// consistency and the live coordinator identity, then deletes the file.
+struct CredentialData {
+    uint32_t magic=0x43555a5a,version=1; // "ZZUC"
+    uint64_t coordinatorPid=0,coordinatorCreated=0;
+    TransactionId transaction{};
+    SessionToken token{};
+};
+// 16 lowercase hex of the first 8 transaction bytes (big-endian), empty when
+// they are all zero — byte-identical acceptance to the engine's parseTxid.
+std::wstring credentialLocator(const TransactionId&);
+// <temp>\ZzLoggTx-<locator>.cred; empty for a malformed locator.
+std::wstring credentialPath(const std::wstring& locator);
+// CREATE_NEW with the current-user-only DACL; never overwrites.
+bool writeCredentialFile(const CredentialData&);
+// Rejects missing/oversized files, foreign owners, shape violations,
+// locator/transaction mismatch and dead or mismatched coordinator identity.
+bool readCredentialFile(const std::wstring& locator,CredentialData&);
+bool deleteCredentialFile(const std::wstring& locator);
 class ChildBootstrap {
 public:
     ChildBootstrap();~ChildBootstrap();

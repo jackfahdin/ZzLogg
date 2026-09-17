@@ -13,6 +13,11 @@ class LocalChannel {
 public:
     bool create(const TransactionId&);
     bool accept(const ProcessIdentity&,Deadline);
+    // Accepts a client whose identity is not known in advance (the transaction
+    // engine arrives as a grandchild through the installer): verifies the real
+    // pipe client process against this process's principal and reports its
+    // adopted identity. Elevation policy belongs to the caller.
+    bool acceptClient(Deadline,ProcessIdentity& client);
     bool connect(const TransactionId&,const ProcessIdentity&,Deadline);
     bool send(const Message&,Deadline);
     std::optional<Message> receive(Deadline);

@@ -1,6 +1,8 @@
 #include "coordinator_p.h"
 #include "installationactivity_win.h"
 #include "installlock_win.h"
+#include <sddl.h>
+#include <aclapi.h>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
@@ -85,6 +87,142 @@ std::vector<std::wstring> recordLines(const fs::path& path) {
     std::vector<std::wstring> lines;std::wifstream record(path);std::wstring line;
     while(std::getline(record,line))lines.push_back(line);
     return lines;
+}
+std::wstring currentUserSid() {
+    HANDLE rawToken=nullptr;
+    if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&rawToken)) return {};
+    Handle token(rawToken);
+    DWORD size=0;GetTokenInformation(token.get(),TokenUser,nullptr,0,&size);
+    if(!size || size>4096) return {};
+    std::vector<BYTE> bytes(size);
+    if(!GetTokenInformation(token.get(),TokenUser,bytes.data(),size,&size)) return {};
+    LPWSTR sid=nullptr;
+    if(!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid,&sid)) return {};
+    std::wstring result(sid);LocalFree(sid);return result;
+}
+struct Ace { std::wstring sid;DWORD mask; };
+// Real DACL read-back of a written credential file, mirroring the journal
+// test's assertion style: protected, exactly the expected ACE set.
+std::vector<Ace> fileDacl(const fs::path& path,bool& protectedDacl) {
+    protectedDacl=false;std::vector<Ace> result;
+    PACL acl=nullptr;PSECURITY_DESCRIPTOR descriptor=nullptr;
+    if(GetNamedSecurityInfoW(path.c_str(),SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,
+        nullptr,nullptr,&acl,nullptr,&descriptor)!=ERROR_SUCCESS) return result;
+    SECURITY_DESCRIPTOR_CONTROL control=0;DWORD revision=0;
+    if(GetSecurityDescriptorControl(descriptor,&control,&revision)) protectedDacl=(control&SE_DACL_PROTECTED)!=0;
+    if(acl) for(DWORD i=0;i<acl->AceCount;++i) {
+        void* entry=nullptr;if(!GetAce(acl,i,&entry)) continue;
+        const auto* header=static_cast<ACE_HEADER*>(entry);
+        if(header->AceType!=ACCESS_ALLOWED_ACE_TYPE){result.push_back({L"<deny>",0});continue;}
+        const auto* ace=static_cast<ACCESS_ALLOWED_ACE*>(entry);
+        LPWSTR sid=nullptr;
+        if(ConvertSidToStringSidW(reinterpret_cast<PSID>(const_cast<DWORD*>(&ace->SidStart)),&sid)){result.push_back({sid,ace->Mask});LocalFree(sid);}
+    }
+    if(descriptor)LocalFree(descriptor);
+    return result;
+}
+// Byte-identical to the engine's parseTxid acceptance: exactly 16 lowercase
+// hexadecimal digits, nonzero.
+bool locatorShape(const std::wstring& locator) {
+    if(locator.size()!=16) return false;
+    bool nonzero=false;
+    for(const auto c:locator) {
+        const bool digit=c>=L'0' && c<=L'9',lower=c>=L'a' && c<=L'f';
+        if(!digit && !lower) return false;
+        nonzero=nonzero || c!=L'0';
+    }
+    return nonzero;
+}
+// Injected installer launcher: models ShellExecuteEx runas by launching the
+// fixture installer as an ordinary child and adopting its real identity. The
+// recorded arguments let the harness pin the restricted-switch contract.
+struct LaunchCapture { std::wstring installer,arguments;LaunchError behavior=LaunchError::None;DWORD launchedPid=0; };
+LauncherOutcome fixtureLaunch(LaunchCapture& capture,const std::wstring& installer,const std::wstring& restrictedSwitch) {
+    capture.installer=installer;capture.arguments=restrictedSwitch;capture.launchedPid=0;
+    LauncherOutcome outcome;outcome.error=capture.behavior;
+    if(capture.behavior!=LaunchError::None) return outcome;
+    std::wstring command=L"\""+installer+L"\" "+restrictedSwitch;
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(installer.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))return outcome;
+    Handle thread(process.hThread),launched(process.hProcess);
+    FILETIME created{},exited{},kernel{},user{};
+    if(!GetProcessTimes(launched.get(),&created,&exited,&kernel,&user))return outcome;
+    const uint64_t stamp=(uint64_t(created.dwHighDateTime)<<32)|created.dwLowDateTime;
+    HANDLE limited=nullptr;
+    if(!DuplicateHandle(GetCurrentProcess(),launched.get(),GetCurrentProcess(),&limited,
+        PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,FALSE,0))return outcome;
+    ProcessIdentity identity;
+    if(!identity.adopt(limited,{process.dwProcessId,stamp}))return outcome;
+    capture.launchedPid=process.dwProcessId;
+    outcome.process=std::move(identity);outcome.error=LaunchError::None;return outcome;
+}
+DWORD spawnArgs(const fs::path& exe,const std::wstring& arguments,DWORD timeoutMs=30000) {
+    std::wstring command=L"\""+exe.wstring()+L"\" "+arguments;
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(exe.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))return 999;
+    Handle child(process.hProcess),thread(process.hThread);
+    if(WaitForSingleObject(child.get(),timeoutMs)!=WAIT_OBJECT_0){TerminateProcess(child.get(),998);return 998;}
+    DWORD code=999;GetExitCodeProcess(child.get(),&code);return code;
+}
+// Registered-installation stand-in: real marker, manifest magic and the
+// fixture renamed to the production executable name.
+void makeInstallRoot(const fs::path& dir,const fs::path& fixtureExe) {
+    fs::create_directories(dir);
+    {std::ofstream marker(dir/L".zzlogg-install-root",std::ios::binary|std::ios::trunc);marker<<"ZzLogg 2.0.0\r\n";}
+    {std::ofstream manifest(dir/L".zzlogg-files.manifest",std::ios::binary|std::ios::trunc);
+      manifest<<"ZZTXMAN1";for(int i=0;i<8;++i)manifest<<'\0';}
+    fs::copy_file(fixtureExe,dir/L"ZzLogg.exe",fs::copy_options::overwrite_existing);
+}
+bool waitPidExit(DWORD pid,DWORD milliseconds) {
+    Handle process(OpenProcess(SYNCHRONIZE,FALSE,pid));
+    return process && WaitForSingleObject(process.get(),milliseconds)==WAIT_OBJECT_0;
+}
+DWORD guiPidFromRecord(const std::vector<std::wstring>& lines) {
+    for(const auto& line:lines)
+        if(line.rfind(L"gui pid=",0)==0) return std::wcstoul(line.substr(8).c_str(),nullptr,10);
+    return 0;
+}
+bool recordHasGui(const std::vector<std::wstring>& lines) {
+    for(const auto& line:lines) if(line.rfind(L"gui pid=",0)==0) return true;
+    return false;
+}
+void clearChainEnv() {
+    for(const auto* name:{L"ZZLOGG_HANDOFF_RECORD",L"ZZLOGG_FIXTURE_ENGINE",L"ZZLOGG_FIXTURE_GUI"})
+        SetEnvironmentVariableW(name,nullptr);
+}
+// Drives the installer chain to a completed transaction: real reservation,
+// fixture launcher, credential-file engine, real application exit, Proceed
+// gate, and a final result of Complete (1) or ManualRestartRequired (2) on an
+// elevated harness; 0 on any failure.
+struct ChainDrive {
+    InstallationActivity activity;DirectoryIdentity reserved{};
+    AppStandin app;Coordinator coordinator;LaunchCapture capture;
+    fs::path installRoot,recordPath,dataDir;
+};
+int driveChainToComplete(ChainDrive& drive,const fs::path& fixtureExe,const fs::path& base,
+    const std::wstring& name,const wchar_t* guiMode) {
+    drive.installRoot=base/(name+L"-install");drive.recordPath=base/(name+L"-record.txt");drive.dataDir=base/(name+L"-data");
+    makeInstallRoot(drive.installRoot,fixtureExe);fs::create_directory(drive.dataDir);
+    if(drive.activity.enter(drive.installRoot.wstring())!=ActivityError::None
+        || drive.activity.reserveUpdate()!=ActivityError::None) return 0;
+    drive.reserved=drive.activity.identity();
+    SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",drive.recordPath.c_str());
+    SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_ENGINE",L"light");
+    if(guiMode) SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_GUI",guiMode);
+    drive.app=launchAppStandin(fixtureExe,1500);
+    if(!drive.app.identity.handle()) return 0;
+    CoordinatorOptions options;options.requireElevatedPeer=false;
+    options.launcher=[&](const std::wstring& installer,const std::wstring& restrictedSwitch) {
+        return fixtureLaunch(drive.capture,installer,restrictedSwitch); };
+    LaunchError error=LaunchError::Failed;
+    if(!drive.coordinator.startInstaller({fixtureExe.wstring(),drive.installRoot.wstring(),drive.dataDir.wstring()},
+            &drive.reserved,&drive.app.identity,options,&error) || error!=LaunchError::None) return 0;
+    if(!drive.coordinator.authenticate(after(3000))
+        || drive.coordinator.awaitAppExit(after(3000))!=CoordinationResult::WaitingForAppExit
+        || !drive.coordinator.commitExit(after(500))
+        || proceedWhenExited(drive.coordinator,drive.app.process)!=CoordinationResult::ProceedSent) return 0;
+    const auto finished=drive.coordinator.finish(after(5000));
+    return finished==CoordinationResult::Complete?1:finished==CoordinationResult::ManualRestartRequired?2:0;
 }
 }
 int runCoordinatorTest(int argc,wchar_t** argv) {
@@ -327,6 +465,181 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         check(spawnMappedFixture(source,relative)==51,"relative data directory rejected");
         auto unterminated=base;std::fill(std::begin(unterminated.dataDirectory),std::end(unterminated.dataDirectory),L'x');
         check(spawnMappedFixture(source,unterminated)==51,"unterminated overlong data directory rejected");
+    }
+    {
+        // 3C installer chain: credential file + restricted switch launch of
+        // the fixture installer, engine grandchild protocol, ordinary-user
+        // restart of the fixture GUI with bounded endpoint confirmation.
+        std::cout<<"coordinator installer chain"<<std::endl;
+        const auto base=root/L"chain";
+        ChainDrive drive;
+        const auto chainResult=driveChainToComplete(drive,source,base,L"ok",L"ok");
+        check(chainResult!=0,"installer chain reaches a completed transaction");
+        if(chainResult!=0) {
+            const auto locator=drive.capture.arguments.size()>15?drive.capture.arguments.substr(15):std::wstring();
+            check(drive.capture.arguments.rfind(L"/ZzLoggUpgrade=",0)==0 && locatorShape(locator),
+                "restricted switch carries only the 16-hex nonzero locator");
+            check(drive.capture.installer==source.wstring(),"launcher received exactly the verified installer path");
+            check(drive.capture.launchedPid && drive.coordinator.process().stamp().pid!=drive.capture.launchedPid,
+                "channel client is the engine grandchild, never the installer itself");
+            check(!fs::exists(credentialPath(locator)),"engine deleted the credential file after reading");
+            {InstallLock lock;const auto claim=lock.acquire(drive.installRoot.wstring());
+              check(claim==InstallLockError::Blocked || claim==InstallLockError::Abandoned,
+                  "coordinator observer keeps the reservation gate closed across the chain");}
+            if(chainResult!=1) {
+                std::cout<<"elevated harness: restart covered by ManualRestartRequired semantics"<<std::endl;
+            } else {
+                check(drive.coordinator.restart(after(5000))==CoordinationResult::Restarted,
+                    "fixture GUI restarted and endpoint-confirmed");
+                const auto lines=recordLines(drive.recordPath);
+                check(lines.size()==6 && lines[0]==L"installer switch="+drive.capture.arguments
+                    && lines[1]==L"engine txid="+locator
+                    && lines[2]==L"kind=2" && lines[3]==L"kind=4" && lines[4]==L"kind=8",
+                    "fixture observed switch, engine bootstrap and the gated protocol in order");
+                check(lines.size()==6 && lines[5].rfind(L"gui pid=",0)==0
+                    && lines[5].find(L" datadir="+drive.dataDir.wstring())!=std::wstring::npos,
+                    "restarted GUI received exactly the bootstrap data directory");
+                const auto guiPid=guiPidFromRecord(lines);
+                check(guiPid && waitPidExit(guiPid,10000),"fixture GUI exits on its own");
+            }
+        }
+        clearChainEnv();drive.activity.cancelUpdate();
+        std::error_code ec;fs::remove_all(base,ec);
+    }
+    {
+        // UAC cancellation and plain launch failure both fail closed: no
+        // session, no credential file residue, never an exit commit.
+        std::cout<<"coordinator installer launch failures"<<std::endl;
+        const auto base=root/L"launchfail";makeInstallRoot(base,source);
+        for(auto behavior:{LaunchError::Cancelled,LaunchError::Failed}) {
+            LaunchCapture capture;capture.behavior=behavior;
+            CoordinatorOptions options;options.requireElevatedPeer=false;
+            options.launcher=[&](const std::wstring& installer,const std::wstring& restrictedSwitch) {
+                return fixtureLaunch(capture,installer,restrictedSwitch); };
+            Coordinator c;LaunchError error=LaunchError::None;
+            check(!c.startInstaller({source.wstring(),base.wstring(),{}},nullptr,nullptr,options,&error)
+                && error==behavior,
+                behavior==LaunchError::Cancelled?"UAC cancellation fails closed with the cancelled mapping"
+                    :"installer launch failure fails closed");
+            check(!c.canCommitExit(),"failed launch never authorizes exit");
+            const auto locator=capture.arguments.size()>15?capture.arguments.substr(15):std::wstring();
+            check(locatorShape(locator) && !fs::exists(credentialPath(locator)),
+                "failed launch leaves no credential file behind");
+        }
+        std::error_code ec;fs::remove_all(base,ec);
+    }
+    {
+        // Engine failure: the peer reports Failed after the handshake; no
+        // commit, no completion, no restart, and nothing is installed.
+        std::cout<<"coordinator installer engine failure"<<std::endl;
+        const auto base=root/L"enginefail";
+        ChainDrive drive;
+        drive.installRoot=base/L"fail-install";drive.recordPath=base/L"fail-record.txt";drive.dataDir=base/L"fail-data";
+        makeInstallRoot(drive.installRoot,source);fs::create_directory(drive.dataDir);
+        check(drive.activity.enter(drive.installRoot.wstring())==ActivityError::None
+            && drive.activity.reserveUpdate()==ActivityError::None,"engine-failure install root reserved");
+        drive.reserved=drive.activity.identity();
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",drive.recordPath.c_str());
+        SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_ENGINE",L"prepare-fail");
+        CoordinatorOptions options;options.requireElevatedPeer=false;
+        options.launcher=[&](const std::wstring& installer,const std::wstring& restrictedSwitch) {
+            return fixtureLaunch(drive.capture,installer,restrictedSwitch); };
+        LaunchError error=LaunchError::Failed;
+        check(drive.coordinator.startInstaller({source.wstring(),drive.installRoot.wstring(),drive.dataDir.wstring()},
+                &drive.reserved,nullptr,options,&error) && error==LaunchError::None,"engine-failure chain launches");
+        check(drive.coordinator.authenticate(after(3000)),"failing engine still completes Hello");
+        check(drive.coordinator.awaitAppExit(after(3000))==CoordinationResult::Failed
+            && !drive.coordinator.canCommitExit() && !drive.coordinator.commitExit(after(100)),
+            "engine failure refuses the exit commit");
+        check(drive.coordinator.finish(after(3000))==CoordinationResult::Failed,"finish fails closed on engine failure");
+        check(drive.coordinator.restart(after(500))==CoordinationResult::Failed,"restart refused without a completed transaction");
+        check(!recordHasGui(recordLines(drive.recordPath)),"failed engine never restarts anything");
+        clearChainEnv();drive.activity.cancelUpdate();
+        std::error_code ec;fs::remove_all(base,ec);
+    }
+    {
+        // Restart confirmation: an early-death GUI (no endpoint ever) and a
+        // live GUI without its directory-scoped endpoint both fail the
+        // bounded confirmation; nothing is reported as restarted.
+        std::cout<<"coordinator restart confirmation"<<std::endl;
+        for(auto mode:{L"die",L"noendpoint"}) {
+            const auto base=root/(std::wstring(L"restart-")+mode);
+            ChainDrive drive;
+            const auto chainResult=driveChainToComplete(drive,source,base,mode,mode);
+            check(chainResult!=0,"restart-confirmation chain completes");
+            if(chainResult!=1) {
+                std::cout<<"elevated harness: restart confirmation covered by ManualRestartRequired semantics"<<std::endl;
+            } else {
+                check(drive.coordinator.restart(after(4000))==CoordinationResult::RestartFailed,
+                    mode==std::wstring(L"die")?"early-death GUI fails startup confirmation"
+                        :"GUI without the single-instance endpoint fails startup confirmation");
+                const auto lines=recordLines(drive.recordPath);
+                check(recordHasGui(lines),"failed confirmation still launched the candidate GUI");
+                const auto guiPid=guiPidFromRecord(lines);
+                check(guiPid && waitPidExit(guiPid,15000),"candidate GUI exits on its own");
+            }
+            clearChainEnv();drive.activity.cancelUpdate();
+            std::error_code ec;fs::remove_all(base,ec);
+        }
+    }
+    {
+        // Registration recheck before restart: removing the marker after a
+        // completed transaction must refuse the restart (mutation sentinel:
+        // deleting the recheck turns this into an unauthorized Restarted).
+        std::cout<<"coordinator restart registration recheck"<<std::endl;
+        const auto base=root/L"recheck";
+        ChainDrive drive;
+        const auto chainResult=driveChainToComplete(drive,source,base,L"recheck",L"ok");
+        check(chainResult!=0,"recheck chain completes");
+        if(chainResult!=1) {
+            std::cout<<"elevated harness: registration recheck covered by ManualRestartRequired semantics"<<std::endl;
+        } else {
+            check(fs::remove(drive.installRoot/L".zzlogg-install-root"),"marker really removed");
+            check(drive.coordinator.restart(after(3000))==CoordinationResult::RestartFailed,
+                "missing marker refuses the restart after a completed transaction");
+            check(!recordHasGui(recordLines(drive.recordPath)),"refused restart never launches the GUI");
+        }
+        clearChainEnv();drive.activity.cancelUpdate();
+        std::error_code ec;fs::remove_all(base,ec);
+    }
+    {
+        // Credential file contract: current-user-only protected DACL, round
+        // trip, stale coordinator identity and locator/transaction mismatch
+        // rejected; the engine fixture rejects a missing file and any token
+        // on its command line.
+        std::cout<<"coordinator credential file"<<std::endl;
+        ProcessIdentity self;check(self.open(GetCurrentProcessId()),"self identity for credential tests");
+        CredentialData data{};
+        check(randomBytes(data.transaction.data(),16) && randomBytes(data.token.data(),32),"credential material generated");
+        data.coordinatorPid=self.stamp().pid;data.coordinatorCreated=self.stamp().created;
+        const auto locator=credentialLocator(data.transaction);
+        check(locatorShape(locator),"locator is 16 lowercase hex nonzero");
+        check(writeCredentialFile(data),"credential file written");
+        bool protectedDacl=false;const auto aces=fileDacl(credentialPath(locator),protectedDacl);
+        check(protectedDacl && aces.size()==1 && aces[0].sid==currentUserSid(),
+            "credential file DACL is protected and current-user only");
+        CredentialData round{};
+        check(readCredentialFile(locator,round) && round.transaction==data.transaction && round.token==data.token,
+            "credential round trip validates");
+        check(deleteCredentialFile(locator) && !fs::exists(credentialPath(locator)),"credential file deleted");
+        auto stale=data;stale.coordinatorCreated^=1;
+        check(writeCredentialFile(stale),"stale-identity credential written");
+        CredentialData junk{};
+        check(!readCredentialFile(locator,junk),"stale coordinator identity rejected");
+        check(deleteCredentialFile(locator),"stale credential cleaned");
+        check(writeCredentialFile(data),"mismatch fixture credential written");
+        const std::wstring otherLocator=L"00000000000000ab";
+        check(locator!=otherLocator,"mismatch locator differs");
+        std::error_code renameEc;fs::rename(credentialPath(locator),credentialPath(otherLocator),renameEc);
+        check(!renameEc,"credential renamed under a foreign locator");
+        check(!readCredentialFile(otherLocator,junk),"locator/transaction mismatch rejected");
+        check(deleteCredentialFile(otherLocator),"mismatch fixture cleaned");
+        check(!readCredentialFile(L"00000000000000cd",junk),"missing credential file rejected");
+        const auto fixtureExe=fs::path(argv[1]).make_preferred();
+        check(spawnArgs(fixtureExe,L"--tx-engine --install \"\" --staging \"\" --txroot \"\" --txid 00000000000000ab --version 2")==41,
+            "engine fixture rejects a missing credential file");
+        check(spawnArgs(fixtureExe,L"--tx-engine --install \"\" --staging \"\" --txroot \"\" --txid 00000000000000ab --version 2 fedcba9876543210")==2,
+            "engine fixture rejects anything beyond the restricted argv");
     }
     std::error_code ec;fs::remove(source,ec);fs::remove(root/L"install",ec);fs::remove(root/L"runtime",ec);
     fs::remove(root/L"data",ec);fs::remove(root/L"proceed-record.txt",ec);fs::remove(root/L"violation-record.txt",ec);fs::remove(root,ec);

@@ -99,24 +99,26 @@ require_nsis_block_order(installer_on_init "installer .onInit"
   [=[Call ZzLoggRestrictedRecover]=]
   "Quit")
 
-# The bounded locator rejects separators, dot segments and quotes before use.
-# IntCmp label order is (equal, less, greater): length must land in [8, 64],
-# so < 8 rejects (less label) and >= 65 rejects (equal and greater labels).
+# The locator is byte-identical to the engine's parseTxid acceptance: exactly
+# 16 lowercase hexadecimal digits, nonzero. IntCmp label order is (equal,
+# less, greater): only an exactly-16 length falls into the scan init, both
+# shorter and longer reject. The per-character scan extracts one character,
+# requires it inside the lowercase hex alphabet (StrStr yields "" for any
+# other character), and tracks whether any non-zero digit was seen; the final
+# StrCmp rejects an all-zero locator.
 require_nsis_block_literal(validate_locator "StrLen $3 $ZzLoggLocator"
   "locator validation")
 require_nsis_block_literal(validate_locator
-  "IntCmp $3 8 zzlogg_locator_length zzlogg_locator_bad zzlogg_locator_length"
+  "IntCmp $3 16 zzlogg_locator_scan_init zzlogg_locator_bad zzlogg_locator_bad"
   "locator validation")
+require_nsis_block_order(validate_locator "locator validation"
+  [=[StrCpy $4 $ZzLoggLocator 1 $5]=]
+  [=[${StrStr} $7 "0123456789abcdef" $4]=]
+  [=[StrCmp $7 "" zzlogg_locator_bad]=]
+  [=[StrCmp $4 "0" zzlogg_locator_scan_next]=]
+  [=[StrCpy $6 1]=])
 require_nsis_block_literal(validate_locator
-  "IntCmp $3 65 zzlogg_locator_bad 0 zzlogg_locator_bad" "locator validation")
-foreach(locator_bad_char IN ITEMS
-    [=[${StrStr} $4 $ZzLoggLocator " "]=]
-    [=[${StrStr} $4 $ZzLoggLocator '\']=]
-    [=[${StrStr} $4 $ZzLoggLocator "/"]=]
-    [=[${StrStr} $4 $ZzLoggLocator "."]=]
-    [=[${StrStr} $4 $ZzLoggLocator '"']=])
-  require_nsis_block_literal(validate_locator "${locator_bad_char}" "locator validation")
-endforeach()
+  "StrCmp $6 1 zzlogg_locator_ok zzlogg_locator_bad" "locator validation")
 
 # The per-component reparse gate: GetFileAttributesW must refuse missing
 # paths, reparse points and devices, and demand a real directory.
@@ -170,7 +172,10 @@ endforeach()
 # Upgrade mode: the registration recheck precedes every write; the protected
 # transaction directory is created exclusively, ACL-hardened, then the payload
 # engine and the fresh manifest are extracted and the engine runs with its
-# exit code propagated.
+# exit code propagated. The engine argv is the finalized 3C contract: only
+# flag/value pairs with the non-secret parameters (target, staging, tx root,
+# 16-hex locator as txid, payload version); credentials travel solely through
+# the current-user-private credential file named by the locator.
 require_nsis_block_order(restricted_upgrade "restricted upgrade"
   [=[Call ZzLoggVerifyTarget]=]
   [=[IfFileExists "$ZzLoggTxDir" zzlogg_upgrade_txdir_busy 0]=]
@@ -180,9 +185,11 @@ require_nsis_block_order(restricted_upgrade "restricted upgrade"
   [=[SetOutPath "$ZzLoggTxDir\staging"]=]
   [=[File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
   [=[File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"]=]
-  [=[ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "$ZzLoggLocator"' $3]=]
+  [=[ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggTxDir\staging" --txroot "$APPDATA\ZzLogg\UpdateTransactions" --txid "$ZzLoggLocator" --version "${VERSION}"' $3]=]
   [=[SetErrorLevel $3]=]
   "Quit")
+forbid_nsis_block_literal(restricted_upgrade [=[ZzLoggUpdateTx.exe" "$ZzLoggLocator"]=]
+  "restricted upgrade")
 foreach(upgrade_forbidden IN ITEMS
     "StrCpy $INSTDIR" "MUI_PAGE" "CreateShortCut" "WriteRegStr" "WriteRegDWORD")
   forbid_nsis_block_literal(restricted_upgrade "${upgrade_forbidden}" "restricted upgrade")

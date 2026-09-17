@@ -41,6 +41,17 @@ bool LocalChannel::accept(const ProcessIdentity& expected,Deadline deadline){
     if(!connected){const auto error=GetLastError();connected=error==ERROR_PIPE_CONNECTED || (error==ERROR_IO_PENDING && completeIo(pipe_.get(),operation,deadline,bytes));}
     if(!connected || !peer(pipe_.get(),expected,true)){close();return false;}return true;
 }
+bool LocalChannel::acceptClient(Deadline deadline,ProcessIdentity& client){
+    if(!pipe_ || !remaining(deadline)){close();return false;}
+    Handle event(CreateEventW(nullptr,TRUE,FALSE,nullptr));if(!event){close();return false;}
+    OVERLAPPED operation{};operation.hEvent=event.get();DWORD bytes=0;
+    bool connected=ConnectNamedPipe(pipe_.get(),&operation)!=FALSE;
+    if(!connected){const auto error=GetLastError();connected=error==ERROR_PIPE_CONNECTED || (error==ERROR_IO_PENDING && completeIo(pipe_.get(),operation,deadline,bytes));}
+    ULONG pid=0;ProcessIdentity self;
+    if(!connected || !GetNamedPipeClientProcessId(pipe_.get(),&pid) || !client.open(pid) || !client.alive()
+        || !self.open(GetCurrentProcessId()) || !client.samePrincipal(self)){close();return false;}
+    return true;
+}
 bool LocalChannel::connect(const TransactionId& id,const ProcessIdentity& expected,Deadline deadline){
     close();auto name=endpointName(id);if(name.empty())return false;
     while(remaining(deadline) && expected.alive()) {

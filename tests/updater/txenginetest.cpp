@@ -263,6 +263,40 @@ std::vector<std::wstring> recordLines(const fs::path& path) {
     while(std::getline(record,line)) lines.push_back(line);
     return lines;
 }
+std::uint64_t parseHexId(const std::wstring& text) {
+    std::uint64_t value=0;
+    if(text.size()!=16) return 0;
+    for(const auto c:text) {
+        value<<=4;
+        if(c>=L'0' && c<=L'9') value|=c-L'0';
+        else if(c>=L'a' && c<=L'f') value|=c-L'a'+10;
+        else return 0;
+    }
+    return value;
+}
+// Injected installer launcher: models ShellExecuteEx runas by launching the
+// fixture installer (NSIS stand-in) as an ordinary child. The engine then
+// connects as a grandchild through the credential file, exactly like the
+// production restricted entry.
+struct LaunchCapture { std::wstring installer,arguments;DWORD launchedPid=0; };
+LauncherOutcome fixtureLaunch(LaunchCapture& capture,const std::wstring& installer,const std::wstring& restrictedSwitch) {
+    capture.installer=installer; capture.arguments=restrictedSwitch; capture.launchedPid=0;
+    LauncherOutcome outcome; outcome.error=LaunchError::Failed;
+    std::wstring command=L"\""+installer+L"\" "+restrictedSwitch;
+    STARTUPINFOW startup{}; startup.cb=sizeof(startup); PROCESS_INFORMATION process{};
+    if(!CreateProcessW(installer.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process)) return outcome;
+    Handle thread(process.hThread),launched(process.hProcess);
+    FILETIME created{},exited{},kernel{},user{};
+    if(!GetProcessTimes(launched.get(),&created,&exited,&kernel,&user)) return outcome;
+    const uint64_t stamp=(uint64_t(created.dwHighDateTime)<<32)|created.dwLowDateTime;
+    HANDLE limited=nullptr;
+    if(!DuplicateHandle(GetCurrentProcess(),launched.get(),GetCurrentProcess(),&limited,
+        PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,FALSE,0)) return outcome;
+    ProcessIdentity identity;
+    if(!identity.adopt(limited,{process.dwProcessId,stamp})) return outcome;
+    capture.launchedPid=process.dwProcessId;
+    outcome.process=std::move(identity); outcome.error=LaunchError::None; return outcome;
+}
 // Raw manifest byte crafting for parser rejection cases (the production
 // serializer refuses unsafe entries by construction, so hostile bytes are
 // built by hand).
@@ -609,36 +643,46 @@ void testKeyAndImagePolicy(const fs::path& root) {
 }
 }
 namespace {
-// Drives the fixture's engine mode through the production Coordinator.
+// Drives the fixture's engine mode through the production Coordinator's
+// installer chain: credential file + restricted switch + engine grandchild.
 struct EngineDrive {
     Scenario sc;
-    fs::path runtime,record,fakeRegistry,source;
+    fs::path record,fakeRegistry;
     Coordinator coordinator;
     AppStandin app;
+    LaunchCapture captured;
 };
 bool startEngine(EngineDrive& drive,const fs::path& fixtureExe,DWORD appMs=1200) {
     writeFakeRegistryFile(drive.fakeRegistry,drive.sc.installW);
-    fs::create_directories(drive.runtime);
-    std::error_code ec; fs::copy_file(fixtureExe,drive.source,ec);
     setEnv(L"ZZLOGG_HANDOFF_FIXTURE",L"engine");
     setEnv(L"ZZLOGG_HANDOFF_RECORD",drive.record.wstring());
     setEnv(L"ZZLOGG_TX_INSTALL",drive.sc.installW);
     setEnv(L"ZZLOGG_TX_STAGING",drive.sc.stagingW);
     setEnv(L"ZZLOGG_TX_TXROOT",drive.sc.txrootW);
-    setEnv(L"ZZLOGG_TX_TXID",hexId(drive.sc.txid));
     setEnv(L"ZZLOGG_TX_VERSION",L"2.0.0");
     setEnv(L"ZZLOGG_TX_FAKEREG",drive.fakeRegistry.wstring());
     drive.app=launchAppStandin(fixtureExe,appMs);
-    return drive.app.identity.handle()
-        && drive.coordinator.start(drive.source.wstring(),drive.runtime.wstring(),nullptr,&drive.app.identity)
-        && drive.coordinator.authenticate(after(3000))
+    if(!drive.app.identity.handle()) return false;
+    CoordinatorOptions options; options.requireElevatedPeer=false;
+    options.launcher=[&](const std::wstring& installer,const std::wstring& restrictedSwitch) {
+        return fixtureLaunch(drive.captured,installer,restrictedSwitch); };
+    if(!drive.coordinator.startInstaller({fixtureExe.wstring(),drive.sc.installW,{}},
+        nullptr,&drive.app.identity,options,nullptr)) return false;
+    // The restricted switch names the journal transaction; adopt it for the
+    // journal assertions and the authorized-recovery fixture invocations.
+    const auto locator=drive.captured.arguments.size()>15?drive.captured.arguments.substr(15):std::wstring();
+    drive.sc.txid=parseHexId(locator);
+    if(!drive.sc.txid) return false;
+    setEnv(L"ZZLOGG_TX_TXID",locator);
+    return drive.coordinator.authenticate(after(3000))
         && drive.coordinator.awaitAppExit(after(30000))==CoordinationResult::WaitingForAppExit
         && drive.coordinator.commitExit(after(500));
 }
-void makeDrive(EngineDrive& drive,const fs::path& base,std::uint64_t txid,bool withBig) {
-    drive.sc=buildScenario(base,txid,withBig);
-    drive.runtime=base/L"runtime"; drive.record=base/L"record.txt"; drive.fakeRegistry=base/L"fakereg.txt";
-    drive.source=base/L"fixture.exe";
+void makeDrive(EngineDrive& drive,const fs::path& base,bool withBig) {
+    // The journal txid is coordinator-generated; the placeholder is replaced
+    // from the captured restricted switch when the chain starts.
+    drive.sc=buildScenario(base,0,withBig);
+    drive.record=base/L"record.txt"; drive.fakeRegistry=base/L"fakereg.txt";
 }
 DWORD runRecoveryFixture(const fs::path& fixtureExe,const EngineDrive& drive) {
     // engine-recover mode speaks no protocol; the environment carries the
@@ -647,7 +691,7 @@ DWORD runRecoveryFixture(const fs::path& fixtureExe,const EngineDrive& drive) {
 }
 void testProtocolHappy(const fs::path& root,const fs::path& fixtureExe) {
     std::cout<<"txengine protocol round trip"<<std::endl;
-    EngineDrive drive; makeDrive(drive,root/L"proto",0x3c301,false);
+    EngineDrive drive; makeDrive(drive,root/L"proto",false);
     check(startEngine(drive,fixtureExe),"engine fixture reaches committed exit");
     check(!fs::exists(journalDirOf(drive.sc)),"no file modification before the Proceed gate");
     check(proceedWhenExited(drive.coordinator,drive.app.process)==CoordinationResult::ProceedSent,"Proceed gated");
@@ -661,8 +705,9 @@ void testProtocolHappy(const fs::path& root,const fs::path& fixtureExe) {
     check(fakeRegistryValue(drive.fakeRegistry,L"DisplayVersion")==L"2.0.0","registration updated through fixture");
     const auto records=replayed(journalDirOf(drive.sc),drive.sc.txid);
     check(!records.empty() && records.back().op==TxOperation::Complete,"transaction journaled complete");
-    const std::vector<std::wstring> expected{L"datadir=",L"kind=2",L"engine prepare=0",L"kind=4",L"kind=8",L"engine outcome=1"};
-    check(recordLines(drive.record)==expected,"engine observed the gated protocol in order");
+    const std::vector<std::wstring> expected{L"installer switch=/ZzLoggUpgrade="+hexId(drive.sc.txid),
+        L"engine txid="+hexId(drive.sc.txid),L"kind=2",L"engine prepare=0",L"kind=4",L"kind=8",L"engine outcome=1"};
+    check(recordLines(drive.record)==expected,"engine observed the restricted launch and gated protocol in order");
     // Recovery after a completed transaction is authorized and a zero op.
     const auto before=snapshotDir(drive.sc.install);
     check(runRecoveryFixture(fixtureExe,drive)==0,"recovery after completion exits successfully");
@@ -673,20 +718,23 @@ void testProtocolHappy(const fs::path& root,const fs::path& fixtureExe) {
 }
 void testViolationRejected(const fs::path& root,const fs::path& fixtureExe) {
     std::cout<<"txengine pre-Proceed modification rejected"<<std::endl;
-    EngineDrive drive; makeDrive(drive,root/L"violation",0x3c302,false);
+    EngineDrive drive; makeDrive(drive,root/L"violation",false);
     writeFakeRegistryFile(drive.fakeRegistry,drive.sc.installW);
-    fs::create_directories(drive.runtime);
-    std::error_code ec; fs::copy_file(fixtureExe,drive.source,ec);
     setEnv(L"ZZLOGG_HANDOFF_FIXTURE",L"engine-violation");
     setEnv(L"ZZLOGG_HANDOFF_RECORD",drive.record.wstring());
     setEnv(L"ZZLOGG_TX_INSTALL",drive.sc.installW); setEnv(L"ZZLOGG_TX_STAGING",drive.sc.stagingW);
-    setEnv(L"ZZLOGG_TX_TXROOT",drive.sc.txrootW); setEnv(L"ZZLOGG_TX_TXID",hexId(drive.sc.txid));
+    setEnv(L"ZZLOGG_TX_TXROOT",drive.sc.txrootW);
     setEnv(L"ZZLOGG_TX_VERSION",L"2.0.0"); setEnv(L"ZZLOGG_TX_FAKEREG",drive.fakeRegistry.wstring());
-    Coordinator coordinator;
-    check(coordinator.start(drive.source.wstring(),drive.runtime.wstring()) && coordinator.authenticate(after(3000))
-        && coordinator.awaitAppExit(after(30000))==CoordinationResult::WaitingForAppExit
-        && coordinator.commitExit(after(500)),"violation chain reaches committed exit");
-    check(coordinator.finish(after(10000))==CoordinationResult::Failed,"Complete before Proceed is rejected");
+    CoordinatorOptions options; options.requireElevatedPeer=false;
+    options.launcher=[&](const std::wstring& installer,const std::wstring& restrictedSwitch) {
+        return fixtureLaunch(drive.captured,installer,restrictedSwitch); };
+    check(drive.coordinator.startInstaller({fixtureExe.wstring(),drive.sc.installW,{}},nullptr,nullptr,options,nullptr)
+        && drive.coordinator.authenticate(after(3000))
+        && drive.coordinator.awaitAppExit(after(30000))==CoordinationResult::WaitingForAppExit
+        && drive.coordinator.commitExit(after(500)),"violation chain reaches committed exit");
+    drive.sc.txid=parseHexId(drive.captured.arguments.substr(15));
+    check(drive.sc.txid!=0,"violation chain locator captured");
+    check(drive.coordinator.finish(after(10000))==CoordinationResult::Failed,"Complete before Proceed is rejected");
     check(fs::exists(drive.sc.install/L"violation-before-proceed.txt"),"violation fixture really wrote early");
     check(!fs::exists(journalDirOf(drive.sc)),"rejected violation never opened a journal");
     const auto lines=recordLines(drive.record);
@@ -697,7 +745,7 @@ void testViolationRejected(const fs::path& root,const fs::path& fixtureExe) {
 }
 void testKillMidBackup(const fs::path& root,const fs::path& fixtureExe) {
     std::cout<<"txengine interruption during backup"<<std::endl;
-    EngineDrive drive; makeDrive(drive,root/L"killa",0x3c303,true);
+    EngineDrive drive; makeDrive(drive,root/L"killa",true);
     check(startEngine(drive,fixtureExe),"engine reaches committed exit with a large payload");
     check(proceedWhenExited(drive.coordinator,drive.app.process)==CoordinationResult::ProceedSent,"Proceed gated");
     const auto bigTarget=drive.sc.installW+L"\\big.bin";
@@ -731,7 +779,7 @@ void testKillMidBackup(const fs::path& root,const fs::path& fixtureExe) {
 }
 void testKillAfterRegistry(const fs::path& root,const fs::path& fixtureExe) {
     std::cout<<"txengine interruption after registration write"<<std::endl;
-    EngineDrive drive; makeDrive(drive,root/L"killb",0x3c304,false);
+    EngineDrive drive; makeDrive(drive,root/L"killb",false);
     check(startEngine(drive,fixtureExe),"engine reaches committed exit");
     check(proceedWhenExited(drive.coordinator,drive.app.process)==CoordinationResult::ProceedSent,"Proceed gated");
     // The fixture's fake registry persists the new value, then sleeps; polling
@@ -757,9 +805,17 @@ void testKillAfterRegistry(const fs::path& root,const fs::path& fixtureExe) {
 }
 void testProductionExe(const fs::path& root,const fs::path& txExe) {
     std::cout<<"txengine production executable closure"<<std::endl;
-    check(spawnWait(txExe,L"")==41,"production engine without bootstrap is rejected");
-    check(spawnWait(txExe,L"12345 --install x --staging y --txroot z --txid 0000000000000001 --version 2")==41,
-        "garbage bootstrap mapping rejected");
+    check(spawnWait(txExe,L"")==2,"production engine without arguments is a usage rejection");
+    check(spawnWait(txExe,L"12345 --install x --staging y --txroot z --txid 0000000000000001 --version 2")==2,
+        "unknown argv tokens are usage rejections");
+    check(spawnWait(txExe,L"--install x --staging y --txroot z --txid 0000000000000001 --version 2")==41,
+        "missing credential file rejects before any handshake");
+    check(spawnWait(txExe,L"--install x --staging y --txroot z --txid 0000000000000001 --version 2 f1e2d3c4b5a69788")==2,
+        "a token on the command line is never accepted");
+    for(const auto* badTxid:{L"0000000000000000",L"00000000000000AA",L"abc"}) {
+        check(spawnWait(txExe,L"--install x --staging y --txroot z --version 2 --txid "+std::wstring(badTxid))==2,
+            "txid must be exactly 16 lowercase hex nonzero");
+    }
     const auto base=root/L"production"; const auto install=base/L"install"; const auto txroot=base/L"txroot";
     fs::create_directories(install); fs::create_directories(txroot);
     writeText(install,L"keep.txt","keep-content");

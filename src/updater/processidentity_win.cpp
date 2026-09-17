@@ -59,6 +59,12 @@ std::wstring logonSecurityDescriptor() {
     LPWSTR sid=nullptr;if(!ConvertSidToStringSidW(logon.data(),&sid))return {};
     std::wstring result=L"D:P(A;;GA;;;"+std::wstring(sid)+L")";LocalFree(sid);return result;
 }
+std::wstring userSecurityDescriptor() {
+    std::vector<BYTE> user,logon;DWORD session=0;bool elevated=false;
+    if(!principals(GetCurrentProcess(),user,logon,session,elevated))return {};
+    LPWSTR sid=nullptr;if(!ConvertSidToStringSidW(user.data(),&sid))return {};
+    std::wstring result=L"D:P(A;;GA;;;"+std::wstring(sid)+L")";LocalFree(sid);return result;
+}
 SecurityAttributes::SecurityAttributes() {
     const auto descriptor=logonSecurityDescriptor();
     if(!descriptor.empty() && ConvertStringSecurityDescriptorToSecurityDescriptorW(descriptor.c_str(),SDDL_REVISION_1,&descriptor_,nullptr))

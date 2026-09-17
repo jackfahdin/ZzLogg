@@ -154,4 +154,17 @@ bool InstallationActivity::probeIdentity(const std::wstring& directory,Directory
     return handle && detail::directoryIdentity(handle.get(),identity)
         && detail::directoryMatchesPath(handle.get(),directory);
 }
+std::wstring singleInstancePipeName(const DirectoryIdentity& identity,const std::wstring& imageFileName) {
+    if(!identity.volumeSerial || imageFileName.empty()) return {};
+    DWORD session=0;
+    if(!ProcessIdToSessionId(GetCurrentProcessId(),&session)) return {};
+    // Byte-identical to KDSingleApplication's Windows socket name over
+    // ApplicationUpdateGuard::singleInstanceName: kdsingleapp-<session>-<name>
+    // where the name is <image>-<volume serial hex16><file id hex32>.
+    std::wstring name=L"\\\\.\\pipe\\kdsingleapp-"+std::to_wstring(session)+L"-"+imageFileName+L"-";
+    constexpr wchar_t hex[]=L"0123456789abcdef";
+    for(int i=15;i>=0;--i) name+=hex[(identity.volumeSerial>>(i*4))&15];
+    for(const auto byte:identity.fileId){name+=hex[byte>>4];name+=hex[byte&15];}
+    return name;
+}
 }

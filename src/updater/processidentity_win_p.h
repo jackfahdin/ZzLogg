@@ -41,6 +41,9 @@ private:
 };
 bool randomBytes(void*,ULONG);
 std::wstring logonSecurityDescriptor();
+// Current-user-only protected DACL for private credential files: the elevated
+// same-user engine reads through it, any other principal is denied.
+std::wstring userSecurityDescriptor();
 class SecurityAttributes {
 public:
     SecurityAttributes();
