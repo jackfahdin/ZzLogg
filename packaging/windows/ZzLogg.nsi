@@ -136,6 +136,21 @@ Function ZzLoggValidateLocator
     Push "bad"
 FunctionEnd
 
+Function ZzLoggCheckRealDirectory
+    ; $R8 in: path. "ok" only for an existing directory that is neither a
+    ; reparse point nor a device; every component of the target is gated here.
+    System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9'
+    IntCmp $R9 -1 zzlogg_component_bad 0 zzlogg_component_bad
+    IntOp $R7 $R9 & 0x440
+    StrCmp $R7 0 0 zzlogg_component_bad
+    IntOp $R7 $R9 & 0x10
+    StrCmp $R7 0 zzlogg_component_bad 0
+    Push "ok"
+    Return
+    zzlogg_component_bad:
+    Push "bad"
+FunctionEnd
+
 Function ZzLoggVerifyTarget
     ; Independent recheck of the registration, marker, landing manifest and
     ; target path before any write; the verified directory is then pinned and
@@ -154,10 +169,36 @@ Function ZzLoggVerifyTarget
     StrCmp $4 "" 0 zzlogg_verify_fail
     IfFileExists "$ZzLoggTarget\.zzlogg-install-root" 0 zzlogg_verify_fail
     IfFileExists "$ZzLoggTarget\.zzlogg-files.manifest" 0 zzlogg_verify_fail
+    ; Reparse points are rejected level by level: drive root, every
+    ; intermediate component and the full target must be real directories.
+    StrCpy $R8 $ZzLoggTarget 3
+    Call ZzLoggCheckRealDirectory
+    Pop $R9
+    StrCmp $R9 "ok" 0 zzlogg_verify_fail
+    StrLen $R5 $ZzLoggTarget
+    StrCpy $R6 3
+    zzlogg_verify_walk:
+        IntCmp $R6 $R5 zzlogg_verify_walk_done 0 zzlogg_verify_walk_done
+        StrCpy $R7 $ZzLoggTarget 1 $R6
+        StrCmp $R7 '\' 0 zzlogg_verify_walk_next
+        StrCpy $R8 $ZzLoggTarget $R6
+        Call ZzLoggCheckRealDirectory
+        Pop $R9
+        StrCmp $R9 "ok" 0 zzlogg_verify_fail
+        zzlogg_verify_walk_next:
+        IntOp $R6 $R6 + 1
+        Goto zzlogg_verify_walk
+    zzlogg_verify_walk_done:
+    StrCpy $R8 $ZzLoggTarget
+    Call ZzLoggCheckRealDirectory
+    Pop $R9
+    StrCmp $R9 "ok" 0 zzlogg_verify_fail
     System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0'
     IntCmp $R0 -1 zzlogg_verify_fail 0 zzlogg_verify_fail
     StrCmp $R0 0 zzlogg_verify_fail
-    System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5'
+    ; BY_HANDLE_FILE_INFORMATION: 13 DWORD members; R2 = volume serial (8),
+    ; R3 = file index high (12), R4 = file index low (13).
+    System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5'
     StrCmp $R5 1 0 zzlogg_verify_fail_pin
     IntOp $R6 $R1 & 0x10
     StrCmp $R6 0 zzlogg_verify_fail_pin

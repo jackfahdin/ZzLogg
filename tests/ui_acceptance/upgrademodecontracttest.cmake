@@ -74,6 +74,8 @@ extract_nsis_block(nsis_active_content "Function ZzLoggValidateLocator" "Functio
   "locator validation" validate_locator)
 extract_nsis_block(nsis_active_content "Function ZzLoggVerifyTarget" "FunctionEnd"
   "target recheck" verify_target)
+extract_nsis_block(nsis_active_content "Function ZzLoggCheckRealDirectory" "FunctionEnd"
+  "per-component reparse check" check_real_directory)
 extract_nsis_block(nsis_active_content "Function ZzLoggRestrictedUpgrade" "FunctionEnd"
   "restricted upgrade" restricted_upgrade)
 extract_nsis_block(nsis_active_content "Function ZzLoggRestrictedRecover" "FunctionEnd"
@@ -111,17 +113,42 @@ foreach(locator_bad_char IN ITEMS
   require_nsis_block_literal(validate_locator "${locator_bad_char}" "locator validation")
 endforeach()
 
+# The per-component reparse gate: GetFileAttributesW must refuse missing
+# paths, reparse points and devices, and demand a real directory.
+require_nsis_block_order(check_real_directory "per-component reparse check"
+  [=[System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9']=]
+  [=[IntCmp $R9 -1 zzlogg_component_bad 0 zzlogg_component_bad]=]
+  [=[IntOp $R7 $R9 & 0x440]=]
+  [=[IntOp $R7 $R9 & 0x10]=])
+
 # The independent recheck reads the registration in the 64-bit view, gates on
-# schema 2, demands the marker and the landing manifest, then pins the target
-# directory capturing its identity. It never writes anything.
+# schema 2, demands the marker and the landing manifest, rejects reparse
+# points level by level, then pins the target directory capturing its
+# identity. It never writes anything.
+# The System::Call shapes are pinned verbatim: CreateFileW must open with
+# GENERIC_READ, share READ|WRITE (delete denied), OPEN_EXISTING and
+# FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT (0x02200000), and the
+# BY_HANDLE_FILE_INFORMATION struct must carry all 13 DWORD members with the
+# outputs on volume serial (8), file index high (12) and low (13).
 require_nsis_block_order(verify_target "target recheck"
   [=[ReadRegStr $ZzLoggTarget HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"]=]
   [=[ReadRegDWORD $3 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema"]=]
   [=[StrCmp $3 2 0 zzlogg_verify_fail]=]
   [=[IfFileExists "$ZzLoggTarget\.zzlogg-install-root" 0 zzlogg_verify_fail]=]
   [=[IfFileExists "$ZzLoggTarget\.zzlogg-files.manifest" 0 zzlogg_verify_fail]=]
-  "System::Call 'kernel32::CreateFileW("
-  "GetFileInformationByHandle")
+  [=[StrCpy $R8 $ZzLoggTarget 3]=]
+  [=[Call ZzLoggCheckRealDirectory]=]
+  [=[System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0']=]
+  [=[System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5']=])
+# Level-by-level walk: the drive root, every intermediate component and the
+# full target each pass the reparse gate before the pin.
+string(REGEX MATCHALL "Call ZzLoggCheckRealDirectory" walk_calls "${verify_target}")
+list(LENGTH walk_calls walk_call_count)
+if(NOT walk_call_count EQUAL 3)
+  message(FATAL_ERROR
+    "NSIS target recheck must apply the reparse gate to the drive root, every "
+    "intermediate component and the full target (found ${walk_call_count} calls)")
+endif()
 foreach(verify_forbidden IN ITEMS
     "WriteRegStr" "WriteRegDWORD" "WriteRegExpandStr" "CreateDirectory"
     "CreateShortCut" "FileOpen" "ExecWait" "INSTDIR")
