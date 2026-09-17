@@ -93,7 +93,7 @@ git commit -m "feat: 建立安装事务持久日志与受保护目录" -m "3C �
 
 **文件：** 新增 `src/updater/txengine_win.{h,cpp}`、`txengine_main.cpp`；`src/updater/CMakeLists.txt`（`ZzLoggUpdateTx.exe` 静态 CRT 目标，同源闭包复用）；`tests/updater/txenginetest.cpp`、`handofffixture.cpp` 引擎模式。
 
-- [ ] 先写失败测试（全部在临时目录 + 注入注册表读写器）：新增/变更/删除差分正确应用；未知文件保留；已修改受管理文件冲突即停止且已应用部分自动回滚；登记旧值随恢复还原；中断后（杀掉子进程）恢复模式按 journal 幂等完成回滚，重复恢复为零操作。
+- [x] 先写失败测试（全部在临时目录 + 注入注册表读写器）：新增/变更/删除差分正确应用；未知文件保留；已修改受管理文件冲突即停止且已应用部分自动回滚；登记旧值随恢复还原；中断后（杀掉子进程）恢复模式按 journal 幂等完成回滚，重复恢复为零操作。
 
 ```cpp
 // Manifest: header(magic/version/count) + per-file {relpath(UTF-8 规范化), size, sha256}。
@@ -106,10 +106,10 @@ git commit -m "feat: 建立安装事务持久日志与受保护目录" -m "3C �
 // Complete/Failed。Proceed 前任何文件修改 = 违约，协调者侧测试用违约 fixture 证明被拒绝。
 ```
 
-- [ ] 哈希复用既有 monocypher 闭包（BLAKE2b/SHA-256 以 update core 现有选择为准，保持一致）；清单解析有界（条目数/路径长度上限），拒绝 `..`、绝对路径、重解析组件。
-- [ ] 引擎不从用户可写目录运行：生产断言自身镜像位于受保护暂存（父链 ACL 校验），测试注入受保护根替身；该断言的失败路径有测试。
-- [ ] `ZzLoggUpdateTx.exe` 目标仅打包进安装器载荷（任务 4 接线），不加入 runtime folder、不 install 到应用目录；PE 依赖检查无 Qt/MSVC 动态 CRT。
-- [ ] 变异两处（删除冲突检测、跳过 journal 先写），失败并恢复。完整构建/CTest，中文提交。
+- [x] 哈希复用既有 monocypher 闭包（BLAKE2b/SHA-256 以 update core 现有选择为准，保持一致）；清单解析有界（条目数/路径长度上限），拒绝 `..`、绝对路径、重解析组件。
+- [x] 引擎不从用户可写目录运行：生产断言自身镜像位于受保护暂存（父链 ACL 校验），测试注入受保护根替身；该断言的失败路径有测试。
+- [x] `ZzLoggUpdateTx.exe` 目标仅打包进安装器载荷（任务 4 接线），不加入 runtime folder、不 install 到应用目录；PE 依赖检查无 Qt/MSVC 动态 CRT。
+- [x] 变异两处（删除冲突检测、跳过 journal 先写），失败并恢复。完整构建/CTest，中文提交。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -182,4 +182,6 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 - 起点 master `3dfbe546`（3B.4 主线验收完成，105/105）；隔离工作树 `.worktrees/update-core`、分支 `codex/installer-update-plan` 继续沿用。用户已授权验证完成后自动快进合并 master，不 push。
 - 设计规格 `49adcc5f`；关键裁决：NSIS 脚本不承载事务逻辑（载荷内嵌原生引擎）；协议显式增加 Proceed 消息补齐"应用真实退出"信号（3B 消息集缺口）；UpdateIdentitySchema 升 2 引入落地清单，schema 1 按 Legacy 处理；事务凭据经当前用户私有文件传递而非命令行。
 - 任务 1：`4f27556b` 协议 v2（Proceed=8、版本字节 2、ExitConfirmed 状态）与 bootstrap v3（240 wchar 受限数据目录，旧版本/控制字符/相对路径/未终止拒绝）。协调者复制应用进程句柄并以 adopt 防 PID 复用，存活返回 PeerRunning、退出后幂等发 Proceed。真实子进程 TDD 红绿与两组变异证据完整，完整 105/105 通过。独立审查规格符合、质量通过，无关键/重要发现；Proceed 判定句柄持有方改为协调者侧复制被裁定为对简报草图的合理偏离（语义等价、不信任引擎自报）；`updaterProtocol=1` 与线协议号的关系移交任务 6 显式裁决（已补入任务 6）。
+- 任务 2：`96ece89d` 追加式持久事务日志（先写后刷、严格 fail-closed 解析、重放幂等）、受保护事务目录（ACL 主体可注入、真实 DACL 断言）、卷空间预检；两组变异被捕获，完整 106/106 通过。独立审查无关键/重要发现；撕裂/损坏日志整体拒绝自动恢复（交授权路径）的裁决记录入账本。
+- 任务 3：`0e3a71b1` + 审查修复 `86e75848` 差分文件集与登记事务引擎：清单有界敌意解析、先写日志后操作、普通失败逆序回滚、中断幂等授权恢复、登记白名单精确到卸载项键、Corrupt/0 字节日志呈现为保留现场需授权恢复；两卷空间预检（审查修复）。两组变异重跑归档，完整 108/108 通过。复审确认全部发现解决且无新破坏；分卷预检端到端与本机单固定盘环境受限，归阶段 4 验收。
 - 任务 2：`96ece89d` 持久事务日志与受保护事务目录。`txjournal_win` 二进制日志（32 字节头 + 68 字节定长记录头 + 长度前缀 UTF-16 体，显式小端编码），open 独占创建 `<根>\<txid 十六进制>`（`createExclusiveDirectory` 扩展注入安全描述符，祖先钉住复用 installlock 共享原语），append 先写后刷（flush 可注入观察，生产默认 FlushFileBuffers），replay 严格解析：撕裂/未知操作/未知 flags/错序/事务 ID 不符均 Corrupt 且重放为零操作，Complete 后拒绝追加，重放只读幂等。ACL 主体经 TxJournalOptions 注入（生产 Administrators/SYSTEM 写 + 已验证用户读），测试以当前用户注入并读回真实 DACL 断言（受保护、OICI 继承、读者无法建 journal 的行为证明）。checkVolumeSpace 饱和加法 + 1MiB 日志预留 + 最近现存非重解析祖先查询。TDD 红灯 47 项失败、两组变异均被捕获，完整 106/106 通过。
