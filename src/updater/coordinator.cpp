@@ -51,6 +51,13 @@ LauncherOutcome shellExecuteElevated(const std::wstring& installer,const std::ws
         return outcome;
     }
     Handle launched(execution.hProcess);
+    // Identity-verification window: ShellExecuteEx already succeeded, so if
+    // any step below (GetProcessTimes/DuplicateHandle/adopt) fails, the
+    // elevated installer runs orphaned until its own exit. The chain stays
+    // fail-closed throughout: the coordinator reports the launch failure,
+    // the credential file is deleted on abort, and the engine grandchild can
+    // never authenticate without them. Accepted residual risk (3C deferred
+    // triage #23); the window is three bounded API calls, not user time.
     FILETIME created{},exited{},kernel{},user{};
     if(!launched || !GetProcessTimes(launched.get(),&created,&exited,&kernel,&user))return outcome;
     const uint64_t stamp=(uint64_t(created.dwHighDateTime)<<32)|created.dwLowDateTime;
