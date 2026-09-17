@@ -1,8 +1,21 @@
 #include "bootstrap_win_p.h"
 #include "stablepackage_p.h"
+#include <algorithm>
 #include <cstring>
 #include <limits>
 namespace zzlogg::updater::detail {
+namespace {
+// The data directory is restart context, never installation authority: it
+// must be an absolute local or UNC path without control characters.
+bool dataDirectoryPlausible(const wchar_t* text,std::size_t length) {
+    if(!length)return true;
+    for(std::size_t i=0;i<length;++i)if(static_cast<uint16_t>(text[i])<0x20)return false;
+    const bool drive=length>=3 && ((text[0]>=L'A' && text[0]<=L'Z') || (text[0]>=L'a' && text[0]<=L'z'))
+        && text[1]==L':' && (text[2]==L'\\' || text[2]==L'/');
+    const bool unc=length>=2 && text[0]==L'\\' && text[1]==L'\\';
+    return drive || unc;
+}
+}
 struct ChildBootstrap::Impl {
     update::detail::StablePackage self;
     // Observer handle on the reserved directory mutex, opened with SYNCHRONIZE
@@ -21,7 +34,13 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     if(!value)return false;Handle mapping(reinterpret_cast<HANDLE>(value));
     const auto view=MapViewOfFile(mapping.get(),FILE_MAP_READ,0,0,sizeof(BootstrapData));if(!view)return false;
     BootstrapData data{};std::memcpy(&data,view,sizeof(data));UnmapViewOfFile(view);
-    if(data.magic!=0x42555a5a || data.version!=2 || (data.flags&~DirectoryReserved) || !data.parentHandle || endpointName(data.transaction).empty()
+    // Retired mapping versions are never adopted; the data directory must be
+    // NUL-terminated inside its fixed capacity and pass the plausibility scan.
+    std::size_t directoryLength=0;
+    while(directoryLength<DataDirectoryCapacity && data.dataDirectory[directoryLength])++directoryLength;
+    if(data.magic!=0x42555a5a || data.version!=3 || (data.flags&~DirectoryReserved) || !data.parentHandle
+        || directoryLength==DataDirectoryCapacity || !dataDirectoryPlausible(data.dataDirectory,directoryLength)
+        || endpointName(data.transaction).empty()
         || !encodeMessage({MessageKind::Hello,data.transaction,data.token}))return false;
     ProcessIdentity parent,self;
     if(!parent.adopt(reinterpret_cast<HANDLE>(data.parentHandle),data.parent) || !parent.alive()
@@ -42,8 +61,10 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     }
     data_=data;parent_=std::move(parent);impl_=std::move(lease);return true;
 }
-bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const SessionToken& token,const DirectoryIdentity* reservedIdentity,ProcessIdentity& child){
-    if(!copy.unchanged())return false;
+bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const SessionToken& token,const DirectoryIdentity* reservedIdentity,
+    const std::wstring& dataDirectory,ProcessIdentity& child){
+    if(!copy.unchanged() || dataDirectory.size()>=DataDirectoryCapacity
+        || !dataDirectoryPlausible(dataDirectory.data(),dataDirectory.size()))return false;
     ProcessIdentity parent;if(!parent.open(GetCurrentProcessId()))return false;
     HANDLE raw=nullptr;
     if(!DuplicateHandle(GetCurrentProcess(),parent.handle(),GetCurrentProcess(),&raw,PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,TRUE,0))return false;
@@ -52,6 +73,7 @@ bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const S
     auto view=MapViewOfFile(writable.get(),FILE_MAP_WRITE,0,0,sizeof(BootstrapData));if(!view)return false;
     BootstrapData data;data.parentHandle=reinterpret_cast<uint64_t>(inheritedParent.get());data.parent=parent.stamp();data.transaction=transaction;data.token=token;
     if(reservedIdentity){data.flags=DirectoryReserved;data.directory=*reservedIdentity;}
+    if(!dataDirectory.empty())std::copy(dataDirectory.begin(),dataDirectory.end(),data.dataDirectory);
     std::memcpy(view,&data,sizeof(data));UnmapViewOfFile(view);
     if(!DuplicateHandle(GetCurrentProcess(),writable.get(),GetCurrentProcess(),&raw,FILE_MAP_READ,TRUE,0))return false;
     Handle inheritedMapping(raw);writable.reset();

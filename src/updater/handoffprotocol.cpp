@@ -7,12 +7,12 @@ template<class T> bool nonzero(const T& bytes) {
 }
 bool valid(const Message& message) {
     const auto kind=static_cast<uint32_t>(message.kind);
-    return kind>=1 && kind<=7 && nonzero(message.transaction) && nonzero(message.token);
+    return kind>=1 && kind<=8 && nonzero(message.transaction) && nonzero(message.token);
 }
 }
 std::optional<EncodedMessage> encodeMessage(const Message& message) {
     if(!valid(message)) return {};
-    EncodedMessage bytes{0x5a,0x5a,0x55,0x50,1,0,0,0};
+    EncodedMessage bytes{0x5a,0x5a,0x55,0x50,2,0,0,0};
     bytes[8]=static_cast<uint8_t>(message.kind);
     std::copy(message.transaction.begin(),message.transaction.end(),bytes.begin()+12);
     std::copy(message.token.begin(),message.token.end(),bytes.begin()+28);
@@ -20,7 +20,7 @@ std::optional<EncodedMessage> encodeMessage(const Message& message) {
 }
 std::optional<Message> decodeMessage(const uint8_t* bytes,std::size_t size) {
     if(!bytes || size!=messageSize) return {};
-    constexpr std::array<uint8_t,8> header{0x5a,0x5a,0x55,0x50,1,0,0,0};
+    constexpr std::array<uint8_t,8> header{0x5a,0x5a,0x55,0x50,2,0,0,0};
     if(!std::equal(header.begin(),header.end(),bytes) || bytes[9] || bytes[10] || bytes[11]) return {};
     Message message{static_cast<MessageKind>(bytes[8]),{}, {}};
     std::copy_n(bytes+12,message.transaction.size(),message.transaction.begin());
@@ -40,7 +40,8 @@ bool HandoffSession::accept(const Message& message) {
     if(previous==HandoffState::Connecting && message.kind==MessageKind::Hello) state_=HandoffState::Ready;
     else if(previous==HandoffState::Ready && message.kind==MessageKind::AwaitingAppExit) state_=HandoffState::AwaitingAppExit;
     else if(previous==HandoffState::AwaitingAppExit && message.kind==MessageKind::CommitExit) state_=HandoffState::ExitCommitted;
-    else if(previous==HandoffState::ExitCommitted && message.kind==MessageKind::Complete) state_=HandoffState::Complete;
+    else if(previous==HandoffState::ExitCommitted && message.kind==MessageKind::Proceed) state_=HandoffState::ExitConfirmed;
+    else if(previous==HandoffState::ExitConfirmed && message.kind==MessageKind::Complete) state_=HandoffState::Complete;
     return state_!=HandoffState::Aborted;
 }
 bool HandoffSession::canExit() const {

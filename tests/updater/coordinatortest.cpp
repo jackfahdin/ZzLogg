@@ -4,8 +4,11 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <array>
+#include <cstring>
 #include <stdexcept>
+#include <vector>
 using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
@@ -32,6 +35,56 @@ DWORD probeEnter(const fs::path& dir) {
     Handle child(process.hProcess),thread(process.hThread);
     if(WaitForSingleObject(child.get(),10000)!=WAIT_OBJECT_0){TerminateProcess(child.get(),998);return 998;}
     DWORD code=999;GetExitCodeProcess(child.get(),&code);return code;
+}
+// Application stand-in: a real independent process with a bounded lifetime so
+// the coordinator Proceed gate observes a genuine process exit.
+struct AppStandin { Handle process,thread; ProcessIdentity identity; };
+AppStandin launchAppStandin(const fs::path& fixtureExe,DWORD milliseconds) {
+    AppStandin standin;
+    std::wstring command=L"\""+fixtureExe.wstring()+L"\" --app "+std::to_wstring(milliseconds);
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(fixtureExe.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))return standin;
+    standin.process.reset(process.hProcess);standin.thread.reset(process.hThread);
+    standin.identity.open(process.dwProcessId);
+    return standin;
+}
+// Polls the Proceed gate until the stand-in really exits; any result other
+// than PeerRunning/ProceedSent surfaces immediately.
+CoordinationResult proceedWhenExited(Coordinator& coordinator,const Handle& appProcess) {
+    for(int tries=0;tries<100;++tries) {
+        const auto result=coordinator.proceedIfExited(after(200));
+        if(result!=CoordinationResult::PeerRunning)return result;
+        WaitForSingleObject(appProcess.get(),100);
+    }
+    return CoordinationResult::PeerRunning;
+}
+// Launches the fixture against a crafted anonymous mapping, exactly as
+// launchCopy would deliver it; returns the fixture exit code.
+template<class Mapping> DWORD spawnMappedFixture(const fs::path& fixtureExe,Mapping& data) {
+    ProcessIdentity self;if(!self.open(GetCurrentProcessId()))return 998;
+    HANDLE rawParent=nullptr;
+    if(!DuplicateHandle(GetCurrentProcess(),self.handle(),GetCurrentProcess(),&rawParent,
+        PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,TRUE,0))return 998;
+    Handle inheritedParent(rawParent);
+    data.parentHandle=reinterpret_cast<uint64_t>(inheritedParent.get());data.parent=self.stamp();
+    Handle mapping(CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,sizeof(Mapping),nullptr));
+    if(!mapping)return 998;
+    auto view=MapViewOfFile(mapping.get(),FILE_MAP_WRITE,0,0,sizeof(Mapping));if(!view)return 998;
+    std::memcpy(view,&data,sizeof(Mapping));UnmapViewOfFile(view);
+    HANDLE rawMapping=nullptr;
+    if(!DuplicateHandle(GetCurrentProcess(),mapping.get(),GetCurrentProcess(),&rawMapping,FILE_MAP_READ,TRUE,0))return 998;
+    Handle inheritedMapping(rawMapping);
+    std::wstring command=L"\""+fixtureExe.wstring()+L"\" "+std::to_wstring(reinterpret_cast<uint64_t>(inheritedMapping.get()));
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
+    if(!CreateProcessW(fixtureExe.c_str(),command.data(),nullptr,nullptr,TRUE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))return 998;
+    Handle child(process.hProcess),thread(process.hThread);
+    if(WaitForSingleObject(child.get(),10000)!=WAIT_OBJECT_0){TerminateProcess(child.get(),997);return 997;}
+    DWORD code=997;GetExitCodeProcess(child.get(),&code);return code;
+}
+std::vector<std::wstring> recordLines(const fs::path& path) {
+    std::vector<std::wstring> lines;std::wifstream record(path);std::wstring line;
+    while(std::getline(record,line))lines.push_back(line);
+    return lines;
 }
 }
 int runCoordinatorTest(int argc,wchar_t** argv) {
@@ -78,36 +131,101 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
     const auto source=root/L"install"/L"fixture.exe";fs::copy_file(argv[1],source);
     for(auto mode:{L"success",L"linger",L"early",L"timeout",L"token",L"order",L"replay",L"cancel",L"hello-only",L"exit-after-hello"}) {
         std::wcout<<L"coordinator fixture: "<<mode<<std::endl;
+        std::wstring m=mode;
+        const bool gated=m==L"success" || m==L"linger";
+        AppStandin app;
+        if(gated) app=launchAppStandin(fs::path(argv[1]).make_preferred(),2500);
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",mode);Coordinator coordinator;
-        check(coordinator.start(source.wstring(),(root/L"runtime").wstring()),"fixture starts through real runtime copy");
+        check(!gated || app.identity.handle(),"application stand-in identity held");
+        check(coordinator.start(source.wstring(),(root/L"runtime").wstring(),nullptr,
+            gated?&app.identity:nullptr),"fixture starts through real runtime copy");
         if(!coordinator.process().handle())continue;
         check(!coordinator.canCommitExit(),"process creation never authorizes exit");
         wchar_t image[32768]{};DWORD length=32768;
         check(QueryFullProcessImageNameW(coordinator.process().handle(),0,image,&length) && fs::path(image)==fs::path(coordinator.runtimePath()),"actual child executes new runtime path");
         const auto authenticated=coordinator.authenticate(after(250));
-        std::wstring m=mode;
         if(m==L"early" || m==L"timeout" || m==L"token" || m==L"order") {
             check(!authenticated && !coordinator.canCommitExit(),"bad or absent Hello refuses exit");continue;
         }
         check(authenticated && !coordinator.canCommitExit(),"Hello authenticates but cannot exit");
         auto waiting=coordinator.awaitAppExit(after(200));
-        if(m!=L"success" && m!=L"linger") {
+        if(!gated) {
             check(waiting!=CoordinationResult::WaitingForAppExit && !coordinator.canCommitExit(),"replay cancel ready-only and early death refuse exit");continue;
         }
         check(waiting==CoordinationResult::WaitingForAppExit && coordinator.canCommitExit(),"only live authenticated AwaitingAppExit authorizes exit");
         check(MoveFileW(source.c_str(),(root/L"install"/L"old.exe").c_str()),"original file renames while runtime process is alive");
         fs::copy_file(argv[1],source);fs::remove(root/L"install"/L"old.exe");
         check(coordinator.commitExit(after(500)),"commit sent only after guard");
+        check(coordinator.proceedIfExited(after(200))==CoordinationResult::PeerRunning,"Proceed withheld while the application still runs");
+        check(proceedWhenExited(coordinator,app.process)==CoordinationResult::ProceedSent,"Proceed sent only after real application exit");
         if(m==L"linger")check(coordinator.finish(after(50))==CoordinationResult::PeerRunning,"Complete message cannot substitute actual process exit");
         auto completed=coordinator.finish(after(2000));ProcessIdentity self;self.open(GetCurrentProcessId());
         check(completed==(self.elevated()?CoordinationResult::ManualRestartRequired:CoordinationResult::Complete),"final exit observed and elevation restart policy applied");
     }
     SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
     {
+        // Proceed gate ordering, observed through the fixture record: Ready,
+        // CommitExit and Proceed must arrive in order, Proceed only after the
+        // stand-in's real exit, and the bootstrap carries the data directory.
+        std::cout<<"coordinator proceed gate ordering"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"success");
+        const auto recordPath=root/L"proceed-record.txt";
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",recordPath.c_str());
+        fs::create_directory(root/L"data");const auto dataDirectory=(root/L"data").wstring();
+        auto app=launchAppStandin(fs::path(argv[1]).make_preferred(),1200);Coordinator c;
+        check(app.identity.handle() && c.start(source.wstring(),(root/L"runtime").wstring(),nullptr,&app.identity,dataDirectory)
+            && c.authenticate(after(2000)) && c.awaitAppExit(after(2000))==CoordinationResult::WaitingForAppExit
+            && c.commitExit(after(500)),"gate chain reaches committed exit with a data directory");
+        check(c.proceedIfExited(after(200))==CoordinationResult::PeerRunning,"Proceed withheld while the application still runs");
+        check(proceedWhenExited(c,app.process)==CoordinationResult::ProceedSent,"Proceed sent immediately after real exit");
+        check(c.proceedIfExited(after(200))==CoordinationResult::ProceedSent,"Proceed is never repeated");
+        ProcessIdentity self;self.open(GetCurrentProcessId());
+        check(c.finish(after(3000))==(self.elevated()?CoordinationResult::ManualRestartRequired:CoordinationResult::Complete),
+            "gated transaction completes after Proceed");
+        const std::vector<std::wstring> expected{L"datadir="+dataDirectory,L"kind=2",L"kind=4",L"kind=8"};
+        check(recordLines(recordPath)==expected,"fixture observed Ready CommitExit Proceed in order with the data directory");
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",nullptr);
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+    }
+    {
+        // Contract violation: the engine pretends to modify the installation
+        // and reports Complete without waiting for the Proceed gate.
+        std::cout<<"coordinator proceed violation"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"early-complete");
+        const auto recordPath=root/L"violation-record.txt";
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",recordPath.c_str());
+        Coordinator c;
+        check(c.start(source.wstring(),(root/L"runtime").wstring()) && c.authenticate(after(2000))
+            && c.awaitAppExit(after(2000))==CoordinationResult::WaitingForAppExit && c.commitExit(after(500)),
+            "violation chain reaches committed exit");
+        check(c.finish(after(2000))==CoordinationResult::Failed && !c.canCommitExit(),
+            "Complete before Proceed is rejected and aborts");
+        const auto lines=recordLines(recordPath);
+        check(std::find(lines.begin(),lines.end(),L"write")!=lines.end()
+            && std::find(lines.begin(),lines.end(),L"kind=8")==lines.end(),
+            "pretend write before Proceed is never gated through");
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",nullptr);
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+    }
+    {SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"success");Coordinator c;
+      check(c.start(fs::path(argv[1]).make_preferred().wstring(),root.wstring()) && c.authenticate(after(2000)),
+          "proceed-order fixture authenticates");
+      check(c.proceedIfExited(after(100))==CoordinationResult::Failed && !c.canCommitExit(),"Proceed before CommitExit aborts");}
+    {SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"success");Coordinator c;
+      check(c.start(fs::path(argv[1]).make_preferred().wstring(),root.wstring()) && c.authenticate(after(2000))
+        && c.awaitAppExit(after(2000))==CoordinationResult::WaitingForAppExit && c.commitExit(after(500)),"committed exit without application identity");
+      check(c.proceedIfExited(after(200))==CoordinationResult::Failed,"Proceed fail-closed without the application handle");}
+    SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+    {
         std::cout<<"coordinator deferred cleanup"<<std::endl;
-        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"linger");ULONGLONG beforeDestruction=0;std::wstring path;ProcessIdentity observer;
-        {Coordinator c;check(c.start(fs::path(argv[1]).make_preferred().wstring(),root.wstring()) && c.authenticate(after(2000))
-            && c.awaitAppExit(after(1000))==CoordinationResult::WaitingForAppExit && c.commitExit(after(500)),"lingering ownership fixture starts");
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"linger");
+        auto app=launchAppStandin(fs::path(argv[1]).make_preferred(),1500);
+        ULONGLONG beforeDestruction=0;std::wstring path;ProcessIdentity observer;
+        {Coordinator c;check(app.identity.handle()
+            && c.start(fs::path(argv[1]).make_preferred().wstring(),root.wstring(),nullptr,&app.identity)
+            && c.authenticate(after(2000)) && c.awaitAppExit(after(1000))==CoordinationResult::WaitingForAppExit
+            && c.commitExit(after(500))
+            && proceedWhenExited(c,app.process)==CoordinationResult::ProceedSent,"lingering ownership fixture starts");
           check(c.finish(after(30))==CoordinationResult::PeerRunning,"lingering fixture still running");
           path=c.runtimePath();observer.open(c.process().stamp().pid);beforeDestruction=GetTickCount64();}
         check(GetTickCount64()-beforeDestruction<150,"destruction after timeout must not block caller on live child");
@@ -190,7 +308,28 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
         std::error_code cleanup;fs::remove_all(reserveBase,cleanup);fs::remove(reserved,cleanup);
     }
-    std::error_code ec;fs::remove(source,ec);fs::remove(root/L"install",ec);fs::remove(root/L"runtime",ec);fs::remove(root,ec);
+    {
+        // Bootstrap mapping v3: crafted mappings drive the real child bootstrap
+        // parser directly. 52 = bootstrap passed (channel connect then fails);
+        // 51 = BootstrapRejected.
+        std::cout<<"coordinator bootstrap v3"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+        BootstrapData base{};
+        randomBytes(base.transaction.data(),16);randomBytes(base.token.data(),32);
+        check(spawnMappedFixture(source,base)==52,"valid v3 mapping passes bootstrap");
+        auto retired=base;retired.version=2;
+        check(spawnMappedFixture(source,retired)==51,"retired version 2 mapping rejected");
+        auto datadir=base;{const auto path=root.wstring();std::copy(path.begin(),path.end(),datadir.dataDirectory);}
+        check(spawnMappedFixture(source,datadir)==52,"absolute data directory accepted");
+        auto control=base;{auto path=root.wstring();path[4]=wchar_t(1);std::copy(path.begin(),path.end(),control.dataDirectory);}
+        check(spawnMappedFixture(source,control)==51,"control character in data directory rejected");
+        auto relative=base;{const wchar_t text[]=L"relative\\path";std::copy(text,text+_countof(text),relative.dataDirectory);}
+        check(spawnMappedFixture(source,relative)==51,"relative data directory rejected");
+        auto unterminated=base;std::fill(std::begin(unterminated.dataDirectory),std::end(unterminated.dataDirectory),L'x');
+        check(spawnMappedFixture(source,unterminated)==51,"unterminated overlong data directory rejected");
+    }
+    std::error_code ec;fs::remove(source,ec);fs::remove(root/L"install",ec);fs::remove(root/L"runtime",ec);
+    fs::remove(root/L"data",ec);fs::remove(root/L"proceed-record.txt",ec);fs::remove(root/L"violation-record.txt",ec);fs::remove(root,ec);
     std::cout<<"coordinator test complete"<<std::endl;return failures?1:0;
 }
 int wmain(int argc,wchar_t** argv) {
