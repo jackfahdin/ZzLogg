@@ -99,12 +99,22 @@ class ApplicationUpdateHandoff : public QObject
     using SessionFactory
         = std::function<std::unique_ptr<CoordinationSession>( const Request& )>;
 
+    // Destructor worker-wait budget in milliseconds: worker steps are bounded
+    // by the session deadlines (seconds), so quitting and waiting this budget
+    // is enough; it comfortably outlasts the launch + authenticate + await
+    // chain of a well-behaved coordinator.
+    static constexpr unsigned long kDefaultDestructWaitMs = 15000;
+
     // Production constructor: closed capability, begin() always refuses.
     explicit ApplicationUpdateHandoff( KloggApp& app, QObject* parent = nullptr );
     // Dedicated-target constructor used by tests to compose the real native
     // coordinator. Production code never passes a factory.
     ApplicationUpdateHandoff( KloggApp& app, SessionFactory factory, QObject* parent = nullptr );
     ~ApplicationUpdateHandoff() override;
+
+    // Test seam: overrides the destructor's bounded worker wait (default
+    // kDefaultDestructWaitMs). Production never calls this.
+    void setDestructWaitBudgetForTesting( unsigned long budgetMs );
 
     bool executionAvailable() const;
     Snapshot snapshot() const;

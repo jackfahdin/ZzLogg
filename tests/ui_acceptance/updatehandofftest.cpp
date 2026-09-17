@@ -886,13 +886,16 @@ class UpdateHandoffTest final : public QObject {
     // 3C task 6: destruction with a hung worker step must not block teardown
     // forever; the wait is bounded, diagnosed, and the GUI-thread reservation
     // is still released. Declared last: the leaked worker keeps spinning
-    // until process exit.
+    // until process exit. The budget is injected so CI does not pay the 15 s
+    // production default (stage 4 triage #27).
     void destructorWaitIsBoundedAndDiagnosed()
     {
+        QCOMPARE( Handoff::kDefaultDestructWaitMs, 15000UL ); // production budget pinned
         auto started = std::make_shared<std::atomic<bool>>( false );
         auto* window = app_.newWindow();
         window->show();
         auto* handoff = new ApplicationUpdateHandoff( app_, blockingSessionFactory( started ) );
+        handoff->setDestructWaitBudgetForTesting( 2000 );
         QVERIFY( beginWithRetry( *handoff ) );
         QTRY_VERIFY( started->load() ); // the worker is inside the hung step
         QStringList warnings;
@@ -904,10 +907,11 @@ class UpdateHandoffTest final : public QObject {
         const auto elapsed = timer.elapsed();
         qInstallMessageHandler( previousHandler );
         warningCapture = nullptr;
-        QVERIFY( elapsed >= 14000 ); // bounded wait exhausted (15 s budget)
-        QVERIFY( elapsed < 30000 );
-        QVERIFY( warnings.join( QStringLiteral( "\n" ) )
-                     .contains( QStringLiteral( "did not finish" ) ) );
+        QVERIFY( elapsed >= 1500 ); // injected bounded wait exhausted (2 s budget)
+        QVERIFY( elapsed < 12000 ); // far below the 15 s production default
+        const auto captured = warnings.join( QStringLiteral( "\n" ) );
+        QVERIFY( captured.contains( QStringLiteral( "did not finish" ) ) );
+        QVERIFY( captured.contains( QStringLiteral( "2000" ) ) ); // diagnostic reports the injected budget
         QVERIFY( !app_.updateGuard().isUpdateReserved() );
         QVERIFY( !app_.isApplicationExitPrepared() );
         QVERIFY( window->isEnabled() );

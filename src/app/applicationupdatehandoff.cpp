@@ -26,13 +26,6 @@
 
 #include "kloggapp.h"
 
-namespace {
-// Worker steps are bounded by the session deadlines (seconds), so quitting
-// and waiting this budget is enough; the budget comfortably outlasts the
-// launch + authenticate + await chain of a well-behaved coordinator.
-constexpr unsigned long kDestructWaitMs = 15000;
-} // namespace
-
 struct ApplicationUpdateHandoff::Impl {
     Impl( KloggApp& ownApp, SessionFactory ownFactory )
         : app( ownApp )
@@ -66,6 +59,7 @@ struct ApplicationUpdateHandoff::Impl {
     std::shared_ptr<CoordinationSession> session;
     std::atomic<quint64> generation{ 0 };
     Snapshot snapshot;
+    unsigned long destructWaitMs = kDefaultDestructWaitMs;
     bool commitPending = false;
     bool reservationHeld = false;
     bool committed = false;
@@ -102,14 +96,14 @@ ApplicationUpdateHandoff::~ApplicationUpdateHandoff()
         // session references) here cannot race the native coordinator. The
         // coordinator's own reaper still covers a live child to its real end.
         d.thread.quit();
-        if ( !d.thread.wait( kDestructWaitMs ) ) {
+        if ( !d.thread.wait( d.destructWaitMs ) ) {
             // A hung native step must never block application teardown: release
             // the GUI-thread reservation, then deliberately leak the worker
             // (thread, context and session references) instead of waiting
             // forever or racing the still-running coordinator. Plain qWarning
             // on purpose: this diagnostic must survive disabled file logging.
             qWarning() << "ApplicationUpdateHandoff worker did not finish within"
-                       << kDestructWaitMs << "ms during destruction; leaking the worker";
+                       << d.destructWaitMs << "ms during destruction; leaking the worker";
             if ( !d.committed && d.reservationHeld ) {
                 d.app.updateGuard().cancelUpdate();
                 d.reservationHeld = false;
@@ -131,6 +125,11 @@ bool ApplicationUpdateHandoff::executionAvailable() const
     // The production backend carries no execution capability this phase; only
     // dedicated test targets compose a session factory.
     return impl_->factory != nullptr;
+}
+
+void ApplicationUpdateHandoff::setDestructWaitBudgetForTesting( unsigned long budgetMs )
+{
+    impl_->destructWaitMs = budgetMs;
 }
 
 ApplicationUpdateHandoff::Snapshot ApplicationUpdateHandoff::snapshot() const
