@@ -392,7 +392,10 @@ DACL 仅授权精确登录 SID；客户端使用 SECURITY_IDENTIFICATION。双�
 
 ### 线协议 v2 与 Proceed
 
-应用与协调者之间的本地通道消息集显式补齐 Proceed（=8），版本字节升为 2。消息
+协调者与其对端（3B 的运行副本、3C 的事务引擎）之间的本地通道消息集显式补齐
+Proceed（=8），版本字节升为 2。说同一协议的两端在真实部署中跨构建版本：引擎
+编译进新安装包载荷，协调者是已安装旧构建的子进程，因此协议演进必须保持严格
+失败关闭（见 updaterProtocol 裁决节）。消息
 仍为 60 字节定长："ZZUP"、小端 uint32 版本、kind、16 事务字节、32 令牌字节；
 截断/超长、错凭据、重放、错序一律关闭。状态机为 Connecting→Ready→
 AwaitingAppExit→ExitCommitted→ExitConfirmed→Complete（或 Aborted）：ExitCommitted
@@ -481,13 +484,18 @@ ERROR_CANCELLED 映射为 Cancelled（UAC 拒绝）。Complete 后协调者复�
   installedrelease/releaseidentity 断言矩阵锁定为 1；3C 交付的是事务与恢复
   机制，没有新增需要清单侧协商的执行能力，升为 2 会虚假声明一个清单可协商的
   新能力。
-- 线协议号（bootstrap v3、通道消息版本 2）是同一构建内 ZzLogg.exe 与
-  ZzLoggUpdate.exe 之间的内部契约：两端始终同构建、同版本部署，不经清单协商，
-  不存在跨版本互操作，其演进不需要发布身份号同步。
+- 线协议号（bootstrap v3、通道消息版本 2）是 ZzLogg.exe、协调者与事务引擎
+  之间的内部契约，不经清单协商，其演进不需要发布身份号同步。但这条契约只有
+  ZzLogg.exe↔ZzLoggUpdate.exe 一段两端同构建部署；引擎段在真实部署中必然跨
+  构建版本——事务引擎编译进**新安装包**载荷，协调者是**已安装旧构建**的子
+  进程，bootstrap 映射由旧协调者写入、新引擎解析（`ChildBootstrap` 严格校验
+  version==3）。因此线协议或 bootstrap 升级必须保持新引擎对旧协调者的失败
+  关闭：版本字节或 bootstrap 版本不匹配一律拒绝（decodeMessage/ChildBootstrap
+  均严格失败关闭），任何跨版本兼容都必须显式设计并测试，不能默认假设同构建。
 - 边界：仅当发布执行语义出现需要清单侧协商的变化（例如新的执行或恢复能力
   要求旧版本应用拒绝安装）时才升 `updaterProtocol`，并同步更新
   installedrelease/releaseidentity 测试矩阵；线协议（bootstrap/通道消息）变更
-  本身不构成升级理由。
+  本身不构成升级理由，但其跨构建失败关闭语义必须保持。
 
 ### Prepared 期 WM_QUERYENDSESSION 评估
 
