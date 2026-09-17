@@ -423,6 +423,35 @@ void testPrepareRejections(const fs::path& root,const std::wstring& user) {
         TxEngine engine(requestFor(sc),testOptions(sc.registry,user));
         check(engine.execute().outcome==TxOutcome::Rejected,"execute before prepare refused");
     }
+    {
+        // Install-volume preflight (review finding 1): the journal volume
+        // alone (staging + backup) has room, but the merged requirement that
+        // includes the payload bytes landing on the installation volume is
+        // insufficient. Both roots share this machine's temp volume, so the
+        // engine must merge into one call whose staging term carries the
+        // incoming payload bytes twice (staged copy + placed copy).
+        auto sc=buildScenario(root/L"reject-installvol",0x3c1f1);
+        std::uint64_t stagedOnly=0;
+        for(const auto& entry:sc.newEntries) if(entry.relpath!=L"keep.txt") stagedOnly+=entry.size;
+        struct Call { std::wstring root; std::uint64_t staging,backup; };
+        std::vector<Call> calls;
+        auto options=testOptions(sc.registry,user);
+        options.volumeCheck=[&](const std::wstring& volumeRoot,std::uint64_t staging,std::uint64_t backup){
+            calls.push_back({volumeRoot,staging,backup});
+            return staging>stagedOnly?TxVolumeCheck::Insufficient:TxVolumeCheck::Ok;
+        };
+        const auto before=snapshotDir(sc.install);
+        TxEngine engine(requestFor(sc),std::move(options));
+        check(engine.prepare().outcome==TxOutcome::Rejected,
+            "install-volume shortfall rejects before any modification");
+        check(!fs::exists(journalDirOf(sc)) && snapshotDir(sc.install)==before,
+            "install-volume rejection leaves zero changes");
+        check(calls.size()==1 && calls[0].root==sc.txrootW && calls[0].staging==stagedOnly*2,
+            "shared volume merges journal and installation requirements into one preflight");
+        auto control=testOptions(sc.registry,user);
+        TxEngine engine2(requestFor(sc),std::move(control));
+        check(engine2.prepare().outcome==TxOutcome::Prepared,"sufficient space passes the merged preflight");
+    }
 }
 // Builds a genuinely journaled interrupted state: backups + records written by
 // the real TxJournal, install directory left in the applied state.

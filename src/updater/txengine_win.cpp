@@ -507,8 +507,28 @@ TxEngineResult TxEngine::prepare(){
     if(!sha256FileContent(state.request.installRoot+L"\\"+kInstalledManifest,ignored,&oldManifestSize))
         return state.rejected(L"installed manifest unreadable");
     backupBytes=saturated(backupBytes,oldManifestSize);
-    if(checkVolumeSpace(state.request.journalRoot,stagingBytes,backupBytes)!=TxVolumeCheck::Ok)
-        return state.rejected(L"insufficient volume space for staging and backup");
+    // Space preflight covers every involved volume: the journal volume carries
+    // staging + backup, the installation volume carries the incoming payload
+    // bytes. Sharing a volume merges the requirements into one check so a
+    // split-layout shortfall never slips into partial replacement.
+    const auto& injectedCheck=state.options.volumeCheck;
+    const auto preflight=[&](const std::wstring& volumeRoot,std::uint64_t staging,std::uint64_t backup){
+        return injectedCheck?injectedCheck(volumeRoot,staging,backup)
+            :checkVolumeSpace(volumeRoot,staging,backup);
+    };
+    const auto journalVolume=canonicalPath(state.request.journalRoot).substr(0,3);
+    const auto installVolume=canonicalPath(state.request.installRoot).substr(0,3);
+    const bool sameVolume=journalVolume.size()==3 && installVolume.size()==3
+        && CompareStringOrdinal(journalVolume.c_str(),3,installVolume.c_str(),3,TRUE)==CSTR_EQUAL;
+    // The incoming payload occupies the journal volume once (staged copy) and
+    // the installation volume once (placed copy); a shared volume needs both.
+    const auto payloadBytes=stagingBytes;
+    const bool sufficient=sameVolume
+        ?preflight(state.request.journalRoot,saturated(payloadBytes,payloadBytes),backupBytes)==TxVolumeCheck::Ok
+        :preflight(state.request.journalRoot,stagingBytes,backupBytes)==TxVolumeCheck::Ok
+            && preflight(state.request.installRoot,payloadBytes,0)==TxVolumeCheck::Ok;
+    if(!sufficient)
+        return state.rejected(L"insufficient volume space for staging, backup and installation");
     for(const auto& file:state.plan){
         if(file.op==TxOperation::Delete)continue;
         std::array<std::uint8_t,32> digest{};std::uint64_t size=0;

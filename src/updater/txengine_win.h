@@ -99,6 +99,13 @@ struct TxEngineOptions {
     TxRegistry* registry=nullptr;       // nullptr selects productionRegistry()
     TxProtectedImageCheck protectedImage; // empty selects productionProtectedImage
     std::wstring selfImage;             // empty queries the current module
+    // Injectable volume-space preflight, same contract as checkVolumeSpace;
+    // empty selects checkVolumeSpace. The engine preflights every involved
+    // volume: the journal volume (staging + backup) and the installation
+    // volume (incoming payload bytes), merging the requirements into a single
+    // call when both roots share a volume.
+    std::function<TxVolumeCheck(const std::wstring& root,std::uint64_t stagingBytes,
+        std::uint64_t backupBytes)> volumeCheck;
 };
 
 // Differential file-set + registration transaction engine. prepare() is
