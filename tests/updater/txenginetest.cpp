@@ -28,6 +28,21 @@ namespace fs=std::filesystem;
 namespace {
 int failures=0;
 void check(bool value,const char* name) { if(!value){++failures;std::cerr<<"FAIL: "<<name<<" (win32 "<<GetLastError()<<")\n";} }
+// Builds an in-memory security descriptor from SDDL and evaluates the
+// protected-root ACL shape predicate on it: no elevated, Administrators-owned
+// directory is needed on disk.
+bool aclShapeFromSddl(const wchar_t* sddl) {
+    PSECURITY_DESCRIPTOR descriptor=nullptr;
+    if(!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,SDDL_REVISION_1,&descriptor,nullptr)){
+        check(false,"sddl parsed"); return false;
+    }
+    PSID owner=nullptr;PACL dacl=nullptr;BOOL defaulted=FALSE,present=FALSE;
+    const bool queried=GetSecurityDescriptorOwner(descriptor,&owner,&defaulted)!=FALSE
+        && GetSecurityDescriptorDacl(descriptor,&present,&dacl,&defaulted)!=FALSE;
+    const bool result=queried && protectedRootAclShape(owner,present?dacl:nullptr);
+    LocalFree(descriptor);
+    return result;
+}
 constexpr std::uint64_t kBigBytes=128ull<<20;
 std::wstring hexId(std::uint64_t txid) {
     const wchar_t hex[]=L"0123456789abcdef"; std::wstring out;
@@ -618,6 +633,25 @@ void testKeyAndImagePolicy(const fs::path& root) {
     // refuse them even when the image path nests correctly.
     check(!productionProtectedImage((root/L"protected"/L"staging"/L"ZzLoggUpdateTx.exe").wstring(),protectedRoot),
         "user-owned protected root refused by ACL check");
+    // ACL shape predicate against in-memory descriptors. The installer's
+    // hardened root grants Authenticated Users read-only (icacls (R) =
+    // FILE_GENERIC_READ = 0x120089); that mask carries SYNCHRONIZE and
+    // READ_CONTROL, which are not data-write capabilities and must not trip
+    // the write-bit scan.
+    check(aclShapeFromSddl(L"O:BAG:SYD:(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;0x120089;;;S-1-5-11)"),
+        "installer-hardened root ACL accepted (authenticated users read-only)");
+    // Over-narrowing guards: any real write bit for a non-admin still rejects.
+    check(!aclShapeFromSddl(L"O:BAD:(A;;0x2;;;S-1-5-11)(A;;FA;;;BA)"),
+        "FILE_WRITE_DATA for authenticated users rejected");
+    check(!aclShapeFromSddl(L"O:BAD:(A;;0x10000;;;S-1-5-11)(A;;FA;;;BA)"),
+        "DELETE for authenticated users rejected");
+    check(!aclShapeFromSddl(L"O:BAD:(A;;0x40000;;;S-1-5-11)(A;;FA;;;BA)"),
+        "WRITE_DAC for authenticated users rejected");
+    check(!aclShapeFromSddl(L"O:S-1-5-11D:(A;;FA;;;BA)"),
+        "non-admin owner rejected");
+    // Deny ACEs are skipped, matching the engine scan.
+    check(aclShapeFromSddl(L"O:BAD:(D;;0x2;;;S-1-5-11)(A;;0x120089;;;S-1-5-11)(A;;FA;;;BA)"),
+        "deny ACEs do not count as write grants");
 }
 }
 namespace {

@@ -92,6 +92,12 @@ struct TxEngineRequest {
 // to Administrators/SYSTEM only. Exposed so tests can exercise the failure
 // paths against unprivileged temporary directories.
 bool productionProtectedImage(const std::wstring& image,const std::wstring& protectedRoot);
+// The ACL-shape half of productionProtectedImage, separated so tests can
+// exercise it against in-memory security descriptors (SDDL-built) without an
+// elevated, Administrators-owned directory on disk. Arguments are the root's
+// owner SID and DACL (PSID/PACL passed as void* to keep windows.h out of this
+// header); a null DACL pointer means "no DACL present" and is refused.
+bool protectedRootAclShape(const void* ownerSid,const void* dacl);
 using TxProtectedImageCheck=std::function<bool(const std::wstring& image,const std::wstring& root)>;
 
 struct TxEngineOptions {

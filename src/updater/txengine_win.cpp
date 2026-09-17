@@ -296,6 +296,28 @@ bool sha256FileContent(const std::wstring& path,std::array<std::uint8_t,32>& dig
     if(size)*size=total;
     return sha.finish(digest);
 }
+// The protected root must be owned by Administrators/SYSTEM, and no Allow ACE
+// carrying a data-write bit may belong to any other principal.
+bool protectedRootAclShape(const void* ownerSid,const void* daclArg){
+    auto* const owner=static_cast<PSID>(const_cast<void*>(ownerSid));
+    auto* const dacl=static_cast<PACL>(const_cast<void*>(daclArg));
+    bool ok=owner && dacl && wellKnownSystemOrAdmin(owner);
+    // Explicit data-write capabilities only. FILE_GENERIC_WRITE also carries
+    // SYNCHRONIZE and READ_CONTROL, which are not write access and appear in
+    // every read-only grant (icacls (R) = FILE_GENERIC_READ = 0x120089), so
+    // the generic file mask would reject the installer's own hardened root.
+    constexpr ACCESS_MASK writeBits=FILE_WRITE_DATA|FILE_APPEND_DATA|FILE_WRITE_EA
+        |FILE_WRITE_ATTRIBUTES|DELETE|WRITE_DAC|WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL;
+    for(WORD i=0;ok && i<dacl->AceCount;++i){
+        void* entry=nullptr;
+        if(!GetAce(dacl,i,&entry)){ok=false;break;}
+        const auto* header=static_cast<ACE_HEADER*>(entry);
+        if(header->AceType!=ACCESS_ALLOWED_ACE_TYPE)continue;
+        const auto* ace=static_cast<ACCESS_ALLOWED_ACE*>(entry);
+        if((ace->Mask&writeBits) && !wellKnownSystemOrAdmin(reinterpret_cast<PSID>(const_cast<DWORD*>(&ace->SidStart))))ok=false;
+    }
+    return ok;
+}
 // The engine executable must nest beneath the protected transaction root, and
 // that root must be owned and writable exclusively by Administrators/SYSTEM.
 bool productionProtectedImage(const std::wstring& image,const std::wstring& protectedRoot){
@@ -308,16 +330,7 @@ bool productionProtectedImage(const std::wstring& image,const std::wstring& prot
     if(GetNamedSecurityInfoW(root.c_str(),SE_FILE_OBJECT,
         OWNER_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION,&owner,nullptr,&dacl,nullptr,&descriptor)!=ERROR_SUCCESS)
         return false;
-    bool ok=owner && dacl && wellKnownSystemOrAdmin(owner);
-    constexpr ACCESS_MASK writeBits=FILE_GENERIC_WRITE|DELETE|WRITE_DAC|WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL;
-    for(WORD i=0;ok && i<dacl->AceCount;++i){
-        void* entry=nullptr;
-        if(!GetAce(dacl,i,&entry)){ok=false;break;}
-        const auto* header=static_cast<ACE_HEADER*>(entry);
-        if(header->AceType!=ACCESS_ALLOWED_ACE_TYPE)continue;
-        const auto* ace=static_cast<ACCESS_ALLOWED_ACE*>(entry);
-        if((ace->Mask&writeBits) && !wellKnownSystemOrAdmin(reinterpret_cast<PSID>(const_cast<DWORD*>(&ace->SidStart))))ok=false;
-    }
+    const bool ok=protectedRootAclShape(owner,dacl);
     if(descriptor)LocalFree(descriptor);
     return ok;
 }
