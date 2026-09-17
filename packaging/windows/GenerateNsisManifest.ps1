@@ -73,13 +73,15 @@ try {
         $sha256 = [System.Security.Cryptography.SHA256]::Create()
         $fileStream = [IO.File]::OpenRead($fullPath)
         try {
+            # Size comes from the already open stream: no second stat between
+            # hashing and sizing, so both describe the same opened file.
+            $size = [uint64]$fileStream.Length
             $hashBytes = $sha256.ComputeHash($fileStream)
         }
         finally {
             $fileStream.Dispose()
             $sha256.Dispose()
         }
-        $size = (Get-Item -LiteralPath $fullPath).Length
 
         $writer.Write([uint32]$pathBytes.Length)
         $writer.Write([uint64]$size)
