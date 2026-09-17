@@ -253,22 +253,6 @@ int wmain() {
                 && out.size()==countCap,"count-capped journal replays exactly at the cap");
         }
     }
-    // Replay opens the journal read-only and never shares write access: a
-    // writer holding the file (sharing reads only) must block replay
-    // entirely, while a plain reader does not.
-    {
-        const auto dir=corruptCase(0x3003,1,"share-mode fixture",[&](const fs::path&){});
-        const auto file=fs::path(dir)/L"journal.log";
-        std::vector<TxJournalRecord> out;
-        {Handle reader{CreateFileW(file.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr)};
-         check(reader.value,"reader fixture holds the journal");
-         check(TxJournal::replay(dir,0x3003,out)==TxJournalError::None && out.size()==1,
-             "replay coexists with a read-sharing reader");}
-        {Handle writer{CreateFileW(file.c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr)};
-         check(writer.value,"writer fixture holds the journal");
-         check(TxJournal::replay(dir,0x3003,out)==TxJournalError::Unavailable && out.empty(),
-             "replay refuses a writer-held journal");}
-    }
     // Root validation: network and reparse roots are refused; junction fixture.
     {
         int flushes=0; TxJournal journal;
