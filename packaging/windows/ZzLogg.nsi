@@ -269,8 +269,10 @@ Function ZzLoggRestrictedUpgrade
     File "/oname=$ZzLoggStaging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"
     File "/oname=$ZzLoggStaging\files.manifest" "release\.zzlogg-files.manifest"
     FileOpen $4 "$ZzLoggStaging\nsis-entry.log" w
+    IfErrors zzlogg_upgrade_entrylog_done 0
     FileWrite $4 "mode=upgrade locator=$ZzLoggLocator target=$ZzLoggTarget identity=$ZzLoggIdentity$\r$\n"
     FileClose $4
+    zzlogg_upgrade_entrylog_done:
     ; Finalized engine argv (3C task 5): only non-secret parameters as
     ; flag/value pairs; transaction credentials travel solely through the
     ; current-user-private credential file named by the locator.
