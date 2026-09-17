@@ -40,20 +40,20 @@
 
 **文件：** 修改 `src/updater/handoffprotocol.{h,cpp}`、`bootstrap_win.{h,cpp}`、`bootstrap_win_p.h`、`coordinator.{h,cpp}`、`coordinator_p.h`、`src/updater/CMakeLists.txt`；`tests/updater/protocoltest.cpp`、`coordinatortest.cpp`、`channeltest.cpp`、`handofffixture.cpp` 及相应 CMake。
 
-- [ ] 先写失败测试：Proceed 编解码、错误顺序（AwaitingAppExit 前 Proceed、重复 Proceed、终态后 Proceed）、错误事务/令牌 Proceed 全部拒绝；协调者在 CommitExit 后、应用进程真实退出前不发 Proceed（用 linger fixture 证明），退出后立即发。
+- [x] 先写失败测试：Proceed 编解码、错误顺序（AwaitingAppExit 前 Proceed、重复 Proceed、终态后 Proceed）、错误事务/令牌 Proceed 全部拒绝；协调者在 CommitExit 后、应用进程真实退出前不发 Proceed（用 linger fixture 证明），退出后立即发。
 
 ```cpp
 // MessageKind 增加 Proceed=8；线协议版本字节 1->2，两端同构建一致，旧版本拒绝。
 // 状态机：客户端侧 ExitCommitted 后仅接受 Proceed -> 可执行事务；Proceed 之前任何文件修改
 // 属于引擎违约（任务 3 引擎遵守，此处协议层只保证顺序与凭据）。
-// Coordinator::commitExit() 后新增内部步骤：等待子进程持有的应用进程句柄信号，
-// 然后发送 Proceed；应用进程仍存活时调用 proceedIfExited() 返回 PeerRunning。
+// Coordinator::commitExit() 后新增内部步骤：等待应用进程真实退出（协调者复制应用进程句柄，
+// adopt 防 PID 复用），然后发送 Proceed；应用进程仍存活时 proceedIfExited() 返回 PeerRunning。
 ```
 
-- [ ] bootstrap 映射版本 2->3：`BootstrapData` 增加可选数据目录字段（固定容量 wchar 数组，建议 240 字符上限；空表示无）；打开时拒绝 version!=3、含控制字符、非绝对路径、超长未截断终止。版本 2 映射被拒绝。
-- [ ] fixture 扩展：等待 Proceed 模式（收到 Proceed 才 Complete）、proceed 前假装写文件的违约检测模式由测试侧断言顺序即可（fixture 记录消息序列）。既有全部协议/通道/协调者测试迁移到 v2/v3 并保持语义；未启用预留的独立协议测试保持受限内部用法。
-- [ ] 变异：移除 Proceed 顺序守卫与 bootstrap 版本检查各一次，必须触发失败并恢复。
-- [ ] 完整 Release 构建与 CTest，中文提交。
+- [x] bootstrap 映射版本 2->3：`BootstrapData` 增加可选数据目录字段（固定容量 wchar 数组，建议 240 字符上限；空表示无）；打开时拒绝 version!=3、含控制字符、非绝对路径、超长未截断终止。版本 2 映射被拒绝。
+- [x] fixture 扩展：等待 Proceed 模式（收到 Proceed 才 Complete）、proceed 前假装写文件的违约检测模式由测试侧断言顺序即可（fixture 记录消息序列）。既有全部协议/通道/协调者测试迁移到 v2/v3 并保持语义；未启用预留的独立协议测试保持受限内部用法。
+- [x] 变异：移除 Proceed 顺序守卫与 bootstrap 版本检查各一次，必须触发失败并恢复。
+- [x] 完整 Release 构建与 CTest，中文提交。
 
 ```powershell
 $env:CL='/MP8'
@@ -162,6 +162,7 @@ git commit -m "feat: 接通协调者安装启动与普通权限重启" -m "3C �
 - [ ] ApplicationUpdateHandoff 析构改有界等待 + 诊断日志；取消后 reservationHeld 未清空期间的重复 begin 返回可诊断状态而非静默 false。
 - [ ] Abandoned 预留与 Blocked 的文案区分（守卫诊断映射 + 三语文案）；评估并记录 Prepared 期 WM_QUERYENDSESSION 语义（结论写入文档，若需代码改动限本任务范围）。
 - [ ] UPDATE_PROTOCOL.md：协议 v2/Proceed、bootstrap v3、事务与恢复边界、"准备→预留→握手→提交/取消"时序说明（含观察句柄存续期与引擎 Proceed 前禁止修改）、schema 2 落地清单、3C 未交付项与阶段 4 真实环境验收清单。
+- [ ] 裁决并落实 `updaterProtocol` 发布身份字段与线协议 v2 的关系：发布身份语义经 installedrelease 断言锁定为 1，线协议已升 2；明确二者是否应同步，若保持 1 则在文档写明"发布身份协议号与线协议号独立演进"的理由与边界，若升为 2 则同步更新 installedrelease/releaseidentity 测试矩阵。
 - [ ] 完整构建/CTest、三语与布局回归，中文提交。
 
 ```powershell
@@ -180,3 +181,4 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 
 - 起点 master `3dfbe546`（3B.4 主线验收完成，105/105）；隔离工作树 `.worktrees/update-core`、分支 `codex/installer-update-plan` 继续沿用。用户已授权验证完成后自动快进合并 master，不 push。
 - 设计规格 `49adcc5f`；关键裁决：NSIS 脚本不承载事务逻辑（载荷内嵌原生引擎）；协议显式增加 Proceed 消息补齐"应用真实退出"信号（3B 消息集缺口）；UpdateIdentitySchema 升 2 引入落地清单，schema 1 按 Legacy 处理；事务凭据经当前用户私有文件传递而非命令行。
+- 任务 1：`4f27556b` 协议 v2（Proceed=8、版本字节 2、ExitConfirmed 状态）与 bootstrap v3（240 wchar 受限数据目录，旧版本/控制字符/相对路径/未终止拒绝）。协调者复制应用进程句柄并以 adopt 防 PID 复用，存活返回 PeerRunning、退出后幂等发 Proceed。真实子进程 TDD 红绿与两组变异证据完整，完整 105/105 通过。独立审查规格符合、质量通过，无关键/重要发现；Proceed 判定句柄持有方改为协调者侧复制被裁定为对简报草图的合理偏离（语义等价、不信任引擎自报）；`updaterProtocol=1` 与线协议号的关系移交任务 6 显式裁决（已补入任务 6）。
