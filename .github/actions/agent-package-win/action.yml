@@ -1,12 +1,14 @@
 name: "Prepare windows packages"
 description: ""
 inputs:
+  # 签名链路当前整体注释（见下方被注释的 codesign 步骤），三个 s3 input
+  # 实际未被消费，仅作声明；改可选以便无签名机密的 workflow/fork 复用本 action。
   s3-key-id:
-    required: true
+    required: false
   s3-secret:
-    required: true
+    required: false
   s3-bucket:
-    required: true
+    required: false
 runs:
   using: "composite"
   steps:

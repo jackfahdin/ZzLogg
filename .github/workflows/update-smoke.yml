@@ -1,0 +1,124 @@
+name: "Update Smoke"
+
+# 更新冒烟流水线：真实构建 + NSIS 打包 + 调用 tools/acceptance 验收脚本包。
+# windows-2022 runner 是管理员权限的真实 Windows 环境（真实 ProgramData/HKLM/
+# 双卷 C:+D:），可覆盖真实安装/登记/ACL/受限入口失败关闭/分卷预检等验收条目。
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - 'src/updater/**'
+      - 'packaging/windows/**'
+      - 'tools/acceptance/**'
+      - '.github/workflows/update-smoke.yml'
+
+jobs:
+  Smoke:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # 与 ci-build.yml Windows job 的 matrix.config 逐项一致——
+          # agent-setup / prepare-workspace-env / agent-build 直接引用 matrix.config.*。
+          - os: windows
+            os_version: 2022
+            qt_version: 6.8.3
+            qt_modules: qt5compat
+            qt_arch: win64_msvc2022_64
+            arch: x64
+            ssl_arch: -x64
+            cmake_opts:
+            artifacts_id: windows-x64-qt6
+
+    runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # openssl 缓存/下载/路径设置与 ci-build.yml Windows job 逐行一致
+      #（agent-package-win 对 SSL_DIR 下 libcrypto/libssl 有硬断言）。
+      # 注：cache 动作用 v4（v2 已被 GitHub 停用），path/key 与 ci-build.yml 相同。
+      - name: Cache openssl
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\openssl-1.1
+          key: OpensslCache-1-1-1w
+
+      - name: Download openssl
+        if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }}
+        run: |
+          Invoke-WebRequest -Uri "https://www.firedaemon.com/download-firedaemon-openssl-1.1.1-zip" -OutFile openssl.zip
+          7z x openssl.zip
+
+      - name: Set openssl paths
+        shell: sh
+        run: |
+          echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV
+          echo "SSL_ARCH=${{ matrix.config.ssl_arch }}" >> $GITHUB_ENV
+
+      - uses: ./.github/actions/agent-setup
+      - uses: ./.github/actions/klogg-version
+      - uses: ./.github/actions/prepare-workspace-env
+      - name: Prepare dev cmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.config.arch }}
+
+      - uses: ./.github/actions/agent-build
+      # s3 三个 input 已改可选（该 action 内签名步骤整体注释、input 实际未消费），
+      # 无签名机密的 fork/本流水线不传。
+      - uses: ./.github/actions/agent-package-win
+
+      # 提权探测与 filter 策略（失败关闭原则：能跑的全绿，不能跑的显式排除并留痕）：
+      # - 用例 01-07 可 CI 自动化，但全部需管理员（安装包 RequestExecutionLevel=admin，
+      #   验收脚本 Test-CasePrereqs 在非管理员下直接 SKIP）；
+      # - 用例 08-12 为固定 SKIP 的手工用例（交互 UAC/多账号/关机注销等，指向 VM 手册）。
+      # windows-2022 runner 预期提权（elevated=true）→ -Filter '*' 跑全部 12 用例；
+      # 若 runner 非提权（elevated=false）→ 以 -Filter '0[89]-*'、'1[0-2]-*' 显式排除
+      # 01-07（此时无可自动化用例，仅留 08-12 的 SKIP 痕），并在 job summary 标注排除清单；
+      # 首跑后按实际 elevated 值复核本策略（预期 windows-2022 为 true）。
+      - name: 提权能力探测
+        id: elev
+        shell: powershell
+        run: |
+          $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $p = New-Object Security.Principal.WindowsPrincipal($id)
+          $elevated = $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          echo "elevated=$($elevated.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+      - name: 验收冒烟
+        shell: powershell
+        run: |
+          $setup = Get-Item "ZzLogg-*-setup.exe" | Select-Object -First 1
+          if (-not $setup) {
+            Write-Error "未找到 NSIS 安装包 ZzLogg-*-setup.exe（agent-package-win 应在工作区根产出）"
+            exit 1
+          }
+          $elevated = '${{ steps.elev.outputs.elevated }}' -eq 'true'
+          if ($elevated) {
+            $filters = @('*')
+            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 已提权，跑全部 12 用例（08-12 为固定 SKIP 手工项，跳过原因见报告 Evidence）"
+          }
+          else {
+            $filters = @('0[89]-*', '1[0-2]-*')
+            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 非提权，显式排除需管理员用例 01-07（install-silent / registry-identity / protected-root-acl / upgrade-entry-badargs / recover-entry-nojournal / uninstall-keeps-userdata / space-preflight-multivolume），仅留 08-12 固定 SKIP 痕"
+          }
+          $exitCode = 0
+          $index = 0
+          foreach ($filter in $filters) {
+            $index++
+            $report = if ($elevated) { 'smoke-report.txt' } else { "smoke-report-$index.txt" }
+            powershell -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 `
+              -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
+            if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
+          }
+          if ($exitCode -ne 0) { exit $exitCode }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: update-smoke-report
+          path: smoke-report*.txt
+          if-no-files-found: warn
