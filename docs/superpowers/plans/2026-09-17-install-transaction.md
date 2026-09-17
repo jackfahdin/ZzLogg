@@ -140,11 +140,11 @@ git commit -m "feat: 增加落地清单与 NSIS 受限升级入口" -m "3C 任�
 
 **文件：** 修改 `src/updater/coordinator.{h,cpp}`、`main_win.cpp`、`bootstrap_win*`；`src/app/applicationupdatehandoff.*`、`kloggapp.h`（Request 扩展与生产装配注释）；`tests/updater/coordinatortest.cpp`、`handofffixture.cpp`、`tests/ui_acceptance/updatehandofftest.cpp`。
 
-- [ ] 先写失败测试：协调者启动安装器（fixture 引擎）完整链：Hello→AwaitingAppExit→CommitExit→真实退出→Proceed→事务→Complete→以原用户身份重启 fixture GUI→启动确认。UAC 取消（ShellExecuteEx ERROR_CANCELLED）、启动失败、引擎 Failed、重启后进程早夭（无端点）均失败关闭且不提交安装。
-- [ ] 凭据文件：协调者写当前用户私有临时文件（随机名、ACL 当前用户），受限开关只传定位名；引擎读取后删除；文件缺失/身份不符即拒。令牌不进命令行/日志的既有契约测试扩展覆盖该文件路径。
-- [ ] 重启：Complete 后协调者复核 `<安装根>\ZzLogg.exe` 位于已登记目录且标记/清单一致，以原用户身份启动并携带 bootstrap v3 数据目录；有界等待进程存活 + 目录作用域单实例端点出现；确认失败报告并保留备份待授权恢复。父进程已提权返回 ManualRestartRequired（既有语义回归测试保持）。
-- [ ] 应用侧：`CoordinationSession::Request` 增加安装包路径与选择上下文字段；生产构造仍无工厂、begin 恒拒（契约测试保持）；UI 不新增生产可见能力。
-- [ ] 变异：删除重启前登记复核或启动确认端点检查，测试必须失败并恢复。完整构建/CTest，中文提交。
+- [x] 先写失败测试：协调者启动安装器（fixture 引擎）完整链：Hello→AwaitingAppExit→CommitExit→真实退出→Proceed→事务→Complete→以原用户身份重启 fixture GUI→启动确认。UAC 取消（ShellExecuteEx ERROR_CANCELLED）、启动失败、引擎 Failed、重启后进程早夭（无端点）均失败关闭且不提交安装。
+- [x] 凭据文件：协调者写当前用户私有临时文件（随机名、ACL 当前用户），受限开关只传定位名；引擎读取后删除；文件缺失/身份不符即拒。令牌不进命令行/日志的既有契约测试扩展覆盖该文件路径。
+- [x] 重启：Complete 后协调者复核 `<安装根>\ZzLogg.exe` 位于已登记目录且标记/清单一致，以原用户身份启动并携带 bootstrap v3 数据目录；有界等待进程存活 + 目录作用域单实例端点出现；确认失败报告并保留备份待授权恢复。父进程已提权返回 ManualRestartRequired（既有语义回归测试保持）。
+- [x] 应用侧：`CoordinationSession::Request` 增加安装包路径与选择上下文字段；生产构造仍无工厂、begin 恒拒（契约测试保持）；UI 不新增生产可见能力。
+- [x] 变异：删除重启前登记复核或启动确认端点检查，测试必须失败并恢复。完整构建/CTest，中文提交。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -185,4 +185,5 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 - 任务 2：`96ece89d` 追加式持久事务日志（先写后刷、严格 fail-closed 解析、重放幂等）、受保护事务目录（ACL 主体可注入、真实 DACL 断言）、卷空间预检；两组变异被捕获，完整 106/106 通过。独立审查无关键/重要发现；撕裂/损坏日志整体拒绝自动恢复（交授权路径）的裁决记录入账本。
 - 任务 3：`0e3a71b1` + 审查修复 `86e75848` 差分文件集与登记事务引擎：清单有界敌意解析、先写日志后操作、普通失败逆序回滚、中断幂等授权恢复、登记白名单精确到卸载项键、Corrupt/0 字节日志呈现为保留现场需授权恢复；两卷空间预检（审查修复）。两组变异重跑归档，完整 108/108 通过。复审确认全部发现解决且无新破坏；分卷预检端到端与本机单固定盘环境受限，归阶段 4 验收。
 - 任务 4：`20f8030c` + 两轮审查修复 `16777d4c`、`7f8efcdb` 落地清单（ZZTXMAN1 与引擎解析器逐字节同源、共享枚举生成器）与 NSIS 受限升级/恢复入口（禁 /D=、Quit 跳页、VerifyTarget 逐级拒 reparse、受保护目录、退出码传播）。审查发现 System::Call 结构体尺寸/字段错位（提权进程内存破坏+身份捕获失效）、逐级 reparse 缺口、契约断言强度不足，及修复引入的两处 IntCmp 分支反转（恒拒合法目标）——全部修复并经两轮复审确认；新增全分支语义审计与契约语义注释。makensis 3.11 真实编译通过，完整 109/109 通过。升级模式引擎 argv 形态与恢复定位名精确格式移交任务 5 对齐。
+- 任务 5：`b3c989cb` 协调者生产链路：凭据文件（CREATE_NEW+用户 DACL+属主/形状/定位名/活身份四层校验、读后即删、三路径清理）、受限开关启动安装器（可注入 seam）、Complete 后复核登记/标记/清单并以原用户身份重启（仅 --data-dir 参数、目录作用域端点有界确认）、ManualRestartRequired 保持。两条对齐项定稿：argv 契约（协调者→NSIS 仅定位名、NSIS→引擎五组 flag/value）与定位名 16 位小写 hex 四方逐字节一致。Request 增加 packagePath/releaseVersion，生产工厂仍缺席。两组变异被捕获，完整 109/109 通过。独立审查规格符合、质量通过，无关键/重要发现；NSIS 改动逐行语义审查未见分支缺陷；跨完整性级别令牌验证可行性归阶段 4。
 - 任务 2：`96ece89d` 持久事务日志与受保护事务目录。`txjournal_win` 二进制日志（32 字节头 + 68 字节定长记录头 + 长度前缀 UTF-16 体，显式小端编码），open 独占创建 `<根>\<txid 十六进制>`（`createExclusiveDirectory` 扩展注入安全描述符，祖先钉住复用 installlock 共享原语），append 先写后刷（flush 可注入观察，生产默认 FlushFileBuffers），replay 严格解析：撕裂/未知操作/未知 flags/错序/事务 ID 不符均 Corrupt 且重放为零操作，Complete 后拒绝追加，重放只读幂等。ACL 主体经 TxJournalOptions 注入（生产 Administrators/SYSTEM 写 + 已验证用户读），测试以当前用户注入并读回真实 DACL 断言（受保护、OICI 继承、读者无法建 journal 的行为证明）。checkVolumeSpace 饱和加法 + 1MiB 日志预留 + 最近现存非重解析祖先查询。TDD 红灯 47 项失败、两组变异均被捕获，完整 106/106 通过。
