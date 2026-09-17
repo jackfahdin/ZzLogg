@@ -14,37 +14,14 @@
 // replays the journal strictly in reverse, never accepting an external file
 // list.
 #include "bootstrap_win_p.h"
+#include "txcontract_win_p.h"
 #include "txengine_win.h"
 namespace {
 using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
-constexpr int UsageRejected=2;
-constexpr int ProtocolViolation=47;
-int exitForOutcome(TxOutcome outcome) {
-    switch(outcome) {
-    case TxOutcome::Applied: case TxOutcome::Recovered: case TxOutcome::NothingToRecover: return 0;
-    case TxOutcome::Rejected: return 42;
-    case TxOutcome::Conflict: return 43;
-    case TxOutcome::RolledBack: return 44;
-    case TxOutcome::NeedsAuthorizedRecovery: return 45;
-    case TxOutcome::RecoveryFailed: return 46;
-    default: return ProtocolViolation;
-    }
-}
 std::wstring argument(int argc,wchar_t** argv,const wchar_t* name) {
     for(int i=1;i+1<argc;++i) if(std::wstring(argv[i])==name) return argv[i+1];
     return {};
-}
-bool parseTxid(const std::wstring& text,std::uint64_t& value) {
-    value=0;
-    if(text.size()!=16) return false;
-    for(const auto c:text) {
-        value<<=4;
-        if(c>=L'0' && c<=L'9') value|=c-L'0';
-        else if(c>=L'a' && c<=L'f') value|=c-L'a'+10;
-        else return false;
-    }
-    return value!=0;
 }
 struct EngineArguments { std::wstring install,staging,txroot,txid,version; };
 // Strict flag/value scan: every token must be a known flag with a fresh

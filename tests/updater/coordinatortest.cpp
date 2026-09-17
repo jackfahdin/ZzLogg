@@ -1,6 +1,7 @@
 #include "coordinator_p.h"
 #include "installationactivity_win.h"
 #include "installlock_win.h"
+#include "updatertesthelpers.h"
 #include <sddl.h>
 #include <aclapi.h>
 #include <filesystem>
@@ -88,18 +89,6 @@ std::vector<std::wstring> recordLines(const fs::path& path) {
     while(std::getline(record,line))lines.push_back(line);
     return lines;
 }
-std::wstring currentUserSid() {
-    HANDLE rawToken=nullptr;
-    if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&rawToken)) return {};
-    Handle token(rawToken);
-    DWORD size=0;GetTokenInformation(token.get(),TokenUser,nullptr,0,&size);
-    if(!size || size>4096) return {};
-    std::vector<BYTE> bytes(size);
-    if(!GetTokenInformation(token.get(),TokenUser,bytes.data(),size,&size)) return {};
-    LPWSTR sid=nullptr;
-    if(!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid,&sid)) return {};
-    std::wstring result(sid);LocalFree(sid);return result;
-}
 struct Ace { std::wstring sid;DWORD mask; };
 // Real DACL read-back of a written credential file, mirroring the journal
 // test's assertion style: protected, exactly the expected ACE set.
@@ -121,17 +110,11 @@ std::vector<Ace> fileDacl(const fs::path& path,bool& protectedDacl) {
     if(descriptor)LocalFree(descriptor);
     return result;
 }
-// Byte-identical to the engine's parseTxid acceptance: exactly 16 lowercase
-// hexadecimal digits, nonzero.
+// The locator acceptance is the engine's parseTxid itself (txcontract_win_p.h):
+// exactly 16 lowercase hexadecimal digits, nonzero.
 bool locatorShape(const std::wstring& locator) {
-    if(locator.size()!=16) return false;
-    bool nonzero=false;
-    for(const auto c:locator) {
-        const bool digit=c>=L'0' && c<=L'9',lower=c>=L'a' && c<=L'f';
-        if(!digit && !lower) return false;
-        nonzero=nonzero || c!=L'0';
-    }
-    return nonzero;
+    std::uint64_t value=0;
+    return parseTxid(locator,value);
 }
 // Injected installer launcher: models ShellExecuteEx runas by launching the
 // fixture installer as an ordinary child and adopting its real identity. The

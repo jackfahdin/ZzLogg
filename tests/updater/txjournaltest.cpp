@@ -1,4 +1,5 @@
 #include "txjournal_win.h"
+#include "updatertesthelpers.h"
 #define NOMINMAX
 #include <windows.h>
 #include <sddl.h>
@@ -9,6 +10,7 @@
 #include <iostream>
 #include <vector>
 using namespace zzlogg::updater;
+using zzlogg::updater::detail::currentUserSid;
 namespace fs=std::filesystem;
 namespace {
 int failures=0;
@@ -19,16 +21,6 @@ struct Handle {
 };
 constexpr std::uint64_t kTxId=0x1122334455667788ull;
 const std::wstring kTxDir=L"1122334455667788";
-std::wstring currentUserSid() {
-    Handle token; if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&token.value)) return {};
-    DWORD size=0; GetTokenInformation(token.value,TokenUser,nullptr,0,&size);
-    if(!size || size>4096) return {};
-    std::vector<BYTE> bytes(size);
-    if(!GetTokenInformation(token.value,TokenUser,bytes.data(),size,&size)) return {};
-    LPWSTR sid=nullptr;
-    if(!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid,&sid)) return {};
-    std::wstring result(sid); LocalFree(sid); return result;
-}
 TxJournalOptions userOptions(const std::wstring& user,int& flushCount) {
     TxJournalOptions options; options.writers={user}; options.readers={user};
     options.flush=[&flushCount](void* h){++flushCount;return FlushFileBuffers(h)!=FALSE;}; return options;

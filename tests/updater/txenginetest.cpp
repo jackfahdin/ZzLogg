@@ -6,6 +6,7 @@
 #include "coordinator_p.h"
 #include "txengine_win.h"
 #include "txjournal_win.h"
+#include "updatertesthelpers.h"
 #define NOMINMAX
 #include <windows.h>
 #include <sddl.h>
@@ -28,18 +29,6 @@ namespace {
 int failures=0;
 void check(bool value,const char* name) { if(!value){++failures;std::cerr<<"FAIL: "<<name<<" (win32 "<<GetLastError()<<")\n";} }
 constexpr std::uint64_t kBigBytes=128ull<<20;
-std::wstring currentUserSid() {
-    HANDLE rawToken=nullptr;
-    if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&rawToken)) return {};
-    Handle token(rawToken);
-    DWORD size=0; GetTokenInformation(token.get(),TokenUser,nullptr,0,&size);
-    if(!size || size>4096) return {};
-    std::vector<BYTE> bytes(size);
-    if(!GetTokenInformation(token.get(),TokenUser,bytes.data(),size,&size)) return {};
-    LPWSTR sid=nullptr;
-    if(!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid,&sid)) return {};
-    std::wstring result(sid); LocalFree(sid); return result;
-}
 std::wstring hexId(std::uint64_t txid) {
     const wchar_t hex[]=L"0123456789abcdef"; std::wstring out;
     for(int i=15;i>=0;--i) out+=hex[(txid>>(i*4))&15];
@@ -262,17 +251,6 @@ std::vector<std::wstring> recordLines(const fs::path& path) {
     std::vector<std::wstring> lines; std::wifstream record(path); std::wstring line;
     while(std::getline(record,line)) lines.push_back(line);
     return lines;
-}
-std::uint64_t parseHexId(const std::wstring& text) {
-    std::uint64_t value=0;
-    if(text.size()!=16) return 0;
-    for(const auto c:text) {
-        value<<=4;
-        if(c>=L'0' && c<=L'9') value|=c-L'0';
-        else if(c>=L'a' && c<=L'f') value|=c-L'a'+10;
-        else return 0;
-    }
-    return value;
 }
 // Injected installer launcher: models ShellExecuteEx runas by launching the
 // fixture installer (NSIS stand-in) as an ordinary child. The engine then

@@ -1,6 +1,7 @@
 #include "bootstrap_win_p.h"
 #include "installationactivity_win.h"
 #include "txengine_win.h"
+#include "updatertesthelpers.h"
 #include <sddl.h>
 #include <filesystem>
 #include <fstream>
@@ -22,29 +23,6 @@ std::wstring envVar(const wchar_t* name) {
     wchar_t buffer[32768]{};
     const auto length=GetEnvironmentVariableW(name,buffer,32768);
     return length && length<32768?std::wstring(buffer,buffer+length):std::wstring();
-}
-std::wstring fixtureUserSid() {
-    HANDLE rawToken=nullptr;
-    if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&rawToken)) return {};
-    Handle token(rawToken);
-    DWORD size=0; GetTokenInformation(token.get(),TokenUser,nullptr,0,&size);
-    if(!size || size>4096) return {};
-    std::vector<BYTE> bytes(size);
-    if(!GetTokenInformation(token.get(),TokenUser,bytes.data(),size,&size)) return {};
-    LPWSTR sid=nullptr;
-    if(!ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(bytes.data())->User.Sid,&sid)) return {};
-    std::wstring result(sid); LocalFree(sid); return result;
-}
-std::uint64_t parseHex(const std::wstring& text) {
-    std::uint64_t value=0;
-    if(text.size()!=16) return 0;
-    for(const auto c:text) {
-        value<<=4;
-        if(c>=L'0' && c<=L'9') value|=c-L'0';
-        else if(c>=L'a' && c<=L'f') value|=c-L'a'+10;
-        else return 0;
-    }
-    return value;
 }
 // File-backed fake registry, one line per value: name \t S|D \t value. The
 // engine's key whitelist is exercised for real: any key other than the exact
@@ -85,20 +63,9 @@ private:
     std::map<std::wstring,std::wstring> strings_;
     std::map<std::wstring,std::uint32_t> dwords_;
 };
-int exitForOutcome(TxOutcome outcome) {
-    switch(outcome) {
-    case TxOutcome::Applied: case TxOutcome::Recovered: case TxOutcome::NothingToRecover: return 0;
-    case TxOutcome::Rejected: return 42;
-    case TxOutcome::Conflict: return 43;
-    case TxOutcome::RolledBack: return 44;
-    case TxOutcome::NeedsAuthorizedRecovery: return 45;
-    case TxOutcome::RecoveryFailed: return 46;
-    default: return 47;
-    }
-}
 TxEngineOptions fixtureOptions(TxRegistry& registry) {
     TxEngineOptions options;
-    const auto user=fixtureUserSid();
+    const auto user=currentUserSid();
     options.journal.writers={user}; options.journal.readers={user};
     options.registry=&registry;
     // Fixture stand-in for the production protected-image assertion: the
@@ -156,20 +123,20 @@ int runCredentialEngine(int argc,wchar_t** argv) {
         else if(flag==L"--txroot"){value=&txroot;seen=&seenTxroot;}
         else if(flag==L"--txid"){value=&txid;seen=&seenTxid;}
         else if(flag==L"--version"){value=&version;seen=&seenVersion;}
-        else return 2;
-        if(*seen || i+1>=argc) return 2;
+        else return UsageRejected;
+        if(*seen || i+1>=argc) return UsageRejected;
         *value=argv[++i];*seen=true;
     }
-    if(!seenInstall || !seenStaging || !seenTxroot || !seenTxid || !seenVersion) return 2;
-    const auto txidValue=parseHex(txid);
-    if(!txidValue) return 2;
+    if(!seenInstall || !seenStaging || !seenTxroot || !seenTxid || !seenVersion) return UsageRejected;
+    const auto txidValue=parseHexId(txid);
+    if(!txidValue) return UsageRejected;
     CredentialData credential;
-    if(!readCredentialFile(txid,credential)) return 41;
-    if(!deleteCredentialFile(txid)) return 41;
+    if(!readCredentialFile(txid,credential)) return BootstrapRejected;
+    if(!deleteCredentialFile(txid)) return BootstrapRejected;
     record(L"engine txid="+txid);
     ProcessIdentity server;
     const ProcessStamp serverStamp{static_cast<DWORD>(credential.coordinatorPid),credential.coordinatorCreated};
-    if(!server.open(serverStamp.pid) || !server.matches(serverStamp)) return 41;
+    if(!server.open(serverStamp.pid) || !server.matches(serverStamp)) return BootstrapRejected;
     LocalChannel channel;
     if(!channel.connect(credential.transaction,server,after(3000))) return 52;
     Message message{MessageKind::Hello,credential.transaction,credential.token};
@@ -203,11 +170,11 @@ int runCredentialEngine(int argc,wchar_t** argv) {
 // root, payload version) arrives through the fixture environment.
 int runInstallerFixture(const std::wstring& switchArg) {
     record(L"installer switch="+switchArg);
-    if(switchArg.rfind(L"/ZzLoggUpgrade=",0)!=0) return 2;
+    if(switchArg.rfind(L"/ZzLoggUpgrade=",0)!=0) return UsageRejected;
     const auto locator=switchArg.substr(15);
-    if(!parseHex(locator)) return 2;
+    if(!parseHexId(locator)) return UsageRejected;
     wchar_t self[32768]{};const auto length=GetModuleFileNameW(nullptr,self,32768);
-    if(!length || length>=32768) return 2;
+    if(!length || length>=32768) return UsageRejected;
     std::wstring command=L"\""+std::wstring(self,length)+L"\" --tx-engine"
         +L" --install \""+envVar(L"ZZLOGG_TX_INSTALL")+L"\""
         +L" --staging \""+envVar(L"ZZLOGG_TX_STAGING")+L"\""
@@ -215,7 +182,7 @@ int runInstallerFixture(const std::wstring& switchArg) {
         +L" --txid "+locator
         +L" --version \""+envVar(L"ZZLOGG_TX_VERSION")+L"\"";
     STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION process{};
-    if(!CreateProcessW(self,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process)) return 2;
+    if(!CreateProcessW(self,command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process)) return UsageRejected;
     Handle child(process.hProcess),thread(process.hThread);
     if(WaitForSingleObject(child.get(),120000)!=WAIT_OBJECT_0){TerminateProcess(child.get(),90);return 90;}
     DWORD code=90;GetExitCodeProcess(child.get(),&code);
@@ -250,7 +217,7 @@ int runGuiFixture(int argc,wchar_t** argv) {
 int runEngineRecovery() {
     FileRegistry registry(envVar(L"ZZLOGG_TX_FAKEREG"));
     auto options=fixtureOptions(registry);
-    const auto result=TxEngine::recover(envVar(L"ZZLOGG_TX_TXROOT"),parseHex(envVar(L"ZZLOGG_TX_TXID")),
+    const auto result=TxEngine::recover(envVar(L"ZZLOGG_TX_TXROOT"),parseHexId(envVar(L"ZZLOGG_TX_TXID")),
         envVar(L"ZZLOGG_TX_INSTALL"),std::move(options));
     record(L"engine recover="+std::to_wstring(static_cast<int>(result.outcome)));
     return exitForOutcome(result.outcome);
