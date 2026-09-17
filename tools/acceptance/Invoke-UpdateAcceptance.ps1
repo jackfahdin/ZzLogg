@@ -159,15 +159,21 @@ function Get-DirectoryFingerprint {
     }
 }
 
-# 受保护根 ACL 断言——与引擎 productionProtectedImage（txengine_win.cpp）同一规则：
+# 受保护根 ACL 断言——与引擎 productionProtectedImage（txengine_win.cpp
+# protectedRootAclShape）同一规则：
 #   属主 ∈ {Administrators(S-1-5-32-544), SYSTEM(S-1-5-18)}；
 #   仅检查 Allow ACE（引擎跳过非 ACCESS_ALLOWED 项）；
-#   任何 Allow ACE 的掩码命中写位集合 FILE_GENERIC_WRITE|DELETE|WRITE_DAC|WRITE_OWNER|
-#   GENERIC_WRITE|GENERIC_ALL（0x501F0116）时，其主体必须是 Administrators/SYSTEM。
+#   任何 Allow ACE 的掩码命中写位集合 FILE_WRITE_DATA|FILE_APPEND_DATA|
+#   FILE_WRITE_EA|FILE_WRITE_ATTRIBUTES|DELETE|WRITE_DAC|WRITE_OWNER|
+#   GENERIC_WRITE|GENERIC_ALL（0x500D0116）时，其主体必须是 Administrators/SYSTEM。
+# 写位集合为显式数据写位枚举：不含 SYNCHRONIZE/READ_CONTROL（二者随
+# FILE_GENERIC_WRITE 带入但并非写能力），故安装器授权的 Authenticated Users
+# 只读 ACE（0x120089）通过断言；常量数值必须与引擎 protectedRootAclShape
+# 逐位一致，引擎改动时同步本常量。
 # Authenticated Users / Users 的只读形态由此规则蕴含（其 ACE 命中写位即违规）。
 function Test-ProtectedRootAcl {
     param([Parameter(Mandatory = $true)][string]$Root)
-    $writeBits = [uint32]0x501F0116
+    $writeBits = [uint32]0x500D0116
     $allowedWriters = @('S-1-5-18', 'S-1-5-32-544')
     $acl = Get-Acl -Path $Root
 

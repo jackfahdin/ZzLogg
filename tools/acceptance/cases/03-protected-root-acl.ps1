@@ -2,9 +2,11 @@
 # PASS 判据：`%ProgramData%\ZzLogg\UpdateTransactions` 存在；Get-Acl 显示属主
 # ∈ {Administrators, SYSTEM}；除 Administrators/SYSTEM 外无任何写位 ACE；
 # Authenticated Users 或 Users 仅只读——与引擎断言同一规则
-# （引擎 productionProtectedImage，src/updater/txengine_win.cpp：
-# 属主 Administrators/SYSTEM；仅检查 Allow ACE；写位集合
-# FILE_GENERIC_WRITE|DELETE|WRITE_DAC|WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL）。
+# （引擎 productionProtectedImage/protectedRootAclShape，src/updater/txengine_win.cpp：
+# 属主 Administrators/SYSTEM；仅检查 Allow ACE；写位集合为显式数据写位枚举
+# FILE_WRITE_DATA|FILE_APPEND_DATA|FILE_WRITE_EA|FILE_WRITE_ATTRIBUTES|DELETE|
+# WRITE_DAC|WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL，不含 SYNCHRONIZE/READ_CONTROL，
+# 判据实现见 Invoke-UpdateAcceptance.ps1 Test-ProtectedRootAcl）。
 # 受保护根由安装器受限升级入口在首次创建时加固（icacls /inheritance:r +
 # Administrators/SYSTEM 完全 + Authenticated Users 只读），故本用例以
 # `/ZzLoggUpgrade=<定位名>` 触发根创建；引擎随后因无协调者凭据文件失败关闭，
