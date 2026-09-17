@@ -34,6 +34,9 @@ runs:
         if exist release rmdir /s /q release
         xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" release
         xcopy /y "%KLOGG_BUILD_ROOT%\generated\documentation.html" release\
+        if exist txpayload rmdir /s /q txpayload
+        md txpayload
+        xcopy /y "%KLOGG_BUILD_ROOT%\output\ZzLoggUpdateTx.exe" txpayload\
         if not defined SSL_DIR (
           echo SSL_DIR is not set
           exit /b 1
@@ -49,6 +52,8 @@ runs:
         xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release\
         xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release\
         powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisUninstallManifest.ps1 -StagingDirectory release
+        if errorlevel 1 exit /b %errorlevel%
+        powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisManifest.ps1 -StagingDirectory release
         if errorlevel 1 exit /b %errorlevel%
 
     - name: Win installer

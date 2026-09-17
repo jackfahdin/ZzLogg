@@ -51,6 +51,13 @@ the COPYING and NOTICE files in licenses\ZzLogg.$\r$\n$\r$\n$_CLICK"
 
 !insertmacro MUI_LANGUAGE "English"
 
+Var ZzLoggMode
+Var ZzLoggLocator
+Var ZzLoggTarget
+Var ZzLoggTxDir
+Var ZzLoggTargetPin
+Var ZzLoggIdentity
+
 Function .onInit
 !ifdef ARCH32
     SetRegView 32
@@ -69,6 +76,168 @@ Function .onInit
     StrCmp $0 "" zzlogg_on_init_done
     StrCpy $INSTDIR "$0"
 zzlogg_on_init_done:
+    ; Restricted upgrade/recovery entry (design spec section 4). Parsed from the
+    ; raw command line; both modes forbid /D= because a restricted run never
+    ; changes the registered target, and both Quit before any page can display.
+    StrCpy $ZzLoggMode ""
+    ${StrStr} $2 $0 "/ZzLoggUpgrade="
+    StrCmp $2 "" zzlogg_init_recover_check
+        StrCmp $1 "" zzlogg_upgrade_switch_ok
+            MessageBox MB_ICONSTOP "Upgrade mode does not accept /D=: the registered installation directory cannot change."
+            Abort
+        zzlogg_upgrade_switch_ok:
+        StrCpy $ZzLoggMode "upgrade"
+        StrCpy $ZzLoggLocator $2 "" 15
+        Call ZzLoggValidateLocator
+        Pop $3
+        StrCmp $3 "ok" 0 zzlogg_switch_bad
+        Call ZzLoggRestrictedUpgrade
+        Quit
+    zzlogg_init_recover_check:
+    ${StrStr} $2 $0 "/ZzLoggRecover="
+    StrCmp $2 "" zzlogg_init_done
+        StrCmp $1 "" zzlogg_recover_switch_ok
+            MessageBox MB_ICONSTOP "Recovery mode does not accept /D=: the registered installation directory cannot change."
+            Abort
+        zzlogg_recover_switch_ok:
+        StrCpy $ZzLoggMode "recover"
+        StrCpy $ZzLoggLocator $2 "" 15
+        Call ZzLoggValidateLocator
+        Pop $3
+        StrCmp $3 "ok" 0 zzlogg_switch_bad
+        Call ZzLoggRestrictedRecover
+        Quit
+    zzlogg_switch_bad:
+        MessageBox MB_ICONSTOP "Malformed restricted-mode locator."
+        Abort
+    zzlogg_init_done:
+FunctionEnd
+
+Function ZzLoggValidateLocator
+    ; The locator is an opaque coordinator-issued name: bounded length, no
+    ; separators, dot segments or quotes. The engine revalidates it strictly.
+    StrLen $3 $ZzLoggLocator
+    IntCmp $3 8 zzlogg_locator_length zzlogg_locator_bad zzlogg_locator_length
+    zzlogg_locator_length:
+    IntCmp $3 65 zzlogg_locator_bad 0 zzlogg_locator_bad
+    ${StrStr} $4 $ZzLoggLocator " "
+    StrCmp $4 "" 0 zzlogg_locator_bad
+    ${StrStr} $4 $ZzLoggLocator '\'
+    StrCmp $4 "" 0 zzlogg_locator_bad
+    ${StrStr} $4 $ZzLoggLocator "/"
+    StrCmp $4 "" 0 zzlogg_locator_bad
+    ${StrStr} $4 $ZzLoggLocator "."
+    StrCmp $4 "" 0 zzlogg_locator_bad
+    ${StrStr} $4 $ZzLoggLocator '"'
+    StrCmp $4 "" 0 zzlogg_locator_bad
+    Push "ok"
+    Return
+    zzlogg_locator_bad:
+    Push "bad"
+FunctionEnd
+
+Function ZzLoggVerifyTarget
+    ; Independent recheck of the registration, marker, landing manifest and
+    ; target path before any write; the verified directory is then pinned and
+    ; its identity (volume serial + file index) captured for the entry log.
+    ReadRegStr $ZzLoggTarget HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"
+    StrCmp $ZzLoggTarget "" zzlogg_verify_fail
+    ReadRegDWORD $3 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema"
+    StrCmp $3 2 0 zzlogg_verify_fail
+    StrCpy $4 $ZzLoggTarget 2
+    StrCmp $4 '\\' zzlogg_verify_fail 0
+    StrCpy $4 $ZzLoggTarget 1 1
+    StrCmp $4 ":" 0 zzlogg_verify_fail
+    StrCpy $4 $ZzLoggTarget 1 2
+    StrCmp $4 '\' 0 zzlogg_verify_fail
+    ${StrStr} $4 $ZzLoggTarget ".."
+    StrCmp $4 "" 0 zzlogg_verify_fail
+    IfFileExists "$ZzLoggTarget\.zzlogg-install-root" 0 zzlogg_verify_fail
+    IfFileExists "$ZzLoggTarget\.zzlogg-files.manifest" 0 zzlogg_verify_fail
+    System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0'
+    IntCmp $R0 -1 zzlogg_verify_fail 0 zzlogg_verify_fail
+    StrCmp $R0 0 zzlogg_verify_fail
+    System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5'
+    StrCmp $R5 1 0 zzlogg_verify_fail_pin
+    IntOp $R6 $R1 & 0x10
+    StrCmp $R6 0 zzlogg_verify_fail_pin
+    IntOp $R6 $R1 & 0x400
+    StrCmp $R6 0 0 zzlogg_verify_fail_pin
+    StrCpy $ZzLoggTargetPin $R0
+    IntFmt $R2 "0x%08X" $R2
+    IntFmt $R3 "0x%08X" $R3
+    IntFmt $R4 "0x%08X" $R4
+    StrCpy $ZzLoggIdentity "$R2:$R3:$R4"
+    Return
+    zzlogg_verify_fail_pin:
+        System::Call 'kernel32::CloseHandle(p R0)'
+    zzlogg_verify_fail:
+        MessageBox MB_ICONSTOP "The registered ZzLogg installation failed the independent target recheck."
+        Abort
+FunctionEnd
+
+Function ZzLoggCloseTargetPin
+    StrCmp $ZzLoggTargetPin "" 0 zzlogg_close_pin
+    Return
+    zzlogg_close_pin:
+    StrCmp $ZzLoggTargetPin "0" 0 zzlogg_close_pin_do
+    Return
+    zzlogg_close_pin_do:
+    System::Call 'kernel32::CloseHandle(p $ZzLoggTargetPin)'
+    StrCpy $ZzLoggTargetPin ""
+FunctionEnd
+
+Function ZzLoggRestrictedUpgrade
+    Call ZzLoggVerifyTarget
+    SetShellVarContext all
+    StrCpy $ZzLoggTxDir "$APPDATA\ZzLogg\UpdateTransactions\$ZzLoggLocator"
+    IfFileExists "$ZzLoggTxDir" zzlogg_upgrade_txdir_busy 0
+    CreateDirectory "$ZzLoggTxDir"
+    IfErrors zzlogg_upgrade_txdir_fail 0
+    ; Administrators/SYSTEM full, users read, nothing inherited.
+    nsExec::ExecToLog 'icacls "$ZzLoggTxDir" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)R"'
+    Pop $3
+    StrCmp $3 "0" 0 zzlogg_upgrade_txdir_fail
+    CreateDirectory "$ZzLoggTxDir\staging"
+    IfErrors zzlogg_upgrade_txdir_fail 0
+    SetOutPath "$ZzLoggTxDir\staging"
+    File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"
+    File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"
+    FileOpen $4 "$ZzLoggTxDir\nsis-entry.log" w
+    FileWrite $4 "mode=upgrade locator=$ZzLoggLocator target=$ZzLoggTarget identity=$ZzLoggIdentity$\r$\n"
+    FileClose $4
+    ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "$ZzLoggLocator"' $3
+    Call ZzLoggCloseTargetPin
+    SetErrorLevel $3
+    Quit
+    zzlogg_upgrade_txdir_busy:
+        MessageBox MB_ICONSTOP "A transaction with this locator already exists; use recovery mode."
+        Abort
+    zzlogg_upgrade_txdir_fail:
+        MessageBox MB_ICONSTOP "Cannot create the protected transaction directory."
+        Abort
+FunctionEnd
+
+Function ZzLoggRestrictedRecover
+    Call ZzLoggVerifyTarget
+    SetShellVarContext all
+    StrCpy $ZzLoggTxDir "$APPDATA\ZzLogg\UpdateTransactions\$ZzLoggLocator"
+    ; Recovery targets only an existing protected transaction with a journal.
+    IfFileExists "$ZzLoggTxDir\journal.log" 0 zzlogg_recover_missing
+    CreateDirectory "$ZzLoggTxDir\recover"
+    IfErrors zzlogg_recover_fail 0
+    SetOutPath "$ZzLoggTxDir\recover"
+    File "/oname=$ZzLoggTxDir\recover\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"
+    ExecWait '"$ZzLoggTxDir\recover\ZzLoggUpdateTx.exe" --recover --install "$ZzLoggTarget" --txroot "$APPDATA\ZzLogg\UpdateTransactions" --txid "$ZzLoggLocator"' $3
+    Call ZzLoggCloseTargetPin
+    SetErrorLevel $3
+    Quit
+    zzlogg_recover_missing:
+        MessageBox MB_ICONSTOP "No interrupted transaction with this name exists."
+        Abort
+    zzlogg_recover_fail:
+        MessageBox MB_ICONSTOP "Cannot stage the recovery engine."
+        Abort
 FunctionEnd
 
 Function un.onInit
@@ -104,7 +273,7 @@ Section "ZzLogg application and runtime" zzlogg
 "UninstallString" '"$INSTDIR\Uninstall.exe"'
     WriteRegExpandStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg"\
 "InstallLocation" "$INSTDIR"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 1
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 2
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "DisplayName" "ZzLogg"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "DisplayVersion" "${VERSION}"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "NoModify" "1"

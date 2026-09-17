@@ -190,6 +190,7 @@ set(required_manifest_literals
   [=[Delete "$INSTDIR\plugins\cost$$plugin.dll"]=]
   [=[Delete "$INSTDIR\Uninstall.exe"]=]
   [=[Delete "$INSTDIR\.zzlogg-install-root"]=]
+  [=[Delete "$INSTDIR\.zzlogg-files.manifest"]=]
   [=[RMDir "$INSTDIR\plugins\nested"]=]
   [=[RMDir "$INSTDIR\plugins"]=]
   [=[RMDir "$INSTDIR"]=])
@@ -261,7 +262,7 @@ endfunction()
 foreach(required_literal IN ITEMS
     "InstallDirRegKey HKLM \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ZzLogg\" \"InstallLocation\""
     "SetRegView 64"
-    "\"UpdateIdentitySchema\" 1")
+    "\"UpdateIdentitySchema\" 2")
   string(FIND "${nsis_active_content}" "${required_literal}" found)
   if(found EQUAL -1)
     message(FATAL_ERROR "Missing installer identity contract: ${required_literal}")
@@ -344,23 +345,35 @@ endif()
 
 foreach(application_identity_literal IN ITEMS
     [=["InstallLocation" "$INSTDIR"]=]
-    [=[WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 1]=])
+    [=[WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 2]=])
   require_nsis_block_literal(application_install_section
     "${application_identity_literal}" "application install section")
 endforeach()
 
 set(recursive_file_line [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
+set(allowed_payload_file_lines
+  [=[File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
+  [=[File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"]=]
+  [=[File "/oname=$ZzLoggTxDir\recover\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=])
 string(REGEX MATCHALL "\n[ \t]+File[ \t][^\n]*" nsis_file_lines "${nsis_content}")
-list(LENGTH nsis_file_lines nsis_file_line_count)
-if(NOT nsis_file_line_count EQUAL 1)
+set(recursive_file_line_count 0)
+foreach(actual_file_line IN LISTS nsis_file_lines)
+  string(STRIP "${actual_file_line}" actual_file_line)
+  if(actual_file_line STREQUAL recursive_file_line)
+    math(EXPR recursive_file_line_count "${recursive_file_line_count} + 1")
+    continue()
+  endif()
+  # Beyond the one recursive staging consumption, only the restricted-mode
+  # payload extraction may embed files: the transaction engine and the fresh
+  # landing manifest, always extracted beneath the protected transaction dir.
+  if(NOT actual_file_line IN_LIST allowed_payload_file_lines)
+    message(FATAL_ERROR
+      "NSIS embeds a file outside the staging tree or restricted payload: ${actual_file_line}")
+  endif()
+endforeach()
+if(NOT recursive_file_line_count EQUAL 1)
   message(FATAL_ERROR
     "NSIS must consume the complete release staging tree with one recursive File command")
-endif()
-list(GET nsis_file_lines 0 actual_file_line)
-string(STRIP "${actual_file_line}" actual_file_line)
-if(NOT actual_file_line STREQUAL recursive_file_line)
-  message(FATAL_ERROR
-    "NSIS does not recursively consume the release staging tree: ${actual_file_line}")
 endif()
 
 foreach(forbidden_section IN ITEMS

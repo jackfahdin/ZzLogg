@@ -15,6 +15,8 @@ struct InstallationEvidence {
     bool sameDirectory = false;
     bool markerPresent = false;
     bool markerValid = false;
+    bool manifestPresent = false;
+    bool manifestValid = false;
     std::optional<unsigned> identitySchema;
     QString installRoot;
 };

@@ -10,8 +10,12 @@ InstallationIdentity evaluateInstallation(const InstallationEvidence& evidence)
         return {evidence.markerPresent ? InstallationKind::Invalid : InstallationKind::Unregistered, {}};
     if (!evidence.safePaths || !evidence.sameDirectory || !evidence.markerPresent
         || !evidence.markerValid) return {};
-    if (!evidence.identitySchema) return {InstallationKind::Legacy, {}};
-    if (*evidence.identitySchema != 1 || evidence.installRoot.isEmpty()) return {};
+    // Schema 1 installations predate the landing manifest: they upgrade only by
+    // manually installing a bootstrap version, never automatically.
+    if (!evidence.identitySchema || *evidence.identitySchema == 1)
+        return {InstallationKind::Legacy, {}};
+    if (*evidence.identitySchema != 2 || evidence.installRoot.isEmpty()) return {};
+    if (!evidence.manifestPresent || !evidence.manifestValid) return {};
     return {InstallationKind::Registered, evidence.installRoot};
 }
 

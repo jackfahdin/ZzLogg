@@ -333,6 +333,16 @@ if(WIN32)
   set_tests_properties(zzlogg_ui.windows_installer_contract PROPERTIES
     RUN_SERIAL TRUE
     TIMEOUT 120)
+  add_test(NAME zzlogg_ui.upgrade_mode_contract
+    COMMAND "${CMAKE_COMMAND}"
+      "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+      "-DBUILD_DIRECTORY=${CMAKE_BINARY_DIR}"
+      "-DCONFIG=$<CONFIG>"
+      "-DPOWERSHELL=${ZZLOGG_POWERSHELL_EXECUTABLE}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/upgrademodecontracttest.cmake")
+  set_tests_properties(zzlogg_ui.upgrade_mode_contract PROPERTIES
+    RUN_SERIAL TRUE
+    TIMEOUT 120)
 endif()
 
 add_executable(zzlogg_icon_asset_test

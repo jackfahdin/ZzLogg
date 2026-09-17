@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSet>
 #include <QStringDecoder>
 #include <cstring>
 #include <vector>
@@ -178,6 +179,62 @@ bool validMarker(const QByteArray& bytes)
         if (!QChar::isPrint(character)) return false;
     return true;
 }
+
+// Landing-manifest bounds and binary layout mirror the transaction engine
+// parser (txengine_win.cpp): magic, u32le version, u32le count, then per entry
+// u32le utf8 path length, u64le size, 32 digest bytes, utf8 path. The probe
+// validates bounded format only; content hashing belongs to the engine.
+constexpr qint64 maximumManifestBytes = 4 * 1024 * 1024;
+constexpr quint32 maximumManifestEntries = 4096;
+constexpr quint32 maximumManifestPathBytes = 384;
+
+bool validFilesManifest(const QByteArray& bytes)
+{
+    if (bytes.size() < 16 || bytes.size() > maximumManifestBytes
+        || !bytes.startsWith("ZZTXMAN1")) return false;
+    qsizetype at = 8;
+    const auto read32 = [&](quint32& value) {
+        if (bytes.size() - at < 4) return false;
+        value = 0;
+        for (int i = 0; i < 4; ++i) value |= quint32(quint8(bytes[at + i])) << (i * 8);
+        at += 4;
+        return true;
+    };
+    quint32 version = 0, count = 0;
+    if (!read32(version) || version != 1 || !read32(count) || count > maximumManifestEntries)
+        return false;
+    QSet<QString> seen;
+    for (quint32 i = 0; i < count; ++i) {
+        quint32 pathBytes = 0;
+        if (!read32(pathBytes) || pathBytes == 0 || pathBytes > maximumManifestPathBytes)
+            return false;
+        if (bytes.size() - at < qsizetype(pathBytes) + 8 + 32) return false;
+        // Size and digest bytes are engine-consumed; only the shape is checked here.
+        at += 8 + 32;
+        QStringDecoder decoder(QStringDecoder::Utf8, QStringDecoder::Flag::Stateless);
+        const QString path = decoder.decode(QByteArrayView(bytes).sliced(at, pathBytes));
+        if (decoder.hasError()) return false;
+        at += pathBytes;
+        if (path.size() > qsizetype(maximumManifestPathBytes)
+            || path.startsWith('/') || path.endsWith('/')) return false;
+        const auto components = path.split('/');
+        for (const auto& component : components) {
+            if (component.isEmpty() || component == QLatin1String(".")
+                || component == QLatin1String("..")
+                || component.endsWith('.') || component.endsWith(' ')) return false;
+            for (const QChar character : component)
+                if (character.unicode() < 32 || character == QLatin1Char('\\')
+                    || character == QLatin1Char(':')) return false;
+        }
+        QString folded = path;
+        for (auto& character : folded)
+            if (character >= QLatin1Char('a') && character <= QLatin1Char('z'))
+                character = character.toUpper();
+        if (seen.contains(folded)) return false;
+        seen.insert(folded);
+    }
+    return at == bytes.size();
+}
 } // namespace
 
 InstallationRegistration readInstallationValues(const InstallationValueQuery& query)
@@ -225,6 +282,20 @@ InstallationIdentity probeInstallation(const QString& executablePath,
         const auto bytes = marker.read(257);
         if (marker.error() != QFileDevice::NoError) return {};
         evidence.markerValid = validMarker(bytes);
+    }
+    const QString manifestPath = QDir(currentRoot).filePath(QStringLiteral(".zzlogg-files.manifest"));
+    const auto manifestState = inspectPath(manifestPath);
+    if (manifestState == PathState::Unsafe || manifestState == PathState::Directory) return {};
+    evidence.manifestPresent = manifestState == PathState::File;
+    if (evidence.manifestPresent) {
+        // Fail soft here: an unreadable or malformed manifest is invalid
+        // evidence, so a schema 1 installation still classifies as Legacy.
+        QFile manifest(manifestPath);
+        if (manifest.open(QIODevice::ReadOnly)) {
+            const auto bytes = manifest.read(maximumManifestBytes + 1);
+            evidence.manifestValid = manifest.error() == QFileDevice::NoError
+                && validFilesManifest(bytes);
+        }
     }
     if (!registration.present) return evaluateInstallation(evidence);
     if (!safeDirectoryChain(registration.location)) return {};

@@ -21,6 +21,36 @@ bool writeFile(const QString& path, const QByteArray& contents)
         && file.commit();
 }
 
+// Binary landing-manifest builder mirroring the transaction engine format:
+// "ZZTXMAN1", u32le version, u32le count, then per entry u32le utf8 path byte
+// count, u64le size, 32 raw SHA-256 bytes, utf8 path (forward slashes).
+struct ManifestEntry {
+    QString path;
+    quint64 size = 0;
+    char digestSeed = 0;
+};
+
+QByteArray filesManifest(const QList<ManifestEntry>& entries, quint32 version = 1)
+{
+    QByteArray bytes("ZZTXMAN1", 8);
+    auto append32 = [&bytes](quint32 value) {
+        for (int i = 0; i < 4; ++i) bytes.append(char((value >> (i * 8)) & 0xff));
+    };
+    auto append64 = [&bytes](quint64 value) {
+        for (int i = 0; i < 8; ++i) bytes.append(char((value >> (i * 8)) & 0xff));
+    };
+    append32(version);
+    append32(quint32(entries.size()));
+    for (const auto& entry : entries) {
+        const QByteArray path = entry.path.toUtf8();
+        append32(quint32(path.size()));
+        append64(entry.size);
+        for (int i = 0; i < 32; ++i) bytes.append(char(entry.digestSeed + i));
+        bytes.append(path);
+    }
+    return bytes;
+}
+
 #ifdef Q_OS_WIN
 QByteArray utf16(const QString& text, bool terminated = true)
 {
@@ -93,6 +123,7 @@ private slots:
         for (const char* row : {"registered", "case", "lf", "printable", "supplementary", "max-marker"})
             QTest::newRow(row) << QString::fromLatin1(row) << InstallationKind::Registered;
         QTest::newRow("legacy") << QStringLiteral("legacy") << InstallationKind::Legacy;
+        QTest::newRow("schema1") << QStringLiteral("schema1") << InstallationKind::Legacy;
         QTest::newRow("portable") << QStringLiteral("portable") << InstallationKind::Unregistered;
         for (const char* row : {"copy", "prefix", "missing-exe", "missing-marker", "read-denied",
                  "orphan-marker", "unknown-schema", "empty-root", "relative-root", "nul-root",
@@ -102,7 +133,12 @@ private slots:
                  "wrong-exe-name", "unc-root", "device-root", "drive-relative", "root-relative",
                  "dot-root", "trailing-dot", "trailing-space", "alternate-stream", "wildcard-root",
                  "double-separator", "marker-locked", "truncated-utf8", "ascii-truncated-utf8",
-                 "bom-only-version", "version-leading-bom"})
+                 "bom-only-version", "version-leading-bom",
+                 "missing-manifest", "manifest-directory", "manifest-bad-magic",
+                 "manifest-bad-version", "manifest-truncated", "manifest-trailing",
+                 "manifest-empty", "manifest-dup-fold", "manifest-dotdot", "manifest-absolute",
+                 "manifest-backslash", "manifest-control", "manifest-trailing-dot",
+                 "manifest-long-path", "manifest-oversize", "manifest-bad-utf8"})
             QTest::newRow(row) << QString::fromLatin1(row) << InstallationKind::Invalid;
     }
 
@@ -119,12 +155,15 @@ private slots:
         QVERIFY(QDir().mkpath(root));
         QString executable = root + QStringLiteral("/ZzLogg.exe");
         const QString marker = root + QStringLiteral("/.zzlogg-install-root");
+        const QString manifest = root + QStringLiteral("/.zzlogg-files.manifest");
         QByteArray text("ZzLogg 26.09.15\r\n");
+        QByteArray manifestBytes = filesManifest({{QStringLiteral("ZzLogg.exe"), 7, 3}});
         FakeRegistry registry;
-        registry.value = {true, false, root, 1};
+        registry.value = {true, false, root, 2};
         if (scenario == "case") registry.value.location = root.toUpper();
         if (scenario == "legacy") registry.value.schema.reset();
-        if (scenario == "unknown-schema") registry.value.schema = 2;
+        if (scenario == "schema1") registry.value.schema = 1;
+        if (scenario == "unknown-schema") registry.value.schema = 3;
         if (scenario == "read-denied") registry.value.readFailed = true;
         if (scenario == "portable" || scenario == "orphan-marker") registry.value = {};
         if (scenario == "empty-root") registry.value.location.clear();
@@ -162,10 +201,39 @@ private slots:
         if (scenario == "bom-only-version") text = QByteArray::fromHex("5a7a4c6f676720efbbbf0a");
         if (scenario == "version-leading-bom") text = QByteArray::fromHex("5a7a4c6f676720efbbbf610a");
         if (scenario == "wrong-prefix") text = "Other version\n";
+        if (scenario == "manifest-bad-magic") manifestBytes[0] = 'X';
+        if (scenario == "manifest-bad-version")
+            manifestBytes = filesManifest({{QStringLiteral("ZzLogg.exe"), 7, 3}}, 2);
+        if (scenario == "manifest-truncated") manifestBytes.chop(10);
+        if (scenario == "manifest-trailing") manifestBytes.append('\0');
+        if (scenario == "manifest-empty") manifestBytes = "ZZTXMAN1";
+        if (scenario == "manifest-dup-fold")
+            manifestBytes = filesManifest({{QStringLiteral("a.txt"), 1, 1},
+                                           {QStringLiteral("A.TXT"), 2, 2}});
+        if (scenario == "manifest-dotdot")
+            manifestBytes = filesManifest({{QStringLiteral("../escape.dll"), 1, 1}});
+        if (scenario == "manifest-absolute")
+            manifestBytes = filesManifest({{QStringLiteral("/abs.dll"), 1, 1}});
+        if (scenario == "manifest-backslash")
+            manifestBytes = filesManifest({{QStringLiteral("a\\b.dll"), 1, 1}});
+        if (scenario == "manifest-control")
+            manifestBytes = filesManifest({{QStringLiteral("a\tb.dll"), 1, 1}});
+        if (scenario == "manifest-trailing-dot")
+            manifestBytes = filesManifest({{QStringLiteral("x."), 1, 1}});
+        if (scenario == "manifest-long-path")
+            manifestBytes = filesManifest({{QString(385, QLatin1Char('x')), 1, 1}});
+        if (scenario == "manifest-bad-utf8")
+            manifestBytes = filesManifest({{QStringLiteral("ok.dll"), 1, 1}})
+                                .replace("ok.dll", QByteArray::fromHex("6f6bff646c6c"));
+        if (scenario == "manifest-oversize")
+            manifestBytes = QByteArray(4 * 1024 * 1024 + 64, 'Z');
         if (scenario == "exe-directory") QVERIFY(QDir().mkpath(executable));
         else if (scenario != "missing-exe") QVERIFY(writeFile(executable, "fixture"));
         if (scenario == "marker-directory") QVERIFY(QDir().mkpath(marker));
         else if (scenario != "missing-marker" && scenario != "portable") QVERIFY(writeFile(marker, text));
+        if (scenario == "manifest-directory") QVERIFY(QDir().mkpath(manifest));
+        else if (scenario != "missing-manifest" && scenario != "portable")
+            QVERIFY(writeFile(manifest, manifestBytes));
         if (scenario == "relative-exe") executable = "install/ZzLogg.exe";
         if (scenario == "empty-exe") executable.clear();
         if (scenario == "wrong-exe-name") {
@@ -265,12 +333,14 @@ private slots:
         const QString root = scenario == "ancestor" ? target + "/install" : target;
         QVERIFY(writeFile(root + "/ZzLogg.exe", "fixture"));
         QVERIFY(writeFile(root + "/.zzlogg-install-root", "ZzLogg build\n"));
+        QVERIFY(writeFile(root + "/.zzlogg-files.manifest",
+                          filesManifest({{QStringLiteral("ZzLogg.exe"), 7, 3}})));
         ScopedLink link;
         link.directory = scenario == "root" || scenario == "ancestor" || scenario == "registry-root";
         link.path = temporary.filePath("link");
         QString executable = root + "/ZzLogg.exe";
         FakeRegistry registry;
-        registry.value = {true, false, root, 1};
+        registry.value = {true, false, root, 2};
         if (link.directory) {
             QProcess process;
             process.start("cmd.exe", {"/c", "mklink", "/J", QDir::toNativeSeparators(link.path),
@@ -323,8 +393,10 @@ private slots:
         QVERIFY(CreateDirectoryW(QDir::toNativeSeparators(second).toStdWString().c_str(), nullptr));
         QVERIFY(writeFile(first + "/ZzLogg.exe", "fixture"));
         QVERIFY(writeFile(first + "/.zzlogg-install-root", "ZzLogg build\n"));
+        QVERIFY(writeFile(first + "/.zzlogg-files.manifest",
+                          filesManifest({{QStringLiteral("ZzLogg.exe"), 7, 3}})));
         FakeRegistry registry;
-        registry.value = {true, false, second, 1};
+        registry.value = {true, false, second, 2};
         const auto result = probeInstallation(first + "/ZzLogg.exe", registry);
         QCOMPARE(result.kind, InstallationKind::Invalid);
         QVERIFY(result.installRoot.isEmpty());

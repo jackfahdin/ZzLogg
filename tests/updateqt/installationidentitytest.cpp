@@ -15,7 +15,9 @@ InstallationEvidence registeredEvidence()
     evidence.sameDirectory = true;
     evidence.markerPresent = true;
     evidence.markerValid = true;
-    evidence.identitySchema = 1;
+    evidence.identitySchema = 2;
+    evidence.manifestPresent = true;
+    evidence.manifestValid = true;
     evidence.installRoot = QStringLiteral("C:/Program Files/ZzLogg");
     return evidence;
 }
@@ -65,9 +67,25 @@ private slots:
         legacy.identitySchema.reset();
         QTest::newRow("missing-schema") << legacy << InstallationKind::Legacy << QString{};
 
+        auto schemaOne = registeredEvidence();
+        schemaOne.identitySchema = 1;
+        schemaOne.manifestPresent = false;
+        schemaOne.manifestValid = false;
+        QTest::newRow("schema-one-is-legacy") << schemaOne << InstallationKind::Legacy << QString{};
+
         auto unknownSchema = registeredEvidence();
-        unknownSchema.identitySchema = 2;
+        unknownSchema.identitySchema = 3;
         QTest::newRow("unknown-schema") << unknownSchema << InstallationKind::Invalid << QString{};
+
+        auto missingManifest = registeredEvidence();
+        missingManifest.manifestPresent = false;
+        QTest::newRow("schema-two-missing-manifest") << missingManifest
+            << InstallationKind::Invalid << QString{};
+
+        auto malformedManifest = registeredEvidence();
+        malformedManifest.manifestValid = false;
+        QTest::newRow("schema-two-malformed-manifest") << malformedManifest
+            << InstallationKind::Invalid << QString{};
 
         auto unsupported = registeredEvidence();
         unsupported.supportedPlatform = false;
