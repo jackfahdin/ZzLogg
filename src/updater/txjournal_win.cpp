@@ -148,7 +148,7 @@ struct TxJournal::Impl {
     detail::Handle directoryLease,file;
     std::wstring directory;
     std::function<bool(void*)> flush;
-    std::uint64_t nextSeq=1;
+    std::uint64_t nextSeq=1,writtenBytes=kHeaderBytes;
     bool completed=false,failed=false;
 };
 TxJournal::TxJournal()=default;
@@ -203,12 +203,18 @@ TxJournalError TxJournal::append(const TxJournalRecord& record){
     if(!impl_ || impl_->failed || impl_->completed)return TxJournalError::Unavailable;
     if(!validRecord(record,impl_->nextSeq))return TxJournalError::Unavailable;
     const auto bytes=serialize(record);
+    // Symmetric with the replay caps (same constants, this file): the writer
+    // can never build a journal the strict parser would refuse as Corrupt.
+    // A cap refusal is not a write failure and does not latch failed.
+    if(impl_->nextSeq>kMaxRecords
+        || bytes.size()>kMaxJournalBytes-impl_->writtenBytes)return TxJournalError::Unavailable;
     DWORD written=0;
     if(!WriteFile(impl_->file.get(),bytes.data(),static_cast<DWORD>(bytes.size()),&written,nullptr)
         || written!=bytes.size()
         || !(impl_->flush?impl_->flush(impl_->file.get()):FlushFileBuffers(impl_->file.get())!=FALSE)){
         impl_->failed=true;return TxJournalError::Unavailable;
     }
+    impl_->writtenBytes+=bytes.size();
     if(record.op==TxOperation::Complete)impl_->completed=true;
     ++impl_->nextSeq;
     return TxJournalError::None;
