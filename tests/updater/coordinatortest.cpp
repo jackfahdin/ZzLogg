@@ -326,6 +326,20 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
     }
     {
+        // Fail-closed latch ordering: once the coordinator has aborted, the
+        // Proceed latch must never surface ProceedSent again.
+        std::cout<<"coordinator proceed latch after abort"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",L"success");
+        auto app=launchAppStandin(fs::path(argv[1]).make_preferred(),1200);Coordinator c;
+        check(app.identity.handle() && c.start(source.wstring(),(root/L"runtime").wstring(),nullptr,&app.identity)
+            && c.authenticate(after(2000)) && c.awaitAppExit(after(2000))==CoordinationResult::WaitingForAppExit
+            && c.commitExit(after(500))
+            && proceedWhenExited(c,app.process)==CoordinationResult::ProceedSent,"abort-order chain reaches ProceedSent");
+        c.cancel(after(100));
+        check(c.proceedIfExited(after(100))==CoordinationResult::Failed,"aborted coordinator never reports ProceedSent again");
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+    }
+    {
         // Contract violation: the engine pretends to modify the installation
         // and reports Complete without waiting for the Proceed gate.
         std::cout<<"coordinator proceed violation"<<std::endl;

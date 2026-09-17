@@ -184,8 +184,11 @@ bool Coordinator::commitExit(Deadline deadline){
         || !impl_->channel.send(impl_->message(MessageKind::CommitExit),deadline)){impl_->abort();return false;}return true;
 }
 CoordinationResult Coordinator::proceedIfExited(Deadline deadline){
+    // Fail-closed first: after an abort the Proceed latch must never surface
+    // ProceedSent again, so the failed check precedes the latch.
+    if(!impl_->session || impl_->failed){impl_->abort();return CoordinationResult::Failed;}
     if(impl_->proceedSent)return CoordinationResult::ProceedSent;
-    if(!impl_->session || impl_->failed || impl_->session->state()!=HandoffState::ExitCommitted
+    if(impl_->session->state()!=HandoffState::ExitCommitted
         || !impl_->applicationHeld){impl_->abort();return CoordinationResult::Failed;}
     // The gate observes the real application process handle, never a message:
     // only its signalled state proves the exit actually happened.
