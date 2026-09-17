@@ -100,10 +100,15 @@ require_nsis_block_order(installer_on_init "installer .onInit"
   "Quit")
 
 # The bounded locator rejects separators, dot segments and quotes before use.
+# IntCmp label order is (equal, less, greater): length must land in [8, 64],
+# so < 8 rejects (less label) and >= 65 rejects (equal and greater labels).
 require_nsis_block_literal(validate_locator "StrLen $3 $ZzLoggLocator"
   "locator validation")
-require_nsis_block_literal(validate_locator "IntCmp $3 8" "locator validation")
-require_nsis_block_literal(validate_locator "IntCmp $3 65" "locator validation")
+require_nsis_block_literal(validate_locator
+  "IntCmp $3 8 zzlogg_locator_length zzlogg_locator_bad zzlogg_locator_length"
+  "locator validation")
+require_nsis_block_literal(validate_locator
+  "IntCmp $3 65 zzlogg_locator_bad 0 zzlogg_locator_bad" "locator validation")
 foreach(locator_bad_char IN ITEMS
     [=[${StrStr} $4 $ZzLoggLocator " "]=]
     [=[${StrStr} $4 $ZzLoggLocator '\']=]
@@ -115,9 +120,12 @@ endforeach()
 
 # The per-component reparse gate: GetFileAttributesW must refuse missing
 # paths, reparse points and devices, and demand a real directory.
+# Branch semantics: GetFileAttributesW failure returns exactly -1, so ONLY the
+# equal label may reject — every existing directory yields a small positive
+# attribute value (signed > -1) and must fall through both remaining labels.
 require_nsis_block_order(check_real_directory "per-component reparse check"
   [=[System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9']=]
-  [=[IntCmp $R9 -1 zzlogg_component_bad 0 zzlogg_component_bad]=]
+  [=[IntCmp $R9 -1 zzlogg_component_bad 0 0]=]
   [=[IntOp $R7 $R9 & 0x440]=]
   [=[IntOp $R7 $R9 & 0x10]=])
 
@@ -130,6 +138,9 @@ require_nsis_block_order(check_real_directory "per-component reparse check"
 # FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT (0x02200000), and the
 # BY_HANDLE_FILE_INFORMATION struct must carry all 13 DWORD members with the
 # outputs on volume serial (8), file index high (12) and low (13).
+# Branch semantics: CreateFileW failure returns exactly -1
+# (INVALID_HANDLE_VALUE); only the equal label may reject, because every valid
+# handle is a positive value (signed > -1) and must fall through.
 require_nsis_block_order(verify_target "target recheck"
   [=[ReadRegStr $ZzLoggTarget HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"]=]
   [=[ReadRegDWORD $3 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema"]=]
@@ -139,6 +150,7 @@ require_nsis_block_order(verify_target "target recheck"
   [=[StrCpy $R8 $ZzLoggTarget 3]=]
   [=[Call ZzLoggCheckRealDirectory]=]
   [=[System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0']=]
+  [=[IntCmp $R0 -1 zzlogg_verify_fail 0 0]=]
   [=[System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5']=])
 # Level-by-level walk: the drive root, every intermediate component and the
 # full target each pass the reparse gate before the pin.

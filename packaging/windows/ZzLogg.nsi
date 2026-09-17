@@ -140,7 +140,7 @@ Function ZzLoggCheckRealDirectory
     ; $R8 in: path. "ok" only for an existing directory that is neither a
     ; reparse point nor a device; every component of the target is gated here.
     System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9'
-    IntCmp $R9 -1 zzlogg_component_bad 0 zzlogg_component_bad
+    IntCmp $R9 -1 zzlogg_component_bad 0 0
     IntOp $R7 $R9 & 0x440
     StrCmp $R7 0 0 zzlogg_component_bad
     IntOp $R7 $R9 & 0x10
@@ -194,7 +194,7 @@ Function ZzLoggVerifyTarget
     Pop $R9
     StrCmp $R9 "ok" 0 zzlogg_verify_fail
     System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0'
-    IntCmp $R0 -1 zzlogg_verify_fail 0 zzlogg_verify_fail
+    IntCmp $R0 -1 zzlogg_verify_fail 0 0
     StrCmp $R0 0 zzlogg_verify_fail
     ; BY_HANDLE_FILE_INFORMATION: 13 DWORD members; R2 = volume serial (8),
     ; R3 = file index high (12), R4 = file index low (13).
