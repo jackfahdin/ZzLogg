@@ -55,6 +55,8 @@ Var ZzLoggMode
 Var ZzLoggLocator
 Var ZzLoggTarget
 Var ZzLoggTxDir
+Var ZzLoggTxRoot
+Var ZzLoggStaging
 Var ZzLoggTargetPin
 Var ZzLoggIdentity
 
@@ -239,26 +241,40 @@ FunctionEnd
 Function ZzLoggRestrictedUpgrade
     Call ZzLoggVerifyTarget
     SetShellVarContext all
-    StrCpy $ZzLoggTxDir "$APPDATA\ZzLogg\UpdateTransactions\$ZzLoggLocator"
+    StrCpy $ZzLoggTxRoot "$APPDATA\ZzLogg\UpdateTransactions"
+    StrCpy $ZzLoggTxDir "$ZzLoggTxRoot\$ZzLoggLocator"
+    StrCpy $ZzLoggStaging "$ZzLoggTxRoot\staging-$ZzLoggLocator"
+    ; The journal directory belongs to the engine alone: TxJournal::open
+    ; creates it exclusively, so an existing one is an interrupted
+    ; transaction (busy), never a directory to adopt or pre-create.
     IfFileExists "$ZzLoggTxDir" zzlogg_upgrade_txdir_busy 0
-    CreateDirectory "$ZzLoggTxDir"
+    IfFileExists "$ZzLoggTxRoot" zzlogg_upgrade_root_ready 0
+    CreateDirectory "$ZzLoggTxRoot"
     IfErrors zzlogg_upgrade_txdir_fail 0
-    ; Administrators/SYSTEM full, users read, nothing inherited.
-    nsExec::ExecToLog 'icacls "$ZzLoggTxDir" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)R"'
+    ; The protected root is hardened exactly once at creation: admins/SYSTEM
+    ; full, authenticated users read, nothing inherited. The engine's
+    ; protected-image check accepts only this exact ACL shape on the root.
+    nsExec::ExecToLog 'icacls "$ZzLoggTxRoot" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-11:(OI)(CI)R"'
     Pop $3
     StrCmp $3 "0" 0 zzlogg_upgrade_txdir_fail
-    CreateDirectory "$ZzLoggTxDir\staging"
+    zzlogg_upgrade_root_ready:
+    ; Staging is a hardened sibling of the journal directory, never inside it.
+    CreateDirectory "$ZzLoggStaging"
     IfErrors zzlogg_upgrade_txdir_fail 0
-    SetOutPath "$ZzLoggTxDir\staging"
-    File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"
-    File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"
-    FileOpen $4 "$ZzLoggTxDir\nsis-entry.log" w
+    ; Administrators/SYSTEM full, users read, nothing inherited.
+    nsExec::ExecToLog 'icacls "$ZzLoggStaging" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)R"'
+    Pop $3
+    StrCmp $3 "0" 0 zzlogg_upgrade_txdir_fail
+    SetOutPath "$ZzLoggStaging"
+    File "/oname=$ZzLoggStaging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"
+    File "/oname=$ZzLoggStaging\files.manifest" "release\.zzlogg-files.manifest"
+    FileOpen $4 "$ZzLoggStaging\nsis-entry.log" w
     FileWrite $4 "mode=upgrade locator=$ZzLoggLocator target=$ZzLoggTarget identity=$ZzLoggIdentity$\r$\n"
     FileClose $4
     ; Finalized engine argv (3C task 5): only non-secret parameters as
     ; flag/value pairs; transaction credentials travel solely through the
     ; current-user-private credential file named by the locator.
-    ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggTxDir\staging" --txroot "$APPDATA\ZzLogg\UpdateTransactions" --txid "$ZzLoggLocator" --version "${VERSION}"' $3
+    ExecWait '"$ZzLoggStaging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggStaging" --txroot "$ZzLoggTxRoot" --txid "$ZzLoggLocator" --version "${VERSION}"' $3
     Call ZzLoggCloseTargetPin
     SetErrorLevel $3
     Quit

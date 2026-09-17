@@ -501,6 +501,9 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
                     "restarted GUI received exactly the bootstrap data directory");
                 const auto guiPid=guiPidFromRecord(lines);
                 check(guiPid && waitPidExit(guiPid,10000),"fixture GUI exits on its own");
+                check(drive.coordinator.restart(after(500))!=CoordinationResult::Restarted
+                    && recordLines(drive.recordPath).size()==lines.size(),
+                    "restart is single-shot: a second call never launches another GUI");
             }
         }
         clearChainEnv();drive.activity.cancelUpdate();

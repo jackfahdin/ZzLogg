@@ -352,8 +352,8 @@ endforeach()
 
 set(recursive_file_line [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
 set(allowed_payload_file_lines
-  [=[File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
-  [=[File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"]=]
+  [=[File "/oname=$ZzLoggStaging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
+  [=[File "/oname=$ZzLoggStaging\files.manifest" "release\.zzlogg-files.manifest"]=]
   [=[File "/oname=$ZzLoggTxDir\recover\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=])
 string(REGEX MATCHALL "\n[ \t]+File[ \t][^\n]*" nsis_file_lines "${nsis_content}")
 set(recursive_file_line_count 0)
@@ -365,7 +365,7 @@ foreach(actual_file_line IN LISTS nsis_file_lines)
   endif()
   # Beyond the one recursive staging consumption, only the restricted-mode
   # payload extraction may embed files: the transaction engine and the fresh
-  # landing manifest, always extracted beneath the protected transaction dir.
+  # landing manifest, always extracted beneath the protected transaction root.
   if(NOT actual_file_line IN_LIST allowed_payload_file_lines)
     message(FATAL_ERROR
       "NSIS embeds a file outside the staging tree or restricted payload: ${actual_file_line}")

@@ -465,6 +465,17 @@ Conflict=43、RolledBack=44、NeedsAuthorizedRecovery=45、RecoveryFailed=46。
 契约以五组 flag/value（--install/--staging/--txroot/--txid/--version）启动引擎；
 定位名格式在协调者、NSIS、引擎、凭据文件四方逐字节一致。
 
+目录布局（3C 最终审查修正）：journal 事务目录 `<根>\<定位名>` 只归引擎所有，
+由 TxJournal::open 独占创建——安装器只做存在性 busy 探测，绝不预建（引擎对
+已存在目录一律 Exists→Rejected，不存在"采纳预建目录"）。安装器创建并加固的
+是受保护根 `%ProgramData%\ZzLogg\UpdateTransactions`（仅在首次创建时执行
+`/inheritance:r`，Administrators/SYSTEM 完全 + Authenticated Users 只读）与
+同级兄弟暂存目录 `<根>\staging-<定位名>`（Administrators/SYSTEM 完全 +
+Users 只读），载荷引擎、新版清单与 nsis-entry.log 都落在暂存目录。引擎
+受保护镜像断言对根只接受这一精确 ACL 形状（属主 Administrators/SYSTEM，
+除二者外无任何写位 ACE）；不放宽扫描规则，根形状不符即 Rejected，形状
+建立的正确性由本清单的阶段 4 真实环境用例验收。
+
 ### 协调者生产链路
 
 协调者→安装器/引擎的受限 bootstrap 使用凭据文件：当前用户私有临时目录下随机
@@ -521,6 +532,8 @@ PublisherPolicyMissing）；生产签名工具与正式发布流水线；生产 
 安装目录、不运行真实 NSIS 安装包）：
 
 - 真实 UAC 提权链路（含用户拒绝路径）与跨完整性级别令牌/身份验证可行性；
+- 真实 ProgramData ACL 树下引擎受保护根 accept 路径（upgrade 的 prepare
+  与 recover 双模式，含根已存在/已加固的幂等进入）；
 - 真实 HKLM 写入（卸载项、UpdateIdentitySchema=2）与登记回滚恢复；
 - 真实 NSIS 安装/升级/恢复包端到端（VerifyTarget、禁 /D=、退出码传播、
   静默页面行为）；

@@ -209,7 +209,9 @@ CoordinationResult Coordinator::finish(Deadline deadline){
     return CoordinationResult::Complete;
 }
 CoordinationResult Coordinator::restart(Deadline deadline){
-    if(!impl_->installerChain || !impl_->finishedOk || impl_->failed || impl_->elevated)return CoordinationResult::Failed;
+    // Single-shot: a second call can never launch another GUI instance.
+    if(!impl_->installerChain || !impl_->finishedOk || impl_->failed || impl_->elevated
+        || impl_->restarted.handle())return CoordinationResult::Failed;
     const auto fail=[]{return CoordinationResult::RestartFailed;};
     // Registration recheck: the directory must still be the pinned registered
     // installation with a consistent marker and manifest, and the new main
@@ -247,6 +249,8 @@ CoordinationResult Coordinator::restart(Deadline deadline){
         if(!impl_->restarted.alive())return fail();
         if(WaitNamedPipeW(endpoint.c_str(),20)!=FALSE && impl_->restarted.alive())
             return CoordinationResult::Restarted;
+        // A missing endpoint fails WaitNamedPipeW instantly; never busy-poll.
+        Sleep(20);
     }
     return fail();
 }

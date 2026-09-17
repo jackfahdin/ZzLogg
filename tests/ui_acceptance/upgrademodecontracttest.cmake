@@ -169,25 +169,39 @@ foreach(verify_forbidden IN ITEMS
   forbid_nsis_block_literal(verify_target "${verify_forbidden}" "target recheck")
 endforeach()
 
-# Upgrade mode: the registration recheck precedes every write; the protected
-# transaction directory is created exclusively, ACL-hardened, then the payload
-# engine and the fresh manifest are extracted and the engine runs with its
-# exit code propagated. The engine argv is the finalized 3C contract: only
-# flag/value pairs with the non-secret parameters (target, staging, tx root,
-# 16-hex locator as txid, payload version); credentials travel solely through
-# the current-user-private credential file named by the locator.
+# Upgrade mode: the registration recheck precedes every write. The journal
+# directory belongs to the engine alone (TxJournal::open creates it
+# exclusively), so the installer only probes it for the busy case and never
+# creates it; the protected root is created and ACL-hardened once; staging is
+# a hardened sibling directory that receives the payload engine, the fresh
+# manifest and the entry log. The engine argv is the finalized 3C contract:
+# only flag/value pairs with the non-secret parameters (target, staging, tx
+# root, 16-hex locator as txid, payload version); credentials travel solely
+# through the current-user-private credential file named by the locator.
+# Branch semantics: IfFileExists takes (jump-if-exists, jump-if-not); the
+# 0 second operand falls through. The root-exists probe jumps FORWARD over
+# creation+hardening, so an existing root is never re-hardened, while a
+# missing root is created and hardened exactly once before staging.
 require_nsis_block_order(restricted_upgrade "restricted upgrade"
   [=[Call ZzLoggVerifyTarget]=]
   [=[IfFileExists "$ZzLoggTxDir" zzlogg_upgrade_txdir_busy 0]=]
-  [=[CreateDirectory "$ZzLoggTxDir"]=]
-  [=[nsExec::ExecToLog 'icacls "$ZzLoggTxDir" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)R"']=]
-  [=[CreateDirectory "$ZzLoggTxDir\staging"]=]
-  [=[SetOutPath "$ZzLoggTxDir\staging"]=]
-  [=[File "/oname=$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
-  [=[File "/oname=$ZzLoggTxDir\staging\files.manifest" "release\.zzlogg-files.manifest"]=]
-  [=[ExecWait '"$ZzLoggTxDir\staging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggTxDir\staging" --txroot "$APPDATA\ZzLogg\UpdateTransactions" --txid "$ZzLoggLocator" --version "${VERSION}"' $3]=]
+  [=[IfFileExists "$ZzLoggTxRoot" zzlogg_upgrade_root_ready 0]=]
+  [=[CreateDirectory "$ZzLoggTxRoot"]=]
+  [=[nsExec::ExecToLog 'icacls "$ZzLoggTxRoot" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-11:(OI)(CI)R"']=]
+  [=[CreateDirectory "$ZzLoggStaging"]=]
+  [=[nsExec::ExecToLog 'icacls "$ZzLoggStaging" /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)R"']=]
+  [=[SetOutPath "$ZzLoggStaging"]=]
+  [=[File "/oname=$ZzLoggStaging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
+  [=[File "/oname=$ZzLoggStaging\files.manifest" "release\.zzlogg-files.manifest"]=]
+  [=[FileOpen $4 "$ZzLoggStaging\nsis-entry.log" w]=]
+  [=[ExecWait '"$ZzLoggStaging\ZzLoggUpdateTx.exe" --install "$ZzLoggTarget" --staging "$ZzLoggStaging" --txroot "$ZzLoggTxRoot" --txid "$ZzLoggLocator" --version "${VERSION}"' $3]=]
   [=[SetErrorLevel $3]=]
   "Quit")
+# The engine creates the journal directory exclusively; an installer-created
+# one would be an adopted directory and defeat the Exists anti-replay
+# semantics. The pre-task-5 flat-locator argv form stays forbidden.
+forbid_nsis_block_literal(restricted_upgrade [=[CreateDirectory "$ZzLoggTxDir"]=]
+  "restricted upgrade")
 forbid_nsis_block_literal(restricted_upgrade [=[ZzLoggUpdateTx.exe" "$ZzLoggLocator"]=]
   "restricted upgrade")
 foreach(upgrade_forbidden IN ITEMS
