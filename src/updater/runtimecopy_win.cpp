@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <winternl.h>
 namespace zzlogg::updater::detail {
-Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf){
+Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf,PSECURITY_DESCRIPTOR security){
     // RootDirectory is already leased; only a single ordinary component may be
     // resolved relative to it. FILE_CREATE atomically creates AND returns a
     // non-share-delete handle, eliminating CreateDirectoryW/open replacement gaps.
-    if(leaf.empty() || leaf.size()>80 || !std::all_of(leaf.begin(),leaf.end(),[](wchar_t c){
+    if(!security || leaf.empty() || leaf.size()>80 || !std::all_of(leaf.begin(),leaf.end(),[](wchar_t c){
         return (c>=L'a' && c<=L'z') || (c>=L'A' && c<=L'Z') || (c>=L'0' && c<=L'9') || c==L'-';
     }))return Handle{};
     BY_HANDLE_FILE_INFORMATION parentInfo{};
@@ -17,12 +17,12 @@ Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf){
         || (parentInfo.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))return Handle{};
     const auto module=GetModuleHandleW(L"ntdll.dll");
     const auto create=module?reinterpret_cast<decltype(&NtCreateFile)>(GetProcAddress(module,"NtCreateFile")):nullptr;
-    SecurityAttributes security;if(!create || !security.get())return Handle{};
+    if(!create)return Handle{};
     UNICODE_STRING name{};name.Buffer=const_cast<PWSTR>(leaf.data());
     name.Length=static_cast<USHORT>(leaf.size()*sizeof(wchar_t));name.MaximumLength=name.Length;
     OBJECT_ATTRIBUTES attributes{};attributes.Length=sizeof(attributes);attributes.RootDirectory=parent;
     attributes.ObjectName=&name;attributes.Attributes=OBJ_CASE_INSENSITIVE;
-    attributes.SecurityDescriptor=security.get()->lpSecurityDescriptor;
+    attributes.SecurityDescriptor=security;
     IO_STATUS_BLOCK status{};HANDLE raw=nullptr;
     constexpr ULONG createOnly=2,created=2,directoryFile=1,synchronousNonAlert=0x20,openReparsePoint=0x00200000;
     const auto result=create(&raw,FILE_LIST_DIRECTORY|FILE_READ_ATTRIBUTES|SYNCHRONIZE,&attributes,&status,nullptr,
@@ -30,6 +30,10 @@ Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf){
     Handle directory(raw);
     if(result<0 || status.Information!=created)return Handle{};
     return directory;
+}
+Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf){
+    SecurityAttributes security;if(!security.get())return Handle{};
+    return createExclusiveDirectory(parent,leaf,security.get()->lpSecurityDescriptor);
 }
 namespace {
 using update::detail::StablePackage;

@@ -4,6 +4,9 @@
 namespace zzlogg::updater::detail {
 // Atomically creates one relative child directory and returns its stable lease.
 // Existing names (including reparse nodes) fail; there is no open-existing fallback.
+// The three-argument form applies a caller-supplied security descriptor instead of
+// the default logon-scoped one (used by the protected transaction directory).
+Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf,PSECURITY_DESCRIPTOR security);
 Handle createExclusiveDirectory(HANDLE parent,const std::wstring& leaf);
 // Ordinary-user staging only. No installation authority or publisher trust.
 class RuntimeCopy {
