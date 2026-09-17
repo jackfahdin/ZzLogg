@@ -13,7 +13,7 @@
 | 3 | tests/updater/coordinatortest.cpp:65-85（原 60-77） | spawnMappedFixture 以 bInheritHandles=TRUE 继承全部句柄（无 allowlist） | 不修 | — | 测试专用解析驱动，无生产面；原记录已判 acceptable |
 | 4 | bootstrap_win.cpp:12-18（原 12） | 控制字符仅查 <0x20（漏 0x7F）；正斜杠盘符被接受 | 不修 | — | 该字段仅为重启提示数据（--data-dir），不承载安装权限；数据面校验足够 |
 | 5 | txjournal_win.cpp:202-215（原 202） | append 侧无 replay 强制的总量/条数上限（kMaxJournalBytes/kMaxRecords） | 本批修复 | 任务 2 | 自我 DoS 不对称：写入方可造出 replay 必判 Corrupt 的日志；补对称上限即可，本机可测 |
-| 6 | txjournal_win.cpp:225-226（原 226） | replay 以 FILE_SHARE_READ\|FILE_SHARE_WRITE 打开 journal，写共享无必要 | 本批修复 | 任务 2 | replay 只读，去掉 FILE_SHARE_WRITE 收紧共享面；单行修改 |
+| 6 | txjournal_win.cpp:225-226（原 226） | replay 以 FILE_SHARE_READ\|FILE_SHARE_WRITE 打开 journal，写共享无必要 | 不修 | — | 任务 2 实证改判：append 进行中并发只读 replay 是既定语义，txenginetest 的 pollJournal kill 点观测机制依赖 FILE_SHARE_WRITE（torn tail 重试即为此设计）；收紧为仅读共享后观测延迟从 +15ms 恶化到事务完成后 +1500ms，中断测试确定性失败。已实证回退，提交 b349b05d |
 | 7 | txjournal_win.cpp:171-173,194-196（原 172,194-196） | 基于路径的 Exists 探测与租约后清理存在 TOCTOU 窗口 | 不修 | — | 低危：祖先目录全部钉住（pinAncestors，拒绝删除共享），路径组件不可被替换 |
 | 8 | txjournal_win.cpp:122-145（原 128-143） | checkVolumeSpace 只钉最近现存祖先 | 不修 | — | 更深组件尚不存在则无从被换；最近现存祖先已钉住并核验身份，窗口可接受 |
 | 9 | txjournal_win.cpp:83-91（原 SDDL 条目） | 事务目录 SDDL 不设 owner；生产环境 owner=Administrators 为隐式行为 | 真实环境验收 | 任务 5 用例 | 需在真实 ProgramData/UAC 环境确认隐式 owner 归属，本机无法断言 |
@@ -39,9 +39,9 @@
 
 ## 裁决统计
 
-- 本批修复：8 条（#1、#5、#6、#13、#19、#20、#23、#27）→ 任务 2（#1、#5、#6、#23、#27）、任务 3（#13、#19、#20）
+- 本批修复：7 条（#1、#5、#13、#19、#20、#23、#27）→ 任务 2（#1、#5、#23、#27）、任务 3（#13、#19、#20）
 - 真实环境验收：5 条（#9、#11、#16、#25、#26）→ 任务 5 用例 / VM 手册
-- 不修：13 条（#2、#3、#4、#7、#8、#10、#12、#14、#15、#17、#18、#24、#28），接受理由见表
+- 不修：14 条（#2、#3、#4、#6、#7、#8、#10、#12、#14、#15、#17、#18、#24、#28），接受理由见表（#6 为任务 2 实证后改判，见表内理由与提交 b349b05d）
 - 已修复（不计入裁决）：2 条（#21、#22）
 
 ## 已核实修复
