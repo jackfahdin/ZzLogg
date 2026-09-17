@@ -552,6 +552,43 @@ PublisherPolicyMissing）；生产签名工具与正式发布流水线；生产 
 - 关机/注销（WM_QUERYENDSESSION）与 Prepared 窗口的真实交互抽查；
 - 长路径与非 NTFS 文件系统兼容性（若声明支持）。
 
+### 阶段 4 进展（准备阶段收口）
+
+阶段 4 准备计划（`.superpowers/sdd/2026-09-17-stage4-release-prep`，工作树
+`.worktrees/stage4-release`，分支 codex/stage4-release-prep）的交付物：
+
+- 延后项甄别与裁决表 [UPDATE_STAGE4_TRIAGE.md](UPDATE_STAGE4_TRIAGE.md)；
+- 测试签名工具链（`packaging/windows/New-ZzLoggTestCertificate.ps1` 与
+  `Sign-ZzLoggArtifacts.ps1`，规格与红线见下节）；
+- 验收脚本包 `tools/acceptance/`（运行器 + 12 用例：01–07 可 CI 自动化，
+  08–12 固定 SKIP 指向 VM 手册）；
+- CI 冒烟流水线 `.github/workflows/update-smoke.yml`（windows-2022 runner
+  真实 NSIS 安装 + 验收冒烟 + 报告 artifact）；
+- VM 真实环境验收手册
+  [UPDATE_ACCEPTANCE_VM.md](UPDATE_ACCEPTANCE_VM.md)。
+
+**28 条延后项裁决去向**（台账称 25 条，实际 grep 计数 28，裁决表按 28 条
+逐条裁决，一条不漏）：本批修复 7 条（任务 2/3）、真实环境验收 5 条
+（任务 5 用例 / VM 手册）、不修 14 条（接受理由逐条在表内）、已核实修复
+2 条（提交 51343429，不计入裁决）。明细见裁决表。
+
+**任务 5.5 产品侧修复三件套**（验收首跑前收敛的真实契约缺口）：
+
+1. NSIS 受限入口 8 个失败分支补 `SetErrorLevel`（原裸 `Abort` 退出码恒 0）：
+   用法拒绝=2、目标复核失败=42、安装器侧运行期失败=48（新增契约码位
+   `InstallerRuntimeFailure`），码位单一来源 `txcontract_win_p.h`；
+2. 8 处 `MessageBox` 全部补 `/SD IDOK`（`/S` 静默下不再弹窗阻塞）；
+3. 引擎受保护镜像 ACL 写位断言收窄为显式数据写位枚举
+   （0x500D0116，剔除 SYNCHRONIZE/READ_CONTROL），与安装器授
+   Authenticated Users 只读不再自相矛盾；验收脚本写位常量已逐位同步。
+
+**清单条目去向**：上述验收清单中可 CI 自动化的条目已脚本化（用例 01–07
+由 update-smoke.yml 在 windows-2022 runner 真实执行）；剩余纯真实环境
+条目（真实 UAC、端到端升级链、跨账户、关机/注销抽查、中断恢复、空间注入、
+签名闭环等）全部落入 VM 手册 §2/§3，逐条含前置、逐步操作、预期结果与
+记录栏。本节清单原文保持有效，不作删除或弱化；CI 真实通过证据待推送后
+观察 update-smoke.yml 首跑（核对项见 VM 手册 §4）。
+
 ### 测试签名（阶段 4 工具链）
 
 **红线：本节工具链仅测试用途，发布签名由生产流水线与真实证书承担。**
