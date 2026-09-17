@@ -157,13 +157,13 @@ git commit -m "feat: 接通协调者安装启动与普通权限重启" -m "3C �
 
 **文件：** `src/app/kloggapp.h`、`src/app/applicationupdatehandoff.*`、`src/ui/src/updatecheckdialog.cpp`、`tests/ui_acceptance/updatehandofftest.cpp`、`updatecheckuitest.cpp`、`restartcontracttest.cpp`、`docs/development/UPDATE_PROTOCOL.md`。
 
-- [ ] KloggApp 准备丢失时外发通知（信号），ApplicationUpdateHandoff 连接后取消等待中会话；补 CommitExit 在飞期间参与者销毁的测试（残余窗口闭合证据）。
-- [ ] options 模态父对话框在交接进行中销毁的测试（对话框随父销毁 → installCancelRequested → 会话取消、窗口恢复）。
-- [ ] ApplicationUpdateHandoff 析构改有界等待 + 诊断日志；取消后 reservationHeld 未清空期间的重复 begin 返回可诊断状态而非静默 false。
-- [ ] Abandoned 预留与 Blocked 的文案区分（守卫诊断映射 + 三语文案）；评估并记录 Prepared 期 WM_QUERYENDSESSION 语义（结论写入文档，若需代码改动限本任务范围）。
-- [ ] UPDATE_PROTOCOL.md：协议 v2/Proceed、bootstrap v3、事务与恢复边界、"准备→预留→握手→提交/取消"时序说明（含观察句柄存续期与引擎 Proceed 前禁止修改）、schema 2 落地清单、3C 未交付项与阶段 4 真实环境验收清单。
-- [ ] 裁决并落实 `updaterProtocol` 发布身份字段与线协议 v2 的关系：发布身份语义经 installedrelease 断言锁定为 1，线协议已升 2；明确二者是否应同步，若保持 1 则在文档写明"发布身份协议号与线协议号独立演进"的理由与边界，若升为 2 则同步更新 installedrelease/releaseidentity 测试矩阵。
-- [ ] 完整构建/CTest、三语与布局回归，中文提交。
+- [x] KloggApp 准备丢失时外发通知（信号），ApplicationUpdateHandoff 连接后取消等待中会话；补 CommitExit 在飞期间参与者销毁的测试（残余窗口闭合证据）。
+- [x] options 模态父对话框在交接进行中销毁的测试（对话框随父销毁 → installCancelRequested → 会话取消、窗口恢复）。
+- [x] ApplicationUpdateHandoff 析构改有界等待 + 诊断日志；取消后 reservationHeld 未清空期间的重复 begin 返回可诊断状态而非静默 false。
+- [x] Abandoned 预留与 Blocked 的文案区分（守卫诊断映射 + 三语文案）；评估并记录 Prepared 期 WM_QUERYENDSESSION 语义（结论写入文档，若需代码改动限本任务范围）。
+- [x] UPDATE_PROTOCOL.md：协议 v2/Proceed、bootstrap v3、事务与恢复边界、"准备→预留→握手→提交/取消"时序说明（含观察句柄存续期与引擎 Proceed 前禁止修改）、schema 2 落地清单、3C 未交付项与阶段 4 真实环境验收清单。
+- [x] 裁决并落实 `updaterProtocol` 发布身份字段与线协议 v2 的关系：裁决保持 1——updaterProtocol 是清单协商能力号，与 bootstrap/线协议号独立演进；引擎↔协调者协议腿跨构建版本，线协议升级必须保持新引擎对旧协调者的失败关闭，理由与边界已写入文档，测试矩阵不变。
+- [x] 完整构建/CTest、三语与布局回归，中文提交。
 
 ```powershell
 & D:/SoftWare/CMake/bin/cmake.exe --build out/ui-vs --config Release --parallel 8
@@ -186,4 +186,5 @@ git commit -m "feat: 收口交接移交项并完善更新协议文档" -m "3C �
 - 任务 3：`0e3a71b1` + 审查修复 `86e75848` 差分文件集与登记事务引擎：清单有界敌意解析、先写日志后操作、普通失败逆序回滚、中断幂等授权恢复、登记白名单精确到卸载项键、Corrupt/0 字节日志呈现为保留现场需授权恢复；两卷空间预检（审查修复）。两组变异重跑归档，完整 108/108 通过。复审确认全部发现解决且无新破坏；分卷预检端到端与本机单固定盘环境受限，归阶段 4 验收。
 - 任务 4：`20f8030c` + 两轮审查修复 `16777d4c`、`7f8efcdb` 落地清单（ZZTXMAN1 与引擎解析器逐字节同源、共享枚举生成器）与 NSIS 受限升级/恢复入口（禁 /D=、Quit 跳页、VerifyTarget 逐级拒 reparse、受保护目录、退出码传播）。审查发现 System::Call 结构体尺寸/字段错位（提权进程内存破坏+身份捕获失效）、逐级 reparse 缺口、契约断言强度不足，及修复引入的两处 IntCmp 分支反转（恒拒合法目标）——全部修复并经两轮复审确认；新增全分支语义审计与契约语义注释。makensis 3.11 真实编译通过，完整 109/109 通过。升级模式引擎 argv 形态与恢复定位名精确格式移交任务 5 对齐。
 - 任务 5：`b3c989cb` 协调者生产链路：凭据文件（CREATE_NEW+用户 DACL+属主/形状/定位名/活身份四层校验、读后即删、三路径清理）、受限开关启动安装器（可注入 seam）、Complete 后复核登记/标记/清单并以原用户身份重启（仅 --data-dir 参数、目录作用域端点有界确认）、ManualRestartRequired 保持。两条对齐项定稿：argv 契约（协调者→NSIS 仅定位名、NSIS→引擎五组 flag/value）与定位名 16 位小写 hex 四方逐字节一致。Request 增加 packagePath/releaseVersion，生产工厂仍缺席。两组变异被捕获，完整 109/109 通过。独立审查规格符合、质量通过，无关键/重要发现；NSIS 改动逐行语义审查未见分支缺陷；跨完整性级别令牌验证可行性归阶段 4。
+- 任务 6：`61dd7665` + 审查修复 `678b154d` 移交收口：准备丢失外发信号闭合 CommitExit 在飞残余窗口（门闩会话实证迟到成功被代次丢弃）、options 模态销毁路径、15 秒有界析构+诊断、CancellationInProgress 可诊断重复 begin、Abandoned/Blocked 三语文案区分、WM_QUERYENDSESSION 评估（有界可接受不改代码）、UPDATE_PROTOCOL.md 新增 3C 全章。updaterProtocol 裁决保持 1（清单协商能力号与线协议独立演进）；审查发现裁决理由"两端同构建"表述失真（引擎↔协调者腿跨构建版本），已修正并补失败关闭边界。完整 109/109 通过。
 - 任务 2：`96ece89d` 持久事务日志与受保护事务目录。`txjournal_win` 二进制日志（32 字节头 + 68 字节定长记录头 + 长度前缀 UTF-16 体，显式小端编码），open 独占创建 `<根>\<txid 十六进制>`（`createExclusiveDirectory` 扩展注入安全描述符，祖先钉住复用 installlock 共享原语），append 先写后刷（flush 可注入观察，生产默认 FlushFileBuffers），replay 严格解析：撕裂/未知操作/未知 flags/错序/事务 ID 不符均 Corrupt 且重放为零操作，Complete 后拒绝追加，重放只读幂等。ACL 主体经 TxJournalOptions 注入（生产 Administrators/SYSTEM 写 + 已验证用户读），测试以当前用户注入并读回真实 DACL 断言（受保护、OICI 继承、读者无法建 journal 的行为证明）。checkVolumeSpace 饱和加法 + 1MiB 日志预留 + 最近现存非重解析祖先查询。TDD 红灯 47 项失败、两组变异均被捕获，完整 106/106 通过。
