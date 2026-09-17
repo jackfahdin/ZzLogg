@@ -543,3 +543,29 @@ PublisherPolicyMissing）；生产签名工具与正式发布流水线；生产 
 - 生产签名链成功、证书轮换与撤销/离线验收；
 - 关机/注销（WM_QUERYENDSESSION）与 Prepared 窗口的真实交互抽查；
 - 长路径与非 NTFS 文件系统兼容性（若声明支持）。
+
+### 测试签名（阶段 4 工具链）
+
+**红线：本节工具链仅测试用途，发布签名由生产流水线与真实证书承担。**
+测试证书 Subject 含 `Test` 与 `NOT FOR PRODUCTION` 字样；任何 `.pfx`/私钥材料
+绝不入库（仓库根 `.gitignore` 已覆盖 `*.pfx`）；证书与信任只写
+`Cert:\CurrentUser\*`，绝不写 LocalMachine；验证结束后必须删除
+`CurrentUser\Root` 中的测试根证书与临时 PFX，不长期信任无保护的测试根。
+
+- `packaging/windows/New-ZzLoggTestCertificate.ps1`：生成自签名代码签名证书
+  （`New-SelfSignedCertificate -Type CodeSigningCert`，EKU 1.3.6.1.5.5.7.3.3，
+  有效期 2 年，私钥可导出）。`-TrustCurrentUser` 将证书导入
+  `Cert:\CurrentUser\Root` 使本机 `signtool verify /pa` 通过；`-ExportPfx <path>
+  -Password <SecureString>` 导出 PFX。重复运行按 Subject 复用已有证书（幂等），
+  输出指纹与"仅测试用途"警告。
+- `packaging/windows/Sign-ZzLoggArtifacts.ps1`：`signtool sign /fd SHA256`
+  （`/f pfx /p pwd` 或 `/sha1 <指纹>` 二选一；仅指定 `-TimestampUrl` 时追加
+  `/tr <url> /td SHA256`，默认不加时间戳以支持离线）。签名对象扩展名仅限
+  `.exe/.dll/.msi`，其余一律拒绝。`-Verify` 只验签（`verify /pa`）。signtool
+  定位顺序：PATH → vswhere → Windows Kits 10 bin 最新版，找不到以退出码 2
+  报错并提示安装 Windows SDK；任何文件签名/验签失败即非零退出并列出失败文件。
+
+典型流程：生成证书并导入 Root → 复制构建产物到临时目录（绝不签原始构建输出）→
+签名 → `-Verify` 验签（退出 0）→ 篡改一字节后验签必须失败（非零）→ 清理测试根
+证书与 PFX。生产签名（真实证书、时间戳服务、HSM/流水线凭据）不在本仓库与本
+工具链范围内。

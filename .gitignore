@@ -67,3 +67,6 @@ cmake-build-relwithdebinfo/
 #website
 website/hugo
 website/resources/
+
+# 测试签名私钥材料绝不入库
+*.pfx
