@@ -463,7 +463,12 @@ Conflict=43、RolledBack=44、NeedsAuthorizedRecovery=45、RecoveryFailed=46。
 都禁止 `/D=`（受限运行绝不改变登记目标）、在任何页面显示前 Quit、VerifyTarget
 逐级拒绝 reparse、使用受保护事务目录并传播引擎退出码。升级模式按定稿 argv
 契约以五组 flag/value（--install/--staging/--txroot/--txid/--version）启动引擎；
-定位名格式在协调者、NSIS、引擎、凭据文件四方逐字节一致。
+定位名格式在协调者、NSIS、引擎、凭据文件四方逐字节一致。受限入口在引擎启动
+前的失败分支一律 SetErrorLevel 后 Abort（裸 Abort 退出码恒 0），码位链接
+txcontract_win_p.h：用法拒绝（/D=、定位名非法）= UsageRejected(2)、目标复核
+失败 = exitForOutcome(Rejected)(42)、安装器侧运行期失败（事务 busy、保护目录/
+暂存创建失败、无 journal）= InstallerRuntimeFailure(48)；所有失败提示
+MessageBox 带 /SD IDOK，/S 静默下不弹窗。
 
 目录布局（3C 最终审查修正）：journal 事务目录 `<根>\<定位名>` 只归引擎所有，
 由 TxJournal::open 独占创建——安装器只做存在性 busy 探测，绝不预建（引擎对
@@ -473,8 +478,11 @@ Conflict=43、RolledBack=44、NeedsAuthorizedRecovery=45、RecoveryFailed=46。
 同级兄弟暂存目录 `<根>\staging-<定位名>`（Administrators/SYSTEM 完全 +
 Users 只读），载荷引擎、新版清单与 nsis-entry.log 都落在暂存目录。引擎
 受保护镜像断言对根只接受这一精确 ACL 形状（属主 Administrators/SYSTEM，
-除二者外无任何写位 ACE）；不放宽扫描规则，根形状不符即 Rejected，形状
-建立的正确性由本清单的阶段 4 真实环境用例验收。
+除二者外无任何写位 ACE；写位为显式数据写位枚举 FILE_WRITE_DATA|
+FILE_APPEND_DATA|FILE_WRITE_EA|FILE_WRITE_ATTRIBUTES|DELETE|WRITE_DAC|
+WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL，不含 SYNCHRONIZE/READ_CONTROL，
+见 txengine_win.cpp protectedRootAclShape）；不放宽扫描规则，根形状不符即
+Rejected，形状建立的正确性由本清单的阶段 4 真实环境用例验收。
 
 ### 协调者生产链路
 
