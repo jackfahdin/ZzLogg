@@ -445,3 +445,19 @@ git -C D:/File/Program/GitCode/ZzLogg merge --ff-only codex/stage4-release-prep
 - **规格覆盖度：** 规格 §7 生产门禁（不伪造配置/测试私钥）→ 全局约束 + 任务 4 红线；§7 真实验收清单 12 项 → UPDATE_PROTOCOL 清单 10 项 → 任务 5 用例 01-07（可脚本化）+ 任务 7 VM 手册（交互/多账号/断电/占用等不可脚本项）；25 条延后 Minor → 任务 1-3；生产签名/HTTPS/发布配置仍缺 → 保持关闭（全局约束第 1 条），CI 冒烟（任务 6）先行覆盖"通过源码契约测试不等于通过真实安装测试"的可自动化部分。
 - **占位符扫描：** 各任务步骤均含具体文件/行号/命令/判据；任务 2 的最终小项集以任务 1 裁决表为准（已在任务 1 步骤 2 写明调整规则），非占位符。
 - **类型一致性：** 验收脚本运行器参数（-SetupExe/-InstallDir/-Filter/-ReportPath）在任务 5 定义、任务 6 调用一致；签名脚本参数（-Thumbprint/-PfxPath/-Verify/-TrustCurrentUser）任务 4 内部一致。
+
+---
+
+## 主线交付记录（2026-09-18）
+
+**执行方式**：subagent-driven-development，逐任务实现 + 独立审查 + 修复轮 + 整分支最终审查；SDD 账本（git-ignored）：`.worktrees/stage4-release/.superpowers/sdd/2026-09-17-stage4-release-prep/progress.md`。
+
+**任务完成**：任务 1（裁决表 160ecf3c）、2（C++ 批次 a8ad199a..f74dd5b7）、3（PS/NSIS 批次 dd9545bd..1130eeb1）、4（签名工具链 ecfd73aa）、5（验收脚本包 86ca70f8）、5.5（产品侧契约缺口修复 777bc0ee..5729ef3a，审查暴露后新增）、6（CI 冒烟 2f3a65e3）、7（VM 手册 4d52cd94）。最终审查（21 提交全分支）：无 Critical/Important，12 条延后 Minor 甄别无一承重。
+
+**关键裁决**（详见账本）：3C 台账延后条目实为 28 条（"25"系行文数字）；#6 FILE_SHARE_WRITE 实证为并发 replay 承重语义改判不修；NSIS 受限入口 8 处 Abort 补退出码（2/42/48）+ MessageBox /SD；引擎 ACL 写位收窄为显式枚举 0x500D0116（剔除 SYNCHRONIZE/READ_CONTROL，修复引擎必拒安装器自建根的 100% 生产阻断）；新增契约码位 48 InstallerRuntimeFailure。
+
+**验证证据**：工作树构建 exit 0、CTest 108/109（唯一失败 zzlogg_update.release_configuration 为工作树路径深度 263>MAX_PATH 260 的环境问题，分支对 tests/update/ 零改动，主线实证通过）；合并后主线 Release 构建 exit 0（`out/ui-vs/stage4-master-build.log`）、全套 CTest **109/109**（154.06 秒，`out/ui-vs/stage4-master-tests.log`）。
+
+**合并**：ff-only `352ff0c7..4d52cd94`，未推送（github 远程已配，待用户指令）。
+
+**剩余事项**（真实环境/推送后）：update-smoke.yml 首跑确认（VM 手册 §4 检查项，含 agent-setup cache@v1/v2 存量停用风险）；VM 手册 §2/§3 全部交互验收条目（含签名闭环 §2.6）；生产签名证书与发布配置（生产入口保持关闭直至全部通过）。
