@@ -59,10 +59,10 @@ runs:
         if errorlevel 1 exit /b %errorlevel%
 
     - name: Win installer
-      uses: joncloud/makensis-action@v3.3
-      with:
-        script-file: packaging/windows/ZzLogg.nsi
-        arguments: "/NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%"
+      shell: cmd
+      run: |
+        choco install nsis --version=3.11 -y --no-progress
+        makensis /NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH% packaging\windows\ZzLogg.nsi
     
     - name: Win package
       shell: cmd
