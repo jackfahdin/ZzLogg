@@ -162,7 +162,7 @@ FunctionEnd
 Function ZzLoggCheckRealDirectory
     ; $R8 in: path. "ok" only for an existing directory that is neither a
     ; reparse point nor a device; every component of the target is gated here.
-    System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9'
+    System::Call 'kernel32::GetFileAttributesW(w R8) i .R9'
     IntCmp $R9 -1 zzlogg_component_bad 0 0
     IntOp $R7 $R9 & 0x440
     StrCmp $R7 0 0 zzlogg_component_bad
@@ -216,12 +216,21 @@ Function ZzLoggVerifyTarget
     Call ZzLoggCheckRealDirectory
     Pop $R9
     StrCmp $R9 "ok" 0 zzlogg_verify_fail
-    System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0'
+    ; System::Call string inputs (t/w) take bare register names only: a $-form
+    ; is passed as the literal string "$R8"/"$ZzLoggTarget", never dereferenced.
+    StrCpy $R8 $ZzLoggTarget
+    System::Call 'kernel32::CreateFileW(w R8, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0'
     IntCmp $R0 -1 zzlogg_verify_fail 0 0
     StrCmp $R0 0 zzlogg_verify_fail
     ; BY_HANDLE_FILE_INFORMATION: 13 DWORD members; R2 = volume serial (8),
-    ; R3 = file index high (12), R4 = file index low (13).
-    System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5'
+    ; R3 = file index high (12), R4 = file index low (13). The inline struct
+    ; literal form `*(i.R1, ...)` silently fails under NSIS 3.11 (call returns
+    ; 0 with no members filled); allocate the buffer and deref it instead.
+    System::Alloc 52
+    Pop $R7
+    System::Call 'kernel32::GetFileInformationByHandle(p R0, p R7) i .R5'
+    System::Call '*$R7(i .R1, i, i, i, i, i, i, i .R2, i, i, i, i .R3, i .R4)'
+    System::Free $R7
     StrCmp $R5 1 0 zzlogg_verify_fail_pin
     IntOp $R6 $R1 & 0x10
     StrCmp $R6 0 zzlogg_verify_fail_pin

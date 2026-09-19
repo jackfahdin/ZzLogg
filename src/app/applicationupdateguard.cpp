@@ -29,6 +29,7 @@
 
 namespace {
 
+#ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
 QString nativeDirectoryPath( const QString& directory )
 {
     auto native = QDir::toNativeSeparators( directory );
@@ -37,6 +38,7 @@ QString nativeDirectoryPath( const QString& directory )
     }
     return native;
 }
+#endif
 
 } // namespace
 

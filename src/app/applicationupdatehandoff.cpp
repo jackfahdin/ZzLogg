@@ -183,7 +183,8 @@ bool ApplicationUpdateHandoff::begin()
         return fail( failure, detail );
     }
     d.reservationHeld = true;
-    Request request{ d.app.updateGuard().reservedIdentity() };
+    Request request{};
+    request.directory = d.app.updateGuard().reservedIdentity();
     // The verified package offer is request data only: the production factory
     // stays absent, so it can never become execution authority this phase.
     const auto offer = d.app.verifiedUpdateOffer();

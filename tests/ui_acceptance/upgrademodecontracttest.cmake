@@ -133,8 +133,11 @@ require_nsis_block_literal(validate_locator
 # Branch semantics: GetFileAttributesW failure returns exactly -1, so ONLY the
 # equal label may reject — every existing directory yields a small positive
 # attribute value (signed > -1) and must fall through both remaining labels.
+# System::Call string inputs (t/w) take bare register names only: the $-form
+# is passed as a literal string and never dereferenced (proven empirically:
+# `w $R8` yields INVALID_FILE_ATTRIBUTES for an existing path, `w R8` works).
 require_nsis_block_order(check_real_directory "per-component reparse check"
-  [=[System::Call 'kernel32::GetFileAttributesW(w $R8) i .R9']=]
+  [=[System::Call 'kernel32::GetFileAttributesW(w R8) i .R9']=]
   [=[IntCmp $R9 -1 zzlogg_component_bad 0 0]=]
   [=[IntOp $R7 $R9 & 0x440]=]
   [=[IntOp $R7 $R9 & 0x10]=])
@@ -146,8 +149,8 @@ require_nsis_block_order(check_real_directory "per-component reparse check"
 # The System::Call shapes are pinned verbatim: CreateFileW must open with
 # GENERIC_READ, share READ|WRITE (delete denied), OPEN_EXISTING and
 # FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT (0x02200000), and the
-# BY_HANDLE_FILE_INFORMATION struct must carry all 13 DWORD members with the
-# outputs on volume serial (8), file index high (12) and low (13).
+# BY_HANDLE_FILE_INFORMATION readback must use Alloc+deref (the inline struct
+# literal form silently fails under NSIS 3.11).
 # Branch semantics: CreateFileW failure returns exactly -1
 # (INVALID_HANDLE_VALUE); only the equal label may reject, because every valid
 # handle is a positive value (signed > -1) and must fall through.
@@ -159,9 +162,23 @@ require_nsis_block_order(verify_target "target recheck"
   [=[IfFileExists "$ZzLoggTarget\.zzlogg-files.manifest" 0 zzlogg_verify_fail]=]
   [=[StrCpy $R8 $ZzLoggTarget 3]=]
   [=[Call ZzLoggCheckRealDirectory]=]
-  [=[System::Call 'kernel32::CreateFileW(w $ZzLoggTarget, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0']=]
+  [=[StrCpy $R8 $ZzLoggTarget]=]
+  [=[System::Call 'kernel32::CreateFileW(w R8, i 0x80000000, i 3, i 0, i 3, i 0x02200000, i 0) p .R0']=]
   [=[IntCmp $R0 -1 zzlogg_verify_fail 0 0]=]
-  [=[System::Call 'kernel32::GetFileInformationByHandle(p R0, *(i.R1, i, i, i, i, i, i, i.R2, i, i, i, i.R3, i.R4)) i .R5']=])
+  [=[System::Alloc 52]=]
+  [=[System::Call 'kernel32::GetFileInformationByHandle(p R0, p R7) i .R5']=]
+  [=[System::Free $R7]=]
+  [=[StrCmp $R5 1 0 zzlogg_verify_fail_pin]=])
+# String inputs to System::Call must never use the $-form (literal-string trap).
+string(REGEX MATCHALL "System::Call[^
+]*" system_calls "${nsis_active_content}")
+foreach(system_call IN LISTS system_calls)
+  if(system_call MATCHES "\\([tw] \\$")
+    message(FATAL_ERROR
+      "System::Call string input uses $-form (passed as literal, never "
+      "dereferenced): ${system_call}")
+  endif()
+endforeach()
 # Level-by-level walk: the drive root, every intermediate component and the
 # full target each pass the reparse gate before the pin.
 string(REGEX MATCHALL "Call ZzLoggCheckRealDirectory" walk_calls "${verify_target}")
