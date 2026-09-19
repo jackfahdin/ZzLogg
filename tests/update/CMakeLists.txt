@@ -83,3 +83,7 @@ foreach(descriptor IN ITEMS linux arm64)
     "-DTEST_TARGET_DESCRIPTION_FILE=${CMAKE_CURRENT_SOURCE_DIR}/releaseidentityfixture/${descriptor}-description.cmake"
     -DTEST_NATIVE_CASES_ONLY=ON)
 endforeach()
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

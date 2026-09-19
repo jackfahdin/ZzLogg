@@ -12,3 +12,6 @@ add_test(
     NAME klogg_tests
     COMMAND klogg_tests -platform offscreen
 )
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

@@ -78,3 +78,7 @@ add_test(NAME zzlogg_updater.production_dependencies
   COMMAND "${CMAKE_COMMAND}" "-DDUMPBIN=${updater_dumpbin}" "-DEXECUTABLE=$<TARGET_FILE:ZzLoggUpdate>"
     "-DSTATIC_LIBRARIES=$<TARGET_FILE:zzlogg_updater_handoff>;$<TARGET_FILE:zzlogg_updater_execution>;$<TARGET_FILE:zzlogg_updater_core>;$<TARGET_FILE:zzlogg_updater_monocypher>"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/dependencytest.cmake")
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

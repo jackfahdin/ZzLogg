@@ -13,3 +13,7 @@ if(WIN32)
   set_property(TEST zzlogg_update.fixture_tool PROPERTY ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

@@ -806,3 +806,7 @@ if(WIN32 AND MSVC AND TARGET ZzLoggUpdate AND TARGET zzlogg_runtime_folder)
     RUN_SERIAL TRUE
     TIMEOUT 30)
 endif()
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

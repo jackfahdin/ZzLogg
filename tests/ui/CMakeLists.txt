@@ -25,3 +25,7 @@ add_test(
 # runner (20/20 local passes, Linux CI passes); bound the flake without
 # masking a persistent failure.
 set_tests_properties(klogg_itests PROPERTIES REPEAT_UNTIL_PASS 3)
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

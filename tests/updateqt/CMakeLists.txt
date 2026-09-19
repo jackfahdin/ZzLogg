@@ -33,3 +33,7 @@ target_link_libraries(zzlogg_update_download_service_test PRIVATE zzlogg_update_
 add_test(NAME zzlogg_update.feed_configuration COMMAND "${CMAKE_COMMAND}"
   "-DSOURCE_ROOT=${CMAKE_SOURCE_DIR}" "-DBINARY_ROOT=${CMAKE_CURRENT_BINARY_DIR}"
   -P "${CMAKE_CURRENT_SOURCE_DIR}/feedconfigurationtest.cmake")
+
+# Warning relaxation for test-only targets (see the function comment in the
+# top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+zzlogg_relax_test_warnings_in_current_dir()

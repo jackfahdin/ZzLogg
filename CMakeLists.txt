@@ -280,6 +280,46 @@ add_test(
 )
 set_tests_properties(klogg_smoke PROPERTIES TIMEOUT 30)
 
+# ctest runs every registered test, so ci_build must build every registered
+# test executable, not only klogg_tests/klogg_itests (Linux CI: 47 test exes
+# missing from the build failed as Not Run). Defined before the test
+# subdirectories: zzlogg_relax_test_warnings_in_current_dir is called at the
+# end of each test directory's CMakeLists.txt.
+function(zzlogg_ci_collect_dir_targets dir)
+  get_directory_property(dir_targets DIRECTORY "${dir}" BUILDSYSTEM_TARGETS)
+  foreach(dir_target IN LISTS dir_targets)
+    get_target_property(dir_target_type "${dir_target}" TYPE)
+    if(dir_target_type STREQUAL "EXECUTABLE")
+      add_dependencies(ci_build "${dir_target}")
+    endif()
+  endforeach()
+endfunction()
+
+# Qt's QTRY_* test macros narrow long→int inside the macro body (qtestcase.h)
+# and similar warning classes live across the legacy test corpus; -Werror
+# arrives via linked interfaces (klogg_ui -> project_warnings). Warning
+# relaxations only take effect when appended at SOURCE level inside the
+# target's own directory (proven empirically: target-level options and
+# cross-directory source properties both lose to the linked interface).
+# Test-only code: keep warnings visible, drop warnings-as-errors.
+function(zzlogg_relax_test_warnings_in_current_dir)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    get_directory_property(dir_targets BUILDSYSTEM_TARGETS)
+    foreach(dir_target IN LISTS dir_targets)
+      get_target_property(dir_target_type "${dir_target}" TYPE)
+      if(dir_target_type STREQUAL "EXECUTABLE")
+        get_target_property(dir_target_sources "${dir_target}" SOURCES)
+        foreach(dir_target_source IN LISTS dir_target_sources)
+          if(dir_target_source MATCHES "\\.(cc|cpp|cxx|mm)$")
+            set_property(SOURCE "${dir_target_source}" APPEND PROPERTY
+              COMPILE_OPTIONS -Wno-error)
+          endif()
+        endforeach()
+      endif()
+    endforeach()
+  endif()
+endfunction()
+
 if(${KLOGG_BUILD_TESTS})
   add_subdirectory(tests)
 endif()
@@ -297,33 +337,6 @@ if(KLOGG_BUILD_UI_TESTS)
     add_subdirectory(tools/update)
   endif()
 endif()
-
-# ctest runs every registered test, so ci_build must build every registered
-# test executable, not only klogg_tests/klogg_itests (Linux CI: 47 test exes
-# missing from the build failed as Not Run).
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  add_library(zzlogg_ci_test_relax INTERFACE)
-  target_compile_options(zzlogg_ci_test_relax INTERFACE -Wno-error)
-endif()
-
-function(zzlogg_ci_collect_dir_targets dir)
-  get_directory_property(dir_targets DIRECTORY "${dir}" BUILDSYSTEM_TARGETS)
-  foreach(dir_target IN LISTS dir_targets)
-    get_target_property(dir_target_type "${dir_target}" TYPE)
-    if(dir_target_type STREQUAL "EXECUTABLE")
-      add_dependencies(ci_build "${dir_target}")
-      # Qt's QTRY_* test macros narrow long→int inside the macro body
-      # (qtestcase.h) and similar warning classes live across the legacy test
-      # corpus. Warning flags arrive via linked interfaces, so the relaxation
-      # must also be a linked interface, ordered last: -Wno-error lands after
-      # -Werror and wins. Test-only code: keep warnings visible, drop
-      # warnings-as-errors.
-      if(TARGET zzlogg_ci_test_relax)
-        target_link_libraries("${dir_target}" PRIVATE zzlogg_ci_test_relax)
-      endif()
-    endif()
-  endforeach()
-endfunction()
 
 if(${KLOGG_BUILD_TESTS})
   zzlogg_ci_collect_dir_targets(tests)
