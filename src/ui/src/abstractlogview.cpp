@@ -2236,7 +2236,7 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                           - static_cast<qint64>( firstLine_.get() );
     const auto visibleRows = static_cast<qint64>( getNbVisibleLines().get() );
     const auto totalRows = static_cast<qint64>( logData_->getNbLine().get() );
-    const double physicalDelta = rowDelta * charHeight_ * viewport()->devicePixelRatio();
+    const double physicalDelta = static_cast<double>( rowDelta ) * charHeight_ * viewport()->devicePixelRatio();
     const bool reuse = !useTextWrap_ && !textAreaCache_.invalid_
         && textAreaCache_.first_column_ == firstCol_
         && rowDelta != 0 && qAbs( rowDelta ) < visibleRows

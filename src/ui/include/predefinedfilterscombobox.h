@@ -62,7 +62,7 @@ class PredefinedFiltersComboBox final : public QComboBox {
     void updateSearchPattern( const QString newSearchPattern, bool useLogicalCombining );
     void retranslateUi();
 
-    virtual void showPopup();
+    void showPopup() override;
 
   protected:
     void changeEvent( QEvent* event ) override;

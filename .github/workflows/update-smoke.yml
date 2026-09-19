@@ -112,8 +112,7 @@ jobs:
           foreach ($filter in $filters) {
             $index++
             $report = if ($elevated) { 'smoke-report.txt' } else { "smoke-report-$index.txt" }
-            powershell -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 `
-              -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
+            powershell -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
             if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
           }
           if ($exitCode -ne 0) { exit $exitCode }

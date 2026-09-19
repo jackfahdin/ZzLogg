@@ -10,5 +10,5 @@ protected:
     void changeEvent(QEvent* event) override;
 
 private:
-    void reload();
+    void reload() override;
 };
