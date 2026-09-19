@@ -196,7 +196,7 @@ require_entry_literal(
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging does not check the OpenSSL SSL source" "if not exist \"%SSL_DIR%\\libssl-1_1-x64.dll\" (")
 require_entry_literal(
-  ".github/actions/agent-package-win/action.yml" "makensis does not preserve the repository-root working directory" "arguments: \"/NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH%\"")
+  ".github/actions/agent-package-win/action.yml" "makensis does not preserve the repository-root working directory" "makensis /NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH% packaging\\windows\\ZzLogg.nsi")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the unified runtime folder" "xcopy /e /i /y \"%KLOGG_BUILD_ROOT%\\runtime\\RelWithDebInfo\\ZzLogg-runtime\" release")
 require_entry_literal(
@@ -242,7 +242,7 @@ set(required_entry_literals
   "packaging/windows/ZzLogg.nsi|SetShellVarContext current\n    Delete \"$SENDTO\\ZzLogg.lnk\"\n    SetShellVarContext all\n    Delete \"$SMPROGRAMS\\ZzLogg.lnk\""
   "docs/DOCUMENTATION.md|未配置更新清单 URL"
   ".github/actions/agent-package-win/action.yml|zzlogg_runtime_folder"
-  ".github/actions/agent-package-win/action.yml|packaging/windows/ZzLogg.nsi"
+  ".github/actions/agent-package-win/action.yml|packaging\\windows\\ZzLogg.nsi"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"
   ".github/actions/agent-package-mac/action.yml|output/ZzLogg.app"
   ".github/workflows/ci-build.yml|stage/bin/ZzLogg"
