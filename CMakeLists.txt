@@ -235,6 +235,13 @@ endif()
 if(TARGET tbbmalloc_proxy)
   add_dependencies(ci_build tbbmalloc_proxy)
 endif()
+# vectorscan registers install rules for its static libs regardless of what
+# the app links; keep the CI build target producing them (Mac cpack).
+foreach(hs_target hs hs_runtime hs_compile)
+  if(TARGET ${hs_target})
+    add_dependencies(ci_build ${hs_target})
+  endif()
+endforeach()
 add_subdirectory(src)
 add_subdirectory(website)
 
@@ -300,6 +307,12 @@ function(zzlogg_ci_collect_dir_targets dir)
     get_target_property(dir_target_type "${dir_target}" TYPE)
     if(dir_target_type STREQUAL "EXECUTABLE")
       add_dependencies(ci_build "${dir_target}")
+      # Qt's QTRY_* test macros narrow long→int inside the macro body
+      # (qtestcase.h); GCC/Clang -Wconversion attributes it to the expansion
+      # site. Test-only code: keep the warning, drop the error.
+      if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options("${dir_target}" PRIVATE -Wno-error=conversion)
+      endif()
     endif()
   endforeach()
 endfunction()
