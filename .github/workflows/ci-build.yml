@@ -284,6 +284,12 @@ jobs:
       - name: Brew deps
         run: |
           brew install ragel
+          # GitHub macOS 镜像预装的 brew simdutf 会以 /usr/local/include 抢占
+          # vendored 3rdparty/simdutf（-isystem 在 Apple Clang 下输给 /usr/local），
+          # 卸载以避免头文件错配（本仓库强制使用 vendored amalgamation）
+          brew uninstall --ignore-dependencies simdutf 2>/dev/null || true
+          rm -f /usr/local/include/simdutf.h
+          rm -rf /usr/local/include/simdutf
 
       - uses: ./.github/actions/agent-setup
       - uses: ./.github/actions/klogg-version

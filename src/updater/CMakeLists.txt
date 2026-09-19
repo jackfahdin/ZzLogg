@@ -28,3 +28,6 @@ install(TARGETS ZzLoggUpdate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 add_executable(ZzLoggUpdateTx txengine_main.cpp)
 target_link_libraries(ZzLoggUpdateTx PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(ZzLoggUpdateTx TRUE)
+# The NSIS staging step xcopies ZzLoggUpdateTx.exe from the build output, so
+# the CI build target must produce it (ci_build otherwise builds klogg only).
+add_dependencies(ci_build ZzLoggUpdateTx)

@@ -39,7 +39,7 @@ template <typename T> class ScopedFileHolder {
     }
 
   private:
-    Q_DISABLE_COPY( ScopedFileHolder<T> )
+    Q_DISABLE_COPY( ScopedFileHolder )
 
     T* file_holder_;
 };
