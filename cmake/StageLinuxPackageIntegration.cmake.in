@@ -5,6 +5,16 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX
 endif()
 
 set(package_root "${CMAKE_INSTALL_PREFIX}")
+# When cpack runs this script, CMAKE_INSTALL_PREFIX ends with
+# CPACK_PACKAGING_INSTALL_PREFIX (the application prefix /opt/ZzLogg); system
+# integration files must land at the filesystem root of the package instead.
+set(zz_packaging_prefix "@CPACK_PACKAGING_INSTALL_PREFIX@")
+if(NOT zz_packaging_prefix)
+  set(zz_packaging_prefix "/opt/ZzLogg")
+endif()
+if(zz_packaging_prefix AND package_root MATCHES "${zz_packaging_prefix}$")
+  string(REGEX REPLACE "${zz_packaging_prefix}$" "" package_root "${package_root}")
+endif()
 set(source_root "@PROJECT_SOURCE_DIR@")
 
 file(MAKE_DIRECTORY "${package_root}/usr/bin")
