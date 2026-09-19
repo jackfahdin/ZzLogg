@@ -301,6 +301,11 @@ endif()
 # ctest runs every registered test, so ci_build must build every registered
 # test executable, not only klogg_tests/klogg_itests (Linux CI: 47 test exes
 # missing from the build failed as Not Run).
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  add_library(zzlogg_ci_test_relax INTERFACE)
+  target_compile_options(zzlogg_ci_test_relax INTERFACE -Wno-error)
+endif()
+
 function(zzlogg_ci_collect_dir_targets dir)
   get_directory_property(dir_targets DIRECTORY "${dir}" BUILDSYSTEM_TARGETS)
   foreach(dir_target IN LISTS dir_targets)
@@ -309,17 +314,12 @@ function(zzlogg_ci_collect_dir_targets dir)
       add_dependencies(ci_build "${dir_target}")
       # Qt's QTRY_* test macros narrow long→int inside the macro body
       # (qtestcase.h) and similar warning classes live across the legacy test
-      # corpus. Warning flags arrive via linked interfaces (after target
-      # options), so only SOURCE-level append lands last. Test-only code:
-      # keep warnings visible, drop warnings-as-errors.
-      if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        get_target_property(dir_target_sources "${dir_target}" SOURCES)
-        foreach(dir_target_source IN LISTS dir_target_sources)
-          if(dir_target_source MATCHES "\\.(cc|cpp|cxx|mm)$")
-            set_property(SOURCE "${dir_target_source}" TARGET_DIRECTORY "${dir_target}"
-              APPEND PROPERTY COMPILE_OPTIONS -Wno-error)
-          endif()
-        endforeach()
+      # corpus. Warning flags arrive via linked interfaces, so the relaxation
+      # must also be a linked interface, ordered last: -Wno-error lands after
+      # -Werror and wins. Test-only code: keep warnings visible, drop
+      # warnings-as-errors.
+      if(TARGET zzlogg_ci_test_relax)
+        target_link_libraries("${dir_target}" PRIVATE zzlogg_ci_test_relax)
       endif()
     endif()
   endforeach()
