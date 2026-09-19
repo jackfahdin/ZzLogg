@@ -82,22 +82,30 @@ extract_nsis_block(nsis_active_content "Function ZzLoggRestrictedRecover" "Funct
   "restricted recover" restricted_recover)
 
 # Both restricted switches are parsed in .onInit and dispatched to handlers
-# that Quit before any interactive page can display.
+# that Quit before any interactive page can display. The raw command line is
+# stashed in $ZzLoggCmdLine immediately after GetCommandLine because the
+# INSTDIR block clobbers $0 via ReadRegStr (regression: restricted entries
+# silently never matched when parsing the clobbered register).
 require_nsis_block_order(installer_on_init "installer .onInit"
+  [=[System::Call 'kernel32::GetCommandLine()t.r0']=]
+  [=[StrCpy $ZzLoggCmdLine $0]=]
   [=[${StrStr} $1 $0 " /D="]=]
-  [=[${StrStr} $2 $0 "/ZzLoggUpgrade="]=]
+  [=[${StrStr} $2 $ZzLoggCmdLine "/ZzLoggUpgrade="]=]
   [=[StrCmp $1 "" zzlogg_upgrade_switch_ok]=]
   "Abort"
   [=[StrCpy $ZzLoggMode "upgrade"]=]
   [=[Call ZzLoggValidateLocator]=]
   [=[Call ZzLoggRestrictedUpgrade]=]
   "Quit"
-  [=[${StrStr} $2 $0 "/ZzLoggRecover="]=]
+  [=[${StrStr} $2 $ZzLoggCmdLine "/ZzLoggRecover="]=]
   [=[StrCmp $1 "" zzlogg_recover_switch_ok]=]
   "Abort"
   [=[StrCpy $ZzLoggMode "recover"]=]
   [=[Call ZzLoggRestrictedRecover]=]
   "Quit")
+forbid_nsis_block_literal(installer_on_init
+  [=[${StrStr} $2 $0 "/ZzLogg]=]
+  "installer .onInit")
 
 # The locator is byte-identical to the engine's parseTxid acceptance: exactly
 # 16 lowercase hexadecimal digits, nonzero. IntCmp label order is (equal,

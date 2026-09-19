@@ -31,6 +31,7 @@
 #include <QDomDocument>
 #include <QEvent>
 #include <QFormLayout>
+#include <QTimeZone>
 #include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
@@ -305,7 +306,7 @@ void ScratchPad::fileTime()
         const auto time = text.toUtf8().toLongLong( &isOk );
         if ( isOk ) {
             QDateTime dateTime;
-            dateTime.setTimeSpec( Qt::UTC );
+            dateTime.setTimeZone( QTimeZone::utc() );
             dateTime.setSecsSinceEpoch( windowsTickToUnixSeconds( time ) );
             return dateTime.toString( Qt::ISODate );
         }

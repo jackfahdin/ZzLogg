@@ -59,6 +59,7 @@ Var ZzLoggTxRoot
 Var ZzLoggStaging
 Var ZzLoggTargetPin
 Var ZzLoggIdentity
+Var ZzLoggCmdLine
 
 Function .onInit
 !ifdef ARCH32
@@ -67,6 +68,9 @@ Function .onInit
     SetRegView 64
 !endif
     System::Call 'kernel32::GetCommandLine()t.r0'
+    ; The command line must survive the INSTDIR block below: ReadRegStr reuses
+    ; $0 and would clobber it, silently disabling both restricted entries.
+    StrCpy $ZzLoggCmdLine $0
     ${StrStr} $1 $0 " /D="
     StrCmp $1 "" 0 zzlogg_on_init_done
 !ifdef ARCH32
@@ -85,7 +89,7 @@ zzlogg_on_init_done:
     ; every MessageBox carries /SD IDOK so a silent run never blocks on a dialog;
     ; the codes are the engine process contract (txcontract_win_p.h).
     StrCpy $ZzLoggMode ""
-    ${StrStr} $2 $0 "/ZzLoggUpgrade="
+    ${StrStr} $2 $ZzLoggCmdLine "/ZzLoggUpgrade="
     StrCmp $2 "" zzlogg_init_recover_check
         StrCmp $1 "" zzlogg_upgrade_switch_ok
             MessageBox MB_ICONSTOP "Upgrade mode does not accept /D=: the registered installation directory cannot change." /SD IDOK
@@ -101,7 +105,7 @@ zzlogg_on_init_done:
         Call ZzLoggRestrictedUpgrade
         Quit
     zzlogg_init_recover_check:
-    ${StrStr} $2 $0 "/ZzLoggRecover="
+    ${StrStr} $2 $ZzLoggCmdLine "/ZzLoggRecover="
     StrCmp $2 "" zzlogg_init_done
         StrCmp $1 "" zzlogg_recover_switch_ok
             MessageBox MB_ICONSTOP "Recovery mode does not accept /D=: the registered installation directory cannot change." /SD IDOK
