@@ -63,7 +63,10 @@ void runSearch( LogFilteredData* filtered_data, const QString& regexp,
 
     int progress = 0;
     do {
-        REQUIRE( searchProgressSpy.wait() );
+        // Slow CI runners need a generous per-signal budget (the plain
+        // QSignalSpy::wait() default of 5s times out there, and the failing
+        // path then crashes in worker teardown).
+        REQUIRE( searchProgressSpy.safeWait( 60000 ) );
         QList<QVariant> progressArgs = searchProgressSpy.last();
         progress = progressArgs.at( 1 ).toInt();
     } while ( progress < 100 );
