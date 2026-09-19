@@ -481,7 +481,7 @@ void MainWindow::createActions()
 
     newWindowAction = new QAction( tr( action::newWindowText ), this );
     newWindowAction->setStatusTip( tr( action::newWindowStatusTip ).arg( productName() ) );
-    connect( newWindowAction, &QAction::triggered, [ = ] { Q_EMIT newWindow(); } );
+    connect( newWindowAction, &QAction::triggered, [ this ] { Q_EMIT newWindow(); } );
     newWindowAction->setVisible( config.allowMultipleWindows() );
 
     openAction = new QAction( tr( action::openText ), this );
@@ -572,9 +572,9 @@ void MainWindow::createActions()
     lineNumbersVisibleAction->setCheckable( true );
     lineNumbersVisibleAction->setChecked( config.lineNumbersVisible() );
     connect( lineNumbersVisibleAction, &QAction::toggled, this, [ this ]( bool visible ) {
-        auto& config = Configuration::get();
-        config.setLineNumbersVisible( visible );
-        config.save();
+        auto& configuration = Configuration::get();
+        configuration.setLineNumbersVisible( visible );
+        configuration.save();
         for ( int index = 0; index < workspace_.count(); ++index ) {
             auto* const crawler
                 = qobject_cast<CrawlerWidget*>( workspace_.widget( index ) );

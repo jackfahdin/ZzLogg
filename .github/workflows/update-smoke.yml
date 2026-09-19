@@ -83,7 +83,7 @@ jobs:
       # 首跑后按实际 elevated 值复核本策略（预期 windows-2022 为 true）。
       - name: 提权能力探测
         id: elev
-        shell: powershell
+        shell: pwsh
         run: |
           $id = [Security.Principal.WindowsIdentity]::GetCurrent()
           $p = New-Object Security.Principal.WindowsPrincipal($id)
@@ -91,7 +91,7 @@ jobs:
           echo "elevated=$($elevated.ToString().ToLower())" >> $env:GITHUB_OUTPUT
 
       - name: 验收冒烟
-        shell: powershell
+        shell: pwsh
         run: |
           $setup = Get-Item "ZzLogg-*-setup.exe" | Select-Object -First 1
           if (-not $setup) {
@@ -112,7 +112,7 @@ jobs:
           foreach ($filter in $filters) {
             $index++
             $report = if ($elevated) { 'smoke-report.txt' } else { "smoke-report-$index.txt" }
-            powershell -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
+            pwsh -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
             if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
           }
           if ($exitCode -ne 0) { exit $exitCode }
