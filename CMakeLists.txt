@@ -278,8 +278,7 @@ if(${KLOGG_BUILD_TESTS})
 endif()
 
 if(KLOGG_BUILD_UI_TESTS)
-  find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
-  # Updater fixtures must exist before ui_acceptance: the handoff acceptance
+  find_package(Qt6 6.8 REQUIRED COMPONENTS Test)  # Updater fixtures must exist before ui_acceptance: the handoff acceptance
   # test spawns the real handoff fixture child process.
   if(TARGET zzlogg_updater_handoff)
     add_subdirectory(tests/updater)
@@ -290,6 +289,40 @@ if(KLOGG_BUILD_UI_TESTS)
   if(ZZLOGG_BUILD_UPDATE_TEST_TOOLS)
     add_subdirectory(tools/update)
   endif()
+endif()
+
+# ctest runs every registered test, so ci_build must build every registered
+# test executable, not only klogg_tests/klogg_itests (Linux CI: 47 test exes
+# missing from the build failed as Not Run).
+function(zzlogg_ci_collect_dir_targets dir)
+  get_directory_property(dir_targets DIRECTORY "${dir}" BUILDSYSTEM_TARGETS)
+  foreach(dir_target IN LISTS dir_targets)
+    get_target_property(dir_target_type "${dir_target}" TYPE)
+    if(dir_target_type STREQUAL "EXECUTABLE")
+      add_dependencies(ci_build "${dir_target}")
+    endif()
+  endforeach()
+endfunction()
+
+if(${KLOGG_BUILD_TESTS})
+  zzlogg_ci_collect_dir_targets(tests)
+  zzlogg_ci_collect_dir_targets(tests/helpers)
+  zzlogg_ci_collect_dir_targets(tests/unit)
+  zzlogg_ci_collect_dir_targets(tests/ui)
+endif()
+if(KLOGG_BUILD_UI_TESTS)
+  if(TARGET zzlogg_updater_handoff)
+    zzlogg_ci_collect_dir_targets(tests/updater)
+  endif()
+  zzlogg_ci_collect_dir_targets(tests/ui_acceptance)
+  zzlogg_ci_collect_dir_targets(tests/update)
+  zzlogg_ci_collect_dir_targets(tests/updateqt)
+  if(ZZLOGG_BUILD_UPDATE_TEST_TOOLS)
+    zzlogg_ci_collect_dir_targets(tools/update)
+  endif()
+endif()
+if(TARGET zzlogg_icon_generator)
+  add_dependencies(ci_build zzlogg_icon_generator)
 endif()
 
 if(ZZ_BUNDLE_GNU_RUNTIME)

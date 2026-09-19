@@ -211,7 +211,7 @@ ragelmaker(src/parser/control_verbs.rl)
 configure_file(${CMAKE_MODULE_PATH}/config.h.in ${PROJECT_BINARY_DIR}/config.h)
 configure_file(src/hs_version.h.in ${PROJECT_BINARY_DIR}/hs_version.h)
 
-configure_file(libhs.pc.in libhs.pc @ONLY) # only replace @ quoted vars
+configure_file(libhs.pc.in ${CMAKE_BINARY_DIR}/libhs.pc @ONLY) # only replace @ quoted vars; install() reads it from the top binary dir
 install(FILES ${CMAKE_BINARY_DIR}/libhs.pc
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
