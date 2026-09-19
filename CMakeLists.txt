@@ -308,10 +308,11 @@ function(zzlogg_ci_collect_dir_targets dir)
     if(dir_target_type STREQUAL "EXECUTABLE")
       add_dependencies(ci_build "${dir_target}")
       # Qt's QTRY_* test macros narrow long→int inside the macro body
-      # (qtestcase.h); GCC/Clang -Wconversion attributes it to the expansion
-      # site. Test-only code: keep the warning, drop the error.
+      # (qtestcase.h) and similar warning classes live across the legacy test
+      # corpus; GCC/Clang -Wconversion/-Werror attributes them to test code.
+      # Test-only targets: keep warnings visible, drop warnings-as-errors.
       if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options("${dir_target}" PRIVATE -Wno-error=conversion)
+        target_compile_options("${dir_target}" PRIVATE -Wno-error)
       endif()
     endif()
   endforeach()

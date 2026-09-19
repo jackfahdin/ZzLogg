@@ -114,5 +114,10 @@ runs:
       shell: sh
       run: |
         cd $KLOGG_BUILD_ROOT
-        cp -a ./output/klogg.dSym ./packages/ZzLogg-${{ env.KLOGG_ARCH }}.dSym
+        dsym=$(ls -d ./output/ZzLogg*.dSYM ./output/ZzLogg*.dSym 2>/dev/null | head -1)
+        if [ -n "$dsym" ]; then
+          cp -a "$dsym" ./packages/ZzLogg-${{ env.KLOGG_ARCH }}.dSym
+        else
+          echo "::warning::no dSYM bundle found for ZzLogg; symbols package skipped"
+        fi
         cp -a ./output/ZzLogg.app ./packages/ZzLogg-${{ env.KLOGG_ARCH }}.app
