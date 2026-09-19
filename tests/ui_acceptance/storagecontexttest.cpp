@@ -36,12 +36,18 @@ void StorageContextTest::exposesStableLayout()
 
 void StorageContextTest::normalizesNativePaths()
 {
+#ifdef Q_OS_WIN
     const StorageContext context{ { StorageMode::CustomDirectory,
                                     QStringLiteral( "C:\\data\\.\\ZzLogg\\..\\ZzLogg\\" ),
                                     QStringLiteral( "C:\\bootstrap\\folder\\..\\storage.ini" ), false } };
     QCOMPARE( context.dataRoot(), QStringLiteral( "C:/data/ZzLogg" ) );
     QCOMPARE( context.location().locatorPath, QStringLiteral( "C:/bootstrap/storage.ini" ) );
     QCOMPARE( context.configFilePath(), QStringLiteral( "C:/data/ZzLogg/config/ZzLogg.ini" ) );
+#else
+    // Windows path normalization semantics (backslash separators) do not
+    // apply to other platforms.
+    QSKIP( "Windows path normalization semantics" );
+#endif
 }
 
 void StorageContextTest::supportsAllStorageModes()
