@@ -223,11 +223,12 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
                     : validation.error );
         }
         target.dataRoot = validation.normalizedRoot;
-        const StorageMigrationRequest request{ QUuid::createUuid().toString( QUuid::WithoutBraces ),
-                                               source,
-                                               target,
-                                               legacy->configFile,
-                                               legacy->sessionFile };
+        StorageMigrationRequest request{};
+        request.transactionId = QUuid::createUuid().toString( QUuid::WithoutBraces );
+        request.source = source;
+        request.target = target;
+        request.legacyConfigFile = legacy->configFile;
+        request.legacySessionFile = legacy->sessionFile;
         const StorageMigrationResult migrated = StorageMigrator{ store }.execute( request );
         if ( !migrated.success ) {
             return errorResult(
