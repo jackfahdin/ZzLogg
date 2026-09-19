@@ -33,7 +33,7 @@ runs:
       if: "startsWith(matrix.config.qt_version, '6')"
       shell: sh
       run: |
-        python3 $KLOGG_BUILD_ROOT/macdeployqtfix.py $KLOGG_BUILD_ROOT/output/ZzLogg.app/Contents/MacOS/ZzLogg $Qt6_DIR
+        python3 $KLOGG_BUILD_ROOT/macdeployqtfix.py $KLOGG_BUILD_ROOT/output/ZzLogg.app/Contents/MacOS/ZzLogg $QT_ROOT_DIR
     
     - name: Set packaging env
       shell: sh

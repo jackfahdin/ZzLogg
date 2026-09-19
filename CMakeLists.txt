@@ -226,6 +226,15 @@ klogg_add_zzpuretools()
 add_custom_target(ci_build)
 
 add_subdirectory(3rdparty)
+# oneTBB registers install rules for tbbmalloc regardless of
+# KLOGG_OVERRIDE_MALLOC; the staged install then expects the artifacts, so the
+# CI build target must produce them even though nothing links them.
+if(TARGET tbbmalloc)
+  add_dependencies(ci_build tbbmalloc)
+endif()
+if(TARGET tbbmalloc_proxy)
+  add_dependencies(ci_build tbbmalloc_proxy)
+endif()
 add_subdirectory(src)
 add_subdirectory(website)
 
