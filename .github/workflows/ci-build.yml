@@ -50,6 +50,8 @@ jobs:
       ZZ_GNU_RUNTIME_LICENSE_DIR: ${{ github.workspace }}/build-linux/gcc-runtime-licenses
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: ./.github/actions/klogg-version
       - name: Install Linux build and runtime dependencies
         run: |
@@ -247,7 +249,7 @@ jobs:
       matrix:
         config:
           - os: macos
-            os_version: 13
+            os_version: 15-intel
             qt_version: 6.8.3
             qt_arch: clang_64
             qt_modules: qt5compat
@@ -266,9 +268,11 @@ jobs:
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Setup Xcode
         shell: sh
-        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+        run: sudo xcode-select -s /Applications/Xcode.app
 
 #Install build deps
       - name: Set brew env
@@ -319,6 +323,8 @@ jobs:
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Cache openssl
         id: cache-openssl

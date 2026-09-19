@@ -35,6 +35,8 @@ jobs:
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # openssl 缓存/下载/路径设置与 ci-build.yml Windows job 逐行一致
       #（agent-package-win 对 SSL_DIR 下 libcrypto/libssl 有硬断言）。
