@@ -309,10 +309,17 @@ function(zzlogg_ci_collect_dir_targets dir)
       add_dependencies(ci_build "${dir_target}")
       # Qt's QTRY_* test macros narrow long→int inside the macro body
       # (qtestcase.h) and similar warning classes live across the legacy test
-      # corpus; GCC/Clang -Wconversion/-Werror attributes them to test code.
-      # Test-only targets: keep warnings visible, drop warnings-as-errors.
+      # corpus. Warning flags arrive via linked interfaces (after target
+      # options), so only SOURCE-level append lands last. Test-only code:
+      # keep warnings visible, drop warnings-as-errors.
       if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options("${dir_target}" PRIVATE -Wno-error)
+        get_target_property(dir_target_sources "${dir_target}" SOURCES)
+        foreach(dir_target_source IN LISTS dir_target_sources)
+          if(dir_target_source MATCHES "\\.(cc|cpp|cxx|mm)$")
+            set_property(SOURCE "${dir_target_source}" TARGET_DIRECTORY "${dir_target}"
+              APPEND PROPERTY COMPILE_OPTIONS -Wno-error)
+          endif()
+        endforeach()
       endif()
     endif()
   endforeach()
