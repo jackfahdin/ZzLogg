@@ -1,8 +1,10 @@
-name: Continuous Build
+name: Publish
 
 on:
+  push:
+    tags: ['v*']
   schedule:
-    # 00:00 Asia/Shanghai; scheduling and the build may finish later.
+    # 00:00 Asia/Shanghai; skip unchanged snapshots.
     - cron: '0 16 * * *'
   workflow_dispatch:
 
@@ -11,15 +13,16 @@ permissions:
 
 # Do not interrupt publication while assets/tag/notes are being updated.
 concurrency:
-  group: continuous-build
+  group: ${{ github.event_name == 'push' && format('release-{0}', github.ref) || 'continuous-build' }}
   cancel-in-progress: false
 
 jobs:
   prepare:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    if: github.ref == 'refs/heads/master'
     outputs:
+      mode: ${{ steps.metadata.outputs.mode }}
       sha: ${{ steps.metadata.outputs.sha }}
       version: ${{ steps.metadata.outputs.version }}
       tag: ${{ steps.metadata.outputs.tag }}
@@ -41,7 +44,10 @@ jobs:
         id: metadata
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/ci/prepare_release.py --mode nightly
+          RELEASE_MODE: ${{ github.event_name == 'push' && 'stable' || 'nightly' }}
+        run: |
+          echo "mode=$RELEASE_MODE" >> "$GITHUB_OUTPUT"
+          python scripts/ci/prepare_release.py --mode "$RELEASE_MODE"
 
   build:
     needs: prepare
@@ -83,6 +89,7 @@ jobs:
       - name: Publish verified release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_MODE: ${{ needs.prepare.outputs.mode }}
         run: >-
           python scripts/ci/publish_release.py --repository "$GITHUB_REPOSITORY"
-          --directory release-assets --mode nightly
+          --directory release-assets --mode "$RELEASE_MODE"

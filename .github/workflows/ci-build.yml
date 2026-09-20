@@ -1,16 +1,6 @@
 name: "CI Build"
 
 on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - 'website/**'
-      - BUILD.md
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - README.md
-      - latest.json
-      - .gitignore
   pull_request:
     branches: [ master ]
     paths-ignore:
@@ -28,6 +18,10 @@ on:
         description: Exact commit selected by the release workflow
         required: true
         type: string
+
+concurrency:
+  group: ci-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
