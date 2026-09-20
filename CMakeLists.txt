@@ -434,8 +434,10 @@ if(UNIX)
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${ZZLOGG_HOMEPAGE_URL}")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Anton Filimonov <${CPACK_PACKAGE_CONTACT}>")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS NO)
+    # Qt deployment leaves platform libraries on the system; declare their
+    # runtime packages explicitly so installation also works on a clean host.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libc6, libgl1, libfontconfig1, libfreetype6, libglib2.0-0, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0")
+        "libc6, libgl1, libopengl0, libegl1, libgssapi-krb5-2, libdbus-1-3, libfontconfig1, libfreetype6, libglib2.0-0, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0")
 
     #RPM
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")

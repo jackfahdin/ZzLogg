@@ -110,7 +110,7 @@ jobs:
           cmake --install build-linux --prefix "${{ github.workspace }}/stage"
           test -x "${{ github.workspace }}/stage/bin/ZzLogg"
           ldd "${{ github.workspace }}/stage/bin/ZzLogg" | tee ldd.txt
-          ! grep -q "not found" ldd.txt
+          if grep -q "not found" ldd.txt; then exit 1; fi
       - name: Build Linux DEB and RPM packages
         run: |
           cpack --config build-linux/CPackConfig.cmake -G DEB -B packages
@@ -155,8 +155,9 @@ jobs:
               test -f /opt/ZzLogg/plugins/platforms/libqminimal.so
               test -f /opt/ZzLogg/bin/qt.conf
               ldd "$app" | tee /tmp/zzlogg-ldd.txt
-              ! grep -q "not found" /tmp/zzlogg-ldd.txt
-              grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
+              if grep -q "not found" /tmp/zzlogg-ldd.txt; then exit 1; fi
+              qtcore=$(awk "/libQt6Core\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              test "$(readlink -f "$qtcore")" = "$(readlink -f /opt/ZzLogg/lib/libQt6Core.so.6)"
               stdcxx=$(awk "/libstdc\\+\\+\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
               libgcc=$(awk "/libgcc_s\\.so\\.1 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
               test "$(readlink -f "$stdcxx")" = "$(readlink -f /opt/ZzLogg/lib/libstdc++.so.6)"
@@ -173,7 +174,7 @@ jobs:
               grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
               apt-get remove -y "$package"
               hash -r
-              ! command -v ZzLogg
+              if command -v ZzLogg; then exit 1; fi
               test ! -e /usr/share/applications/ZzLogg.desktop
               test ! -e /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg
             '
@@ -210,8 +211,9 @@ jobs:
               test -f /opt/ZzLogg/plugins/platforms/libqminimal.so
               test -f /opt/ZzLogg/bin/qt.conf
               ldd "$app" | tee /tmp/zzlogg-ldd.txt
-              ! grep -q "not found" /tmp/zzlogg-ldd.txt
-              grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6" /tmp/zzlogg-ldd.txt
+              if grep -q "not found" /tmp/zzlogg-ldd.txt; then exit 1; fi
+              qtcore=$(awk "/libQt6Core\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
+              test "$(readlink -f "$qtcore")" = "$(readlink -f /opt/ZzLogg/lib/libQt6Core.so.6)"
               stdcxx=$(awk "/libstdc\\+\\+\\.so\\.6 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
               libgcc=$(awk "/libgcc_s\\.so\\.1 =>/ {print \$3; exit}" /tmp/zzlogg-ldd.txt)
               test "$(readlink -f "$stdcxx")" = "$(readlink -f /opt/ZzLogg/lib/libstdc++.so.6)"
@@ -228,7 +230,7 @@ jobs:
               grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log
               dnf remove -y "$package"
               hash -r
-              ! command -v ZzLogg
+              if command -v ZzLogg; then exit 1; fi
               test ! -e /usr/share/applications/ZzLogg.desktop
               test ! -e /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg
             '
