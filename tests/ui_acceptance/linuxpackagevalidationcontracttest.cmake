@@ -22,7 +22,7 @@ foreach(required IN ITEMS
     "dpkg-deb -f"
     "rpm -qp"
     "docker run --rm"
-    "ubuntu:22.04"
+    "ubuntu:24.04"
     "fedora:44"
     "unset QT_ROOT_DIR QTDIR LD_LIBRARY_PATH QT_PLUGIN_PATH"
     "/opt/ZzLogg/bin/ZzLogg"

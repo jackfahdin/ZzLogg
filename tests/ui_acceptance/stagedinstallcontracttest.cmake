@@ -30,6 +30,18 @@ if(NOT EXISTS "${app}")
   message(FATAL_ERROR "Staged install is missing ${app}")
 endif()
 
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  foreach(runtime_file IN ITEMS
+      "lib/libQt6Core.so.6"
+      "plugins/platforms/libqminimal.so"
+      "plugins/platforms/libqxcb.so"
+      "bin/qt.conf")
+    if(NOT EXISTS "${INSTALL_PREFIX}/${runtime_file}")
+      message(FATAL_ERROR "Staged install is missing Qt runtime file: ${runtime_file}")
+    endif()
+  endforeach()
+endif()
+
 if(UPDATER_DEPLOYED)
   if(NOT WIN32_CONTRACT)
     message(FATAL_ERROR "The update helper target must only exist on Windows x64")

@@ -190,8 +190,9 @@ if(APPLE)
 endif()
 
 find_package(
-  Qt6
+  Qt6 6.8
   COMPONENTS Core
+             Core5Compat
              Widgets
              Concurrent
              Network
@@ -203,6 +204,7 @@ if(ZZLOGG_BUILD_ICON_TOOL)
   add_subdirectory(tools)
 endif()
 
+# Required by the vendored klogg_karchive CMake integration.
 set(QT_VERSION_MAJOR 6)
 set(KLOGG_QT_VERSION ${Qt6Core_VERSION})
 

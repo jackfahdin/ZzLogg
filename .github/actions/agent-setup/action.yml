@@ -1,5 +1,5 @@
 name: "Setup agent"
-description: ""
+description: "Install the Qt SDK and build dependencies"
 runs:
   using: "composite"
   steps:
@@ -22,7 +22,10 @@ runs:
         arch: ${{ matrix.config.qt_arch }}
         cached: ${{ steps.cache-qt.outputs.cache-hit }}
         modules: ${{ matrix.config.qt_modules }}
-        archives: qtbase qtimageformats qtsvg qttools qttranslations icu
+        archives: qtbase qtdeclarative qtsvg qttools qttranslations icu
+        # aqt 3.3.0 cannot resolve Qt 6.11's split Windows repositories.
+        # Pin the upstream fix (miurahr/aqtinstall#1000) until it is released.
+        aqtsource: ${{ matrix.config.os == 'windows' && 'git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b' || '' }}
 
     - name: Set boost env vars
       shell: sh
@@ -57,5 +60,3 @@ runs:
           rm -rf boost_*/* download.tar.bz2 download.tar
         fi
         
-
-

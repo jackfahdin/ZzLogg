@@ -5,7 +5,7 @@ add_executable(klogg_tests
     tests_main.cpp
 )
 
-target_link_libraries(klogg_tests klogg_ui klogg_utils klogg_logging Catch2 Qt${QT_VERSION_MAJOR}::Test)
+target_link_libraries(klogg_tests klogg_ui klogg_utils klogg_logging Catch2 Qt6::Test)
 set_target_properties(klogg_tests PROPERTIES AUTOMOC ON)
 
 add_test(
