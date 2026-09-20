@@ -29,9 +29,7 @@
 
 #include <vector>
 
-#if QT_VERSION_MAJOR < 6
-#include <QDateTime> // Qt5 use
-#endif
+#include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
 #include <QTimer>

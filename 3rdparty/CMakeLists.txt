@@ -68,10 +68,8 @@ target_include_directories(klogg_uchardet_wrapper INTERFACE ${CMAKE_CURRENT_SOUR
 # klogg_karchive（KF5Archive 的 Qt5/Qt6 兼容 fork）
 add_subdirectory(vendor/klogg_karchive)
 
-if(${QT_VERSION_MAJOR} EQUAL 6)
-  message("Resetting CPM_USE_LOCAL_PACKAGES to ${_TMP_CPM_USE_LOCAL_PACKAGES}")
-  set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
-endif()
+message("Resetting CPM_USE_LOCAL_PACKAGES to ${_TMP_CPM_USE_LOCAL_PACKAGES}")
+set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 
 # robin_hood
 add_subdirectory(vendor/robin-hood-hashing)
@@ -91,7 +89,7 @@ add_library(
 target_include_directories(
   kdsingleapp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDSingleApplication/src
 )
-target_link_libraries(kdsingleapp Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(kdsingleapp Qt6::Core)
 target_compile_definitions(kdsingleapp PUBLIC KDSINGLEAPPLICATION_STATIC_BUILD)
 set_target_properties(kdsingleapp PROPERTIES AUTOMOC ON)
 
@@ -131,7 +129,7 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src/KDSignalThrottler.h
 )
 target_include_directories(kdtoolbox PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src)
-target_link_libraries(kdtoolbox Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(kdtoolbox Qt6::Core)
 set_target_properties(kdtoolbox PROPERTIES AUTOMOC ON)
 
 # efsw

@@ -37,6 +37,8 @@ ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子
 - 直接使用命令行构建需要 CMake 3.23 或更高版本；仓库内的预设和工作流需要 CMake 3.25 或更高版本。
 - 编译器需支持 C++20：GCC 13.1+、Clang 17+、Apple Clang 15+，或 MSVC 19.38+（Visual Studio 2022 17.8+）。Apple 平台的 macOS 部署目标至少为 13.3。
 - Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、Network、Xml、LinguistTools 及匹配的私有开发文件。
+  - `Core5Compat` 是 Qt 6 的模块，当前为日志编码检测和解码提供 `QTextCodec` / `QTextDecoder`，保留 GBK、Big5、Shift-JIS 等编码支持；不代表支持 Qt 5。移除此依赖需要先迁移编码层，并验证流式解码和已有编码设置。
+  - CI 固定使用 Qt 6.11.2；本地源码构建的最低版本仍为 Qt 6.8。Linux CI 与 DEB 安装验证使用 Ubuntu 24.04，官方 Linux 包以该版本为基线。
 - 固定版本的 ZzPureTools 子模块，以及仓库内随附的其他第三方依赖。
 
 UI 专项测试还需要 Qt Test。UI 测试预设将 macOS 部署目标设为 13.3；其他 macOS 配置也必须满足这一最低要求，可显式传入 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`。

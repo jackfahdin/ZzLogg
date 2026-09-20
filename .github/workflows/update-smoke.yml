@@ -24,8 +24,8 @@ jobs:
           # agent-setup / prepare-workspace-env / agent-build 直接引用 matrix.config.*。
           - os: windows
             os_version: 2022
-            qt_version: 6.8.3
-            qt_modules: qt5compat
+            qt_version: 6.11.2
+            qt_modules: qt5compat qtimageformats
             qt_arch: win64_msvc2022_64
             arch: x64
             ssl_arch: -x64
@@ -34,7 +34,7 @@ jobs:
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 

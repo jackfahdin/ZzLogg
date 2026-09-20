@@ -27,18 +27,19 @@ jobs:
         config:
           - os: linux
             arch: x64
-            qt_version: 6.8.3
+            qt_version: 6.11.2
             qt_arch: linux_gcc_64
-            qt_modules: qt5compat
+            qt_modules: qt5compat qtimageformats
             language: cpp
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
+        submodules: recursive
 
     # If this run was triggered by a pull request event, then checkout
     # the head of the pull request instead of the merge commit.

@@ -42,7 +42,7 @@ target_link_libraries(
          klogg_utils
          klogg_regex
          klogg_filewatch
-         Qt${QT_VERSION_MAJOR}::Core
+         Qt6::Core
          roaring
          roaring-headers-cpp
          roaring-headers
@@ -58,14 +58,9 @@ target_link_libraries(
 
 target_link_libraries(klogg_logdata PRIVATE xxhash)
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-  find_package(
-    Qt6
-    COMPONENTS Core5Compat
-    REQUIRED
-  )
-  target_link_libraries(klogg_logdata PUBLIC Qt${QT_VERSION_MAJOR}::Core5Compat)
-endif()
+# QTextCodec/QTextDecoder provide the legacy encodings used by log files.
+# Core5Compat is a Qt 6 module; this does not enable Qt 5 builds.
+target_link_libraries(klogg_logdata PUBLIC Qt6::Core5Compat)
 
 if(KLOGG_USE_LTO)
   set_property(TARGET klogg_logdata PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)

@@ -6,7 +6,7 @@ add_library(
 target_include_directories(klogg_logging PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_definitions(klogg_logging PUBLIC "-DQT_MESSAGELOGCONTEXT")
 target_link_libraries(klogg_logging PUBLIC
-  project_options project_warnings klogg_storage Qt${QT_VERSION_MAJOR}::Core)
+  project_options project_warnings klogg_storage Qt6::Core)
 
 if(KLOGG_USE_LTO)
   set_property(TARGET klogg_logging PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)

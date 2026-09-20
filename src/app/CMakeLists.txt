@@ -18,14 +18,14 @@ set(TS_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/i18n/zh_TW.ts
 )
 
-find_package(Qt${QT_VERSION_MAJOR}LinguistTools REQUIRED)
+find_package(Qt6LinguistTools REQUIRED)
 qt6_add_translation(QM_FILES ${TS_FILES})
 
-if (NOT TARGET Qt${QT_VERSION_MAJOR}::lupdate)
-    message(FATAL_ERROR "The package \"Qt${QT_VERSION_MAJOR}LinguistTools\" is required.")
+if (NOT TARGET Qt6::lupdate)
+    message(FATAL_ERROR "The package \"Qt6LinguistTools\" is required.")
 endif()
-set(Qt_LUPDATE_EXECUTABLE Qt${QT_VERSION_MAJOR}::lupdate)
-set(Qt_LCONVERT_EXECUTABLE Qt${QT_VERSION_MAJOR}::lconvert)
+set(Qt_LUPDATE_EXECUTABLE Qt6::lupdate)
+set(Qt_LCONVERT_EXECUTABLE Qt6::lconvert)
 add_custom_target(lupdate
     COMMAND ${Qt_LUPDATE_EXECUTABLE} -recursive -no-obsolete ${CMAKE_SOURCE_DIR}/src -ts ${TS_FILES}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src
@@ -192,10 +192,21 @@ if(UNIX AND NOT APPLE)
   set_target_properties(${KLOGG_ZZ_RUNTIME_TARGETS} PROPERTIES
     INSTALL_RPATH "\$ORIGIN")
 
+  # The minimal platform is needed by the clean-package startup check.
+  # Qt 6.10 introduced explicit deployment plugin selection; Qt 6.8/6.9
+  # instead use the plugin list generated when the executable is finalized.
+  set(KLOGG_DEPLOY_PLUGIN_OPTIONS)
+  if(Qt6Core_VERSION VERSION_GREATER_EQUAL 6.10)
+    list(APPEND KLOGG_DEPLOY_PLUGIN_OPTIONS INCLUDE_PLUGINS qminimal)
+  else()
+    qt_import_plugins(klogg INCLUDE Qt6::QMinimalIntegrationPlugin)
+    qt_finalize_executable(klogg)
+  endif()
   qt_generate_deploy_app_script(
     TARGET klogg
     OUTPUT_SCRIPT KLOGG_LINUX_DEPLOY_SCRIPT
-    NO_UNSUPPORTED_PLATFORM_ERROR)
+    NO_UNSUPPORTED_PLATFORM_ERROR
+    ${KLOGG_DEPLOY_PLUGIN_OPTIONS})
   install(SCRIPT ${KLOGG_LINUX_DEPLOY_SCRIPT})
 endif()
 

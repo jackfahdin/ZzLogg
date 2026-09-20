@@ -26,9 +26,9 @@ on:
 jobs:
   SaveVersion:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/klogg-version
 
       - name: Save version 
@@ -42,22 +42,19 @@ jobs:
 
   Linux:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
-      QT_VERSION: 6.8.3
+      QT_VERSION: 6.11.2
       CC: gcc-13
       CXX: g++-13
       ZZ_GNU_RUNTIME_LICENSE_DIR: ${{ github.workspace }}/build-linux/gcc-runtime-licenses
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: ./.github/actions/klogg-version
       - name: Install Linux build and runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
           sudo apt-get update
           sudo apt-get install -y gcc-13 g++-13 ninja-build patchelf ragel rpm libgl1-mesa-dev \
             libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-cursor-dev \
@@ -72,7 +69,7 @@ jobs:
           host: linux
           target: desktop
           arch: linux_gcc_64
-          modules: qt5compat
+          modules: qt5compat qtimageformats
           install-deps: false
       - name: Verify CMake toolchain floor
         run: |
@@ -128,7 +125,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/packages:/packages:ro" \
-            ubuntu:22.04 bash -euxo pipefail -c '
+            ubuntu:24.04 bash -euxo pipefail -c '
               apt-get update
               set -- /packages/ZzLogg-*.deb
               deb=$1
@@ -250,24 +247,24 @@ jobs:
         config:
           - os: macos
             os_version: 15-intel
-            qt_version: 6.8.3
+            qt_version: 6.11.2
             qt_arch: clang_64
-            qt_modules: qt5compat
+            qt_modules: qt5compat qtimageformats
             arch: x64
             artifacts_id: macos-intel-qt6
             cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.3
           - os: macos
             os_version: 14
-            qt_version: 6.8.3
+            qt_version: 6.11.2
             qt_arch: clang_64
-            qt_modules: qt5compat
+            qt_modules: qt5compat qtimageformats
             arch: arm64
             artifacts_id: macos-arm-qt6
             cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Setup Xcode
@@ -318,8 +315,8 @@ jobs:
         config:
           - os: windows
             os_version: 2022
-            qt_version: 6.8.3
-            qt_modules: qt5compat
+            qt_version: 6.11.2
+            qt_modules: qt5compat qtimageformats
             qt_arch: win64_msvc2022_64
             arch: x64
             ssl_arch: -x64
@@ -328,7 +325,7 @@ jobs:
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
