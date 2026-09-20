@@ -70,3 +70,7 @@ website/resources/
 
 # 测试签名私钥材料绝不入库
 *.pfx
+
+# Python release tooling
+__pycache__/
+*.py[cod]
