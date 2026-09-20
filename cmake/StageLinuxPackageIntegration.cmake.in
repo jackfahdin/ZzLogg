@@ -1,19 +1,21 @@
-if(NOT DEFINED CMAKE_INSTALL_PREFIX
-   OR CMAKE_INSTALL_PREFIX STREQUAL ""
-   OR CMAKE_INSTALL_PREFIX STREQUAL "/")
+if(NOT "$ENV{DESTDIR}" STREQUAL "")
+  # DEB/RPM keep CMAKE_INSTALL_PREFIX at /opt/ZzLogg and supply the
+  # staging root separately. file(WRITE) does not prepend DESTDIR for us.
+  set(package_root "$ENV{DESTDIR}")
+else()
+  # Non-DESTDIR generators include the application prefix in the staged path.
+  set(package_root "${CMAKE_INSTALL_PREFIX}")
+  set(zz_packaging_prefix "@CPACK_PACKAGING_INSTALL_PREFIX@")
+  if(NOT zz_packaging_prefix)
+    set(zz_packaging_prefix "/opt/ZzLogg")
+  endif()
+  if(package_root MATCHES "${zz_packaging_prefix}$")
+    string(REGEX REPLACE "${zz_packaging_prefix}$" "" package_root "${package_root}")
+  endif()
+endif()
+cmake_path(NORMAL_PATH package_root)
+if(NOT IS_ABSOLUTE "${package_root}" OR package_root STREQUAL "/")
   message(FATAL_ERROR "Refusing to stage Linux integration without a package root")
-endif()
-
-set(package_root "${CMAKE_INSTALL_PREFIX}")
-# When cpack runs this script, CMAKE_INSTALL_PREFIX ends with
-# CPACK_PACKAGING_INSTALL_PREFIX (the application prefix /opt/ZzLogg); system
-# integration files must land at the filesystem root of the package instead.
-set(zz_packaging_prefix "@CPACK_PACKAGING_INSTALL_PREFIX@")
-if(NOT zz_packaging_prefix)
-  set(zz_packaging_prefix "/opt/ZzLogg")
-endif()
-if(zz_packaging_prefix AND package_root MATCHES "${zz_packaging_prefix}$")
-  string(REGEX REPLACE "${zz_packaging_prefix}$" "" package_root "${package_root}")
 endif()
 set(source_root "@PROJECT_SOURCE_DIR@")
 
