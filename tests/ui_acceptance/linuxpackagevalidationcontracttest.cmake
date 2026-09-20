@@ -30,7 +30,8 @@ foreach(required IN ITEMS
     "/opt/ZzLogg/plugins/platforms/libqminimal.so"
     "/opt/ZzLogg/bin/qt.conf"
     "ldd"
-    [=[grep -F "libQt6Core.so.6 => /opt/ZzLogg/lib/libQt6Core.so.6"]=]
+    [=[if grep -q "not found" /tmp/zzlogg-ldd.txt; then exit 1; fi]=]
+    [=[test "$(readlink -f "$qtcore")" = "$(readlink -f /opt/ZzLogg/lib/libQt6Core.so.6)"]=]
     "QT_DEBUG_PLUGINS=1"
     [=[grep -F "/opt/ZzLogg/plugins/platforms/libqminimal.so" /tmp/zzlogg-smoke.log]=]
     "command -v ZzLogg"
@@ -46,7 +47,7 @@ foreach(required IN ITEMS
     "ZzLogg -platform minimal"
     [=[apt-get remove -y "$package"]=]
     [=[dnf remove -y "$package"]=]
-    "! command -v ZzLogg"
+    "if command -v ZzLogg; then exit 1; fi"
     "-platform minimal")
   string(FIND "${linux_job}" "${required}" found)
   if(found EQUAL -1)
