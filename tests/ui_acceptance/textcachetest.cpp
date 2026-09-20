@@ -116,6 +116,86 @@ private Q_SLOTS:
         filtered_.reset();
         data_.reset();
     }
+    void syntaxRenderingAndOverlayPriority() {
+        CodeSyntax syntax([&](quint64 line) { return data_->getLineString(LineNumber{line}); },
+                          [&] { return quint64(data_->getNbLine().get()); });
+        const auto plain = frame();
+        view_->setCodeSyntax(&syntax);
+        syntax.setLanguage("cpp");
+        QTRY_VERIFY(!syntax.formats(100, false).isEmpty());
+        QTRY_VERIFY(frame() != plain);
+        // Compare stable cached frames after all rows in this scroll range
+        // have completed their asynchronous syntax pass.
+        for (quint64 line = 99; line < 180; ++line) {
+            QTRY_VERIFY(!syntax.formats(line, false).isEmpty());
+        }
+        scrollSequence();
+        view_->selectAll();
+        const auto selected = frame();
+        syntax.setLanguage("plain");
+        QCOMPARE(frame(), selected);
+        syntax.setLanguage("cpp");
+        QTRY_VERIFY(!syntax.formats(100, false).isEmpty());
+        QCOMPARE(frame(), selected);
+    }
+    void syntaxUsesOriginalFilteredState() {
+        view_.reset();
+        QFile file(file_);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("/* hidden opener\nint ERROR = 1;\n*/\nint ERROR = 2;\n");
+        file.close();
+        QSignalSpy loaded(data_.get(), &LogData::loadingFinished);
+        data_->reload();
+        QTRY_VERIFY_WITH_TIMEOUT(!loaded.isEmpty(), 10000);
+        data_->setDisplayEncoding("UTF-8");
+        CodeSyntax syntax([&](quint64 line) { return data_->getLineString(LineNumber{line}); },
+                          [&] { return quint64(data_->getNbLine().get()); });
+        syntax.setLanguage("cpp");
+        filtered_ = std::make_unique<LogFilteredData>(data_.get());
+        filtered_->runSearch(RegularExpressionPattern("ERROR", true, false, false, true));
+        QTRY_COMPARE_WITH_TIMEOUT(filtered_->getNbMatches().get(), 2, 10000);
+        view_ = std::make_unique<FilteredView>(filtered_.get(), &pattern_);
+        view_->resize(900, 510);
+        view_->setCodeSyntax(&syntax);
+        view_->updateFont(QFont("Consolas", 12));
+        view_->updateData();
+        view_->show();
+        QTRY_VERIFY(!syntax.formats(1, false).isEmpty());
+        const auto comment = syntax.formats(1, view_->palette().color(QPalette::Base).lightness() < 128).front().color;
+        const auto hasCommentColor = [&] {
+            const auto img = frame();
+            for (int y = 0; y < QFontMetrics(view_->font()).height(); ++y)
+                for (int x = 0; x < img.width(); ++x)
+                    if (img.pixelColor(x, y) == comment) return true;
+            return false;
+        };
+        QTRY_VERIFY(hasCommentColor());
+        matchesFull();
+        syntax.setLanguage("plain");
+        QVERIFY(!hasCommentColor());
+    }
+    void syntaxMenuControlsActiveDocument() {
+        MainWindow window{WindowSession{std::make_shared<Session>(), "syntax-menu", 0}};
+        window.loadFileNonInteractive(file_);
+        auto* crawler = window.findChild<CrawlerWidget*>();
+        QVERIFY(crawler);
+        QTRY_VERIFY_WITH_TIMEOUT(CrawlerAccess::loaded(*crawler), 10000);
+        auto* menu = window.findChild<QMenu*>("syntaxHighlightingMenu");
+        QVERIFY(menu);
+        QCOMPARE(menu->actions().size(), 5);
+        for (auto* action : menu->actions()) {
+            action->trigger();
+            QCOMPARE(crawler->syntaxLanguage(), action->data().toString());
+        }
+    }
+    void syntaxReadLimitUsesIndex() {
+        const auto denied = data_->getLinesRaw(0_lnum, 1_lcount, 4);
+        QVERIFY(denied.buffer.empty());
+        QVERIFY(denied.endOfLines.empty());
+        const auto accepted = data_->getLinesRaw(0_lnum, 1_lcount, 65536);
+        QVERIFY(!accepted.buffer.empty());
+        QCOMPARE(accepted.decodeLines().front(), data_->getLineString(0_lnum));
+    }
     void lineNumberChangeInvalidatesExistingPixels() {
         view_->setLineNumbersVisible(false);
         matchesFull();

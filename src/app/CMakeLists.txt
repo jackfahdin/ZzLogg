@@ -146,6 +146,16 @@ if(WIN32)
   target_sources(klogg_grep PRIVATE ${GrepProductVersionResourceFiles})
 
 elseif(APPLE)
+  file(GLOB_RECURSE ZZLOGG_SYNTAX_NOTICES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/3rdparty/licenses/KSyntaxHighlighting/*")
+  foreach(syntax_notice IN LISTS ZZLOGG_SYNTAX_NOTICES)
+    file(RELATIVE_PATH syntax_notice_relative
+      "${PROJECT_SOURCE_DIR}/3rdparty/licenses/KSyntaxHighlighting" "${syntax_notice}")
+    get_filename_component(syntax_notice_directory "${syntax_notice_relative}" DIRECTORY)
+    set_source_files_properties("${syntax_notice}" PROPERTIES MACOSX_PACKAGE_LOCATION
+      "SharedSupport/licenses/KSyntaxHighlighting/${syntax_notice_directory}")
+  endforeach()
+  target_sources(klogg PRIVATE ${ZZLOGG_SYNTAX_NOTICES})
   set_source_files_properties(${ICON_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set_source_files_properties(${NOTICE_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION SharedSupport)
   set_source_files_properties(${COPYING_FILE} PROPERTIES MACOSX_PACKAGE_LOCATION SharedSupport)

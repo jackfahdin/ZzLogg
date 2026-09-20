@@ -40,6 +40,7 @@
 #define LOGDATA_H
 
 #include <memory>
+#include <limits>
 
 #include <QDateTime>
 #include <QFile>
@@ -122,7 +123,10 @@ class LogData : public AbstractLogData {
         mutable klogg::vector<char> utf8Data_;
     };
 
-    RawLines getLinesRaw( LineNumber first, LinesCount number ) const;
+    // A byte limit is checked against the index before allocation/read. An
+    // empty result signals out-of-range or oversized input to bounded callers.
+    RawLines getLinesRaw( LineNumber first, LinesCount number,
+                          qint64 maxBytes = std::numeric_limits<qint64>::max() ) const;
 
   Q_SIGNALS:
     // Sent during the 'attach' process to signal progress

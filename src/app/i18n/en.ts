@@ -538,6 +538,18 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>Syntax highlighting</source>
+        <translation>Syntax highlighting</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatic</translation>
+    </message>
+    <message>
+        <source>Plain text</source>
+        <translation>Plain text</translation>
+    </message>
+    <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1180"/>
         <source>Open URL as log file</source>
         <translation>Open URL as log file</translation>

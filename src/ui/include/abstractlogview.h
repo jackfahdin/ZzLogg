@@ -51,6 +51,8 @@
 #include <QAbstractScrollArea>
 #include <QBasicTimer>
 #include <QColor>
+#include <QPointer>
+#include "codesyntax.h"
 #include <QEvent>
 #include <QFontMetrics>
 
@@ -116,6 +118,7 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
                      QWidget* parent = nullptr );
 
     ~AbstractLogView() override;
+    void setCodeSyntax( CodeSyntax* syntax );
 
     // rule of 5
     AbstractLogView( const AbstractLogView& ) = delete;
@@ -307,6 +310,7 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     void setColorLabel( QAction* action );
 
   private:
+    QPointer<CodeSyntax> codeSyntax_;
     // Graphic parameters
     static constexpr int OverviewWidth = 27;
     static constexpr int HookThreshold = 300;

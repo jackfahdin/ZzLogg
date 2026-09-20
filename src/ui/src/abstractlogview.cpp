@@ -1611,6 +1611,14 @@ void AbstractLogView::setSelectionEnd()
 // Public functions
 //
 
+void AbstractLogView::setCodeSyntax( CodeSyntax* syntax )
+{
+    if (codeSyntax_) disconnect(codeSyntax_, nullptr, this, nullptr);
+    codeSyntax_ = syntax;
+    if (syntax) connect(syntax, &CodeSyntax::changed, this, &AbstractLogView::forceRefresh);
+    forceRefresh();
+}
+
 void AbstractLogView::updateData()
 {
     LOG_DEBUG << "AbstractLogView::updateData";
@@ -2432,6 +2440,19 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                 foreColor = palette.brush( QPalette::Disabled, QPalette::Text ).color();
             }
             else {
+                if (codeSyntax_) {
+                    const auto spans = codeSyntax_->formats(logData_->getLineNumber(lineNumber).get(),
+                                                           backColor.lightness() < 128);
+                    klogg::vector<HighlightedMatch> syntaxMatches;
+                    syntaxMatches.reserve(static_cast<size_t>(spans.size()));
+                    for (const auto& span : spans) {
+                        syntaxMatches.emplace_back(
+                            LineColumn{static_cast<LineColumn::UnderlyingType>(span.offset)},
+                            LineLength{static_cast<LineLength::UnderlyingType>(span.length)},
+                            span.color, backColor);
+                    }
+                    highlighterMatches = HighlightedMatchRanges{std::move(syntaxMatches)};
+                }
                 const auto highlightType = highlighterSet.matchLine( logLine, highlighterMatches );
 
                 if ( highlightType == HighlighterMatchType::LineMatch ) {
@@ -2455,29 +2476,25 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             }
         }
 
-        const auto untabifyHighlight = [ &logLine ]( const auto& match ) {
-            const auto prefix = QStringView{ logLine }.left( match.startColumn().get() );
-            const auto matchPart
-                = QStringView{ logLine }.mid( match.startColumn().get(), match.size().get() );
-            const auto expandedPrefixLength = untabify( prefix.toString() ).size();
-            const LineLength startDelta
-                = LineLength{ type_safe::narrow_cast<LineLength::UnderlyingType>(
-                    expandedPrefixLength - prefix.size() ) };
-
-            const LineLength expandedMatchLength = LineLength{
-                untabify( matchPart.toString(),
-                          LineColumn{ type_safe::narrow_cast<LineColumn::UnderlyingType>(
-                              expandedPrefixLength ) } )
-                    .size()
-            };
-
-            const auto lengthDelta
-                = expandedMatchLength
-                  - LineLength{ type_safe::narrow_cast<LineLength::UnderlyingType>(
-                      matchPart.size() ) };
-
-            return HighlightedMatch{ match.startColumn() + startDelta, match.size() + lengthDelta,
-                                     match.foreColor(), match.backColor() };
+        // Ranges are sorted and disjoint. Convert tab columns in a single
+        // forward pass; rescanning each token's prefix is quadratic for code.
+        qsizetype rawColumn = 0;
+        qsizetype expandedColumn = 0;
+        const auto expandColumn = [&](qsizetype target) {
+            target = std::min(target, logLine.size());
+            while (rawColumn < target) {
+                expandedColumn += logLine.at(rawColumn++) == QChar::Tabulation
+                    ? TabStop - expandedColumn % TabStop : 1;
+            }
+            return expandedColumn;
+        };
+        const auto untabifyHighlight = [&](const auto& match) {
+            const auto start = expandColumn(match.startColumn().get());
+            const auto end = expandColumn(match.startColumn().get() + match.size().get());
+            return HighlightedMatch{
+                LineColumn{static_cast<LineColumn::UnderlyingType>(start)},
+                LineLength{static_cast<LineLength::UnderlyingType>(end - start)},
+                match.foreColor(), match.backColor()};
         };
 
         klogg::vector<HighlightedMatch> sortedHighlights = highlighterMatches.matches();

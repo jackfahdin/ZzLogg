@@ -164,3 +164,5 @@ target_include_directories(zzlogg_ui_runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}
 target_link_libraries(zzlogg_ui_runtime PUBLIC klogg_ui klogg_settings
   PRIVATE klogg_support kdsingleapp)
 set_target_properties(zzlogg_ui_runtime PROPERTIES AUTOMOC ON)
+target_sources(klogg_ui PRIVATE include/codesyntax.h src/codesyntax.cpp)
+target_link_libraries(klogg_ui PUBLIC KF6SyntaxHighlighting)

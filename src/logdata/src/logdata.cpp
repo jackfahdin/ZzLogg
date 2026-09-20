@@ -346,14 +346,14 @@ LineNumber LogData::doGetLineNumber( LineNumber index ) const
     return index;
 }
 
-LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number ) const
+LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number, qint64 maxBytes ) const
 {
     RawLines rawLines;
     rawLines.startLine = firstLine;
 
     try {
         IndexingData::ConstAccessor scopedAccessor{ indexing_data_.get() };
-        if ( (firstLine + number).get() > scopedAccessor.getNbLines().get() ) {
+        if (number == 0_lcount || (firstLine + number).get() > scopedAccessor.getNbLines().get()) {
             LOG_WARNING << "Lines out of bound asked for";
             return {}; /* exception? */
         }
@@ -376,6 +376,7 @@ LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number 
             = scopedAccessor.getEndOfLineOffsets( firstLine, number );
 
         const auto lastByte = endOfLines.back().get();
+        if (lastByte - firstByte > maxBytes) return {};
 
         std::transform(
             endOfLines.begin(), endOfLines.end(), std::back_inserter( rawLines.endOfLines ),
@@ -390,6 +391,7 @@ LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number 
 
         if ( bytesRead != bytesToRead ) {
             LOG_DEBUG << "failed to read " << bytesToRead << " bytes, got " << bytesRead;
+            if (maxBytes != std::numeric_limits<qint64>::max()) return {};
         }
 
         LOG_DEBUG << "done reading lines:" << rawLines.buffer.size();

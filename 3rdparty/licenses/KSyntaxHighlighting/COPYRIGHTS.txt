@@ -1,0 +1,542 @@
+autotests/foldingtest.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/highlighter_benchmark.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/htmlhighlighter_test.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/input/themes/showcase.cpp
+SPDX-FileCopyrightText: 2020 Christoph Cullmann <cullmann@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/repository_benchmark.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2021 Igor Kushnir <igorkuo@gmail.com>
+SPDX-License-Identifier: MIT
+
+autotests/repository_test.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/repository_test_base.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2021 Igor Kushnir <igorkuo@gmail.com>
+SPDX-License-Identifier: MIT
+
+autotests/repository_test_base.h
+SPDX-FileCopyrightText: 2021 Igor Kushnir <igorkuo@gmail.com>
+SPDX-License-Identifier: MIT
+
+autotests/testhighlighter.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+autotests/theme_test.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+ensure we have some copyright text attributes like "SPDX-FileCopyrightText: 2020 Christoph Cullmann <cullmann@kde.org>"
+static const QRegularExpression copyrightRegex(QLatin1String("SPDX-FileCopyrightText: \\d{4} "));
+QVERIFY(metadata.value(QLatin1String("license")).toString() == QLatin1String("SPDX-License-Identifier: MIT"));
+
+autotests/wildcardmatcher_test.cpp
+SPDX-FileCopyrightText: 2007 Sebastian Pipping <webmaster@hartwork.org>
+SPDX-License-Identifier: MIT
+
+data/syntax/acpi-asl.xml
+	SPDX-FileCopyrightText: 2025 Fabian Vogt <fabian@ritter-vogt.de>
+	SPDX-License-Identifier: BSD-3-Clause
+
+data/syntax/antlr.xml
+SPDX-FileCopyrightText: 2023 Andrzej Borucki <borucki.andrzej@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/apparmor.xml
+SPDX-FileCopyrightText: 2017-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/cmake.xml
+SPDX-FileCopyrightText: 2004 Alexander Neundorf <neundorf@kde.org>
+SPDX-FileCopyrightText: 2005 Dominik Haumann <dhdev@gmx.de>
+SPDX-FileCopyrightText: 2007, 2008, 2013, 2014 Matthew Woehlke <mw_triad@users.sourceforge.net>
+SPDX-FileCopyrightText: 2013-2015, 2017-2025 Alex Turbov <i.zaufi@gmail.com>
+SPDX-License-Identifier: LGPL-2.0-or-later
+
+data/syntax/dockerfile.xml
+SPDX-FileCopyrightText: James Turnbull <james@lovedthanlost.net>
+SPDX-FileCopyrightText: 2020-2021 Alex Turbov <i.zaufi@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/dts.xml
+SPDX-FileCopyrightText: 2025 Artur Weber <knuxify@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/earthfile.xml
+SPDX-FileCopyrightText: 2022-2024 Alex Turbov <i.zaufi@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/edp.xml
+SPDX-FileCopyrightText: 2025 Lukas Spies <Lukas.Spies@inria.fr>
+SPDX-License-Identifier: MIT
+
+data/syntax/gleam.xml
+SPDX-FileCopyrightText: 2024 Louis Guichard <kde@glpda.net>
+SPDX-License-Identifier: MIT
+
+data/syntax/gtk-blueprint.xml
+<!--SPDX-FileCopyrightText: 2025 Zoey Ahmed <zoethetransrat@gmail.org>
+	SPDX-License-Identifier: MIT-->
+
+data/syntax/logcat.xml
+SPDX-FileCopyrightText: 2018-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/nix.xml
+SPDX-FileCopyrightText: 2024-2025 Katalin Rebhan <me@dblsaiko.net>
+SPDX-License-Identifier: MIT
+
+data/syntax/opsiscript.xml
+SPDX-FileCopyrightText: 2024 Stefan Staeglich <sstaeglich@kdemail.net>
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+data/syntax/selinux-cil.xml
+SPDX-FileCopyrightText: 2018-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/selinux-fc.xml
+SPDX-FileCopyrightText: 2018-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/selinux.xml
+SPDX-FileCopyrightText: 2018-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/snakemake.xml
+SPDX-FileCopyrightText: 2025 Thomas Bigot <thomas.bigot@pasteur.fr>
+SPDX-License-Identifier: MIT
+
+data/syntax/spdx-comments.xml
+<item>SPDX-License-Identifier:</item>
+<item>SPDX-FileCopyrightText:</item>
+<WordDetect String="SPDX-License-Identifier:" attribute="SPDX Tag" context="license-expression" />
+
+data/syntax/subrip-subtitles.xml
+SPDX-FileCopyrightText: 2019-2020 Nibaldo González S. <nibgonz@gmail.com>
+SPDX-License-Identifier: MIT
+
+data/syntax/tlaplus.xml
+SPDX-FileCopyrightText: 2024 Younes IO <dev@younes.io>
+SPDX-License-Identifier: MIT
+
+data/syntax/typst.xml
+SPDX-FileCopyrightText: 2024 Katalin Rebhan <me@dblsaiko.net>
+SPDX-License-Identifier: MIT
+
+data/themes/atom-one-dark.theme
+"SPDX-FileCopyrightText: 2016 GitHub Inc.",
+"SPDX-FileCopyrightText: 2020 Waqar Ahmed <waqar.17a@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/atom-one-light.theme
+"SPDX-FileCopyrightText: 2016 GitHub Inc.",
+"SPDX-FileCopyrightText: 2020 Waqar Ahmed <waqar.17a@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/ayu-dark.theme
+"SPDX-FileCopyrightText: 2016 Ike Ku",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/ayu-light.theme
+"SPDX-FileCopyrightText: 2016 Ike Ku",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/ayu-mirage.theme
+"SPDX-FileCopyrightText: 2016 Ike Ku",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/breeze-dark.theme
+"SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>",
+"SPDX-FileCopyrightText: 2016 Dominik Haumann <dhaumann@kde.org>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/breeze-light.theme
+"SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>",
+"SPDX-FileCopyrightText: 2016 Dominik Haumann <dhaumann@kde.org>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/catppuccin-frappe.theme
+"SPDX-FileCopyrightText: 2021 Catppuccin Org"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/catppuccin-latte.theme
+"SPDX-FileCopyrightText: 2021 Catppuccin Org"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/catppuccin-macchiato.theme
+"SPDX-FileCopyrightText: 2021 Catppuccin Org"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/catppuccin-mocha.theme
+"SPDX-FileCopyrightText: 2021 Catppuccin Org"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/dracula.theme
+"SPDX-FileCopyrightText: 2016 Dracula Theme",
+"SPDX-FileCopyrightText: 2020 Christoph Cullmann <cullmann@kde.org>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/falcon.theme
+"license": "SPDX-License-Identifier: MIT",
+"copyright": [ "SPDX-FileCopyrightText: 2021 Alberto Salvia Novella <https://es20490446e.wordpress.com>" ]
+
+data/themes/github-dark.theme
+"SPDX-FileCopyrightText: 2020 GitHub Inc.",
+"SPDX-FileCopyrightText: 2020 Waqar Ahmed <waqar.17a@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/github-light.theme
+"SPDX-FileCopyrightText: 2020 GitHub Inc.",
+"SPDX-FileCopyrightText: 2020 Waqar Ahmed <waqar.17a@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/gruvbox-dark.theme
+"SPDX-FileCopyrightText: 2017 Pavel Pertsev <morhetz@gmail.com>",
+"SPDX-FileCopyrightText: 2020 Frederik Banning <laubblaeser@live.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/gruvbox-light.theme
+"SPDX-FileCopyrightText: 2017 Pavel Pertsev <morhetz@gmail.com>",
+"SPDX-FileCopyrightText: 2020 Frederik Banning <laubblaeser@live.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/homunculus.theme
+"SPDX-FileCopyrightText: 2021 shenlebantongying <shenlebantongying@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/monokai.theme
+"SPDX-FileCopyrightText: 2006 Wimer Hazenberg",
+"SPDX-FileCopyrightText: 2020 Waqar Ahmed <waqar.17a@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/nord.theme
+"SPDX-FileCopyrightText: 2016 Arctic Ice Studio <development@arcticicestudio.com>",
+"SPDX-FileCopyrightText: 2016 Sven Greb <development@svengreb.de>",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/oblivion.theme
+"SPDX-FileCopyrightText: 2007 Paolo Borelli <pborelli@gnome.org>, GtkSourceView team",
+"SPDX-FileCopyrightText: 2020 Alexander Schlarb <alexander@ninetailed.ninja>"
+"license": "SPDX-License-Identifier: MIT"
+
+data/themes/printing.theme
+"SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>",
+"SPDX-FileCopyrightText: 2016 Dominik Haumann <dhaumann@kde.org>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/radical.theme
+"SPDX-FileCopyrightText: 2018 Dan Hedgecock",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/solarized-dark.theme
+"SPDX-FileCopyrightText: 2011 Ethan Schoonover",
+"SPDX-FileCopyrightText: 2012 Dominik Haumann <dhaumann@kde.org>",
+"SPDX-FileCopyrightText: 2018 Andrew Crouthamel <andrew.crouthamel@kdemail.net>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/solarized-light.theme
+"SPDX-FileCopyrightText: 2011 Ethan Schoonover",
+"SPDX-FileCopyrightText: 2012 Dominik Haumann <dhaumann@kde.org>",
+"SPDX-FileCopyrightText: 2018 Andrew Crouthamel <andrew.crouthamel@kdemail.net>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/tokyo-night-light.theme
+"license": "SPDX-License-Identifier: MIT",
+"SPDX-FileCopyrightText: 2023 Jonathan Poelen <jonathan.poelen@gmail.com>"
+
+data/themes/tokyo-night-storm.theme
+"license": "SPDX-License-Identifier: MIT",
+"SPDX-FileCopyrightText: 2023 Jonathan Poelen <jonathan.poelen@gmail.com>"
+
+data/themes/tokyo-night.theme
+"license": "SPDX-License-Identifier: MIT",
+"SPDX-FileCopyrightText: 2023 Jonathan Poelen <jonathan.poelen@gmail.com>"
+
+data/themes/vim-dark.theme
+"SPDX-FileCopyrightText: 2012 Dominik Haumann <dhaumann@kde.org>",
+"SPDX-FileCopyrightText: 2020 Nibaldo González <nibgonz@gmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+data/themes/vscodium-dark.theme
+"SPDX-FileCopyrightText: 2015 - present Microsoft Corporation",
+"SPDX-FileCopyrightText: 2023 Henri Kaustinen <heka1@protonmail.com>"
+"license": "SPDX-License-Identifier: MIT",
+
+examples/codeeditor/codeeditor.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/codeeditor/codeeditor.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/codeeditor/main.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/codepdfprinter/codepdfprinter.cpp
+SPDX-FileCopyrightText: 2019 Friedrich W. H. Kossebau <kossebau@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/codepdfprinter/codepdfprinter.h
+SPDX-FileCopyrightText: 2019 Friedrich W. H. Kossebau <kossebau@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/codepdfprinter/main.cpp
+SPDX-FileCopyrightText: 2019 Friedrich W. H. Kossebau <kossebau@kde.org>
+SPDX-License-Identifier: MIT
+
+examples/minimal/main.cpp
+SPDX-FileCopyrightText: 2020 Aleix Pol Gonzalez <aleixpol@kde.org>
+SPDX-License-Identifier: MIT
+
+src/cli/ksyntaxhighlighter.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/indexer/katehighlightingindexer.cpp
+SPDX-FileCopyrightText: 2014 Christoph Cullmann <cullmann@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/abstracthighlighter.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/abstracthighlighter.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/abstracthighlighter_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/ansihighlighter.cpp
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/ansihighlighter.h
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/context.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/context_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/contextswitch.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2024 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/contextswitch_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/definition.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2018 Dominik Haumann <dhaumann@kde.org>
+SPDX-FileCopyrightText: 2018 Christoph Cullmann <cullmann@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/definition.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/definition_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/definitiondownloader.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/definitiondownloader.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/dynamicregexpcache_p.h
+SPDX-FileCopyrightText: 2023 Jonathan Poelen <jonathan.poelen+kde@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/foldingregion.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/foldingregion.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/format.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/format.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/format_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/highlightingdata.cpp
+SPDX-FileCopyrightText: 2021 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/htmlhighlighter.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2018 Christoph Cullmann <cullmann@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/htmlhighlighter.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/keywordlist.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/keywordlist_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/matchresult_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/repository.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/repository.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/repository_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/rule.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2018 Christoph Cullmann <cullmann@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen+kde@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/rule_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/state.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2018 Christoph Cullmann <cullmann@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/state.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/state_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2018 Christoph Cullmann <cullmann@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/syntaxhighlighter.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/syntaxhighlighter.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/textstyledata_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/theme.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2022 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/theme.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/themedata.cpp
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2016 Dominik Haumann <dhaumann@kde.org>
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/themedata_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-FileCopyrightText: 2016 Dominik Haumann <dhaumann@kde.org>
+SPDX-License-Identifier: MIT
+
+src/lib/wildcardmatcher.cpp
+SPDX-FileCopyrightText: 2007 Sebastian Pipping <webmaster@hartwork.org>
+SPDX-License-Identifier: MIT
+
+src/lib/wildcardmatcher.h
+SPDX-FileCopyrightText: 2007 Sebastian Pipping <webmaster@hartwork.org>
+SPDX-License-Identifier: MIT
+
+src/lib/worddelimiters.cpp
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/worddelimiters_p.h
+SPDX-FileCopyrightText: 2020 Jonathan Poelen <jonathan.poelen@gmail.com>
+SPDX-License-Identifier: MIT
+
+src/lib/xml_p.h
+SPDX-FileCopyrightText: 2016 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/quick/kquicksyntaxhighlighter.cpp
+SPDX-FileCopyrightText: 2018 Eike Hein <hein@kde.org>
+SPDX-FileCopyrightText: 2021 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/quick/kquicksyntaxhighlighter.h
+SPDX-FileCopyrightText: 2018 Eike Hein <hein@kde.org>
+SPDX-FileCopyrightText: 2021 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/quick/types.cpp
+SPDX-FileCopyrightText: 2018 Eike Hein <hein@kde.org>
+SPDX-FileCopyrightText: 2021 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
+
+src/quick/types.h
+SPDX-FileCopyrightText: 2025 Volker Krause <vkrause@kde.org>
+SPDX-License-Identifier: MIT
