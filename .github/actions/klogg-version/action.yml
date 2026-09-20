@@ -1,5 +1,5 @@
 name: "Prepare klogg version env var"
-description: ""
+description: "Export the project display version for build and release jobs"
 runs:
   using: "composite"
   steps:

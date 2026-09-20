@@ -26,7 +26,7 @@ https://raw.githubusercontent.com/jackfahdin/ZzLogg/update-feed/preview.json
 
 ## 发布与续签
 
-`Signed Update Feed` 工作流独立于已有 Release 和 Continuous Build，支持手动触发、成功发布后触发、每天北京时间 01:30 续签。GitHub 定时任务可能延迟，长期无活动也可能被停用；清单有效期为 14 天，超过有效期客户端拒绝使用，应监控工作流失败并及时恢复续签。
+`Signed Update Feed` 工作流独立于 Publish（正式版与预览版发布），支持手动触发、成功发布后触发、每天北京时间 01:30 续签。GitHub 定时任务可能延迟，长期无活动也可能被停用；清单有效期为 14 天，超过有效期客户端拒绝使用，应监控工作流失败并及时恢复续签。
 
 工作流只执行 `master` 代码，不执行触发工作流的分支或产物内代码；私钥只注入最终发布步骤。发布器读取当前已公开的稳定版和预览版，验证 `release-info`、附件地址、长度和 SHA-256，再生成并验证签名封装。没有预览版时跳过该渠道。缺包、草稿、格式不符、密钥不匹配或校验失败均不发布该渠道。
 
@@ -58,3 +58,15 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 签名与发布测试使用临时测试密钥及模拟 GitHub，不上传生产私钥、不写远端。CI 已在运行这些 Python 测试前安装固定版本的签名依赖。
 
 本次 Linux / Qt 6.11.2 本地验收：`ci_build` 成功，82 项 CTest、53 项 Python CI 测试通过；另以临时测试密钥运行实际 Python 签名器，产物交由生产 C++ `verifyManifest()` 验签通过。生产私钥与仓库公钥匹配、仓库外目录 0700/文件 0600 权限已检查。未执行线上工作流或 Windows 自动安装实机测试。
+
+## 精简后的工作流
+
+| 名称 | 触发与职责 |
+| --- | --- |
+| CI Build | PR、手动，以及供 Publish 调用的全平台构建和测试；普通 master push 不再重复编译 |
+| Publish | tag 正式发布；北京时间 00:00 有新提交才发布预览版；手动运行发布 master 预览版 |
+| Signed Update Feed | Publish 成功后签名，另每天续签与手动运行；不编译应用 |
+| CodeQL | 每周与手动安全扫描 |
+| Update Smoke | 安装器相关文件变化或手动运行，保留专项 Windows 安装验收 |
+
+旧 Test env 调试工作流已删除。迁移期间清单工作流仍监听尚未结束的 Release / Continuous Build。PR 新提交会取消同一 PR 过时的构建，发布流程不会被自动取消。普通 master 提交需等定时发布、打 tag 或手动 CI 才会获得全平台构建结果。

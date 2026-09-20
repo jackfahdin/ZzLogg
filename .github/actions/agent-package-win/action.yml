@@ -1,5 +1,5 @@
 name: "Prepare windows packages"
-description: ""
+description: "Build Windows installer and portable packages"
 inputs:
   # 签名链路当前整体注释（见下方被注释的 codesign 步骤），三个 s3 input
   # 实际未被消费，仅作声明；改可选以便无签名机密的 workflow/fork 复用本 action。
