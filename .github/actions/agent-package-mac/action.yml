@@ -56,12 +56,18 @@ runs:
         cd $KLOGG_BUILD_ROOT
         cpack --verbose -G "DragNDrop"
 
+    # Both unsigned and signed builds must have architecture-specific names.
+    - name: Name Mac DMG
+      shell: sh
+      run: |
+        cd $KLOGG_BUILD_ROOT
+        mv ./packages/ZzLogg-${{ env.KLOGG_VERSION }}-OSX.dmg ./packages/${{ env.ZZLOGG_DMG }}
+
     - name: Mac codesign dmg
       if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}
       shell: sh
       run: |
         cd $KLOGG_BUILD_ROOT
-        mv ./packages/ZzLogg-${{ env.KLOGG_VERSION }}-OSX.dmg ./packages/${{ env.ZZLOGG_DMG }}
         codesign -v -f -o runtime --timestamp -s "${{ env.KLOGG_CODESIGN }}" ./packages/${{ env.ZZLOGG_DMG }}
     
     - name: Mac notarize DMG 
