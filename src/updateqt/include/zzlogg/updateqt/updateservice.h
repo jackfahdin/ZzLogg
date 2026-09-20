@@ -9,7 +9,7 @@ enum class CheckOrigin { Manual, Background };
 enum class CheckStatus {
     Idle, NotConfigured, Checking, Cancelled, UpToDate, Available,
     ReleaseInformation, Unsupported, NetworkError, VerificationFailed,
-    StateInvalid, StateBusy, StateWriteFailed
+    StateInvalid, StateBusy, StateWriteFailed, ManualUpdateAvailable
 };
 struct FeedConfiguration {
     QString stableUrl, previewUrl;
@@ -39,6 +39,9 @@ public:
     void requestCheck(Channel, CheckOrigin);
     void cancel();
     void setAutomaticChecking(bool);
+    // Advisory comparison for manual downloads only. This never creates an
+    // InstalledRelease or grants package selection/execution authority.
+    void setDisplayVersion(std::optional<update::Version> version);
     void setChannel(Channel);
     void skipCurrentRelease();
     const CheckSnapshot& snapshot() const { return snapshot_; }
@@ -54,6 +57,7 @@ private:
     FeedConfiguration config_;
     std::shared_ptr<UpdateStateStore> store_;
     std::optional<update::InstalledRelease> installed_;
+    std::optional<update::Version> displayVersion_;
     Clock clock_;
     ManifestFetcher fetcher_;
     QTimer poll_;

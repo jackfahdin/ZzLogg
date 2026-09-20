@@ -51,6 +51,35 @@ private Q_SLOTS:
         QFontDatabase::addApplicationFont("C:/Windows/Fonts/consola.ttf");
         QStandardPaths::setTestModeEnabled(true);
     }
+    void updateHintsReflectActualCapability() {
+        UpdateCheckDialog dialog;
+        auto* hint = dialog.findChild<QLabel*>("updateHint");
+        auto* releases = dialog.findChild<QPushButton*>("updateReleases");
+        QVERIFY(hint);
+        QVERIFY(releases);
+        QSignalSpy open(&dialog, SIGNAL(releasesPageRequested(QUrl)));
+        QVERIFY(open.isValid());
+        dialog.setSnapshot({CheckStatus::NotConfigured, Channel::Stable, {}, {}, true});
+        QVERIFY(hint->text().contains("not configured"));
+        releases->click();
+        QCOMPARE(open.takeFirst().at(0).toUrl(),
+                 QUrl("https://github.com/jackfahdin/ZzLogg/releases/latest"));
+        dialog.setSnapshot({CheckStatus::ReleaseInformation, Channel::Preview, {}, {}, true});
+        QVERIFY(hint->text().contains("this installation"));
+        releases->click();
+        QCOMPARE(open.takeFirst().at(0).toUrl(),
+                 QUrl("https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build"));
+        dialog.setSnapshot(availableRelease());
+        dialog.setDownloadSnapshot({DownloadStatus::Verified, 100, 100, {}, "cache/package"});
+        QVERIFY(hint->text().contains("not enabled"));
+        dialog.setUpdateExecutionAvailable(true);
+        QVERIFY(!hint->text().contains("not enabled"));
+        QVERIFY(hint->text().contains("Quit and install"));
+        dialog.setHandoffState(UpdateCheckDialog::UpdateHandoffState::Waiting);
+        QVERIFY(!releases->isEnabled());
+        releases->click();
+        QCOMPARE(open.count(), 0);
+    }
     void notConfiguredIsNotUpToDate() {
         UpdateCheckDialog dialog;
         dialog.setSnapshot({CheckStatus::NotConfigured,Channel::Stable,{},{},true});
@@ -102,7 +131,7 @@ private Q_SLOTS:
         }
         dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
         QCOMPARE(progress->value(),100); QVERIFY(!download->isEnabled());
-        QCOMPARE(status->text(),QString("Download verified. Installation is not available yet.\n100 / 100 bytes (100%)"));
+        QCOMPARE(status->text(),QString("Download verified.\n100 / 100 bytes (100%)"));
         dialog.setDownloadSnapshot({DownloadStatus::Unavailable}); QVERIFY(!download->isEnabled());
         QVERIFY(dialog.findChild<QPushButton*>("updateCheck")->isEnabled());
     }
@@ -297,8 +326,8 @@ private Q_SLOTS:
         const QStringList expected{"<b>Not HTML</b> https://example.invalid","简体说明","繁體說明"};
         const QStringList titles{"Check for updates","检查更新","檢查更新"};
         const QStringList downloadLabels{"Download update","下载更新","下載更新"};
-        const QStringList verifiedLabels{"Download verified. Installation is not available yet.",
-            "下载已验证，安装功能尚未接入","下載已驗證，安裝功能尚未接入"};
+        const QStringList verifiedLabels{"Download verified.",
+            "下载已验证。","下載已驗證。"};
         for(int i=0;i<3;++i) {
             QTranslator translator;
             QVERIFY(translator.load(QString(ZZLOGG_UI_QM_DIR)+"/"+languages[i]+".qm"));

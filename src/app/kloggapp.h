@@ -35,6 +35,7 @@
 #include <QCborValue>
 
 #include <QDir>
+#include <QDesktopServices>
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QNetworkProxyFactory>
@@ -506,6 +507,7 @@ class KloggApp : public QApplication {
             std::make_shared<UpdateStateStore>(path),std::nullopt,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
+        updateService_->setDisplayVersion(zzlogg::update::parseVersion(QString(kloggVersion()).toStdString()));
         updateDownloadService_=std::make_unique<UpdateDownloadService>(productionFeedConfiguration(),
             std::nullopt,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateDownloadService_->setObjectName("applicationUpdateDownloadService");
@@ -556,6 +558,9 @@ class KloggApp : public QApplication {
                 updateDownloadService_->invalidate();
                 updateService_->skipCurrentRelease();
                 if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
+            });
+            connect(dialog,&UpdateCheckDialog::releasesPageRequested,this,[](const QUrl& url) {
+                QDesktopServices::openUrl(url);
             });
             connect(dialog,&UpdateCheckDialog::installRequested,this,[this] { updateHandoff().begin(); });
             connect(dialog,&UpdateCheckDialog::installCancelRequested,this,[this] { updateHandoff().cancel(); });

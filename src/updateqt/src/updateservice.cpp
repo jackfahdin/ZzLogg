@@ -117,10 +117,19 @@ void UpdateService::received(const QByteArray& bytes)
         default: result.status=CheckStatus::Unsupported; break;
         }
     }
+    if(result.status==CheckStatus::ReleaseInformation && displayVersion_) {
+        if(update::compareVersion(verified.value->manifest().version,*displayVersion_)>0)
+            result.status=CheckStatus::ManualUpdateAvailable;
+        else if(channel_==Channel::Stable)
+            result.status=CheckStatus::UpToDate;
+        // Preview snapshots can share a display version. Without a trusted
+        // installed build identity we cannot claim this is the latest snapshot.
+    }
     const bool skipped=state.value->skippedReleaseSequence
         && *state.value->skippedReleaseSequence==verified.value->manifest().releaseSequence;
     result.presentToUser=manual_ || (!skipped && (result.status==CheckStatus::Available
-        || result.status==CheckStatus::ReleaseInformation));
+        || (result.status==CheckStatus::ReleaseInformation && !displayVersion_)
+        || result.status==CheckStatus::ManualUpdateAvailable));
     snapshot_=std::move(result);
     emit snapshotChanged();
 }
@@ -140,6 +149,7 @@ void UpdateService::cancel()
     const auto saved=store_->recordCancellation(channel_,clock_());
     publish(saved==StateError::None ? CheckStatus::Cancelled : stateStatus(saved),manual_);
 }
+void UpdateService::setDisplayVersion(std::optional<update::Version> version) { displayVersion_=version; }
 void UpdateService::setAutomaticChecking(bool enabled) { automatic_=enabled; }
 void UpdateService::setChannel(Channel channel)
 {

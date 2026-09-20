@@ -53,8 +53,18 @@ runs:
     - name: Mac pack dmg
       shell: sh
       run: |
-        cd $KLOGG_BUILD_ROOT
-        cpack --verbose -G "DragNDrop"
+        cd "$KLOGG_BUILD_ROOT"
+        if cpack --verbose -G "DragNDrop" > cpack-dmg.log 2>&1; then
+          cat cpack-dmg.log
+        else
+          cat cpack-dmg.log
+          # Finder/Spotlight can keep the temporary image busy on hosted
+          # runners. Retry once only for CPack's observed detach failure.
+          grep -Fq 'Error detaching temporary disk image.' cpack-dmg.log || exit 1
+          grep -Fq '/usr/bin/hdiutil detach "/Volumes/ZzLogg"' cpack-dmg.log || exit 1
+          hdiutil detach -force /Volumes/ZzLogg
+          cpack --verbose -G "DragNDrop"
+        fi
 
     # Both unsigned and signed builds must have architecture-specific names.
     - name: Name Mac DMG

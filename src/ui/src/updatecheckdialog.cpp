@@ -27,6 +27,7 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     auto* scroll=new QScrollArea(this); scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
     auto* content=new QWidget(scroll); auto* body=new QVBoxLayout(content); body->setSpacing(14);
     identity_=label(content); status_=label(content); details_=label(content); hint_=label(content);
+    hint_->setObjectName("updateHint");
     downloadStatus_=label(this); downloadStatus_->setObjectName("updateDownloadStatus");
     handoffStatus_=label(this); handoffStatus_->setObjectName("updateHandoffStatus");
     progress_=new QProgressBar(this); progress_->setObjectName("updateDownloadProgress");
@@ -43,6 +44,20 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     skip_=new QPushButton(this); close_=new QPushButton(this);
     download_=new QPushButton(this); download_->setObjectName("updateDownload");
     install_=new QPushButton(this); install_->setObjectName("updateInstall");
+    releases_=new QPushButton(this); releases_->setObjectName("updateReleases");
+    auto* releaseActions=new QHBoxLayout;
+    outer->addLayout(releaseActions);
+    releaseActions->addWidget(releases_);
+    releaseActions->addStretch();
+    connect(releases_, &QPushButton::clicked, this, [this] {
+        if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting
+            || handoffState_==UpdateHandoffState::ExitCommitted) return;
+        // Fixed project-owned pages, never a URL from unverified metadata.
+        const auto url=snapshot_.channel==Channel::Stable
+            ? QUrl(QStringLiteral("https://github.com/jackfahdin/ZzLogg/releases/latest"))
+            : QUrl(QStringLiteral("https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build"));
+        Q_EMIT releasesPageRequested(url);
+    });
     check_->setObjectName("updateCheck"); cancel_->setObjectName("updateCancel"); close_->setObjectName("updateClose");
     skip_->setObjectName("updateSkip"); later_->setObjectName("updateLater");
     for(auto* button:{check_,download_,install_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
@@ -122,7 +137,8 @@ void UpdateCheckDialog::refresh()
     case CheckStatus::Cancelled: text=tr("Update check cancelled."); break;
     case CheckStatus::UpToDate: text=tr("You are using the latest version."); break;
     case CheckStatus::Available: text=tr("A new version is available."); break;
-    case CheckStatus::ReleaseInformation: text=tr("Verified release information (installation identity unavailable)."); break;
+    case CheckStatus::ManualUpdateAvailable: text=tr("A new version is available. Download it from GitHub."); break;
+    case CheckStatus::ReleaseInformation: text=tr("Verified release information. See GitHub for available builds."); break;
     case CheckStatus::Unsupported: text=tr("This release is not compatible with this installation."); break;
     case CheckStatus::NetworkError: text=tr("Unable to retrieve the update manifest. Please try again later."); break;
     case CheckStatus::VerificationFailed: text=tr("Update verification failed. Check the system clock or try again later."); break;
@@ -151,7 +167,22 @@ void UpdateCheckDialog::refresh()
     details_->setText(details);
     if(notes_->toPlainText()!=notes) notes_->setPlainText(notes);
     notes_->setVisible(snapshot_.release.has_value());
-    hint_->setText(tr("This version supports update checks and verified downloads. Installation is not available yet."));
+    if(snapshot_.status==CheckStatus::NotConfigured)
+        hint_->setText(tr("Online updates are not configured for this build. Download releases from GitHub."));
+    else if(snapshot_.status==CheckStatus::ReleaseInformation || snapshot_.status==CheckStatus::Unsupported
+        || snapshot_.status==CheckStatus::ManualUpdateAvailable)
+        hint_->setText(tr("Automatic installation is unavailable for this installation. Download a compatible package from GitHub."));
+    else if(installAvailable())
+        hint_->setText(tr("The update is verified. Choose Quit and install update to continue."));
+    else if(updateExecutionAvailable_)
+        hint_->setText(tr("Download and verify the update before installing it."));
+    else
+        hint_->setText(tr("Update installation is not enabled for this build. Download releases from GitHub."));
+    releases_->setText(tr("Open GitHub downloads"));
+    releases_->setAutoDefault(false);
+    releases_->setEnabled(handoffState_!=UpdateHandoffState::Preparing
+        && handoffState_!=UpdateHandoffState::Waiting
+        && handoffState_!=UpdateHandoffState::ExitCommitted);
     check_->setText(tr("Check again")); cancel_->setText(tr("Cancel check"));
     later_->setText(tr("Remind me later")); skip_->setText(tr("Skip this version")); close_->setText(tr("Close"));
     const bool checking=snapshot_.status==CheckStatus::Checking;
@@ -173,7 +204,7 @@ void UpdateCheckDialog::refresh()
     switch(downloadSnapshot_.status) {
     case DownloadStatus::Idle: break;
     case DownloadStatus::Downloading: downloadText=tr("Downloading update..."); break;
-    case DownloadStatus::Verified: downloadText=tr("Download verified. Installation is not available yet."); break;
+    case DownloadStatus::Verified: downloadText=tr("Download verified."); break;
     case DownloadStatus::Cancelled: downloadText=tr("Download cancelled. You can retry."); break;
     case DownloadStatus::Unavailable: downloadText=tr("This download is no longer available. Check for updates again."); break;
     case DownloadStatus::Failed:

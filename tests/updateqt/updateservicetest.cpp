@@ -22,6 +22,28 @@ NetworkScript signedScript(nlohmann::json payload=update_fixture::payload()) {
 class ServiceTest : public QObject {
     Q_OBJECT
 private slots:
+    void informationalVersionComparisonDoesNotGrantInstallAuthority() {
+      for (const auto channel : {Channel::Stable, Channel::Preview}) {
+        for (unsigned patch : {0u, 1u, 2u}) {
+            QTemporaryDir directory;
+            auto store=std::make_shared<UpdateStateStore>(directory.filePath("state.json"));
+            auto* network=new ScriptedNetworkManager;
+            auto payload=update_fixture::payload();
+            payload["version"]="26.09.01";
+            payload["channel"]=channel==Channel::Stable ? "stable" : "preview";
+            network->scripts.push_back(signedScript(payload));
+            UpdateService service(configuration(),store,{},[]{return 1800000000;},nullptr,[&]{return network;});
+            service.setDisplayVersion(zzlogg::update::Version{26,9,patch});
+            service.requestCheck(channel,CheckOrigin::Background);
+            QTRY_VERIFY(service.snapshot().release.has_value());
+            QCOMPARE(service.snapshot().status, patch==0 ? CheckStatus::ManualUpdateAvailable
+                : channel==Channel::Stable ? CheckStatus::UpToDate : CheckStatus::ReleaseInformation);
+            QCOMPARE(service.snapshot().presentToUser, patch==0);
+            QVERIFY(!service.snapshot().decision.has_value());
+            QVERIFY(store->read(channel).value->accepted.has_value());
+        }
+      }
+    }
     void verifiedReleasePersistsBeforeNotification() {
         QTemporaryDir directory;
         auto store=std::make_shared<UpdateStateStore>(directory.filePath("state.json"));
