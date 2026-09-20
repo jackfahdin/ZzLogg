@@ -86,6 +86,10 @@ class CrawlerWidget : public LogPage,
 
 public:
     CrawlerWidget( QWidget* parent = nullptr );
+    void setSyntaxFileName( const QString& fileName );
+    void setSyntaxLanguage( const QString& language );
+    QString syntaxLanguage() const;
+
 
     // Get the line number of the first line displayed.
     LineNumber getTopLine() const;
@@ -277,6 +281,7 @@ private Q_SLOTS:
     void filteredViewDestroyed( QObject* view );
 
 private:
+    CodeSyntax* codeSyntax_ = nullptr;
     // State machine holding the state of the search, used to allow/disallow
     // auto-refresh and inform the user via the info line.
     class SearchState {

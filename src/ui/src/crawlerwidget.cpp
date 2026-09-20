@@ -91,8 +91,9 @@ public:
     // Construct from the value passsed
     CrawlerWidgetContext( QList<int> sizes, bool ignoreCase, bool autoRefresh, bool followFile,
                           bool useRegexp, bool inverseRegexp, bool useBooleanCombination,
-                          QList<LineNumber> markedLines )
-        : sizes_( sizes )
+                          QList<LineNumber> markedLines, QString syntaxLanguage )
+        : syntaxLanguage_( std::move(syntaxLanguage) )
+        , sizes_( sizes )
         , ignoreCase_( ignoreCase )
         , autoRefresh_( autoRefresh )
         , followFile_( followFile )
@@ -103,6 +104,8 @@ public:
         std::transform( markedLines.cbegin(), markedLines.cend(), std::back_inserter( marks_ ),
                         []( const auto& m ) { return m.get(); } );
     }
+
+    QString syntaxLanguage_ = QStringLiteral("auto");
 
     // Implementation of the ViewContextInterface function
     QString toString() const override;
@@ -329,6 +332,30 @@ void CrawlerWidget::doSetData( std::shared_ptr<LogData> logData,
 {
     logData_ = std::move( logData );
     logFilteredData_ = std::move( filteredData );
+    codeSyntax_ = new CodeSyntax(
+        [data = logData_](quint64 line) -> std::optional<QString> {
+            const auto raw = data->getLinesRaw(LineNumber{line}, 1_lcount, 64 * 1024);
+            if (raw.endOfLines.empty()) return std::nullopt;
+            const auto decoded = raw.decodeLines();
+            if (decoded.empty()) return std::nullopt;
+            auto text = decoded.front();
+            if (text.endsWith(QChar::CarriageReturn)) text.chop(1);
+            return text;
+        },
+        [data = logData_]() { return quint64(data->getNbLine().get()); }, this );
+}
+
+void CrawlerWidget::setSyntaxFileName( const QString& fileName )
+{
+    if (codeSyntax_) codeSyntax_->setFileName(fileName);
+}
+void CrawlerWidget::setSyntaxLanguage( const QString& language )
+{
+    if (codeSyntax_) codeSyntax_->setLanguage(language);
+}
+QString CrawlerWidget::syntaxLanguage() const
+{
+    return codeSyntax_ ? codeSyntax_->language() : QStringLiteral("auto");
 }
 
 void CrawlerWidget::doSetQuickFindPattern( std::shared_ptr<QuickFindPattern> qfp )
@@ -351,6 +378,7 @@ void CrawlerWidget::doSetViewContext( const QString& view_context )
 
     const auto context = CrawlerWidgetContext{ view_context };
 
+    setSyntaxLanguage( context.syntaxLanguage_ );
     setSizes( context.sizes() );
     searchPanel_->matchCaseButton()->setChecked( !context.ignoreCase() );
     searchPanel_->useRegexpButton()->setChecked( context.useRegexp() );
@@ -375,7 +403,7 @@ std::shared_ptr<const ViewContextInterface> CrawlerWidget::doGetViewContext() co
         sizes(), ( !searchPanel_->matchCaseButton()->isChecked() ),
         searchPanel_->searchRefreshButton()->isChecked(), logMainView_->isFollowEnabled(),
         searchPanel_->useRegexpButton()->isChecked(), searchPanel_->inverseButton()->isChecked(),
-        searchPanel_->booleanButton()->isChecked(), logFilteredData_->getMarks() );
+        searchPanel_->booleanButton()->isChecked(), logFilteredData_->getMarks(), syntaxLanguage() );
 
     return static_cast<std::shared_ptr<const ViewContextInterface>>( context );
 }
@@ -647,6 +675,7 @@ void CrawlerWidget::applyConfiguration()
         logData_->setPrefilter( {} );
     }
 
+    if (codeSyntax_) codeSyntax_->invalidate();
     const bool lineNumbersVisible = config.lineNumbersVisible();
     logMainView_->setLineNumbersVisible( lineNumbersVisible );
 
@@ -753,6 +782,7 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
 
 void CrawlerWidget::fileChangedHandler( MonitoredFileStatus status )
 {
+    if (codeSyntax_) codeSyntax_->invalidate();
     // Handle the case where the file has been truncated
     if ( status == MonitoredFileStatus::Truncated ) {
         // Clear all marks (TODO offer the option to keep them)
@@ -983,6 +1013,7 @@ void CrawlerWidget::setup()
     overviewWidget_ = new OverviewWidget();
     logMainView_
         = new LogMainView( logData_.get(), quickFindPattern_.get(), &overview_, overviewWidget_ );
+    logMainView_->setCodeSyntax(codeSyntax_);
     logMainView_->setObjectName( QStringLiteral( "logMainView" ) );
     logMainView_->setContentsMargins( 2, 0, 2, 0 );
 
@@ -1196,6 +1227,7 @@ void CrawlerWidget::changeFontSize( bool increase )
 
 void CrawlerWidget::connectAllFilteredViewSlots( FilteredView* view )
 {
+    view->setCodeSyntax(codeSyntax_);
     connect( view, &FilteredView::newSelection, view, [ view ]( auto ) { view->update(); } );
 
     connect( view, &FilteredView::newSelection, this, &CrawlerWidget::jumpToMatchingLine );
@@ -1597,6 +1629,7 @@ void CrawlerWidget::updateEncoding()
     logData_->interruptLoading();
 
     logData_->setDisplayEncoding( textCodec->name().constData() );
+    if (codeSyntax_) codeSyntax_->invalidate();
     logMainView_->forceRefresh();
     logFilteredData_->setDisplayEncoding( textCodec->name().constData() );
     filteredView_->forceRefresh();
@@ -1760,6 +1793,7 @@ void CrawlerWidgetContext::loadFromJson( const QString& json )
         }
     }
 
+    syntaxLanguage_ = properties.value( "SY", "auto" ).toString();
     ignoreCase_ = properties.value( "IC" ).toBool();
     autoRefresh_ = properties.value( "AR" ).toBool();
     followFile_ = properties.value( "FF" ).toBool();
@@ -1805,6 +1839,7 @@ QString CrawlerWidgetContext::toString() const
     QVariantMap properies;
 
     properies[ "S" ] = toVariantList( sizes_ );
+    properies[ "SY" ] = syntaxLanguage_;
     properies[ "IC" ] = ignoreCase_;
     properies[ "AR" ] = autoRefresh_;
     properies[ "FF" ] = followFile_;

@@ -295,6 +295,11 @@ void MainWindow::reTranslateUI()
     fileMenu->setTitle( transMenu( menu::fileTitle ) );
     editMenu->setTitle( transMenu( menu::editTitle ) );
     viewMenu->setTitle( transMenu( menu::viewTitle ) );
+    syntaxMenu->setTitle(tr("Syntax highlighting"));
+    for (auto* action : syntaxMenu->actions()) {
+        if (action->data().toString() == QLatin1String("auto")) action->setText(tr("Automatic"));
+        if (action->data().toString() == QLatin1String("plain")) action->setText(tr("Plain text"));
+    }
     openedFilesMenu->setTitle( transMenu( menu::openedFilesTitle ) );
     toolsMenu->setTitle( transMenu( menu::toolsTitle ) );
     highlightersMenu->setTitle( transMenu( menu::highlightersTitle ) );

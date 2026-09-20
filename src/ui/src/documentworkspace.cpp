@@ -61,6 +61,7 @@ CrawlerWidget* DocumentWorkspace::openDocument( const QString& path, const QStri
         = static_cast<CrawlerWidget*>( session_.open( path, [] { return new CrawlerWidget(); } ) );
     if ( !document )
         return nullptr;
+    document->setSyntaxFileName(path);
     document->hide();
     if ( !viewContext.isEmpty() )
         document->setViewContext( viewContext );
@@ -89,6 +90,7 @@ QList<CrawlerWidget*> DocumentWorkspace::restoreDocuments()
     QList<CrawlerWidget*> documents;
     for ( const auto& [ path, view ] : restored ) {
         if ( auto* document = static_cast<CrawlerWidget*>( view ) ) {
+            document->setSyntaxFileName(path);
             addCrawler( document, path );
             documents.append( document );
         }

@@ -252,6 +252,7 @@ class MainWindow : public QMainWindow {
     QMenu* recentFilesMenu;
     QMenu* editMenu;
     QMenu* viewMenu;
+    QMenu* syntaxMenu;
     QMenu* toolsMenu;
     QMenu* favoritesMenu;
     HighlightersMenu* highlightersMenu;

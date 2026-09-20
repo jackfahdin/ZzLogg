@@ -15,7 +15,7 @@ endif()
 
 project(
   klogg
-  VERSION 26.9.0
+  VERSION 26.9.1
   DESCRIPTION "${ZZLOGG_PRODUCT_DESCRIPTION}"
   HOMEPAGE_URL "${ZZLOGG_HOMEPAGE_URL}"
   LANGUAGES C CXX ASM
@@ -224,6 +224,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 include(ZzPureTools)
 klogg_add_zzpuretools()
+include(ZzSyntaxHighlighting)
+zzlogg_add_syntax_highlighting()
 
 add_custom_target(ci_build)
 

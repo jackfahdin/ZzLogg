@@ -38,7 +38,7 @@ cd ZzLogg
 
 ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子模块。
 
-构建需要支持 C++20 的编译器、CMake 3.23 或更高版本，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；典型的 Ninja 构建如下：
+构建需要支持 C++20 的编译器、CMake 3.23 或更高版本、Perl，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；典型的 Ninja 构建如下：
 
 ```bash
 cmake --preset ninja-release

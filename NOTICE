@@ -728,3 +728,9 @@ licensed under the terms of Apache License Version 2.0
 >    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 >    See the License for the specific language governing permissions and
 >    limitations under the License.
+
+===
+This product includes KSyntaxHighlighting 6.22.0 and embedded syntax/theme
+definitions, https://invent.kde.org/frameworks/syntax-highlighting .
+The library is MIT licensed. See licenses/KSyntaxHighlighting for the
+applicable license texts, source URL, and copyright attributions.

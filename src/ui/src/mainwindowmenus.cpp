@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "crawlerwidget.h"
 #include "mainwindowtext.h"
 #include "encodings.h"
 #include "highlightersmenu.h"
@@ -58,6 +59,30 @@ void MainWindow::createMenus(QMenuBar& container)
     viewMenu->addAction( lineNumbersVisibleAction );
     viewMenu->addSeparator();
     viewMenu->addAction( textWrapAction );
+    syntaxMenu = viewMenu->addMenu(tr("Syntax highlighting"));
+    syntaxMenu->setObjectName(QStringLiteral("syntaxHighlightingMenu"));
+    auto* syntaxGroup = new QActionGroup(syntaxMenu);
+    const QList<QPair<QString, QString>> languages{
+        {"auto", tr("Automatic")}, {"plain", tr("Plain text")},
+        {"cpp", QStringLiteral("C++")}, {"java", QStringLiteral("Java")},
+        {"json", QStringLiteral("JSON")}};
+    for (const auto& language : languages) {
+        auto* action = syntaxMenu->addAction(language.second);
+        action->setData(language.first);
+        action->setCheckable(true);
+        syntaxGroup->addAction(action);
+        connect(action, &QAction::triggered, this, [this, action] {
+            if (auto* crawler = currentCrawlerWidget())
+                crawler->setSyntaxLanguage(action->data().toString());
+        });
+    }
+    connect(viewMenu, &QMenu::aboutToShow, this, [this, syntaxGroup] {
+        const auto* crawler = currentCrawlerWidget();
+        syntaxMenu->setEnabled(crawler != nullptr);
+        for (auto* action : syntaxGroup->actions())
+            action->setChecked(crawler && action->data().toString() == crawler->syntaxLanguage());
+    });
+
     viewMenu->addSeparator();
     viewMenu->addAction( followAction );
     viewMenu->addSeparator();

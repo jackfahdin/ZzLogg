@@ -29,6 +29,57 @@ private Q_SLOTS:
         SessionInfo::getSynced();
     }
 
+    void syntaxPreservesCrLfContinuation()
+    {
+        QTemporaryDir files;
+        QFile file(files.filePath("continued.cpp"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("// continued comment \\\r\nint comment;\r\nint code;\r\n");
+        file.close();
+        auto session = std::make_shared<Session>();
+        WindowSession window(session, "syntax-crlf", 0);
+        SignalMux mux;
+        QuickFindMux quickFind(window.getQuickFindPattern());
+        DocumentWorkspace workspace(window, mux, quickFind);
+        auto* document = workspace.openDocument(file.fileName());
+        QVERIFY(document);
+        auto* syntax = document->findChild<CodeSyntax*>();
+        QVERIFY(syntax);
+        QTRY_VERIFY(!syntax->formats(1, false).isEmpty());
+        QCOMPARE(syntax->formats(1, false).size(), 1);
+        const auto comment = syntax->formats(1, false).front().color;
+        QTRY_VERIFY(!syntax->formats(2, false).isEmpty());
+        QVERIFY(syntax->formats(2, false).front().color != comment);
+        workspace.closeDocument(0);
+    }
+
+    void syntaxSelectionSurvivesContext()
+    {
+        QTemporaryDir files;
+        auto session = std::make_shared<Session>();
+        WindowSession window(session, "syntax-workspace", 0);
+        SignalMux mux;
+        QuickFindMux quickFind(window.getQuickFindPattern());
+        DocumentWorkspace workspace(window, mux, quickFind);
+        auto* first = workspace.openDocument(makeLog(files, "a.cpp"));
+        QVERIFY(first);
+        QCOMPARE(first->syntaxLanguage(), QString("auto"));
+        auto* syntax = first->findChild<CodeSyntax*>();
+        QVERIFY(syntax);
+        QCOMPARE(syntax->definitionName(), QString("C++"));
+        first->setSyntaxLanguage("java");
+        const auto context = first->context()->toString();
+        auto* second = workspace.openDocument(makeLog(files, "b.json"), context);
+        QVERIFY(second);
+        QCOMPARE(second->syntaxLanguage(), QString("java"));
+        QCOMPARE(second->findChild<CodeSyntax*>()->definitionName(), QString("Java"));
+        second->setViewContext("{}");
+        QCOMPARE(second->syntaxLanguage(), QString("auto"));
+        QCOMPARE(second->findChild<CodeSyntax*>()->definitionName(), QString("JSON"));
+        workspace.closeDocument(0);
+        workspace.closeDocument(0);
+    }
+
     void closesInactiveAndLastDocumentThenReopens()
     {
         QTemporaryDir files;
