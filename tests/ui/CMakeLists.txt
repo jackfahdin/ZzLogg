@@ -20,11 +20,8 @@ add_test(
     COMMAND klogg_itests -platform offscreen
 )
 
-# Upstream UI integration scenarios (parallel search over GENERATE thread
-# pool sizes) segfault intermittently only on the 4-vCPU GitHub Windows
-# runner (20/20 local passes, Linux CI passes); bound the flake without
-# masking a persistent failure.
-set_tests_properties(klogg_itests PROPERTIES REPEAT_UNTIL_PASS 3)
+# The Windows CI action bounds retries of this known intermittent parallel
+# search scenario via ctest --repeat. REPEAT_UNTIL_PASS is not a test property.
 
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).

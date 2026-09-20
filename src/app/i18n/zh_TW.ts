@@ -2576,6 +2576,38 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>A new version is available. Download it from GitHub.</source>
+        <translation>發現新版本，請前往 GitHub 下載。</translation>
+    </message>
+    <message>
+        <source>Online updates are not configured for this build. Download releases from GitHub.</source>
+        <translation>此版本尚未設定線上更新，請前往 GitHub 下載新版。</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation. Download a compatible package from GitHub.</source>
+        <translation>目前的安裝不支援自動安裝更新，請前往 GitHub 下載適用的安裝套件。</translation>
+    </message>
+    <message>
+        <source>The update is verified. Choose Quit and install update to continue.</source>
+        <translation>更新套件已驗證，按一下「退出並更新」繼續安裝。</translation>
+    </message>
+    <message>
+        <source>Download and verify the update before installing it.</source>
+        <translation>請先下載並驗證更新套件，再進行安裝。</translation>
+    </message>
+    <message>
+        <source>Update installation is not enabled for this build. Download releases from GitHub.</source>
+        <translation>此版本尚未啟用安裝更新，請前往 GitHub 下載新版。</translation>
+    </message>
+    <message>
+        <source>Open GitHub downloads</source>
+        <translation>前往 GitHub 下載</translation>
+    </message>
+    <message>
+        <source>Download verified.</source>
+        <translation>下載已驗證。</translation>
+    </message>
+    <message>
         <source>Download update</source>
         <translation>下載更新</translation>
     </message>
@@ -2674,8 +2706,8 @@ Channel: %2</source>
         <translation>發現新版本。</translation>
     </message>
     <message>
-        <source>Verified release information (installation identity unavailable).</source>
-        <translation>已驗證的發佈資訊（無法確認安裝身分）。</translation>
+        <source>Verified release information. See GitHub for available builds.</source>
+        <translation>已驗證版本資訊，可前往 GitHub 查看可用建置。</translation>
     </message>
     <message>
         <source>This release is not compatible with this installation.</source>

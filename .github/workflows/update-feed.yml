@@ -1,0 +1,50 @@
+name: Signed Update Feed
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Renew the 14-day manifest validity even when release bytes do not change.
+    - cron: '30 17 * * *'
+  workflow_run:
+    workflows: ['Release', 'Continuous Build']
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-update-feed
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      vars.ZZLOGG_UPDATE_FEED_ENABLED == 'true' &&
+      ((github.event_name != 'workflow_run' && github.ref == 'refs/heads/master') ||
+       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.name == 'Release' ||
+         (github.event.workflow_run.name == 'Continuous Build' && github.event.workflow_run.head_branch == 'master'))))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      # workflow_run is privileged: never execute code/artifacts from its head.
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install manifest signing dependency
+        run: python -m pip install -r scripts/ci/requirements-update.txt
+      - name: Test release and update helpers
+        run: python -m unittest discover -s tests/ci -p 'test_*.py'
+      - name: Publish verified signed feeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZZLOGG_UPDATE_SIGNING_KEY: ${{ secrets.ZZLOGG_UPDATE_SIGNING_KEY }}
+        run: >-
+          python scripts/ci/publish_update_feed.py --repository "$GITHUB_REPOSITORY"

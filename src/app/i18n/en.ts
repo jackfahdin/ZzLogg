@@ -2498,6 +2498,38 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>A new version is available. Download it from GitHub.</source>
+        <translation>A new version is available. Download it from GitHub.</translation>
+    </message>
+    <message>
+        <source>Online updates are not configured for this build. Download releases from GitHub.</source>
+        <translation>Online updates are not configured for this build. Download releases from GitHub.</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation. Download a compatible package from GitHub.</source>
+        <translation>Automatic installation is unavailable for this installation. Download a compatible package from GitHub.</translation>
+    </message>
+    <message>
+        <source>The update is verified. Choose Quit and install update to continue.</source>
+        <translation>The update is verified. Choose Quit and install update to continue.</translation>
+    </message>
+    <message>
+        <source>Download and verify the update before installing it.</source>
+        <translation>Download and verify the update before installing it.</translation>
+    </message>
+    <message>
+        <source>Update installation is not enabled for this build. Download releases from GitHub.</source>
+        <translation>Update installation is not enabled for this build. Download releases from GitHub.</translation>
+    </message>
+    <message>
+        <source>Open GitHub downloads</source>
+        <translation>Open GitHub downloads</translation>
+    </message>
+    <message>
+        <source>Download verified.</source>
+        <translation>Download verified.</translation>
+    </message>
+    <message>
         <source>Download update</source>
         <translation>Download update</translation>
     </message>
@@ -2596,8 +2628,8 @@ Channel: %2</translation>
         <translation>A new version is available.</translation>
     </message>
     <message>
-        <source>Verified release information (installation identity unavailable).</source>
-        <translation>Verified release information (installation identity unavailable).</translation>
+        <source>Verified release information. See GitHub for available builds.</source>
+        <translation>Verified release information. See GitHub for available builds.</translation>
     </message>
     <message>
         <source>This release is not compatible with this installation.</source>

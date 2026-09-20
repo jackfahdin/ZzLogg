@@ -1,6 +1,7 @@
 #pragma once
 #include <QDialog>
 #include <QDateTime>
+#include <QUrl>
 #include "zzlogg/updateqt/updateservice.h"
 #include "zzlogg/updateqt/updatedownloadservice.h"
 class QLabel;
@@ -34,6 +35,7 @@ Q_SIGNALS:
     void installRequested();
     void installCancelRequested();
     void closing();
+    void releasesPageRequested(const QUrl& url);
 protected:
     void changeEvent(QEvent*) override;
     void showEvent(QShowEvent*) override;
@@ -51,5 +53,5 @@ private:
     QLabel *identity_, *status_, *details_, *hint_, *downloadStatus_, *handoffStatus_;
     QProgressBar* progress_;
     QPlainTextEdit* notes_;
-    QPushButton *check_, *cancel_, *later_, *skip_, *close_, *download_, *install_;
+    QPushButton *check_, *cancel_, *later_, *skip_, *close_, *download_, *install_, *releases_;
 };

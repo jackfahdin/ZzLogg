@@ -8,4 +8,11 @@ runs:
       shell: sh
       run: |
         cd $KLOGG_BUILD_ROOT
-        ctest --verbose
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          ctest --verbose -E '^klogg_itests$'
+          # CTest has no REPEAT_UNTIL_PASS test property. Bound retries of
+          # this known intermittent parallel-search integration test only.
+          ctest --verbose -R '^klogg_itests$' --repeat until-pass:3
+        else
+          ctest --verbose
+        fi
