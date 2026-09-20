@@ -92,4 +92,4 @@ jobs:
           RELEASE_MODE: ${{ needs.prepare.outputs.mode }}
         run: >-
           python scripts/ci/publish_release.py --repository "$GITHUB_REPOSITORY"
-          --directory release-assets --mode "$RELEASE_MODE"
+          --directory release-assets --mode "$RELEASE_MODE" --changelog CHANGELOG.md

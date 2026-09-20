@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts/ci'))
 from release_assets import assemble, project_version, validate_tag
@@ -86,6 +87,12 @@ class ReleaseTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(value)
         self.output = self.root / 'release'
+        self.changelog = self.root / 'CHANGELOG.md'
+        self.changelog.write_text(f'## [Unreleased]\n- Future improvement\n\n## [{VERSION}]\n- New feature\n',
+                                  encoding='utf-8')
+        fixture = patch('publish_release.DEFAULT_CHANGELOG', self.changelog)
+        fixture.start()
+        self.addCleanup(fixture.stop)
 
     def bundle(self, nightly=False):
         return assemble(self.artifacts, self.output, VERSION,
@@ -146,6 +153,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(github.release['draft'])
         self.assertFalse(github.release['prerelease'])
         self.assertEqual(github.release['make_latest'], 'legacy')
+        self.assertIn('New feature', github.release['body'])
+        self.assertNotIn('Future improvement', github.release['body'])
         methods = [event[0] for event in github.events]
         self.assertLess(methods.index('UPLOAD'), methods.index('PATCH'))
         self.assertFalse(any(method != 'GET' and path.startswith('git/') for method, path, _ in github.events))
@@ -155,6 +164,13 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             publish(github, self.output, self.bundle(), 'stable')
         self.assertFalse(any(e[0] == 'UPLOAD' for e in github.events))
+
+    def test_missing_changelog_fails_before_any_remote_operation(self):
+        self.changelog.write_text('# Empty changelog\n', encoding='utf-8')
+        github = FakeGitHub()
+        with self.assertRaises(ValueError):
+            publish(github, self.output, self.bundle(), 'stable')
+        self.assertEqual(github.events, [])
 
     def test_moved_stable_tag_rejected(self):
         with self.assertRaises(ValueError):
@@ -214,6 +230,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(len(github.assets), 8)
         self.assertEqual(github.sha, SHA)
         self.assertEqual(github.release['make_latest'], 'false')
+        self.assertIn('Future improvement', github.release['body'])
+        self.assertIn('New feature', github.release['body'])
         promote = next(i for i, e in enumerate(github.events) if e[0:2] == ('PATCH', 'releases/7'))
         prune = next(i for i, e in enumerate(github.events) if e[0] == 'DELETE')
         self.assertLess(promote, prune)

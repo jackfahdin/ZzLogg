@@ -505,7 +505,8 @@ target_include_directories(zzlogg_restart_contract_test PRIVATE
 set_target_properties(zzlogg_restart_contract_test PROPERTIES AUTOMOC ON)
 add_dependencies(zzlogg_restart_contract_test zzlogg_runtime_contract_moc)
 add_executable(zzlogg_update_integration_test
-  ../updateqt/updatecheckintegrationsmoke.cpp ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES}
+  ../updateqt/updatecheckintegrationsmoke.cpp ../updateqt/unconfiguredfeed.cpp
+  ${ZZLOGG_RUNTIME_CONTRACT_MOC_SOURCES}
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.h"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.h"
@@ -517,7 +518,7 @@ target_include_directories(zzlogg_update_integration_test PRIVATE
 set_target_properties(zzlogg_update_integration_test PROPERTIES AUTOMOC ON)
 add_dependencies(zzlogg_update_integration_test zzlogg_runtime_contract_moc)
 add_test(NAME zzlogg_update.integration COMMAND zzlogg_update_integration_test -platform offscreen
-  -o "${CMAKE_CURRENT_BINARY_DIR}/update-integration-$<CONFIG>.txt,txt")
+  -o "${CMAKE_CURRENT_BINARY_DIR}/update-integration-$<CONFIG>.txt,txt" -o "-,txt")
 set_property(TEST zzlogg_update.integration PROPERTY ENVIRONMENT
   "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
 if(WIN32)
