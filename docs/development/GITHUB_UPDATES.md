@@ -57,7 +57,7 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 
 签名与发布测试使用临时测试密钥及模拟 GitHub，不上传生产私钥、不写远端。CI 已在运行这些 Python 测试前安装固定版本的签名依赖。
 
-本次 Linux / Qt 6.11.2 本地验收：`ci_build` 成功，82 项 CTest、53 项 Python CI 测试通过；另以临时测试密钥运行实际 Python 签名器，产物交由生产 C++ `verifyManifest()` 验签通过。生产私钥与仓库公钥匹配、仓库外目录 0700/文件 0600 权限已检查。未执行线上工作流或 Windows 自动安装实机测试。
+本次 Linux / Qt 6.11.2 本地验收：`ci_build` 成功，82 项 CTest、59 项 Python CI 测试通过；另以临时测试密钥运行实际 Python 签名器，产物交由生产 C++ `verifyManifest()` 验签通过。生产私钥与仓库公钥匹配、仓库外目录 0700/文件 0600 权限已检查。未执行线上工作流或 Windows 自动安装实机测试。
 
 ## 精简后的工作流
 
@@ -69,4 +69,10 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 | CodeQL | 每周与手动安全扫描 |
 | Update Smoke | 安装器相关文件变化或手动运行，保留专项 Windows 安装验收 |
 
-旧 Test env 调试工作流已删除。迁移期间清单工作流仍监听尚未结束的 Release / Continuous Build。PR 新提交会取消同一 PR 过时的构建，发布流程不会被自动取消。普通 master 提交需等定时发布、打 tag 或手动 CI 才会获得全平台构建结果。
+旧 Test env 调试工作流已删除。更新清单工作流监听统一的 Publish。PR 新提交会取消同一 PR 过时的构建，发布流程不会被自动取消。普通 master 提交需等定时发布、打 tag 或手动 CI 才会获得全平台构建结果。
+
+## 更新日志维护
+
+`CHANGELOG.md` 是版本变化的统一来源，从 26.09.01 重新开始。使用 `## [26.09.01] - 2026-09-20` 格式；下次正式发布前添加新版本条目，开发中的变化放在 `## [Unreleased]` 下。正式发布只读取对应版本，预览发布合并 Unreleased 与当前版本；prepare 阶段会拒绝缺少说明的发布。发布器从构建所用的同一个提交读取文件，清单签名器再把 GitHub Release 正文转换成纯文本供应用显示。
+
+开启生产更新源后，菜单集成测试使用仅链接进测试程序的离线配置 fixture，避免依赖 GitHub 网络。应用和生产配置测试仍链接真实配置；已在 `ZZLOGG_ENABLE_GITHUB_FEED=ON` 下完成完整构建和 82 项 CTest。

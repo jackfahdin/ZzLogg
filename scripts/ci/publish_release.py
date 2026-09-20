@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from release_notes import release_changes
+
+DEFAULT_CHANGELOG = Path(__file__).resolve().parents[2] / 'CHANGELOG.md'
 
 
 class GitHub:
@@ -105,9 +108,10 @@ def file_digest(path):
         return 'sha256:' + hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def publish(github, directory, info, mode):
+def publish(github, directory, info, mode, changelog=None):
     tag, sha = info['tag'], info['source_commit']
     files = verified_files(directory, info)
+    changes = release_changes(DEFAULT_CHANGELOG if changelog is None else changelog, info['version'], mode)
     nightly = mode == 'nightly'
     if nightly and tag != 'continuous-build':
         raise ValueError('Nightly publication must use continuous-build')
@@ -161,7 +165,8 @@ def publish(github, directory, info, mode):
         raise ValueError('Stable tag changed during upload')
     notes = (
         f'ZzLogg {info["version"]}' + (' — 每日测试版' if nightly else '') + '\n\n'
-        f'Source commit: {sha}\n\nBuild: {info["workflow_run"]}\n\n'
+        + changes + '\n\n---\n\n'
+        + f'Source commit: {sha}\n\nBuild: {info["workflow_run"]}\n\n'
         '包含 Windows x64 安装包和便携包、macOS x64/arm64 DMG、Linux x64 DEB/RPM。\n\n'
         'Linux 基线：Ubuntu 24.04。安装包签名状态以各平台验证结果为准。\n'
         '支持应用内检查更新及前往 GitHub 手动下载；不提供一键自动安装。\n\n'
@@ -183,11 +188,12 @@ def main():
     parser.add_argument('--repository', required=True)
     parser.add_argument('--directory', required=True)
     parser.add_argument('--mode', choices=['stable', 'nightly'], required=True)
+    parser.add_argument('--changelog', type=Path, default=DEFAULT_CHANGELOG)
     args = parser.parse_args()
     metadata = list(Path(args.directory).glob('release-info-*.json'))
     if len(metadata) != 1:
         raise ValueError('Exactly one release metadata file is required')
-    publish(GitHub(args.repository), args.directory, json.loads(metadata[0].read_text()), args.mode)
+    publish(GitHub(args.repository), args.directory, json.loads(metadata[0].read_text()), args.mode, args.changelog)
 
 
 if __name__ == '__main__':

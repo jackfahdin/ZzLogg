@@ -6,8 +6,7 @@ on:
     # Renew the 14-day manifest validity even when release bytes do not change.
     - cron: '30 17 * * *'
   workflow_run:
-    # Keep old names until the in-flight v26.09.01 publications finish.
-    workflows: ['Publish', 'Release', 'Continuous Build']
+    workflows: ['Publish']
     types: [completed]
 
 permissions:
@@ -24,8 +23,7 @@ jobs:
       ((github.event_name != 'workflow_run' && github.ref == 'refs/heads/master') ||
        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_repository.full_name == github.repository &&
-        (github.event.workflow_run.name == 'Publish' || github.event.workflow_run.name == 'Release' ||
-         (github.event.workflow_run.name == 'Continuous Build' && github.event.workflow_run.head_branch == 'master'))))
+        github.event.workflow_run.name == 'Publish'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

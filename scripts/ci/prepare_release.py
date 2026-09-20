@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from publish_release import GitHub, snapshot_unchanged
 from release_assets import project_version, validate_tag
+from release_notes import release_changes
 
 
 def main():
@@ -15,6 +16,8 @@ def main():
     parser.add_argument('--mode', choices=['stable', 'nightly'], required=True)
     args = parser.parse_args()
     version = project_version('.')
+    # Fail before the expensive build if this source has no publishable notes.
+    release_changes('CHANGELOG.md', version, args.mode)
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     tag = os.environ['GITHUB_REF_NAME'] if args.mode == 'stable' else 'continuous-build'
     changed = True
