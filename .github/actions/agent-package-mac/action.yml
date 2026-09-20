@@ -62,7 +62,22 @@ runs:
           # runners. Retry once only for CPack's observed detach failure.
           grep -Fq 'Error detaching temporary disk image.' cpack-dmg.log || exit 1
           grep -Fq '/usr/bin/hdiutil detach "/Volumes/ZzLogg"' cpack-dmg.log || exit 1
-          hdiutil detach -force /Volumes/ZzLogg
+          if ! hdiutil detach -force /Volumes/ZzLogg; then
+            # CPack's detach can finish before this cleanup runs. Only
+            # tolerate cleanup failure if hdiutil confirms it is gone.
+            hdiutil info -plist > cpack-dmg-images.plist
+            python3 - cpack-dmg-images.plist <<'PY'
+        import plistlib
+        import sys
+
+        with open(sys.argv[1], "rb") as stream:
+            images = plistlib.load(stream)["images"]
+        if any(entity.get("mount-point") == "/Volumes/ZzLogg"
+               for image in images for entity in image["system-entities"]):
+            sys.exit("Temporary DMG is still mounted; refusing to retry CPack.")
+        print("Temporary DMG is already detached; retrying CPack once.")
+        PY
+          fi
           cpack --verbose -G "DragNDrop"
         fi
 
