@@ -2382,8 +2382,8 @@
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="80"/>
-        <source>Report an issue on GitCode</source>
-        <translation>在 GitCode 上报告问题</translation>
+        <source>Report an issue on GitHub</source>
+        <translation>在 GitHub 上报告问题</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>

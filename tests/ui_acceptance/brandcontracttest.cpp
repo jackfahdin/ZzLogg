@@ -24,14 +24,14 @@ void BrandContractTest::exposesApprovedIdentity()
               QStringLiteral( "ZzLogg log viewer" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::Vendor ), QStringLiteral( "Jackfahdin" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::HomepageUrl ),
-              QStringLiteral( "https://gitcode.com/JackfahdinQt/ZzLogg" ) );
+              QStringLiteral( "https://github.com/jackfahdin/ZzLogg" ) );
     QCOMPARE( QString::fromLatin1( zzlogg::brand::ApplicationIdentifier ),
               QStringLiteral( "com.gitcode.jackfahdinqt.zzlogg" ) );
 
     const QUrl issueUrl = IssueReporter::issueUrl( IssueTemplate::Bug );
     QCOMPARE( issueUrl.scheme(), QStringLiteral( "https" ) );
-    QCOMPARE( issueUrl.host(), QStringLiteral( "gitcode.com" ) );
-    QCOMPARE( issueUrl.path(), QStringLiteral( "/JackfahdinQt/ZzLogg/issues/new" ) );
+    QCOMPARE( issueUrl.host(), QStringLiteral( "github.com" ) );
+    QCOMPARE( issueUrl.path(), QStringLiteral( "/jackfahdin/ZzLogg/issues/new" ) );
     const QString issueBody
         = QUrlQuery( issueUrl ).queryItemValue( QStringLiteral( "body" ) );
     QVERIFY( issueBody.contains( QStringLiteral( "> ZzLogg version " ) ) );

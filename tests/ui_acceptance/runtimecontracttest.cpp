@@ -10,6 +10,7 @@
 #include "windowchrome.h"
 #include "zzloggapplicationidentity.h"
 #include "zzlogg_brand.h"
+#include "klogg_version.h"
 #include "uiruntime.h"
 #include <algorithm>
 #include <QComboBox>
@@ -110,6 +111,7 @@ private Q_SLOTS:
     {
         auto& app = *qobject_cast<KloggApp*>( qApp );
         QCOMPARE( app.applicationName(), QStringLiteral( "ZzLogg" ) );
+        QCOMPARE( app.applicationVersion(), QString( kloggVersion() ) );
         QCOMPARE( app.applicationDisplayName(), QStringLiteral( "ZzLogg" ) );
         // Qt uses this namespace for the storage locator and default data root.
         // Keep it stable even when the displayed company name changes.

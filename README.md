@@ -2,7 +2,7 @@
 
 ZzLogg 是一款跨平台桌面日志查看工具，用于浏览、跟随、过滤和搜索大型或复杂日志文件。它直接从磁盘读取文件，将搜索结果与原始日志同时呈现，支持正则表达式、布尔搜索表达式和文件持续追加时的实时跟随。
 
-当前源码仓库：[gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg)。
+当前源码仓库：[github.com/jackfahdin/ZzLogg](https://github.com/jackfahdin/ZzLogg)。
 
 ![ZzLogg 主窗口](website/static/screenshots/mainwindow.png)
 
@@ -32,7 +32,7 @@ ZzLogg 是一款跨平台桌面日志查看工具，用于浏览、跟随、过�
 克隆仓库并初始化子模块：
 
 ```bash
-git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
+git clone --recursive https://github.com/jackfahdin/ZzLogg
 cd ZzLogg
 ```
 
@@ -64,11 +64,11 @@ ctest --preset ninja-release
 
 ZzPureTools 及其框架依赖采用静态链接，Qt 和编译器运行库采用动态链接。Windows 运行目录包含应用运行所需的动态依赖，许可证集中保存在 `licenses/` 下。
 
-目前仓库未提供正式的托管二进制发布渠道或包管理器软件源。请使用当前源码构建或安装；历史第三方安装说明可能不适用于本项目。
+预编译安装包可从 [GitHub Releases](https://github.com/jackfahdin/ZzLogg/releases) 下载：[最新稳定版](https://github.com/jackfahdin/ZzLogg/releases/latest)、[每日预览版](https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build)。也可以按照构建指南从源码构建。
 
 ## 参与贡献
 
-请基于当前 GitCode 仓库提交变更。平台打包修改应与 `cmake/ZzLoggBrand.cmake` 中的统一产品元数据保持一致，并在提交前运行相关 CMake/CTest 预设。
+请基于当前 GitHub 仓库提交变更。平台打包修改应与 `cmake/ZzLoggBrand.cmake` 中的统一产品元数据保持一致，并在提交前运行相关 CMake/CTest 预设。
 
 ## 来源与许可
 

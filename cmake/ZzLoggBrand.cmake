@@ -3,7 +3,7 @@ set(ZZLOGG_PRODUCT_DESCRIPTION "ZzLogg log viewer")
 set(ZZLOGG_VENDOR "Jackfahdin")
 # Stable Qt path namespace: a company display rename must not move user data.
 set(ZZLOGG_PATH_ORGANIZATION "JackfahdinQt")
-set(ZZLOGG_HOMEPAGE_URL "https://gitcode.com/JackfahdinQt/ZzLogg")
+set(ZZLOGG_HOMEPAGE_URL "https://github.com/jackfahdin/ZzLogg")
 set(ZZLOGG_IDENTIFIER "com.gitcode.jackfahdinqt.zzlogg")
 set(ZZLOGG_SETTINGS_ORGANIZATION "ZzLogg")
 set(ZZLOGG_SETTINGS_APPLICATION "ZzLogg")
