@@ -280,6 +280,24 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(set(self.stored), {'preview.json'})
 
 
+    def test_fixed_preview_filename_is_accepted(self):
+        self.label = 'Continuous-Build'
+        self.info.update(artifact_label=self.label, tag='continuous-build')
+        self.info['assets'][0]['name'] = 'ZzLogg-Continuous-Build-windows-x64-setup.exe'
+        self.release.update(tag_name='continuous-build', prerelease=True)
+        self.publish('preview')
+        self.assertEqual(set(self.stored), {'preview.json'})
+
+    def test_preview_label_lookalikes_never_publish_feed(self):
+        for label in ['continuous-build', 'Continuous-build', 'Continuous-Build-extra']:
+            self.label = label
+            self.info.update(artifact_label=label, tag='continuous-build')
+            self.info['assets'][0]['name'] = f'ZzLogg-{label}-windows-x64-setup.exe'
+            self.release.update(tag_name='continuous-build', prerelease=True)
+            with self.subTest(label=label), self.assertRaises(ValueError):
+                self.publish('preview')
+            self.assertEqual(self.updates, [])
+
     def test_all_continues_preview_after_stable_failure_and_returns_failure(self):
         self.label = 'continuous-20260920-123-1-aaaaaaaaaaaa'
         self.info.update(artifact_label=self.label, tag='continuous-build')

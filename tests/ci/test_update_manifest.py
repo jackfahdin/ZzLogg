@@ -97,6 +97,33 @@ class UpdateManifestTests(unittest.TestCase):
         self.assertIn(public, result.stdout)
         self.assertNotIn(self.pem.decode().splitlines()[1], result.stdout + result.stderr)
 
+    def test_fixed_preview_name_is_signed_and_retains_source_identity(self):
+        label = 'Continuous-Build'
+        self.info.update(tag='continuous-build', artifact_label=label)
+        name = f'ZzLogg-{label}-windows-x64-setup.exe'
+        self.package.rename(self.release / name)
+        self.info['assets'][0]['name'] = name
+        self.info_path = self.release / f'release-info-{label}.json'
+        result = self.run_signer(changes={'--channel': 'preview'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        envelope = json.loads((self.output / 'update-preview.json').read_text())
+        raw = base64.b64decode(envelope['payload'])
+        self.key.public_key().verify(base64.b64decode(envelope['signature']),
+                                    b'ZzLogg update manifest v1\nrelease-2026\n' + raw)
+        self.assertEqual(json.loads(raw)['artifacts'][0]['url'],
+                         f'https://github.com/example/ZzLogg/releases/download/continuous-build/{name}')
+
+    def test_preview_label_lookalikes_are_rejected(self):
+        for label in ['continuous-build', 'Continuous-build', 'Continuous-Build-extra']:
+            self.info.update(tag='continuous-build', artifact_label=label)
+            name = f'ZzLogg-{label}-windows-x64-setup.exe'
+            data = b'preview installer'
+            (self.release / name).write_bytes(data)
+            self.info['assets'][0] = self.asset(name, data)
+            self.info_path = self.release / f'release-info-{label}.json'
+            with self.subTest(label=label):
+                self.assert_rejected(self.run_signer(changes={'--channel': 'preview'}))
+
     def test_environment_key_and_preview_have_separate_output(self):
         stable = self.run_signer()
         self.assertEqual(stable.returncode, 0, stable.stderr)

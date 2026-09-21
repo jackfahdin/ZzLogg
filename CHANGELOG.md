@@ -22,6 +22,7 @@
 
 ### 构建与发布
 
+- 每日预览包统一使用 `ZzLogg-Continuous-Build-*` 固定文件名；发布标题简化为版本标签或 `Continuous Build`，同步适配签名更新清单和同名文件替换。
 - 缓存、构建产物及 macOS 证书导入 Actions 升级为原生 Node 24 版本；Windows 编译环境改用 Visual Studio 自带的开发者 PowerShell。
 - 每日预览版运行标题明确显示 Continuous Build；macOS 打包失败时上传诊断日志，便于排查。
 - 更新清单分支改为独立历史的纯数据分支，仅保存已发布渠道的签名清单，移除无关源码。

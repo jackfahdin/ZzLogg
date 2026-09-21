@@ -10,6 +10,15 @@ import tempfile
 import zipfile
 
 
+PREVIEW_LABEL = 'Continuous-Build'
+
+
+def is_preview_label(label):
+    # Accept historical attachments until the next preview replaces them.
+    return isinstance(label, str) and (label == PREVIEW_LABEL or bool(
+        re.fullmatch(r'continuous-[0-9]{8}-[0-9]+-[0-9]+-[0-9a-f]{12}', label)))
+
+
 def project_version(source):
     with tempfile.TemporaryDirectory() as temporary:
         env_file = Path(temporary) / 'version.env'

@@ -6,13 +6,13 @@
 
 | 项目 | 正式版 | 每日最新版 |
 | --- | --- | --- |
-| 工作流 | `Publish`（`.github/workflows/publish.yml`），运行标题 `Release <tag>` | 同一 `Publish`，运行标题 `Continuous Build (每日预览版)` |
+| 工作流 | `Publish`（`.github/workflows/publish.yml`），运行标题 `<tag>` | 同一 `Publish`，运行标题 `Continuous Build` |
 | 触发 | 推送 `vYY.MM.PP` tag | 北京时间每天 00:00，或手动运行 |
 | 示例 | `v26.09.00` | `continuous-build` |
 | 源码 | tag 对应的确切 commit | 调度/手动运行对应的 master commit |
 | 是否每次构建 | 是，tag 必须匹配源码版本 | 定时运行无新提交则跳过；手动运行强制重建 |
 | GitHub 类型 | 普通 Release | Prerelease，不成为正式版 Latest |
-| 更新策略 | 先草稿、上传校验后公开；已公开版本禁止覆盖 | 新一批文件上传校验后再切换 tag/说明，最后清理旧文件 |
+| 更新策略 | 先草稿、上传校验后公开；已公开版本禁止覆盖 | 替换时临时转草稿，同名文件上传校验、旧文件清理后切换 tag 并公开 |
 
 定时表达式为 `0 16 * * *`，使用 UTC，对应北京时间次日 00:00。
 这里的 0 点指**请求调度的时间**；GitHub 的 schedule 不保证准点，繁忙时可能延迟甚至丢弃任务，四个平台构建也需要时间，不能承诺 0 点就能下载。公开仓库长期无活动时 GitHub 也可能禁用 schedule，需要到 Actions 页面重新启用。
@@ -59,11 +59,13 @@ flowchart LR
 
 GitHub 不提供“同时替换所有资产、tag、Release 说明”的原子接口。参考流程先删除全部旧文件再上传，网络失败时可能留下空下载页；它还允许取消正在发布的任务。
 
-本稿使用每次运行唯一的每日文件名：`continuous-日期-run_id-run_attempt-短SHA`。先上传、校验新文件，再移动 `continuous-build` tag、更新说明，最后删除旧资产。发布流程不主动取消进行中的运行；正式版按 tag 串行，每日版整个流程串行。
+每日版使用固定名称 `ZzLogg-Continuous-Build-<平台>-<架构>.<扩展名>`，不再把日期、运行编号和短 SHA 放进附件名。Release 标题固定为 `Continuous Build`，正式版标题仅为版本 tag（如 `v26.09.02`）。
 
-仍存在短暂的新旧文件共存窗口；若在移动 tag 后更新说明前中断，tag 和说明可能短暂不同步。无变化检查同时比较公开 Release 说明里的成功 SHA 和 tag SHA，因此这种中断会在下次运行重新构建。旧下载文件不会因提前清空而全部消失。
+因为 GitHub 不允许同一 Release 同时存在两个同名附件，发布阶段先将每日版临时设为草稿，再替换内容变化的同名文件；大小和 SHA-256 一致的附件直接复用。六个应用包及两份元数据全部通过远端大小和 SHA-256 校验后，删除旧长文件名附件，再移动 `continuous-build` tag 并公开。上传、校验或清理失败会保留草稿和旧 tag，重跑可继续；若最后公开请求失败，tag 可能已移动，草稿可重跑恢复，不能把多个 API 操作视为原子事务。
 
-“只重跑失败任务”可能复用原来的每日文件名。本稿对已有同名文件核对大小和 SHA256，一致时直接复用，绝不覆盖已公开的快照资产。Windows ZIP 使用固定时间戳，避免重新下载 artifact 后仅因文件时间变化而产生不同摘要。若遇到同名内容冲突或远端缺少可验证摘要，停止并提示重跑全部任务生成新标签。
+构建阶段旧每日版继续可用；实际替换阶段下载页及固定直链会短暂不可用，失败后需重跑恢复。发布 job 与 Signed Update Feed 共用并发组，避免签名时包被替换；全平台编译阶段不占该锁。GitHub 同组最多保留一个等待任务，较新的等待任务可能替换旧等待任务，需要重跑被取消的发布。旧客户端缓存的预览清单可能暂时对应旧摘要，仍须通过原有摘要校验，不能因固定 URL 而放松校验。
+
+Windows ZIP 使用固定时间戳，使相同构建产物的失败重跑产生相同摘要。源码 SHA、内部数字版本和 workflow 链接仍保存在 JSON 元数据及 Release 说明中，保留追溯能力。
 
 正式版在草稿中完成上传后才公开；同一 tag 已公开时拒绝覆盖，避免下载内容悄悄改变。草稿可在失败后重试；脚本会通过带认证的 Release 列表查找草稿，因为 GitHub 的按 tag 查询接口仅用于已发布版本。
 
@@ -77,7 +79,7 @@ Linux artifact 改为只上传顶层 `.deb` / `.rpm`，排除 CPack 的内部暂
 
 项目 CMake、Windows 安装器和应用内更新采用已有的数字版本约定。正式 tag 必须严格匹配源码规范化显示版本：`CMakeLists.txt` 的 `26.9.0` 对应 `v26.09.00`。不接受 `v26.9.0`、`v26.09.00-rc1` 或与源码不一致的 tag。
 
-本稿每日版**不自动修改源码版本，也不把 nightly 字符串塞入安装器**。应用内显示仍是例如 `26.09.00`，发布日期、构建编号、SHA 写在下载文件名、Release 说明和 JSON 元数据中。
+本稿每日版**不自动修改源码版本，也不把 nightly 字符串塞入安装器**。应用内显示仍是例如 `26.09.00`，源码 SHA 和构建链接写在 Release 说明和 JSON 元数据中。
 
 这意味着不同日期快照可能具有同一个内部包版本。Linux 包管理器未必把新快照判定为升级，需要显式重装；Windows/macOS 界面也不能只靠版本号区分两个快照。如果后续希望应用内显示每日 build、包管理器能比较每日版本，应单独设计安装版本与显示版本的规则，不能仅改外层文件名。
 
@@ -104,17 +106,16 @@ SHA256 校验文件提供下载完整性检查，不替代平台代码签名或�
 | macOS Intel | `ZzLogg-26.09.00-macos-x64.dmg` |
 | macOS Apple Silicon | `ZzLogg-26.09.00-macos-arm64.dmg` |
 
-同时生成 `SHA256SUMS-标签.txt` 和 `release-info-标签.json`，记录实际文件摘要、大小、源码 SHA、应用版本和构建链接。每日版用唯一每日标签代替上述文件名中的版本字段。
+同时生成 `SHA256SUMS-标签.txt` 和 `release-info-标签.json`，记录实际文件摘要、大小、源码 SHA、应用版本和构建链接。每日版用 `Continuous-Build` 代替版本字段，例如 `ZzLogg-Continuous-Build-windows-x64-setup.exe`。两份元数据分别为 `SHA256SUMS-Continuous-Build.txt` 和 `release-info-Continuous-Build.json`。
 
 Release 只公开安装/便携包及上述元数据，不直接上传 `.app` / `.dSym` 目录。原 Actions artifact 中保留的调试内容不作为正式下载文件。
 
-每日版入口固定为 `https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build`，具体资产名会随构建变化；本稿未提供固定名称的直链文件别名。
+每日版入口固定为 `https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build`，Windows 安装包直链固定为 `https://github.com/jackfahdin/ZzLogg/releases/download/continuous-build/ZzLogg-Continuous-Build-windows-x64-setup.exe`。
 
 ## 本地文件分工
 
 - `.github/workflows/ci-build.yml`：增加 `workflow_call`，所有平台 checkout 同一个传入 SHA；普通 push/PR 构建保留。
-- `.github/workflows/release.yml`：tag 预检、复用构建、正式版发布。
-- `.github/workflows/continuous-build.yml`：定时/手动入口、变化检查、复用构建、每日版发布。
+- `.github/workflows/publish.yml`：统一 tag、定时和手动入口，预检并复用构建，发布正式版或每日版。
 - `.github/actions/agent-package-mac/action.yml`：无签名包也按架构命名。
 - `scripts/ci/prepare_release.py`：一次性解析版本、源码和每日标签。
 - `scripts/ci/release_assets.py`：校验平台包、压缩 Windows 便携目录、生成元数据及摘要。
@@ -133,7 +134,7 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir out/build/ci-qt6112 --output-on-failu
 
 工作流还经过 actionlint 语法检查；旧 composite action 的空 description 提示和既有 shellcheck 提示不计入本次语法验证。发布脚本测试使用临时文件和内存中的 GitHub API 替身，不会创建远端 Release。
 
-本地验证结果：20 项发布脚本测试、11 项现有版本/CI/Linux 测试通过，三个相关工作流通过上述 actionlint 语法检查。
+发布脚本测试覆盖固定命名、完整上传校验、失败重试和已发布旧清单的兼容；Windows 安装器验证边界见下节。
 
 本地验证无法证明 GitHub 实际发布权限、远端上传或所有平台的新 workflow_call 都成功；这些要在审阅后推送并运行一次才能确认。没有为了验证而创建测试 tag、触发远端任务或上传任何资产。
 

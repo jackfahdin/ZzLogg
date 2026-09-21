@@ -130,32 +130,36 @@ def publish(github, directory, info, mode, changelog=None):
     if release is None:
         release = github.api('releases', method='POST', data={
             'tag_name': tag, 'target_commitish': sha, 'draft': True,
-            'prerelease': nightly, 'name': f'ZzLogg {tag}', 'make_latest': 'false'})
-    # A failed-job rerun reuses prepare's old label, even when the run attempt
-    # increments. Never clobber an already public snapshot file on that retry.
+            'prerelease': nightly, 'name': 'Continuous Build' if nightly else tag, 'make_latest': 'false'})
+    # Rolling previews use fixed public filenames. Hide the release before
+    # replacing any bytes so a partial upload is never a public mixed bundle.
+    # A failed retry resumes this same draft and reuses verified attachments.
     upload = files
     if nightly:
+        if not release['draft']:
+            github.api(f'releases/{release["id"]}', method='PATCH', data={'draft': True})
         existing = {asset['name']: asset for asset in list_assets(github, release['id'])}
-        upload = []
-        for path in files:
-            asset = existing.get(path.name)
-            if asset is None:
-                upload.append(path)
-            elif asset['size'] != path.stat().st_size or asset.get('digest') != file_digest(path):
-                raise ValueError(f'Conflicting snapshot asset: {path.name}; rerun all jobs for a new label')
-    # Old snapshot files remain available if this upload or verification fails.
+        upload = [path for path in files
+                  if path.name not in existing
+                  or existing[path.name]['size'] != path.stat().st_size
+                  or existing[path.name].get('digest') != file_digest(path)]
     if upload:
-        github.upload(tag, upload, clobber=not nightly)
+        github.upload(tag, upload, clobber=True)
     assets = list_assets(github, release['id'])
     remote = {asset['name']: asset for asset in assets}
     for path in files:
         asset = remote.get(path.name)
         if asset is None or asset['size'] != path.stat().st_size:
             raise ValueError(f'Uploaded asset is missing or incomplete: {path.name}')
-        if asset.get('digest'):
-            if asset['digest'] != file_digest(path):
-                raise ValueError(f'Uploaded asset digest mismatch: {path.name}')
+        if asset.get('digest') != file_digest(path):
+            raise ValueError(f'Uploaded asset digest missing or mismatched: {path.name}')
     if nightly:
+        # Remove historical long names/metadata while still hidden. Failures
+        # before promotion leave the old tag and a resumable draft.
+        keep = {path.name for path in files}
+        for asset in assets:
+            if asset['name'] not in keep:
+                github.api(f'releases/assets/{asset["id"]}', method='DELETE')
         # Only the rolling tag may move. Version tags are never created/moved here.
         if tag_commit(github, tag) is None:
             github.api('git/refs', method='POST', data={'ref': f'refs/tags/{tag}', 'sha': sha})
@@ -174,13 +178,8 @@ def publish(github, directory, info, mode, changelog=None):
            '应用内版本号沿用源码版本；同版本 Linux 快照可能需要显式重新安装。\n\n' if nightly else '')
         + f'<!-- source-commit: {sha} -->\n')
     github.api(f'releases/{release["id"]}', method='PATCH', data={
-        'draft': False, 'prerelease': nightly, 'name': 'ZzLogg Continuous Build' if nightly else f'ZzLogg {tag}',
-        'body': notes, 'make_latest': 'false' if nightly else 'legacy'})
-    if nightly:
-        keep = {path.name for path in files}
-        for asset in assets:
-            if asset['name'] not in keep:
-                github.api(f'releases/assets/{asset["id"]}', method='DELETE')
+        'draft': False, 'prerelease': nightly, 'name': 'Continuous Build' if nightly else tag,
+        'body': notes, 'target_commitish': sha, 'make_latest': 'false' if nightly else 'legacy'})
 
 
 def main():

@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 import stat
 
+from release_assets import is_preview_label
+
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -84,8 +86,7 @@ def installer_from_release(path, channel):
         require(tag == f'v{version}' and label == version, 'Stable tag and label must match version')
     else:
         require(tag == 'continuous-build', 'Preview tag must be continuous-build')
-        require(re.fullmatch(r'continuous-[0-9]{8}-[0-9]+-[0-9]+-[0-9a-f]{12}', label),
-                'Preview label must identify the snapshot build')
+        require(is_preview_label(label), 'Invalid preview artifact label')
     assets = info['assets']
     require(isinstance(assets, list) and 1 <= len(assets) <= 64, 'Invalid release assets')
     expected_name = f'ZzLogg-{label}-windows-x64-setup.exe'
