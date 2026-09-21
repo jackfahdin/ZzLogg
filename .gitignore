@@ -74,3 +74,6 @@ website/resources/
 # Python release tooling
 __pycache__/
 *.py[cod]
+
+# SDD 隔离工作树
+.worktrees/
