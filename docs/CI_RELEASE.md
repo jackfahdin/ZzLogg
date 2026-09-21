@@ -6,7 +6,7 @@
 
 | 项目 | 正式版 | 每日最新版 |
 | --- | --- | --- |
-| 工作流 | `.github/workflows/release.yml` | `.github/workflows/continuous-build.yml` |
+| 工作流 | `Publish`（`.github/workflows/publish.yml`），运行标题 `Release <tag>` | 同一 `Publish`，运行标题 `Continuous Build (每日预览版)` |
 | 触发 | 推送 `vYY.MM.PP` tag | 北京时间每天 00:00，或手动运行 |
 | 示例 | `v26.09.00` | `continuous-build` |
 | 源码 | tag 对应的确切 commit | 调度/手动运行对应的 master commit |
@@ -15,7 +15,11 @@
 | 更新策略 | 先草稿、上传校验后公开；已公开版本禁止覆盖 | 新一批文件上传校验后再切换 tag/说明，最后清理旧文件 |
 
 定时表达式为 `0 16 * * *`，使用 UTC，对应北京时间次日 00:00。
-这里的 0 点指**触发构建**；GitHub 的排队、调度及四个平台构建会造成延迟，不能承诺 0 点就能下载。公开仓库长期无活动时 GitHub 也可能禁用 schedule，需要到 Actions 页面重新启用。
+这里的 0 点指**请求调度的时间**；GitHub 的 schedule 不保证准点，繁忙时可能延迟甚至丢弃任务，四个平台构建也需要时间，不能承诺 0 点就能下载。公开仓库长期无活动时 GitHub 也可能禁用 schedule，需要到 Actions 页面重新启用。
+
+排查每日版时，在 Actions 的 **Publish** 中查看 `schedule` 事件；`continuous-build` 是发布标签，不再是独立工作流。2026-09-21 的零点任务实际于北京时间 02:39:47 启动，随后 macOS Intel 创建 DMG 失败，最终发布被跳过。需要补发时可在 master 手动运行 Publish，无需创建正式 tag。
+
+`update-feed` 是自动维护的更新清单数据分支，应用从其 `stable.json` / `preview.json` 检查更新。它不承担源码集成或额外的全平台构建；删除分支会使更新源不可用。详情见 [GitHub 更新源](development/GITHUB_UPDATES.md)。
 
 ```mermaid
 flowchart LR
@@ -133,7 +137,13 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir out/build/ci-qt6112 --output-on-failu
 
 本地验证无法证明 GitHub 实际发布权限、远端上传或所有平台的新 workflow_call 都成功；这些要在审阅后推送并运行一次才能确认。没有为了验证而创建测试 tag、触发远端任务或上传任何资产。
 
-发布操作顺序：提交推送工作流 → 在 master 手动运行 Continuous Build → 检查六个文件、元数据和预发布属性 → 再为同版本源码创建正式 tag。常规 master CI 仍只上传 Actions artifacts，不会每次 push 都更新每日版。
+发布操作顺序：提交推送工作流 → 在 master 手动运行 Publish（每日预览版）→ 检查六个文件、元数据和预发布属性 → 再为同版本源码创建正式 tag。master push 不再自动执行全平台 CI；PR、手动 CI 和 Publish 复用同一构建流程。
+
+### macOS DMG 稳定性
+
+CI 通过 `scripts/ci/package_macos_dmg.py` 调用 CPack。关闭磁盘卷图标和 Finder AppleScript 布局，避免制作过程中额外挂载镜像；应用图标和 Applications 链接保留，DMG 使用系统默认窗口布局。创建镜像明确返回 `Resource busy` 时最多尝试 3 次，等待 5 / 10 秒，每次使用独立输出目录。其他错误立即失败，成功后须通过 `hdiutil verify` 才移动到发布目录。
+
+脚本不按 `/Volumes/ZzLogg` 名称强制卸载磁盘，不杀 Finder/Spotlight，不删除可能占用中的镜像。失败时上传 `dmg-diagnostics-<平台>`，保存每次 CPack 输出和磁盘镜像状态。重试不能保证消除 runner 的所有资源竞争，实际稳定性以 macOS CI 为准。
 
 首次正式 tag 的操作示例：
 

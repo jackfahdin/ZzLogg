@@ -18,7 +18,7 @@ runs:
     - name: Mac prepare codesign
       id: prepare-codesign
       if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}
-      uses: apple-actions/import-codesign-certs@v1
+      uses: apple-actions/import-codesign-certs@v7
       with: 
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
@@ -53,33 +53,7 @@ runs:
     - name: Mac pack dmg
       shell: sh
       run: |
-        cd "$KLOGG_BUILD_ROOT"
-        if cpack --verbose -G "DragNDrop" > cpack-dmg.log 2>&1; then
-          cat cpack-dmg.log
-        else
-          cat cpack-dmg.log
-          # Finder/Spotlight can keep the temporary image busy on hosted
-          # runners. Retry once only for CPack's observed detach failure.
-          grep -Fq 'Error detaching temporary disk image.' cpack-dmg.log || exit 1
-          grep -Fq '/usr/bin/hdiutil detach "/Volumes/ZzLogg"' cpack-dmg.log || exit 1
-          if ! hdiutil detach -force /Volumes/ZzLogg; then
-            # CPack's detach can finish before this cleanup runs. Only
-            # tolerate cleanup failure if hdiutil confirms it is gone.
-            hdiutil info -plist > cpack-dmg-images.plist
-            python3 - cpack-dmg-images.plist <<'PY'
-        import plistlib
-        import sys
-
-        with open(sys.argv[1], "rb") as stream:
-            images = plistlib.load(stream)["images"]
-        if any(entity.get("mount-point") == "/Volumes/ZzLogg"
-               for image in images for entity in image["system-entities"]):
-            sys.exit("Temporary DMG is still mounted; refusing to retry CPack.")
-        print("Temporary DMG is already detached; retrying CPack once.")
-        PY
-          fi
-          cpack --verbose -G "DragNDrop"
-        fi
+        python3 scripts/ci/package_macos_dmg.py --build-root "$KLOGG_BUILD_ROOT" --version "$KLOGG_VERSION"
 
     # Both unsigned and signed builds must have architecture-specific names.
     - name: Name Mac DMG

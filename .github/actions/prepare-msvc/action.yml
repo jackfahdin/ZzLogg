@@ -1,0 +1,14 @@
+name: Prepare MSVC
+description: Load the installed Visual Studio developer shell without a Node action
+inputs:
+  arch:
+    description: Target architecture
+    default: x64
+runs:
+  using: composite
+  steps:
+    - name: Load Visual Studio environment
+      shell: pwsh
+      env:
+        ZZLOGG_MSVC_ARCH: ${{ inputs.arch }}
+      run: '& "$env:GITHUB_WORKSPACE/scripts/ci/prepare_msvc.ps1" -Arch $env:ZZLOGG_MSVC_ARCH'

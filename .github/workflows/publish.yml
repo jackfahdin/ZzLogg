@@ -1,10 +1,12 @@
 name: Publish
+run-name: ${{ github.event_name == 'push' && format('Release {0}', github.ref_name) || 'Continuous Build (每日预览版)' }}
 
 on:
   push:
     tags: ['v*']
   schedule:
-    # 00:00 Asia/Shanghai; skip unchanged snapshots.
+    # Request 00:00 Asia/Shanghai; GitHub may delay scheduled runs.
+    # Skip unchanged snapshots after a successful publication.
     - cron: '0 16 * * *'
   workflow_dispatch:
 
@@ -72,7 +74,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Assemble and validate all platform packages
