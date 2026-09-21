@@ -65,6 +65,7 @@
 #include "zzlogg/updateqt/updateservice.h"
 #include "zzlogg/updateqt/updatedownloadservice.h"
 #include "zzlogg/updateqt/updatecachepaths.h"
+#include "zzlogg/updateqt/currentinstallation.h"
 #include "zzlogg_brand.h"
 
 class KloggApp : public QApplication {
@@ -501,15 +502,17 @@ class KloggApp : public QApplication {
     void ensureUpdateService() {
         using namespace zzlogg::updateqt;
         if (updateService_ || !StorageContext::isInstalled()) return;
+        // 检查与下载必须针对同一个安装身份，只探测一次再分发给两个服务。
+        const auto installed=currentInstalledRelease();
         const auto root=StorageContext::current().runtimePaths().appConfigDirectory;
         const auto path=root.isEmpty() ? QString{} : QDir(root).filePath("updates/production/check-state-v1.json");
         updateService_=std::make_unique<UpdateService>(productionFeedConfiguration(),
-            std::make_shared<UpdateStateStore>(path),std::nullopt,
+            std::make_shared<UpdateStateStore>(path),installed,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
         updateService_->setDisplayVersion(zzlogg::update::parseVersion(QString(kloggVersion()).toStdString()));
         updateDownloadService_=std::make_unique<UpdateDownloadService>(productionFeedConfiguration(),
-            std::nullopt,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
+            installed,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateDownloadService_->setObjectName("applicationUpdateDownloadService");
         connect(updateDownloadService_.get(),&UpdateDownloadService::snapshotChanged,this,[this] {
             if(updateDialog_) { updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot()); pushUpdateExecutionCapability(); }
