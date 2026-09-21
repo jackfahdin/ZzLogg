@@ -31,6 +31,9 @@ function(run_release_case name expect_success)
     POINTER_SIZE)
   cmake_parse_arguments(PARSE_ARGV 2 CASE "${options}" "${one_value_args}" "")
 
+  # 消费者断言版本三段，补丁号必须跟着用例的显示版本走，否则派生用例自相矛盾。
+  string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.0*([0-9])" "\\1" case_patch "${CASE_VERSION}")
+
   set(binary_dir "${TEST_ROOT}/${name}")
   set(configure_command
     "${CMAKE_COMMAND}"
@@ -47,6 +50,7 @@ function(run_release_case name expect_success)
     "-DCMAKE_BUILD_TYPE:STRING=${TEST_BUILD_TYPE}"
     "-DTEST_EXPECT_AVAILABLE:BOOL=${CASE_EXPECT_AVAILABLE}"
     "-DTEST_EXPECT_SEQUENCE:STRING=${CASE_EXPECT_SEQUENCE}"
+    "-DTEST_EXPECT_PATCH:STRING=${case_patch}"
     "-DTEST_EXPECT_SCHEMA:STRING=${CASE_EXPECT_SCHEMA}"
     "-DTEST_EXPECT_CHANNEL:STRING=${CASE_EXPECT_CHANNEL}")
 
