@@ -2,7 +2,7 @@
 // Transaction engine process contract, single source for the production
 // engine entry (txengine_main.cpp) and every test harness that must agree
 // with it: the TxOutcome -> process exit code mapping, the usage/protocol
-// rejection codes, and the txid locator acceptance. The NSIS restricted
+// rejection codes, and the txid locator acceptance. The Inno Setup restricted
 // entries and the coordinator consume these codes; never duplicate the
 // mapping or the hex acceptance in a caller.
 #include "txengine_win.h"
@@ -12,10 +12,10 @@ namespace zzlogg::updater::detail {
 // 0: applied/recovered/nothing-to-recover; 2: argv contract rejection;
 // 41: bootstrap rejection (BootstrapRejected, bootstrap_win_p.h);
 // 42-46: per terminal outcome below; 47: protocol violation;
-// 48: NSIS restricted-entry runtime failure (never an engine exit code).
+// 48: Inno Setup restricted-entry runtime failure (never an engine exit code).
 inline constexpr int UsageRejected=2;
 inline constexpr int ProtocolViolation=47;
-// Set by the NSIS restricted entries (ZzLogg.nsi) before Abort when the
+// Set by the Inno Setup restricted entries (ZzLogg.iss) before process exit when the
 // failure is installer-side runtime work rather than a usage rejection or a
 // target-recheck rejection: busy transaction, protected-root/staging creation
 // failure, missing journal, recovery staging failure. The engine never exits

@@ -154,7 +154,16 @@ cmake --install out/build/ninja-release --prefix staging/ZzLogg
 
 Linux 安装规则会将 `ZzLogg.desktop`、16、32、48、64、128、256、512 像素的 PNG 图标，以及可缩放的 `ZzLogg.svg` 安装到标准位置。受支持的 Unix 配置会生成 CPack 配置，并使用统一的产品元数据。
 
-Windows NSIS 脚本为 `packaging/windows/ZzLogg.nsi`，用于打包 Qt 6 应用。制作安装包需要 NSIS，以及包含脚本所引用应用和运行文件的发布目录。
+Windows 安装脚本为 `packaging/windows/ZzLogg.iss`，使用 Inno Setup 7.1.0 内置的 Windows 11 风格向导，支持跟随系统明暗主题，以及英文、简体中文和繁体中文。CI 通过 `packaging/windows/Build-InnoInstaller.ps1` 下载官方 x64 编译器并校验固定 SHA-256，不依赖 runner 预装版本。
+
+在 Windows 上准备完整 `release/` 运行目录、`txpayload/ZzLoggUpdateTx.exe` 后执行：
+
+```powershell
+./packaging/windows/GenerateInstallerManifest.ps1 -StagingDirectory release
+./packaging/windows/Build-InnoInstaller.ps1 -Version 26.09.02 -Platform x64
+```
+
+产物仍为 `ZzLogg-26.09.02-x64-Qt6-setup.exe`。无人值守安装使用 `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`，自定义目录使用 `/DIR="C:\Apps\ZzLogg"`。安装器默认采用已登记的安装目录，可直接覆盖旧版 NSIS 安装；不会执行会清理用户配置的旧卸载器。卸载仅删除安装器所属文件，保留额外用户文件和 AppData 配置。跨安装器覆盖与受限升级入口需在 Windows 上执行验收。
 
 源码中维护 macOS 应用包、发行元数据和 DMG 布局；实际构建与检查必须在 macOS 主机上完成。
 

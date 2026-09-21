@@ -76,3 +76,7 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 `CHANGELOG.md` 是版本变化的统一来源，从 26.09.01 重新开始。使用 `## [26.09.01] - 2026-09-20` 格式；下次正式发布前添加新版本条目，开发中的变化放在 `## [Unreleased]` 下。正式发布只读取对应版本，预览发布合并 Unreleased 与当前版本；prepare 阶段会拒绝缺少说明的发布。发布器从构建所用的同一个提交读取文件，清单签名器再把 GitHub Release 正文转换成纯文本供应用显示。
 
 开启生产更新源后，菜单集成测试使用仅链接进测试程序的离线配置 fixture，避免依赖 GitHub 网络。应用和生产配置测试仍链接真实配置；已在 `ZZLOGG_ENABLE_GITHUB_FEED=ON` 下完成完整构建和 82 项 CTest。
+
+## Windows 安装器兼容
+
+从 v26.09.02 起，Windows 安装包由 Inno Setup 7.1.0 生成，安装包文件名及 HKLM64 下 `Uninstall\ZzLogg` 的 schema 2 身份保持兼容。更新清单中的 `format: nsis-exe` 是已发布客户端使用的历史协议枚举，继续保留，不能据此判断当前打包工具。受限升级/恢复仍使用原有定位名参数和签名校验；本次更换安装界面不开放一键安装。

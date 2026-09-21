@@ -1,5 +1,5 @@
 # 用例 07 space-preflight-multivolume（CI 可跑，runner 有 C:/D: 双卷）
-# PASS 判据：用 `/D=` 装到 D: 卷（普通安装不禁 /D=，仅受限入口禁）→ 制造暂存
+# PASS 判据：用 `/DIR=` 装到 D: 卷（普通安装不禁 /DIR=，仅受限入口禁）→ 制造暂存
 # （C: ProgramData）与目标（D:）跨卷场景，断言安装成功且预检日志无空间误报；
 # 单卷机器上 SKIP。
 # 说明：普通安装本身不跑引擎空间预检（预检属于升级事务，需协调者凭据，见用例 08），
@@ -27,10 +27,10 @@ function Invoke-Case_07_space_preflight_multivolume {
         $logStart = Get-Date
         $install = Invoke-ZzLoggInstall $Context -TargetDir $targetDir
         if ($install.Run.TimedOut) {
-            return (Fail-Case "跨卷安装超时（/D=$targetDir），进程被终止")
+            return (Fail-Case "跨卷安装超时（/DIR=$targetDir），进程被终止")
         }
         if ($install.Run.ExitCode -ne 0) {
-            return (Fail-Case "跨卷安装退出码 $($install.Run.ExitCode)，期望 0（/D=$targetDir）")
+            return (Fail-Case "跨卷安装退出码 $($install.Run.ExitCode)，期望 0（/DIR=$targetDir）")
         }
         foreach ($name in @('ZzLogg.exe', '.zzlogg-install-root', '.zzlogg-files.manifest')) {
             if (-not (Test-Path -LiteralPath (Join-Path $targetDir $name))) {
@@ -55,7 +55,7 @@ function Invoke-Case_07_space_preflight_multivolume {
             return (Fail-Case "预检日志出现空间误报: $($spaceAlarms -join '；')")
         }
 
-        return (Pass-Case "跨卷安装成功（暂存卷 $systemDrive ProgramData / 目标卷 $targetVolume，/D=$targetDir 退出 0，落地标记与清单齐全）；%ProgramData%\ZzLogg 无空间预检误报日志")
+        return (Pass-Case "跨卷安装成功（暂存卷 $systemDrive ProgramData / 目标卷 $targetVolume，/DIR=$targetDir 退出 0，落地标记与清单齐全）；%ProgramData%\ZzLogg 无空间预检误报日志")
     }
     finally {
         [void](Invoke-ZzLoggUninstall $Context)

@@ -7,8 +7,8 @@
 # FILE_WRITE_DATA|FILE_APPEND_DATA|FILE_WRITE_EA|FILE_WRITE_ATTRIBUTES|DELETE|
 # WRITE_DAC|WRITE_OWNER|GENERIC_WRITE|GENERIC_ALL，不含 SYNCHRONIZE/READ_CONTROL，
 # 判据实现见 Invoke-UpdateAcceptance.ps1 Test-ProtectedRootAcl）。
-# 受保护根由安装器受限升级入口在首次创建时加固（icacls /inheritance:r +
-# Administrators/SYSTEM 完全 + Authenticated Users 只读），故本用例以
+# 受保护根由安装器受限升级入口在首次创建时加固（创建时原子设置受保护 DACL：
+# Administrators/SYSTEM 完全控制 + Authenticated Users 只读），故本用例以
 # `/ZzLoggUpgrade=<定位名>` 触发根创建；引擎随后因无协调者凭据文件失败关闭，
 # 这是预期行为（本用例不断言该入口退出码，只断言根 ACL 形状）。
 function Invoke-Case_03_protected_root_acl {
@@ -31,7 +31,7 @@ function Invoke-Case_03_protected_root_acl {
         }
 
         $entry = Invoke-SetupProcess -Exe $Context.SetupExe `
-            -Arguments @('/S', "/ZzLoggUpgrade=$locator") -TimeoutSec 120
+            -Arguments @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/ZzLoggUpgrade=$locator") -TimeoutSec 120
 
         if (-not (Test-Path -LiteralPath $txRoot)) {
             return (Fail-Case "受限升级入口运行后受保护根仍不存在: $txRoot（入口 exit=$($entry.ExitCode) timeout=$($entry.TimedOut)）")

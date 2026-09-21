@@ -18,16 +18,16 @@ zzlogg_add_updater_handoff(zzlogg_update FALSE)
 add_executable(ZzLoggUpdate main.cpp)
 target_link_libraries(ZzLoggUpdate PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(ZzLoggUpdate TRUE)
-# Formal deployment of the standalone update helper: the full NSIS package
+# Formal deployment of the standalone update helper: the full Inno Setup package
 # consumes the staged runtime tree, and the staged install carries the helper
 # next to the application. Execution itself stays closed this phase.
 install(TARGETS ZzLoggUpdate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-# Payload-embedded transaction engine. Build-only this phase: the NSIS package
+# Payload-embedded transaction engine. Build-only this phase: the Inno Setup package
 # extracts it into the protected staging (task 4 wiring); it is never installed
 # next to the application and never joins the staged runtime tree.
 add_executable(ZzLoggUpdateTx txengine_main.cpp)
 target_link_libraries(ZzLoggUpdateTx PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(ZzLoggUpdateTx TRUE)
-# The NSIS staging step xcopies ZzLoggUpdateTx.exe from the build output, so
+# The Inno Setup staging step xcopies ZzLoggUpdateTx.exe from the build output, so
 # the CI build target must produce it (ci_build otherwise builds klogg only).
 add_dependencies(ci_build ZzLoggUpdateTx)

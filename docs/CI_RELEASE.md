@@ -155,3 +155,7 @@ git push origin v26.09.00
 两个发布 job 使用当前仓库 `GITHUB_TOKEN` 的 `contents: write`，构建/准备 job 保持只读。仓库 ruleset 如禁止移动 `continuous-build`，须为该专用滚动 tag 调整规则；正式版本 tag 不需要允许重写。
 
 本稿没有迁入参考仓库的 GitCode 镜像、网站发布或 Tauri 自动更新，也没有增加新的平台架构。
+
+## Windows 安装界面与编译器
+
+Windows 安装包使用 Inno Setup 7.1.0，由 `Build-InnoInstaller.ps1` 固定官方下载版本及 SHA-256。Windows 11 风格向导跟随系统明暗主题，支持简体中文、繁体中文和英文。完整运行目录和独立归档包仍共用同一份 staging；`.zzlogg-files.manifest` 继续使用原二进制格式。Windows 安装、覆盖、卸载及受限入口由 Update Smoke 验收，代码签名和一键安装的启用条件不变。

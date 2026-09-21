@@ -1,8 +1,5 @@
 # 用例 06 uninstall-keeps-userdata（CI 可跑）
-# PASS 判据：安装→写入 `%APPDATA%\ZzLogg\probe.ini`→静默卸载→`probe.ini` 仍在；
-# `$InstallDir` 已删除。
-# 依据：卸载器只删除 ZzLogg.ini / ZzLogg_session.ini 并以非 /r 的 RMDir 尝试移除
-# 用户配置目录，probe.ini 使目录非空，RMDir 静默失败，用户数据保留。
+# 卸载删除安装器所属文件，保留 AppData 配置及安装目录中用户自行添加的文件。
 function Invoke-Case_06_uninstall_keeps_userdata {
     param($Context)
 
@@ -10,45 +7,47 @@ function Invoke-Case_06_uninstall_keeps_userdata {
     if ($prereq) { return $prereq }
 
     $userDir = Join-Path $env:APPDATA 'ZzLogg'
-    $probe = Join-Path $userDir 'probe.ini'
     $userDirExistedBefore = Test-Path -LiteralPath $userDir
-
+    $saved = @{}
+    $probes = @(
+        (Join-Path $userDir 'ZzLogg.ini'),
+        (Join-Path $userDir 'ZzLogg_session.ini'),
+        (Join-Path $Context.InstallDir ('acceptance-user-' + [Guid]::NewGuid().ToString('N') + '.log'))
+    )
+    $probeText = "[acceptance-probe]`r`ncase=06`r`n"
     try {
-        [void](Invoke-ZzLoggUninstall $Context)
+        if (-not (Invoke-ZzLoggUninstall $Context)) { return (Fail-Case '前置卸载失败') }
         $install = Invoke-ZzLoggInstall $Context
         if ($install.Run.TimedOut -or $install.Run.ExitCode -ne 0) {
             return (Fail-Case "前置安装失败: exit=$($install.Run.ExitCode) timeout=$($install.Run.TimedOut)")
         }
-
-        if (-not (Test-Path -LiteralPath $userDir)) {
-            New-Item -ItemType Directory -Path $userDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $userDir -Force | Out-Null
+        foreach ($probe in $probes) {
+            $saved[$probe] = if (Test-Path -LiteralPath $probe) { [IO.File]::ReadAllBytes($probe) } else { $null }
+            [IO.File]::WriteAllText($probe, $probeText)
         }
-        [IO.File]::WriteAllText($probe, "[acceptance-probe]`r`ncase=06`r`n")
-
         $uninstalled = Invoke-ZzLoggUninstall $Context
-
         $failures = @()
-        if (-not (Test-Path -LiteralPath $probe)) {
-            $failures += "静默卸载后 probe.ini 丢失: $probe"
-        }
-        if (-not $uninstalled -or (Test-Path -LiteralPath $Context.InstallDir)) {
-            $failures += "静默卸载后 InstallDir 仍存在: $($Context.InstallDir)"
-        }
-
-        if ($failures) {
-            return (Fail-Case ($failures -join '；'))
-        }
-        return (Pass-Case '安装→写入 probe.ini→静默卸载后 probe.ini 仍在；InstallDir 已删除')
-    }
-    finally {
-        Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue
-        if (-not $userDirExistedBefore -and (Test-Path -LiteralPath $userDir)) {
-            $leftover = Get-ChildItem -LiteralPath $userDir -Force -ErrorAction SilentlyContinue
-            if (-not $leftover) {
-                Remove-Item -LiteralPath $userDir -Force -ErrorAction SilentlyContinue
+        foreach ($probe in $probes) {
+            if (-not (Test-Path -LiteralPath $probe) -or [IO.File]::ReadAllText($probe) -cne $probeText) {
+                $failures += "静默卸载后用户文件丢失或被修改: $probe"
             }
         }
+        if (-not $uninstalled) { $failures += '静默卸载后程序文件或卸载登记仍存在' }
+        if ($failures) { return (Fail-Case ($failures -join '；')) }
+        return (Pass-Case '卸载后程序与登记已移除；AppData 配置、会话和安装目录用户文件完整保留')
+    }
+    finally {
+        foreach ($probe in @($saved.Keys)) {
+            if ($null -ne $saved[$probe]) { [IO.File]::WriteAllBytes($probe, [byte[]]$saved[$probe]) }
+            else { Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue }
+        }
         [void](Invoke-ZzLoggUninstall $Context)
-        Remove-ZzLoggDirGuarded $Context.InstallDir
+        foreach ($dir in @($Context.InstallDir, $userDir)) {
+            if ($dir -eq $userDir -and $userDirExistedBefore) { continue }
+            if ((Test-Path -LiteralPath $dir) -and -not (Get-ChildItem -LiteralPath $dir -Force)) {
+                Remove-Item -LiteralPath $dir -Force
+            }
+        }
     }
 }

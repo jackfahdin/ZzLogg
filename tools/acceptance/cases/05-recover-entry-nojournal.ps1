@@ -2,7 +2,7 @@
 # PASS 判据：无 journal.log 时 `setup.exe /ZzLoggRecover=<dir>` 退出码非 0，
 # 且不改动 `$InstallDir`。
 # 定位名取随机 16 位小写 hex（非零），保证受保护根下不存在对应事务目录与
-# journal.log；恢复入口在 zzlogg_recover_missing 处 Abort，不产生任何写入。
+# journal.log；恢复入口在 RunRestricted 的 journal 校验前拒绝，不创建事务目录。
 function Invoke-Case_05_recover_entry_nojournal {
     param($Context)
 
@@ -33,7 +33,7 @@ function Invoke-Case_05_recover_entry_nojournal {
         $txDir = Join-Path $Context.TxRoot $locator
 
         $run = Invoke-SetupProcess -Exe $Context.SetupExe `
-            -Arguments @('/S', "/ZzLoggRecover=$locator") -TimeoutSec 120
+            -Arguments @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/ZzLoggRecover=$locator") -TimeoutSec 120
 
         $failures = @()
         if ($run.TimedOut) {

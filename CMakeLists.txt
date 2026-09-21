@@ -474,7 +474,7 @@ include(CPack)
 # for IDE grouping
 add_custom_target(
   installation
-  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/ZzLogg.nsi
+  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/ZzLogg.iss
           ${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/ZzLogg.desktop
           ${CMAKE_CURRENT_SOURCE_DIR}/cmake/MacOSXBundleInfo.plist.in
 )

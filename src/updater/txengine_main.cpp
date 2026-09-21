@@ -1,5 +1,5 @@
 // ZzLoggUpdateTx.exe: the payload-embedded transaction engine. Static CRT,
-// Qt-free, runs only from the protected staging extracted by the NSIS
+// Qt-free, runs only from the protected staging extracted by the Inno Setup
 // restricted upgrade entry (task 4 wires the packaging). The restricted argv
 // contract (3C task 5): exactly the flag/value pairs --install --staging
 // --txroot --txid --version; anything else is a usage rejection. Transaction
@@ -57,7 +57,7 @@ int runRecovery(int argc,wchar_t** argv) {
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    // Authorized recovery: invoked only by the NSIS restricted entry after
+    // Authorized recovery: invoked only by the Inno Setup restricted entry after
     // explicit UAC authorization. No handshake; the mode performs the target
     // recheck and nothing beyond it.
     if(argc>=2 && std::wstring(argv[1])==L"--recover") return runRecovery(argc,argv);

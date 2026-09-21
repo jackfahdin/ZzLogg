@@ -24,11 +24,7 @@ set(expected_scanned_entries
   "${SOURCE_ROOT}/cmake/ZzLoggIconInstall.cmake"
   "${SOURCE_ROOT}/packaging/osx/dmg_setup.scpt")
 
-if(EXISTS "${SOURCE_ROOT}/packaging/windows/ZzLogg.nsi")
-  list(APPEND current_entry_files "${SOURCE_ROOT}/packaging/windows/ZzLogg.nsi")
-else()
-  list(APPEND current_entry_files "${SOURCE_ROOT}/packaging/windows/klogg.nsi")
-endif()
+list(APPEND current_entry_files "${SOURCE_ROOT}/packaging/windows/ZzLogg.iss")
 
 if(EXISTS "${SOURCE_ROOT}/packaging/linux/ZzLogg.desktop")
   list(APPEND current_entry_files "${SOURCE_ROOT}/packaging/linux/ZzLogg.desktop")
@@ -182,9 +178,9 @@ require_entry_literal(
   "cmake/ZzLoggIconInstall.cmake" "Linux SVG external name is not ZzLogg.svg" "RENAME ZzLogg.svg")
 
 require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "custom NSIS include depends on the compiler working directory" [=[!include "${__FILEDIR__}\FileAssociation.nsh"]=])
+  "packaging/windows/ZzLogg.iss" "installer does not consume the complete staged tree" [=[Source: "release\*"; DestDir: "{app}"]=])
 require_entry_literal(
-  "packaging/windows/ZzLogg.nsi" "installer does not consume the complete staged tree" [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
+  "packaging/windows/ZzLogg.iss" "installer does not use the modern adaptive wizard" "WizardStyle=modern dynamic windows11 hidebevels")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the OpenSSL crypto DLL" "xcopy /y \"%SSL_DIR%\\libcrypto-1_1-x64.dll\" release\\")
 require_entry_literal(
@@ -196,7 +192,7 @@ require_entry_literal(
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging does not check the OpenSSL SSL source" "if not exist \"%SSL_DIR%\\libssl-1_1-x64.dll\" (")
 require_entry_literal(
-  ".github/actions/agent-package-win/action.yml" "makensis does not preserve the repository-root working directory" "makensis /NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH% packaging\\windows\\ZzLogg.nsi")
+  ".github/actions/agent-package-win/action.yml" "Windows packaging does not call the pinned Inno compiler" "./packaging/windows/Build-InnoInstaller.ps1")
 require_entry_literal(
   ".github/actions/agent-package-win/action.yml" "Windows staging omits the unified runtime folder" "xcopy /e /i /y \"%KLOGG_BUILD_ROOT%\\runtime\\RelWithDebInfo\\ZzLogg-runtime\" release")
 require_entry_literal(
@@ -228,21 +224,14 @@ require_entry_literal(
 require_entry_literal(
   ".github/CONTRIBUTING.md" "contribution guide does not use the current issue tracker" "https://github.com/jackfahdin/ZzLogg/issues")
 
-set(nsis_custom_include "${SOURCE_ROOT}/packaging/windows/FileAssociation.nsh")
-if(NOT EXISTS "${nsis_custom_include}")
-  list(APPEND violations "packaging/windows/ZzLogg.nsi: resolved custom include does not exist: ${nsis_custom_include}")
-endif()
-
 set(required_entry_literals
   "README.md|https://github.com/jackfahdin/ZzLogg"
   "docs/BUILD.md|https://github.com/jackfahdin/ZzLogg"
   "packaging/osx/distribution.xml|com.gitcode.jackfahdinqt.zzlogg"
-  "packaging/windows/ZzLogg.nsi|ZzLogg.exe"
-  "packaging/windows/ZzLogg.nsi|Delete \"$APPDATA\\ZzLogg\\ZzLogg_session.ini\""
-  "packaging/windows/ZzLogg.nsi|SetShellVarContext current\n    Delete \"$SENDTO\\ZzLogg.lnk\"\n    SetShellVarContext all\n    Delete \"$SMPROGRAMS\\ZzLogg.lnk\""
+  "packaging/windows/ZzLogg.iss|ZzLogg.exe"
   "docs/DOCUMENTATION.md|未配置更新清单 URL"
   ".github/actions/agent-package-win/action.yml|zzlogg_runtime_folder"
-  ".github/actions/agent-package-win/action.yml|packaging\\windows\\ZzLogg.nsi"
+  ".github/actions/agent-package-win/action.yml|packaging/windows/Build-InnoInstaller.ps1"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"
   ".github/actions/agent-package-mac/action.yml|output/ZzLogg.app"
   ".github/workflows/ci-build.yml|stage/bin/ZzLogg"
