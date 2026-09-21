@@ -47,6 +47,9 @@ class FeedTests(unittest.TestCase):
         self.stored = {}
         self.updates = []
         self.branch = True
+        self.created_tree = None
+        self.created_commit = None
+        self.branch_creation_conflict = False
         self.conflict = False
         self.sign_failure = False
         self.sign_options = None
@@ -121,9 +124,27 @@ class FeedTests(unittest.TestCase):
                 status = 404
         elif path == 'git/ref/heads/master':
             value = {'object': {'sha': 'c' * 40}}
+        elif path == 'git/trees':
+            self.assertEqual(method, 'POST')
+            self.created_tree = data
+            value = {'sha': 'd' * 40}
+        elif path == 'git/commits':
+            self.assertEqual(method, 'POST')
+            self.created_commit = data
+            value = {'sha': 'e' * 40}
         elif path == 'git/refs':
-            self.assertEqual(data, {'ref': 'refs/heads/update-feed', 'sha': 'c' * 40})
-            self.branch = True
+            self.assertEqual(data['ref'], 'refs/heads/update-feed')
+            if self.branch_creation_conflict:
+                status = 422
+            else:
+                self.branch = True
+                if data['sha'] == 'c' * 40:
+                    self.stored['src/main.cpp'] = b'source inherited from master'
+                else:
+                    self.assertEqual(data['sha'], 'e' * 40)
+                    self.assertEqual(self.created_commit['tree'], 'd' * 40)
+                    self.stored = {entry['path']: entry['content'].encode('utf-8')
+                                   for entry in self.created_tree['tree']}
         elif path.startswith('contents/'):
             name = path.removeprefix('contents/').split('?')[0]
             if method == 'GET':
@@ -178,11 +199,31 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(self.stored['stable.json'], original)
         self.assertEqual(len(self.updates), 1)
 
-    def test_first_branch_is_created_without_resetting_existing_tree(self):
+    def test_first_branch_contains_only_manifest_and_has_no_source_parent(self):
         self.branch = False
         self.publish()
         self.assertTrue(self.branch)
-        self.assertIn('stable.json', self.stored)
+        self.assertEqual(self.stored, {'stable.json': self.signed_bytes})
+        self.assertEqual(self.created_commit['parents'], [])
+        self.assertNotIn('base_tree', self.created_tree)
+        self.assertEqual(self.updates, [])
+
+    def test_concurrent_branch_creation_is_not_overwritten(self):
+        self.branch = False
+        self.branch_creation_conflict = True
+        with self.assertRaises(RuntimeError):
+            self.publish()
+        self.assertEqual(self.stored, {})
+        self.assertEqual(self.updates, [])
+
+    def test_deleted_branch_after_baseline_read_is_not_recreated(self):
+        self.branch = False
+        self.stored['stable.json'] = self.signed(self.payload())
+        original = self.stored.copy()
+        with self.assertRaises(ValueError):
+            self.publish()
+        self.assertFalse(self.branch)
+        self.assertEqual(self.stored, original)
 
     def test_tag_label_draft_or_channel_mismatch_never_publishes(self):
         mutations = [(self.release, 'tag_name', 'continuous-build'), (self.release, 'draft', True),
