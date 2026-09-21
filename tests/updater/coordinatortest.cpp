@@ -444,16 +444,16 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         std::error_code cleanup;fs::remove_all(reserveBase,cleanup);fs::remove(reserved,cleanup);
     }
     {
-        // Bootstrap mapping v3: crafted mappings drive the real child bootstrap
+        // Bootstrap mapping v4: crafted mappings drive the real child bootstrap
         // parser directly. 52 = bootstrap passed (channel connect then fails);
         // 51 = BootstrapRejected.
-        std::cout<<"coordinator bootstrap v3"<<std::endl;
+        std::cout<<"coordinator bootstrap v4"<<std::endl;
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
         BootstrapData base{};
         randomBytes(base.transaction.data(),16);randomBytes(base.token.data(),32);
-        check(spawnMappedFixture(source,base)==52,"valid v3 mapping passes bootstrap");
-        auto retired=base;retired.version=2;
-        check(spawnMappedFixture(source,retired)==51,"retired version 2 mapping rejected");
+        check(spawnMappedFixture(source,base)==52,"valid v4 mapping passes bootstrap");
+        auto retired=base;retired.version=3;
+        check(spawnMappedFixture(source,retired)==51,"retired version 3 mapping rejected");
         auto datadir=base;{const auto path=root.wstring();std::copy(path.begin(),path.end(),datadir.dataDirectory);}
         check(spawnMappedFixture(source,datadir)==52,"absolute data directory accepted");
         auto control=base;{auto path=root.wstring();path[4]=wchar_t(1);std::copy(path.begin(),path.end(),control.dataDirectory);}
@@ -462,6 +462,26 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         check(spawnMappedFixture(source,relative)==51,"relative data directory rejected");
         auto unterminated=base;std::fill(std::begin(unterminated.dataDirectory),std::end(unterminated.dataDirectory),L'x');
         check(spawnMappedFixture(source,unterminated)==51,"unterminated overlong data directory rejected");
+        auto installer=base;
+        {const auto file=(root/L"setup.exe").wstring();std::copy(file.begin(),file.end(),installer.installerPath);
+         const auto target=root.wstring();std::copy(target.begin(),target.end(),installer.installRoot);
+         installer.packageSize=3;installer.packageSha256[0]=1;}
+        check(spawnMappedFixture(source,installer)==52,"absolute installer path and install root accepted");
+        auto relativeInstaller=installer;
+        {const wchar_t text[]=L"relative\\setup.exe";
+         std::fill(std::begin(relativeInstaller.installerPath),std::end(relativeInstaller.installerPath),L'\0');
+         std::copy(text,text+_countof(text),relativeInstaller.installerPath);}
+        check(spawnMappedFixture(source,relativeInstaller)==51,"relative installer path rejected");
+        auto halfSet=installer;
+        std::fill(std::begin(halfSet.installRoot),std::end(halfSet.installRoot),L'\0');
+        check(spawnMappedFixture(source,halfSet)==51,"installer path without an install root rejected");
+        auto zeroSize=installer;zeroSize.packageSize=0;
+        check(spawnMappedFixture(source,zeroSize)==51,"installer fields without a package size rejected");
+        auto oversize=installer;oversize.packageSize=512ull*1024*1024+1;
+        check(spawnMappedFixture(source,oversize)==51,"package size beyond the lease limit rejected");
+        auto zeroDigest=installer;
+        std::fill(std::begin(zeroDigest.packageSha256),std::end(zeroDigest.packageSha256),uint8_t(0));
+        check(spawnMappedFixture(source,zeroDigest)==51,"all-zero package digest rejected");
     }
     {
         // 3C installer chain: credential file + restricted switch launch of
