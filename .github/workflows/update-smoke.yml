@@ -40,10 +40,10 @@ jobs:
 
       # openssl 缓存/下载/路径设置与 ci-build.yml Windows job 逐行一致
       #（agent-package-win 对 SSL_DIR 下 libcrypto/libssl 有硬断言）。
-      # 注：cache 动作用 v4（v2 已被 GitHub 停用），path/key 与 ci-build.yml 相同。
+      # 与主构建使用相同的缓存路径和 key，Action 原生使用 Node 24。
       - name: Cache openssl
         id: cache-openssl
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}\openssl-1.1
           key: OpensslCache-1-1-1w
@@ -64,7 +64,7 @@ jobs:
       - uses: ./.github/actions/klogg-version
       - uses: ./.github/actions/prepare-workspace-env
       - name: Prepare dev cmd
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ./.github/actions/prepare-msvc
         with:
           arch: ${{ matrix.config.arch }}
 
@@ -117,7 +117,7 @@ jobs:
           }
           if ($exitCode -ne 0) { exit $exitCode }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: update-smoke-report

@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+### 改进
+
+- CI 缓存和构建产物 Actions 升级到原生 Node 24 版本，Windows 编译环境改用 Visual Studio 自带的开发者 PowerShell。
+- macOS DMG 打包取消 Finder 自动布局和卷图标定制，减少临时镜像挂载；创建镜像遇到资源占用时使用独立目录有限重试，并校验最终镜像。
+- 失败的 macOS 打包上传诊断日志；每日预览版运行标题明确显示 Continuous Build，补充零点调度延迟和更新清单分支的说明。
+
 ## [26.09.01] - 2026-09-20
 
 ### 新增

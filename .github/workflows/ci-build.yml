@@ -42,7 +42,7 @@ jobs:
       - name: Save version 
         run: echo $KLOGG_VERSION > klogg_version.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: klogg_version
           path: 'klogg_version.txt'
@@ -248,7 +248,7 @@ jobs:
               test ! -e /usr/share/icons/hicolor/scalable/apps/ZzLogg.svg
             '
       - name: Upload Linux packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages-linux
           path: |
@@ -319,7 +319,15 @@ jobs:
           notarization-team: ${{ secrets.NOTARIZATION_TEAM }}
           notarization-password: ${{ secrets.NOTARIZATION_PASSWORD }}
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload failed DMG diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dmg-diagnostics-${{ matrix.config.artifacts_id }}
+          path: '${{ env.KLOGG_BUILD_ROOT }}/cpack-dmg-*.log'
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.config.artifacts_id }}
           path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*' 
@@ -350,7 +358,7 @@ jobs:
 
       - name: Cache openssl
         id: cache-openssl
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}\openssl-1.1
           key: OpensslCache-1-1-1w
@@ -371,7 +379,7 @@ jobs:
       - uses: ./.github/actions/klogg-version
       - uses: ./.github/actions/prepare-workspace-env
       - name: Prepare dev cmd
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ./.github/actions/prepare-msvc
         with:
           arch: ${{ matrix.config.arch }}
 
@@ -383,7 +391,7 @@ jobs:
           s3-secret: ${{ secrets.WIN_CS_SECRET }}
           s3-bucket: ${{ secrets.WIN_CS_BUCKET }}
 # Final upload of all packages
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.config.artifacts_id }}
           path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*'
