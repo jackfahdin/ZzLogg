@@ -8,6 +8,8 @@
 #include <sddl.h>
 #include <array>
 #include <cstdint>
+#include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -31,6 +33,21 @@ inline std::wstring testTempDirectory() {
     constexpr std::wstring_view prefix=L"\\\\?\\";
     if(value.compare(0,prefix.size(),prefix)==0) value.erase(0,prefix.size());
     return value;
+}
+// Fresh, independently named working directory for one harness run.
+inline std::filesystem::path createTestRoot(const std::filesystem::path& base) {
+    std::array<unsigned char,16> nonce{};
+    if(!randomBytes(nonce.data(),static_cast<ULONG>(nonce.size())))
+        throw std::runtime_error("cannot generate a unique coordinator test directory");
+    std::wstring name=L"ZzLogg-coordinate-test-"+std::to_wstring(GetCurrentProcessId())+L"-";
+    constexpr wchar_t hex[]=L"0123456789abcdef";
+    for(auto byte:nonce){name+=hex[byte>>4];name+=hex[byte&15];}
+    auto root=base/name;
+    // Atomic creation must succeed: never adopt or erase another run's files.
+    if(!std::filesystem::create_directory(root))
+        throw std::filesystem::filesystem_error("coordinator test directory already exists",root,
+            std::make_error_code(std::errc::file_exists));
+    return root;
 }
 // String SID of the current process user, empty on any lookup failure.
 inline std::wstring currentUserSid() {

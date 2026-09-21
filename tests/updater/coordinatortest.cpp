@@ -16,20 +16,6 @@ using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
 namespace {
-fs::path createTestRoot(const fs::path& base) {
-    std::array<unsigned char,16> nonce{};
-    if(!randomBytes(nonce.data(),static_cast<ULONG>(nonce.size())))
-        throw std::runtime_error("cannot generate a unique coordinator test directory");
-    std::wstring name=L"ZzLogg-coordinate-test-"+std::to_wstring(GetCurrentProcessId())+L"-";
-    constexpr wchar_t hex[]=L"0123456789abcdef";
-    for(auto byte:nonce){name+=hex[byte>>4];name+=hex[byte&15];}
-    auto root=base/name;
-    // Atomic creation must succeed: never adopt or erase another run's files.
-    if(!fs::create_directory(root))
-        throw fs::filesystem_error("coordinator test directory already exists",root,
-            std::make_error_code(std::errc::file_exists));
-    return root;
-}
 DWORD probeEnter(const fs::path& dir) {
     wchar_t executable[32768]{};GetModuleFileNameW(nullptr,executable,32768);
     std::wstring command=L"\""+std::wstring(executable)+L"\" --probe-enter \""+dir.wstring()+L"\"";
