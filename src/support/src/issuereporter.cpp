@@ -54,9 +54,9 @@ static constexpr auto BugTemplate = "#### What did you do?\n\n\n"
                                     "#### What did you see instead?\n\n\n";
 
 static constexpr auto ExceptionAskUserAction
-    = "Ooops! Something unexpected happened. Create issue on GitCode?";
+    = "Ooops! Something unexpected happened. Create issue on GitHub?";
 
-static constexpr auto AskUserAction = "Create issue on GitCode?";
+static constexpr auto AskUserAction = "Create issue on GitHub?";
 
 void IssueReporter::askUserAndReportIssue( IssueTemplate issueTemplate, const QString& information )
 {

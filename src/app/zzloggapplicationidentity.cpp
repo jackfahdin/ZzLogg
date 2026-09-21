@@ -7,11 +7,13 @@
 #include <QUrl>
 
 #include "zzlogg_brand.h"
+#include "klogg_version.h"
 
 void prepareZzLoggApplicationIdentity()
 {
     QCoreApplication::setApplicationName(
         QString::fromLatin1( zzlogg::brand::ProductName ) );
+    QCoreApplication::setApplicationVersion( QString( kloggVersion() ) );
     QGuiApplication::setApplicationDisplayName(
         QString::fromLatin1( zzlogg::brand::ProductName ) );
     QCoreApplication::setOrganizationName(

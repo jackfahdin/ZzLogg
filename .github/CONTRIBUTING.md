@@ -12,12 +12,12 @@ documentation improvements, tests, and code changes are all welcome.
 
 ## Features and bugs
 
-Use the [ZzLogg issue tracker](https://gitcode.com/JackfahdinQt/ZzLogg/issues) for
+Use the [ZzLogg issue tracker](https://github.com/jackfahdin/ZzLogg/issues) for
 feature requests and reproducible bug reports. Include the ZzLogg version,
 operating system, steps to reproduce, expected behavior, and actual behavior.
 
 Do not disclose a security vulnerability in a public issue. Contact the
-maintainer through a private channel listed on the maintainer's GitCode profile;
+maintainer through a private channel listed on the maintainer's GitHub profile;
 this project does not publish a dedicated security email address.
 
 ## Code contributions

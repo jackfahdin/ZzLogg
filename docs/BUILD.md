@@ -17,10 +17,10 @@
 
 ## 获取源码
 
-当前仓库为 [gitcode.com/JackfahdinQt/ZzLogg](https://gitcode.com/JackfahdinQt/ZzLogg)。克隆时一并获取固定版本的子模块：
+当前仓库为 [github.com/jackfahdin/ZzLogg](https://github.com/jackfahdin/ZzLogg)。克隆时一并获取固定版本的子模块：
 
 ```bash
-git clone --recursive https://gitcode.com/JackfahdinQt/ZzLogg
+git clone --recursive https://github.com/jackfahdin/ZzLogg
 cd ZzLogg
 ```
 

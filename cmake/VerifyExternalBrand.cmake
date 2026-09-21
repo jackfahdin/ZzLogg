@@ -143,7 +143,7 @@ require_entry_line(
 require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central vendor is not exact" "set(ZZLOGG_VENDOR \"Jackfahdin\")")
 require_entry_line(
-  "cmake/ZzLoggBrand.cmake" "central homepage is not exact" "set(ZZLOGG_HOMEPAGE_URL \"https://gitcode.com/JackfahdinQt/ZzLogg\")")
+  "cmake/ZzLoggBrand.cmake" "central homepage is not exact" "set(ZZLOGG_HOMEPAGE_URL \"https://github.com/jackfahdin/ZzLogg\")")
 require_entry_line(
   "cmake/ZzLoggBrand.cmake" "central identifier is not exact" "set(ZZLOGG_IDENTIFIER \"com.gitcode.jackfahdinqt.zzlogg\")")
 
@@ -226,7 +226,7 @@ require_entry_literal(
 require_entry_literal(
   ".github/CONTRIBUTING.md" "contribution guide does not identify the current project" "contributing to ZzLogg")
 require_entry_literal(
-  ".github/CONTRIBUTING.md" "contribution guide does not use the current issue tracker" "https://gitcode.com/JackfahdinQt/ZzLogg/issues")
+  ".github/CONTRIBUTING.md" "contribution guide does not use the current issue tracker" "https://github.com/jackfahdin/ZzLogg/issues")
 
 set(nsis_custom_include "${SOURCE_ROOT}/packaging/windows/FileAssociation.nsh")
 if(NOT EXISTS "${nsis_custom_include}")
@@ -234,8 +234,8 @@ if(NOT EXISTS "${nsis_custom_include}")
 endif()
 
 set(required_entry_literals
-  "README.md|https://gitcode.com/JackfahdinQt/ZzLogg"
-  "docs/BUILD.md|https://gitcode.com/JackfahdinQt/ZzLogg"
+  "README.md|https://github.com/jackfahdin/ZzLogg"
+  "docs/BUILD.md|https://github.com/jackfahdin/ZzLogg"
   "packaging/osx/distribution.xml|com.gitcode.jackfahdinqt.zzlogg"
   "packaging/windows/ZzLogg.nsi|ZzLogg.exe"
   "packaging/windows/ZzLogg.nsi|Delete \"$APPDATA\\ZzLogg\\ZzLogg_session.ini\""
