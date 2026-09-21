@@ -948,15 +948,17 @@ gh run watch "$(gh run list --workflow 'CI Build' --branch <分支名> --limit 1
 `src/updater/main.cpp` 现在握手后直接发 `Failed` 并返回 `ExecutionDisabled`。它是唯一能
 活过 GUI 退出的进程，因此 `proceedIfExited` 的放行判断必须在这里做。
 
-生产二进制**不接受任何注入启动器**，所以它的完整链路在 CI 上跑不了。本任务从同一份
-`main.cpp` 额外构建一个测试专用目标 `ZzLoggUpdateRelayFixture`，用编译期宏换上
-fixture 启动器；生产目标绝不定义该宏。这与仓库既有的"一套源码两个闭包"做法一致
-（`src/updater/CMakeLists.txt` 的 `zzlogg_add_updater_handoff`）。
+**为什么要拆出 `relay.cpp`：** 生产二进制的启动器必须是写死的 `ShellExecuteEx runas`，
+不能有任何注入面，否则它自己就成了提权漏洞。但这样一来真实二进制在 CI 上跑不了——
+runner 弹不出 UAC。解法是把中继时序整体搬进 `relay.cpp`，由 `zzlogg_updater_handoff`
+库导出；生产 `main.cpp` 只负责传入生产选项，测试侧另有一个替身入口传入 fixture 启动器。
+两者执行的是**同一份**中继代码，生产源码里不存在任何编译期或运行期的注入开关。
 
 **文件：**
+- 创建：`src/updater/relay_p.h`、`src/updater/relay.cpp`
 - 重写：`src/updater/main.cpp`
 - 修改：`src/updater/CMakeLists.txt`、`tests/updater/CMakeLists.txt`
-- 创建：`tests/updater/relaytest.cpp`
+- 创建：`tests/updater/relayfixture.cpp`、`tests/updater/relaytest.cpp`
 
 - [ ] **步骤 1：先读三份契约，再动手**
 
@@ -967,23 +969,48 @@ sed -n '1,80p' src/updater/coordinator_p.h
 ```
 
 要确认：`MessageKind` 的取值与线协议顺序、`after(DWORD)` 与 `Deadline` 的形状、
-`CoordinationResult` 的全部取值。
+`CoordinationResult` 的全部取值、`CoordinatorOptions` 与 `InstallerLauncher` 的签名。
 
 - [ ] **步骤 2：编写失败的测试**
 
-创建 `tests/updater/relaytest.cpp`。它以真实的中继实现为被测对象，覆盖三条不需要提权的
-路径，以及一条用 fixture 启动器走完的完整时序：
+创建 `tests/updater/relayfixture.cpp`——测试侧的中继入口，与生产入口**唯一**的区别是
+注入的启动器：
+
+```cpp
+#include "bootstrap_win_p.h"
+#include "relay_p.h"
+using namespace zzlogg::updater::detail;
+// 测试替身入口：中继逻辑是同一份 relay.cpp，只有启动器被换成 fixture。
+// 生产 main.cpp 从不链接本文件。
+int wmain(int argc,wchar_t** argv){
+    ChildBootstrap bootstrap;
+    if(!bootstrap.open(argc,argv))return BootstrapRejected;
+    CoordinatorOptions options;
+    options.requireElevatedPeer=false;
+    options.launcher=[](const std::wstring& installer,const std::wstring& restrictedSwitch){
+        // 与 tests/updater/coordinatortest.cpp 的 fixtureLaunch 同款：
+        // 以普通权限启动 fixture，把受限开关原样传下去。
+        return launchFixtureInstaller(installer,restrictedSwitch);
+    };
+    return runInstallRelay(bootstrap,options);
+}
+```
+
+`launchFixtureInstaller` 直接把 `tests/updater/coordinatortest.cpp` 里 `fixtureLaunch`
+的函数体搬过来，放在本文件的匿名命名空间里。
+
+创建 `tests/updater/relaytest.cpp`。它以子进程方式驱动被测中继，覆盖三条不需要提权的
+失败关闭路径，并在被测二进制是替身时走完整时序：
 
 ```cpp
 #include "bootstrap_win_p.h"
 #include "updatertesthelpers.h"
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 namespace fs=std::filesystem;
 using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
-// argv[1] = 中继可执行文件（生产 ZzLoggUpdate.exe 或 ZzLoggUpdateRelayFixture.exe）
+// argv[1] = 被测中继（生产 ZzLoggUpdate.exe 或 zzlogg_updater_relayfixture.exe）
 // argv[2] = 供 fixture 启动器扮演安装器/引擎的可执行文件
 int main(int argc,char** argv) {
     if(argc!=3) return 2;
@@ -1018,15 +1045,18 @@ int main(int argc,char** argv) {
 ```
 
 `createTestRoot` 来自 `tests/updater/updatertesthelpers.h`。`RelayRequest`、`runRelay`
-与 `fileSha256` 是本测试新增的助手：`runRelay` 建立 bootstrap 映射、以子进程方式启动
-中继、扮演 GUI 父端完成 `Hello/Ready`，然后等待子进程退出并返回退出码。实现时照抄
-`tests/updater/coordinatortest.cpp` 中 `spawnMappedFixture` 的映射构造与
-`ChainDrive` 的通道服务端写法。
+与 `fileSha256` 是本测试新增的助手，写在同一文件里：`runRelay` 建立 bootstrap 映射、
+以子进程方式启动被测中继、扮演 GUI 父端完成 `Hello/Ready`，然后等子进程退出并返回它的
+退出码。映射构造照抄 `tests/updater/coordinatortest.cpp` 的 `spawnMappedFixture`，
+通道服务端照抄同文件的 `ChainDrive`。
 
-`tests/updater/CMakeLists.txt` 末尾注册两个测试——同一份测试代码，分别打生产二进制
-与 fixture 二进制：
+`tests/updater/CMakeLists.txt` 末尾注册替身与两条测试——同一份测试代码，分别打生产
+二进制与替身二进制：
 
 ```cmake
+add_executable(zzlogg_updater_relayfixture relayfixture.cpp)
+target_link_libraries(zzlogg_updater_relayfixture PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(zzlogg_updater_relayfixture TRUE)
 add_executable(zzlogg_updater_relay_test relaytest.cpp)
 target_link_libraries(zzlogg_updater_relay_test PRIVATE zzlogg_updater_handoff)
 zzlogg_update_runtime(zzlogg_updater_relay_test TRUE)
@@ -1034,7 +1064,7 @@ add_test(NAME zzlogg_updater.relay_production
   COMMAND zzlogg_updater_relay_test $<TARGET_FILE:ZzLoggUpdate>
     $<TARGET_FILE:zzlogg_updater_handofffixture>)
 add_test(NAME zzlogg_updater.relay_fixture
-  COMMAND zzlogg_updater_relay_test $<TARGET_FILE:ZzLoggUpdateRelayFixture>
+  COMMAND zzlogg_updater_relay_test $<TARGET_FILE:zzlogg_updater_relayfixture>
     $<TARGET_FILE:zzlogg_updater_handofffixture>)
 set_tests_properties(zzlogg_updater.relay_production zzlogg_updater.relay_fixture
   PROPERTIES TIMEOUT 120)
@@ -1043,29 +1073,38 @@ set_tests_properties(zzlogg_updater.relay_production zzlogg_updater.relay_fixtur
 - [ ] **步骤 3：推分支跑 Windows CI 验证失败**
 
 ```bash
-git add tests/updater/relaytest.cpp tests/updater/CMakeLists.txt
+git add tests/updater/relaytest.cpp tests/updater/relayfixture.cpp tests/updater/CMakeLists.txt
 git commit -m "test: 协调者中继的失败关闭路径"
 git push && gh workflow run "CI Build" --ref <分支名>
 ```
 
-预期：配置失败，`ZzLoggUpdateRelayFixture` 目标不存在；即便只跑生产用例也会失败，
-当前 `main.cpp` 对任何 bootstrap 都返回 `ExecutionDisabled`，不会产生 `PackageRejected`。
+预期：配置或编译失败，`relay_p.h` 与 `runInstallRelay` 都不存在。
 
 - [ ] **步骤 4：实现中继**
 
-`src/updater/main.cpp` 整体替换：
+创建 `src/updater/relay_p.h`：
 
 ```cpp
+#pragma once
+// 安装协调中继：ZzLoggUpdate.exe 活过 GUI 退出，因此 proceedIfExited 的放行
+// 判断只能在这里做。生产入口（main.cpp）与测试替身入口执行同一份实现，
+// 唯一的差别是传进来的 CoordinatorOptions。
 #include "bootstrap_win_p.h"
 #include "coordinator_p.h"
+namespace zzlogg::updater::detail {
+// 完成父端握手，复核安装包字节，驱动整条安装链路。返回进程退出码：
+// 0 = 已安装并重启，其余见 bootstrap_win_p.h 的协调者退出码表。
+int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options);
+}
+```
+
+创建 `src/updater/relay.cpp`：
+
+```cpp
+#include "relay_p.h"
 #include "stablepackage_p.h"
 #include <string>
-using namespace zzlogg::updater;
-using namespace zzlogg::updater::detail;
-#ifdef ZZLOGG_UPDATER_TEST_LAUNCHER
-// 仅测试目标链接该符号；生产目标既不定义宏也不编译它的实现文件。
-namespace zzlogg::updater::detail { InstallerLauncher fixtureInstallerLauncher(); }
-#endif
+namespace zzlogg::updater::detail {
 namespace {
 // UAC 提示与安装器解包都在这段时间里；引擎只有在用户接受提权之后才出现。
 constexpr DWORD LaunchBudgetMs=300000;
@@ -1093,18 +1132,8 @@ int fail(LocalChannel& channel,Message message,int code) {
     message.kind=MessageKind::Failed;channel.send(message,after(ShortBudgetMs));
     return code;
 }
-CoordinatorOptions productionOptions() {
-    CoordinatorOptions options; // 空 launcher 即 ShellExecuteEx runas，要求提权对端
-#ifdef ZZLOGG_UPDATER_TEST_LAUNCHER
-    // 测试专用目标：生产目标从不定义这个宏，因此生产二进制里不存在注入面。
-    options.requireElevatedPeer=false;
-    options.launcher=fixtureInstallerLauncher();
-#endif
-    return options;
 }
-}
-int wmain(int argc,wchar_t** argv){
-    ChildBootstrap bootstrap;if(!bootstrap.open(argc,argv))return BootstrapRejected;
+int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options){
     LocalChannel channel;const auto deadline=after(3000);
     if(!channel.connect(bootstrap.data().transaction,bootstrap.parent(),deadline))return BootstrapRejected;
     Message message{MessageKind::Hello,bootstrap.data().transaction,bootstrap.data().token};
@@ -1119,7 +1148,7 @@ int wmain(int argc,wchar_t** argv){
     const InstallerRequest request{data.installerPath,data.installRoot,data.dataDirectory};
     const DirectoryIdentity* reserved=bootstrap.directoryReserved()?&data.directory:nullptr;
     LaunchError launch=LaunchError::Failed;
-    if(!coordinator.startInstaller(request,reserved,&bootstrap.parent(),productionOptions(),&launch))
+    if(!coordinator.startInstaller(request,reserved,&bootstrap.parent(),options,&launch))
         return fail(channel,message,
             launch==LaunchError::Cancelled?ElevationDeclined:InstallerLaunchFailed);
     if(!coordinator.authenticate(after(LaunchBudgetMs)))return fail(channel,message,RelayFailed);
@@ -1144,32 +1173,35 @@ int wmain(int argc,wchar_t** argv){
     return coordinator.restart(after(RestartBudgetMs))==CoordinationResult::Restarted
         ?0:RestartPending;
 }
+}
 ```
 
-`fixtureInstallerLauncher()` 是测试闭包里的新符号：把
-`tests/updater/coordinatortest.cpp` 中 `fixtureLaunch` 的实现搬到
-`src/updater/installerlauncher_fixture.cpp`，只编进 fixture 目标，生产目标不编译它。
-
-`src/updater/CMakeLists.txt` 的 `ZzLoggUpdate` 之后追加：
-
-```cmake
-target_include_directories(ZzLoggUpdate PRIVATE ../update/src)
-# 测试专用中继：同一份 main.cpp，编译期换上可注入的安装器启动器。
-# 绝不安装，绝不进入运行时目录树。
-add_executable(ZzLoggUpdateRelayFixture main.cpp installerlauncher_fixture.cpp)
-target_compile_definitions(ZzLoggUpdateRelayFixture PRIVATE ZZLOGG_UPDATER_TEST_LAUNCHER=1)
-target_link_libraries(ZzLoggUpdateRelayFixture PRIVATE zzlogg_updater_handoff)
-target_include_directories(ZzLoggUpdateRelayFixture PRIVATE ../update/src)
-zzlogg_update_runtime(ZzLoggUpdateRelayFixture TRUE)
-```
-
-- [ ] **步骤 5：扩展测试覆盖 fixture 目标的完整时序**
-
-`tests/updater/relaytest.cpp` 在三条失败关闭用例之后追加——仅当被测二进制是 fixture
-时执行（生产二进制会真的弹 UAC，CI 上必须跳过）：
+`src/updater/main.cpp` 整体替换为生产入口：
 
 ```cpp
-    if(relay.filename()==L"ZzLoggUpdateRelayFixture.exe") {
+#include "bootstrap_win_p.h"
+#include "relay_p.h"
+using namespace zzlogg::updater::detail;
+int wmain(int argc,wchar_t** argv){
+    ChildBootstrap bootstrap;
+    if(!bootstrap.open(argc,argv))return BootstrapRejected;
+    // 生产选项：空 launcher 即写死的 ShellExecuteEx runas，并要求提权对端。
+    // 这里没有、也绝不能有任何可注入的启动器。
+    return runInstallRelay(bootstrap,CoordinatorOptions{});
+}
+```
+
+`src/updater/CMakeLists.txt` 的 `zzlogg_add_updater_handoff` 源文件列表末尾加入
+`relay.cpp`（该函数已经带了 `target_include_directories(... ../update/src)`，
+`stablepackage_p.h` 可直接包含）。
+
+- [ ] **步骤 5：扩展测试覆盖完整时序**
+
+`tests/updater/relaytest.cpp` 在三条失败关闭用例之后追加——只对替身执行，生产二进制
+会真的弹 UAC：
+
+```cpp
+    if(relay.stem()==L"zzlogg_updater_relayfixture") {
         // 完整中继时序：引擎就绪才转发 AwaitingAppExit，GUI 真实退出才放行 Proceed。
         RelayRequest good;
         good.installerPath=installer;
@@ -1185,16 +1217,17 @@ zzlogg_update_runtime(ZzLoggUpdateRelayFixture TRUE)
     }
 ```
 
-`RelayObservation` 与 `runRelayChain` 在同一文件里实现：父端记录收到
-`AwaitingAppExit` 的时刻，然后发 `CommitExit` 并真实退出扮演应用的进程，再从
-fixture 的记录文件（`ZZLOGG_HANDOFF_RECORD`，见 `tests/updater/handofffixture.cpp:16`）
-读回引擎侧观察到的消息顺序。
+`RelayObservation` 与 `runRelayChain` 写在同一文件：父端记录收到 `AwaitingAppExit`
+的时刻，然后发 `CommitExit` 并真实结束扮演应用的进程，再从 fixture 的记录文件
+（`ZZLOGG_HANDOFF_RECORD`，见 `tests/updater/handofffixture.cpp:16`）读回引擎侧观察到的
+消息顺序。
 
 - [ ] **步骤 6：推送并验证 Windows CI 通过**
 
 ```bash
-git add src/updater/main.cpp src/updater/installerlauncher_fixture.cpp \
-  src/updater/CMakeLists.txt tests/updater/relaytest.cpp tests/updater/CMakeLists.txt
+git add src/updater/relay_p.h src/updater/relay.cpp src/updater/main.cpp \
+  src/updater/CMakeLists.txt tests/updater/relaytest.cpp tests/updater/relayfixture.cpp \
+  tests/updater/CMakeLists.txt
 git commit -m "feat: ZzLoggUpdate 组合生产安装协调中继"
 git push
 gh run watch "$(gh run list --workflow 'CI Build' --branch <分支名> --limit 1 --json databaseId --jq '.[0].databaseId')"
@@ -1204,7 +1237,7 @@ gh run watch "$(gh run list --workflow 'CI Build' --branch <分支名> --limit 1
 
 - [ ] **步骤 7：确认生产闸测试仍然成立**
 
-`tests/updater/productiongatetest.cmake` 断言裸启动 `ZzLoggUpdate.exe` 返回 41。中继实现
+`tests/updater/productiongatetest.cmake` 断言裸启动 `ZzLoggUpdate.exe` 返回 41。中继
 没有改变"无 bootstrap 即 `BootstrapRejected`"这条路径，但必须实测确认：
 
 ```bash
