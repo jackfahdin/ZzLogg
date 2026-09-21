@@ -36,6 +36,22 @@ std::size_t boundedLength(const wchar_t* text) {
     while(length<PathCapacity && text[length])++length;
     return length;
 }
+// Package lease ceiling: the largest expected size the coordinator accepts.
+inline constexpr uint64_t PackageSizeLimit=512ull*1024*1024;
+// The installer-chain fields are either all absent, or all present and
+// individually valid; half a set is always rejected. Both the mapping parser
+// and the launch path answer this question here, so a request can never be
+// silently degraded into a plain handshake by one side's weaker test.
+bool installerFieldsConsistent(const wchar_t* installer,std::size_t installerLength,
+    const wchar_t* root,std::size_t rootLength,uint64_t packageSize,const uint8_t* digest) {
+    const bool digestSet=std::any_of(digest,digest+32,[](auto byte){return byte!=0;});
+    if(!installerLength && !rootLength && !packageSize && !digestSet)return true;
+    return installerLength && installerLength<PathCapacity
+        && absolutePathPlausibleImpl(installer,installerLength)
+        && rootLength && rootLength<PathCapacity
+        && absolutePathPlausibleImpl(root,rootLength)
+        && packageSize && packageSize<=PackageSizeLimit && digestSet;
+}
 }
 bool absolutePathPlausible(const wchar_t* text,std::size_t length) {
     return absolutePathPlausibleImpl(text,length);
@@ -61,19 +77,9 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     // Retired mapping versions are never adopted; the data directory must be
     // NUL-terminated inside its fixed capacity and pass the plausibility scan.
     const auto directoryLength=boundedLength(data.dataDirectory);
-    const auto installerLength=boundedLength(data.installerPath);
-    const auto rootLength=boundedLength(data.installRoot);
-    const auto digestSet=std::any_of(std::begin(data.packageSha256),std::end(data.packageSha256),
-        [](auto byte){return byte!=0;});
-    const bool installerPresent=installerLength || rootLength || data.packageSize || digestSet;
-    // The installer-chain fields are either all absent, or all present and
-    // individually valid; half a set is always rejected.
-    const bool installerConsistent=!installerPresent
-        || (installerLength && installerLength<PathCapacity
-            && absolutePathPlausible(data.installerPath,installerLength)
-            && rootLength && rootLength<PathCapacity
-            && absolutePathPlausible(data.installRoot,rootLength)
-            && data.packageSize && data.packageSize<=512ull*1024*1024 && digestSet);
+    const bool installerConsistent=installerFieldsConsistent(
+        data.installerPath,boundedLength(data.installerPath),
+        data.installRoot,boundedLength(data.installRoot),data.packageSize,data.packageSha256);
     if(data.magic!=0x42555a5a || data.version!=4 || (data.flags&~DirectoryReserved) || !data.parentHandle
         || directoryLength==PathCapacity || !absolutePathPlausible(data.dataDirectory,directoryLength)
         || !installerConsistent
@@ -99,16 +105,15 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     data_=data;parent_=std::move(parent);impl_=std::move(lease);return true;
 }
 bool launchCopy(const RuntimeCopy& copy,const ChildLaunchRequest& request,ProcessIdentity& child){
-    const auto pathFits=[](const std::wstring& value){
-        return value.size()<PathCapacity && absolutePathPlausible(value.data(),value.size()); };
-    if(!copy.unchanged() || !pathFits(request.dataDirectory))return false;
+    if(!copy.unchanged() || request.dataDirectory.size()>=PathCapacity
+        || !absolutePathPlausible(request.dataDirectory.data(),request.dataDirectory.size()))return false;
+    // Exactly the parser's acceptance: a half set fails the launch here
+    // instead of reaching the child as a plain handshake with the fields
+    // dropped.
+    if(!installerFieldsConsistent(request.installerPath.data(),request.installerPath.size(),
+        request.installRoot.data(),request.installRoot.size(),
+        request.packageSize,request.packageSha256.data()))return false;
     const bool installerPresent=!request.installerPath.empty();
-    if(installerPresent && (!pathFits(request.installerPath) || request.installRoot.empty()
-        || !pathFits(request.installRoot) || !request.packageSize
-        || request.packageSize>512ull*1024*1024
-        || std::all_of(request.packageSha256.begin(),request.packageSha256.end(),
-               [](auto byte){return byte==0;})))
-        return false;
     ProcessIdentity parent;if(!parent.open(GetCurrentProcessId()))return false;
     HANDLE raw=nullptr;
     if(!DuplicateHandle(GetCurrentProcess(),parent.handle(),GetCurrentProcess(),&raw,PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,TRUE,0))return false;

@@ -484,6 +484,41 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         check(spawnMappedFixture(source,zeroDigest)==51,"all-zero package digest rejected");
     }
     {
+        // Write side of the same invariant, driven through the real
+        // HandoffRequest -> ChildLaunchRequest -> launchCopy path: a half set
+        // must refuse the launch, never degrade into a handshake that silently
+        // drops the installer fields.
+        std::cout<<"coordinator handoff request"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+        const auto runtime=(root/L"runtime").wstring();
+        HandoffRequest complete;
+        complete.installerPath=(root/L"setup.exe").wstring();
+        complete.installRoot=root.wstring();
+        complete.packageSize=3;complete.packageSha256[0]=1;
+        const auto refuses=[&](HandoffRequest request,const char* name){
+            Coordinator c;
+            check(!c.start(source.wstring(),runtime,nullptr,nullptr,request) && !c.canCommitExit(),name); };
+        auto rootOnly=complete;
+        rootOnly.installerPath.clear();rootOnly.packageSize=0;rootOnly.packageSha256.fill(0);
+        refuses(rootOnly,"install root alone refuses the launch");
+        auto sizeOnly=complete;
+        sizeOnly.installerPath.clear();sizeOnly.installRoot.clear();sizeOnly.packageSha256.fill(0);
+        refuses(sizeOnly,"package size alone refuses the launch");
+        auto digestOnly=complete;
+        digestOnly.installerPath.clear();digestOnly.installRoot.clear();digestOnly.packageSize=0;
+        refuses(digestOnly,"package digest alone refuses the launch");
+        auto installerOnly=complete;
+        installerOnly.installRoot.clear();installerOnly.packageSize=0;installerOnly.packageSha256.fill(0);
+        refuses(installerOnly,"installer path alone refuses the launch");
+        auto relative=complete;relative.installerPath=L"relative\\setup.exe";
+        refuses(relative,"relative installer path refuses the launch");
+        auto oversize=complete;oversize.packageSize=512ull*1024*1024+1;
+        refuses(oversize,"package size beyond the lease limit refuses the launch");
+        {Coordinator c;
+          check(c.start(source.wstring(),runtime,nullptr,nullptr,complete) && c.authenticate(after(2000)),
+              "complete installer group launches and authenticates");}
+    }
+    {
         // 3C installer chain: credential file + restricted switch launch of
         // the fixture installer, engine grandchild protocol, ordinary-user
         // restart of the fixture GUI with bounded endpoint confirmation.
