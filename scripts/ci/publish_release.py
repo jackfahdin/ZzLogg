@@ -168,8 +168,7 @@ def publish(github, directory, info, mode, changelog=None):
     elif tag_commit(github, tag) != sha:
         raise ValueError('Stable tag changed during upload')
     notes = (
-        f'ZzLogg {info["version"]}' + (' — 每日测试版' if nightly else '') + '\n\n'
-        + changes + '\n\n---\n\n'
+        changes + '\n\n---\n\n'
         + f'Source commit: {sha}\n\nBuild: {info["workflow_run"]}\n\n'
         '包含 Windows x64 安装包和便携包、macOS x64/arm64 DMG、Linux x64 DEB/RPM。\n\n'
         'Linux 基线：Ubuntu 24.04。安装包签名状态以各平台验证结果为准。\n'
