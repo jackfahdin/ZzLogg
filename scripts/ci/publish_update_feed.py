@@ -21,6 +21,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from publish_release import GitHub, list_assets
+from release_assets import is_preview_label
 from sign_update_manifest import decimal, no_duplicate_keys
 
 TRUST_KEY_PATH = Path(__file__).resolve().parents[2] / 'packaging/update/github-public-key.json'
@@ -244,7 +245,7 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
         if channel == 'stable':
             if tag != f'v{version}' or label != version:
                 raise ValueError('Stable version/tag/label mismatch')
-        elif not re.fullmatch(r'continuous-[0-9]{8}-[0-9]+-[0-9]+-[0-9a-f]{12}', label):
+        elif not is_preview_label(label):
             raise ValueError('Invalid preview artifact label')
         name = f'ZzLogg-{label}-windows-x64-setup.exe'
         asset = checked_asset(assets, name, github.repository, tag, MAX_PACKAGE_BYTES)

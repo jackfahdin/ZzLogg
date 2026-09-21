@@ -80,3 +80,5 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 ## Windows 安装器兼容
 
 从 v26.09.02 起，Windows 安装包由 Inno Setup 7.1.0 生成，安装包文件名及 HKLM64 下 `Uninstall\ZzLogg` 的 schema 2 身份保持兼容。更新清单中的 `format: nsis-exe` 是已发布客户端使用的历史协议枚举，继续保留，不能据此判断当前打包工具。受限升级/恢复仍使用原有定位名参数和签名校验；本次更换安装界面不开放一键安装。
+
+预览附件现在使用固定的 `ZzLogg-Continuous-Build-*` 名称，签名器和发布器继续兼容此前带日期、构建编号及 SHA 的附件。文件替换与更新清单签名共用发布锁；替换期间预发布临时转为草稿，上传失败可重跑恢复，校验要求保持不变。

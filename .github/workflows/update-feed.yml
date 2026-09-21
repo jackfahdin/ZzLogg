@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: signed-update-feed
+  group: release-assets-and-update-feed
   cancel-in-progress: false
 
 jobs:

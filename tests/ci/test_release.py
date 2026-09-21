@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts/ci'))
 from release_assets import assemble, project_version, validate_tag
+import prepare_release
 from publish_release import publish, snapshot_unchanged, tag_commit, find_release
 
 SHA = 'a' * 40
@@ -24,9 +25,14 @@ class FakeGitHub:
         self.assets = []
         self.events = []
         self.fail_upload = False
+        self.fail_upload_after = None
+        self.fail_promote = False
+        self.omit_digest = False
         self.corrupt_upload = False
         self.fail_delete = False
         self.tag_created_with_draft = False
+        self.upload_draft_states = []
+        self.next_asset_id = 1000
 
     def api(self, path, *, method='GET', data=None, optional=False):
         self.events.append((method, path, data))
@@ -48,6 +54,8 @@ class FakeGitHub:
         if path.startswith('git/'):
             self.sha = data['sha']
         if method == 'PATCH' and path == 'releases/7':
+            if self.fail_promote and data.get('draft') is False:
+                raise RuntimeError('Simulated promotion failure')
             self.release.update(data)
         if method == 'DELETE':
             if self.fail_delete:
@@ -57,12 +65,20 @@ class FakeGitHub:
 
     def upload(self, tag, files, *, clobber):
         self.events.append(('UPLOAD', tag, clobber))
+        self.upload_draft_states.append(self.release['draft'])
         if self.fail_upload:
             raise RuntimeError('Simulated network interruption')
-        for path in files:
-            self.assets.append({'id': 1000 + len(self.assets), 'name': path.name,
+        for index, path in enumerate(files):
+            if self.fail_upload_after is not None and index >= self.fail_upload_after:
+                raise RuntimeError("Simulated partial upload")
+            if clobber:
+                self.assets = [a for a in self.assets if a['name'] != path.name]
+            self.next_asset_id += 1
+            self.assets.append({'id': self.next_asset_id, 'name': path.name,
                                 'size': path.stat().st_size,
                                 'digest': 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()})
+        if self.omit_digest:
+            self.assets[-1].pop('digest')
         if self.corrupt_upload:
             self.assets[-1]['size'] += 1
 
@@ -96,7 +112,7 @@ class ReleaseTests(unittest.TestCase):
 
     def bundle(self, nightly=False):
         return assemble(self.artifacts, self.output, VERSION,
-                        'continuous-20260920-123-1-aaaaaaaaaaaa' if nightly else VERSION,
+                        'Continuous-Build' if nightly else VERSION,
                         SHA, 'continuous-build' if nightly else 'v' + VERSION, 'https://example.com/run/123')
 
     def test_version_uses_cmake_export(self):
@@ -152,6 +168,7 @@ class ReleaseTests(unittest.TestCase):
         publish(github, self.output, self.bundle(), 'stable')
         self.assertFalse(github.release['draft'])
         self.assertFalse(github.release['prerelease'])
+        self.assertEqual(github.release['name'], 'v' + VERSION)
         self.assertEqual(github.release['make_latest'], 'legacy')
         self.assertIn('New feature', github.release['body'])
         self.assertNotIn('Future improvement', github.release['body'])
@@ -200,14 +217,15 @@ class ReleaseTests(unittest.TestCase):
             publish(github, self.output, info, 'stable')
         self.assertEqual(github.events, [])
 
-    def test_nightly_upload_failure_preserves_old_release_and_tag(self):
+    def test_nightly_upload_failure_hides_release_and_preserves_tag(self):
         github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True, 'body': 'previous'}, 'b' * 40)
         github.fail_upload = True
         with self.assertRaises(RuntimeError):
             publish(github, self.output, self.bundle(True), 'nightly')
         self.assertEqual(github.sha, 'b' * 40)
         self.assertEqual(github.release['body'], 'previous')
-        self.assertFalse(any(e[0] in ['DELETE', 'PATCH'] for e in github.events))
+        self.assertTrue(github.release['draft'])
+        self.assertFalse(any(e[0] != 'GET' and e[1].startswith('git/') for e in github.events))
 
     def test_bad_remote_asset_prevents_promotion(self):
         github = FakeGitHub()
@@ -223,18 +241,20 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(github.sha, SHA)
         self.assertFalse(any(method == 'POST' and path == 'git/refs' for method, path, _ in github.events))
 
-    def test_nightly_promotes_before_pruning_old_assets_and_is_not_latest(self):
+    def test_nightly_prunes_before_promotion_and_is_not_latest(self):
         github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True}, 'b' * 40)
         github.assets = [{'id': i, 'name': f'old-{i}', 'size': 1} for i in range(105)]
         publish(github, self.output, self.bundle(True), 'nightly')
         self.assertEqual(len(github.assets), 8)
         self.assertEqual(github.sha, SHA)
         self.assertEqual(github.release['make_latest'], 'false')
+        self.assertEqual(github.release['name'], 'Continuous Build')
+        self.assertEqual(github.upload_draft_states, [True])
         self.assertIn('Future improvement', github.release['body'])
         self.assertIn('New feature', github.release['body'])
-        promote = next(i for i, e in enumerate(github.events) if e[0:2] == ('PATCH', 'releases/7'))
+        promote = next(i for i, e in enumerate(github.events) if e[0:2] == ('PATCH', 'releases/7') and e[2].get('draft') is False)
         prune = next(i for i, e in enumerate(github.events) if e[0] == 'DELETE')
-        self.assertLess(promote, prune)
+        self.assertLess(prune, promote)
 
     def test_failed_cleanup_rerun_reuses_current_assets_without_upload(self):
         github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True}, 'b' * 40)
@@ -243,20 +263,91 @@ class ReleaseTests(unittest.TestCase):
         info = self.bundle(True)
         with self.assertRaises(RuntimeError):
             publish(github, self.output, info, 'nightly')
-        self.assertFalse(github.release['draft'])
+        self.assertTrue(github.release['draft'])
+        self.assertEqual(github.sha, 'b' * 40)
+        github.release['tag_name'] = 'continuous-build'
         github.fail_delete = False
         github.fail_upload = True
         publish(github, self.output, info, 'nightly')
         self.assertEqual(len(github.assets), 8)
         self.assertEqual(sum(e[0] == 'UPLOAD' for e in github.events), 1)
 
-    def test_nightly_refuses_conflicting_asset_without_deleting_it(self):
+    def test_nightly_replaces_conflicting_asset_only_while_hidden(self):
         github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True}, 'b' * 40)
         info = self.bundle(True)
-        github.assets = [{'id': 1, 'name': info['assets'][0]['name'], 'size': 1, 'digest': 'wrong'}]
-        with self.assertRaises(ValueError):
+        name = info['assets'][0]['name']
+        github.assets = [{'id': 1, 'name': name, 'size': 1, 'digest': 'wrong'}]
+        publish(github, self.output, info, 'nightly')
+        self.assertEqual(github.upload_draft_states, [True])
+        self.assertEqual(sum(a['name'] == name for a in github.assets), 1)
+        self.assertEqual(len(github.assets), 8)
+        self.assertFalse(github.release['draft'])
+        hide = next(i for i, e in enumerate(github.events)
+                    if e[:2] == ('PATCH', 'releases/7') and e[2].get('draft') is True)
+        upload = next(i for i, e in enumerate(github.events) if e[0] == 'UPLOAD')
+        self.assertLess(hide, upload)
+
+    def test_partial_preview_replacement_stays_hidden_and_retry_recovers(self):
+        github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True,
+                             'tag_name': 'continuous-build'}, 'b' * 40)
+        info = self.bundle(True)
+        github.assets = [{'id': 9, 'name': info['assets'][0]['name'], 'size': 1, 'digest': 'old'}]
+        github.fail_upload_after = 3
+        with self.assertRaises(RuntimeError):
             publish(github, self.output, info, 'nightly')
-        self.assertFalse(any(e[0] in ['DELETE', 'PATCH', 'UPLOAD'] for e in github.events))
+        uploaded_ids = {a['name']: a['id'] for a in github.assets}
+        self.assertEqual(len(uploaded_ids), 3)
+        self.assertTrue(github.release['draft'])
+        self.assertEqual(github.sha, 'b' * 40)
+        github.fail_upload_after = None
+        publish(github, self.output, info, 'nightly')
+        self.assertEqual(len(github.assets), 8)
+        self.assertFalse(github.release['draft'])
+        self.assertEqual(github.sha, SHA)
+        for asset in github.assets:
+            if asset['name'] in uploaded_ids:
+                self.assertEqual(asset['id'], uploaded_ids[asset['name']])
+
+    def test_final_preview_publication_failure_is_resumable_after_tag_moves(self):
+        github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True,
+                             'tag_name': 'continuous-build'}, 'b' * 40)
+        info = self.bundle(True)
+        github.fail_promote = True
+        with self.assertRaises(RuntimeError):
+            publish(github, self.output, info, 'nightly')
+        self.assertTrue(github.release['draft'])
+        self.assertEqual(github.sha, SHA)
+        github.fail_promote = False
+        github.fail_upload = True  # The retry must reuse verified bytes.
+        publish(github, self.output, info, 'nightly')
+        self.assertFalse(github.release['draft'])
+
+    def test_missing_remote_digest_prevents_publication(self):
+        github = FakeGitHub()
+        github.omit_digest = True
+        with self.assertRaises(ValueError):
+            publish(github, self.output, self.bundle(True), 'nightly')
+        self.assertTrue(github.release['draft'])
+
+    def test_nightly_names_are_short_and_zip_root_matches(self):
+        info = self.bundle(True)
+        self.assertTrue(all(asset['name'].startswith('ZzLogg-Continuous-Build-') for asset in info['assets']))
+        self.assertTrue((self.output / 'release-info-Continuous-Build.json').is_file())
+        self.assertTrue((self.output / 'SHA256SUMS-Continuous-Build.txt').is_file())
+        with zipfile.ZipFile(next(self.output.glob('*.zip'))) as archive:
+            self.assertEqual(archive.namelist(), ['ZzLogg-Continuous-Build-windows-x64-portable/ZzLogg.exe'])
+
+    def test_prepare_uses_fixed_preview_label_without_run_identity_suffix(self):
+        output = self.root / 'github-output'
+        with patch.dict(os.environ, {'GITHUB_REF_NAME': 'master', 'GITHUB_EVENT_NAME': 'workflow_dispatch',
+                                     'GITHUB_OUTPUT': str(output)}, clear=True), \
+                patch('sys.argv', ['prepare_release.py', '--mode', 'nightly']), \
+                patch.object(prepare_release, 'project_version', return_value=VERSION), \
+                patch.object(prepare_release, 'release_changes', return_value='Changes'), \
+                patch.object(prepare_release.subprocess, 'check_output', return_value=SHA):
+            prepare_release.main()
+        self.assertIn('label=Continuous-Build\n', output.read_text())
+        self.assertIn(f'sha={SHA}\n', output.read_text())
 
     def test_only_completed_matching_snapshot_is_skipped(self):
         github = FakeGitHub({'draft': False, 'prerelease': True, 'body': f'<!-- source-commit: {SHA} -->'})
