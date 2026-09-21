@@ -175,12 +175,22 @@ def check_progress(previous, current, channel):
 
 
 def store_manifest(github, channel, content, old):
-    if github.api(f'git/ref/heads/{BRANCH}', optional=True) is None:
-        # Bootstrap from a known branch without replacing any existing tree.
-        # A concurrent branch creation fails rather than force-resetting it.
-        source = github.api('git/ref/heads/master')['object']['sha']
-        github.api('git/refs', method='POST', data={'ref': f'refs/heads/{BRANCH}', 'sha': source})
     name = f'{channel}.json'
+    if github.api(f'git/ref/heads/{BRANCH}', optional=True) is None:
+        if old is not None:
+            raise ValueError('Feed branch disappeared after reading the manifest')
+        # Publish the first verified manifest in an independent root commit.
+        # No base_tree/parents means no source files or source history. Creating
+        # the ref last is atomic; a concurrent creation fails without a reset.
+        tree = github.api('git/trees', method='POST', data={'tree': [
+            {'path': name, 'mode': '100644', 'type': 'blob',
+             'content': content.decode('utf-8')}]})
+        commit = github.api('git/commits', method='POST', data={
+            'message': 'Initialize signed update metadata',
+            'tree': tree['sha'], 'parents': []})
+        github.api('git/refs', method='POST', data={
+            'ref': f'refs/heads/{BRANCH}', 'sha': commit['sha']})
+        return
     data = {'message': f'Renew signed {channel} update metadata', 'branch': BRANCH,
             'content': base64.b64encode(content).decode('ascii')}
     if old is not None:
