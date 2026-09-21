@@ -7,6 +7,7 @@
 
 ### 改进
 
+- 修正 Linux 打包检查对旧版上传 Action 的硬编码，避免升级 Actions 后误报失败。
 - 更新清单分支改为独立历史的纯数据分支，仅保存已发布渠道的签名 JSON，移除无关源码。
 - CI 缓存和构建产物 Actions 升级到原生 Node 24 版本，Windows 编译环境改用 Visual Studio 自带的开发者 PowerShell。
 - macOS DMG 打包取消 Finder 自动布局和卷图标定制，减少临时镜像挂载；创建镜像遇到资源占用时使用独立目录有限重试，并校验最终镜像。
