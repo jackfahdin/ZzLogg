@@ -78,7 +78,7 @@ std::vector<Ace> daclOf(const std::wstring& path,bool directory,bool& protectedD
 }
 int wmain() {
     static_assert(!std::is_copy_constructible_v<TxJournal> && std::is_nothrow_move_constructible_v<TxJournal>);
-    wchar_t temp[MAX_PATH]{}; GetTempPathW(MAX_PATH,temp);
+    const auto temp=detail::testTempDirectory();
     const auto root=fs::path(temp)/(L"ZzLogg-txjournal-test-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(GetTickCount64()));
     fs::create_directories(root/L"txroot");
     const auto txroot=(root/L"txroot").wstring();

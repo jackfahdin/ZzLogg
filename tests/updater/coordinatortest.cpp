@@ -237,7 +237,7 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
     }
     if(argc!=3)return 2;int failures=0;
     auto check=[&](bool ok,const char* name){if(!ok){++failures;std::cerr<<"FAIL: "<<name<<" error="<<GetLastError()<<'\n';}};
-    wchar_t temp[MAX_PATH]{};GetTempPathW(MAX_PATH,temp);
+    const auto temp=detail::testTempDirectory();
     auto root=createTestRoot(temp);
     // A previous run's files must never be reused, even when Windows reuses its PID.
     const auto firstRoot=createTestRoot(root);

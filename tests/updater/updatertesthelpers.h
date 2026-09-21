@@ -6,10 +6,32 @@
 #include "processidentity_win_p.h"
 #include "txcontract_win_p.h"
 #include <sddl.h>
+#include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 namespace zzlogg::updater::detail {
+// Temp directory in the exact form the leases compare against. GetTempPathW
+// may hand back an 8.3 short name or a substituted drive; every lease checks
+// GetFinalPathNameByHandleW against the requested path, so an unnormalised
+// root fails closed on environments that never come up on a developer box.
+inline std::wstring testTempDirectory() {
+    std::array<wchar_t,MAX_PATH> raw{};
+    if(!GetTempPathW(static_cast<DWORD>(raw.size()),raw.data())) return {};
+    Handle directory(CreateFileW(raw.data(),FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,nullptr));
+    if(!directory) return raw.data();
+    std::array<wchar_t,32768> resolved{};
+    const auto length=GetFinalPathNameByHandleW(directory.get(),resolved.data(),
+        static_cast<DWORD>(resolved.size()),FILE_NAME_NORMALIZED|VOLUME_NAME_DOS);
+    if(!length || length>=resolved.size()) return raw.data();
+    std::wstring value(resolved.data(),length);
+    constexpr std::wstring_view prefix=L"\\\\?\\";
+    if(value.compare(0,prefix.size(),prefix)==0) value.erase(0,prefix.size());
+    return value;
+}
 // String SID of the current process user, empty on any lookup failure.
 inline std::wstring currentUserSid() {
     HANDLE rawToken=nullptr;
