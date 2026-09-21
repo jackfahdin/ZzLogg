@@ -355,7 +355,8 @@ jobs:
             qt_arch: win64_msvc2022_64
             arch: x64
             ssl_arch: -x64
-            cmake_opts:
+            # 更新链路的测试目标全是 Windows 专属，只有这个开关打开才会被构建和执行。
+            cmake_opts: -DKLOGG_BUILD_UI_TESTS=ON
             artifacts_id: windows-x64-qt6
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
