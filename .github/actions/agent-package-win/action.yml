@@ -53,16 +53,13 @@ runs:
         )
         xcopy /y "%SSL_DIR%\libcrypto-1_1-x64.dll" release\
         xcopy /y "%SSL_DIR%\libssl-1_1-x64.dll" release\
-        powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisUninstallManifest.ps1 -StagingDirectory release
-        if errorlevel 1 exit /b %errorlevel%
-        powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisManifest.ps1 -StagingDirectory release
+        powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateInstallerManifest.ps1 -StagingDirectory release
         if errorlevel 1 exit /b %errorlevel%
 
     - name: Win installer
-      shell: cmd
+      shell: pwsh
       run: |
-        choco install nsis --version=3.11 -y --no-progress
-        makensis /NOCD -DVERSION=%KLOGG_VERSION% -DPLATFORM=%KLOGG_ARCH% packaging\windows\ZzLogg.nsi
+        ./packaging/windows/Build-InnoInstaller.ps1 -Version $env:KLOGG_VERSION -Platform $env:KLOGG_ARCH
     
     - name: Win package
       shell: cmd

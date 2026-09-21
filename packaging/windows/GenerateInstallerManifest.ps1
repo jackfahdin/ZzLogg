@@ -1,7 +1,7 @@
 # Generates the landing manifest .zzlogg-files.manifest: one entry per
 # installer-owned staged file with its size and SHA-256, so the transaction
 # engine can diff installations without scanning directories. Enumerates the
-# same staging tree as the uninstall manifest (shared NsisStagingFiles.ps1).
+# staged runtime tree shared with the Inno Setup installer.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
@@ -11,7 +11,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-. (Join-Path $PSScriptRoot 'NsisStagingFiles.ps1')
+. (Join-Path $PSScriptRoot 'InstallerStagingFiles.ps1')
 
 $stagingRoot = (Resolve-Path -LiteralPath $StagingDirectory).Path.TrimEnd('\', '/')
 $manifestPath = Join-Path $stagingRoot '.zzlogg-files.manifest'

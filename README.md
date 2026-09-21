@@ -60,7 +60,7 @@ ctest --preset ninja-release
 
 ## 打包与安装
 
-仓库维护 CMake install/CPack 配置、Windows Qt 6 NSIS 脚本、Linux 桌面入口与图标安装规则，以及由 CMake 生成的 Windows 独立运行目录。制作安装包需要对应平台工具，并应在目标主机上验证。
+仓库维护 CMake install/CPack 配置、Windows Qt 6 Inno Setup 7 安装脚本、Linux 桌面入口与图标安装规则，以及由 CMake 生成的 Windows 独立运行目录。制作安装包需要对应平台工具，并应在目标主机上验证。
 
 ZzPureTools 及其框架依赖采用静态链接，Qt 和编译器运行库采用动态链接。Windows 运行目录包含应用运行所需的动态依赖，许可证集中保存在 `licenses/` 下。
 

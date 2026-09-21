@@ -18,7 +18,7 @@ bool dataDirectoryPlausibleImpl(const wchar_t* text,std::size_t length) {
     return drive || unc;
 }
 // Exactly 16 lowercase hexadecimal digits, nonzero: the locator shape shared
-// by the credential path, the NSIS restricted entry and the engine parser.
+// by the credential path, the Inno Setup restricted entry and the engine parser.
 bool locatorPlausible(const std::wstring& locator) {
     if(locator.size()!=16)return false;
     bool nonzero=false;

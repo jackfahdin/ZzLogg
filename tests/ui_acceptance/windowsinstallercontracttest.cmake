@@ -112,296 +112,115 @@ foreach(required_staging_line IN LISTS required_staging_lines)
   endif()
 endforeach()
 
+# Inno consumes this complete tree and records installed paths in its own
+# uninstall log; the updater's landing manifest remains an independent ABI.
 set(manifest_generator
-  "${SOURCE_ROOT}/packaging/windows/GenerateNsisUninstallManifest.ps1")
-if(NOT EXISTS "${manifest_generator}")
-  message(FATAL_ERROR "NSIS uninstall manifest generator is missing: ${manifest_generator}")
-endif()
-
+  "${SOURCE_ROOT}/packaging/windows/GenerateInstallerManifest.ps1")
 set(manifest_test_root
   "${BUILD_DIRECTORY}/tests/ui_acceptance/windows-installer-manifest-contract/${CONFIG}")
 set(manifest_staging "${manifest_test_root}/release")
 file(REMOVE_RECURSE "${manifest_test_root}")
 file(MAKE_DIRECTORY "${manifest_staging}")
 file(COPY "${RUNTIME_DIR}/" DESTINATION "${manifest_staging}")
-file(MAKE_DIRECTORY "${manifest_staging}/plugins/nested")
-file(WRITE "${manifest_staging}/ZzLogg.exe" "main")
 file(WRITE "${manifest_staging}/documentation.html" "docs")
 file(WRITE "${manifest_staging}/libcrypto-1_1-x64.dll" "crypto")
 file(WRITE "${manifest_staging}/libssl-1_1-x64.dll" "ssl")
-file(WRITE "${manifest_staging}/plugins/cost$plugin.dll" "dollar")
-file(WRITE "${manifest_staging}/plugins/nested/sample.dll" "nested")
-
 execute_process(
   COMMAND "${POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
-          -File "${manifest_generator}"
-          -StagingDirectory "${manifest_staging}"
+          -File "${manifest_generator}" -StagingDirectory "${manifest_staging}"
   RESULT_VARIABLE manifest_result
   OUTPUT_VARIABLE manifest_output
   ERROR_VARIABLE manifest_error)
 if(NOT manifest_result EQUAL 0)
   message(FATAL_ERROR
-    "NSIS uninstall manifest generation failed (${manifest_result}):\n"
+    "Runtime landing manifest generation failed (${manifest_result}):\n"
     "${manifest_output}\n${manifest_error}")
 endif()
-
-set(uninstall_manifest "${manifest_staging}/.zzlogg-uninstall.nsh")
-if(NOT EXISTS "${uninstall_manifest}")
-  message(FATAL_ERROR "NSIS uninstall manifest was not generated")
-endif()
-file(READ "${uninstall_manifest}" manifest_content)
-string(REPLACE "\r\n" "\n" manifest_content "${manifest_content}")
-
-file(GLOB_RECURSE staged_files RELATIVE "${manifest_staging}" "${manifest_staging}/*")
-set(staged_directories)
-foreach(staged_file IN LISTS staged_files)
-  if(staged_file STREQUAL ".zzlogg-uninstall.nsh")
-    continue()
-  endif()
-  string(REPLACE "/" "\\" nsis_file "${staged_file}")
-  string(REPLACE "$" "$$" nsis_file "${nsis_file}")
-  set(expected_delete [=[Delete "$INSTDIR\]=])
-  string(APPEND expected_delete "${nsis_file}\"")
-  string(FIND "${manifest_content}" "${expected_delete}" delete_position)
-  if(delete_position EQUAL -1)
-    message(FATAL_ERROR
-      "Generated uninstall manifest omits staged file: ${staged_file}")
-  endif()
-  get_filename_component(staged_directory "${staged_file}" DIRECTORY)
-  while(NOT staged_directory STREQUAL "")
-    list(APPEND staged_directories "${staged_directory}")
-    get_filename_component(staged_directory "${staged_directory}" DIRECTORY)
-  endwhile()
-endforeach()
-list(REMOVE_DUPLICATES staged_directories)
-foreach(staged_directory IN LISTS staged_directories)
-  string(REPLACE "/" "\\" nsis_directory "${staged_directory}")
-  string(REPLACE "$" "$$" nsis_directory "${nsis_directory}")
-  set(expected_rmdir [=[RMDir "$INSTDIR\]=])
-  string(APPEND expected_rmdir "${nsis_directory}\"")
-  string(FIND "${manifest_content}" "${expected_rmdir}" rmdir_position)
-  if(rmdir_position EQUAL -1)
-    message(FATAL_ERROR
-      "Generated uninstall manifest omits staged directory: ${staged_directory}")
-  endif()
-endforeach()
-
-set(required_manifest_literals
-  [=[Delete "$INSTDIR\plugins\cost$$plugin.dll"]=]
-  [=[Delete "$INSTDIR\Uninstall.exe"]=]
-  [=[Delete "$INSTDIR\.zzlogg-install-root"]=]
-  [=[Delete "$INSTDIR\.zzlogg-files.manifest"]=]
-  [=[RMDir "$INSTDIR\plugins\nested"]=]
-  [=[RMDir "$INSTDIR\plugins"]=]
-  [=[RMDir "$INSTDIR"]=])
-foreach(required_manifest_literal IN LISTS required_manifest_literals)
-  string(FIND "${manifest_content}" "${required_manifest_literal}" manifest_literal_position)
-  if(manifest_literal_position EQUAL -1)
-    message(FATAL_ERROR
-      "Generated uninstall manifest is missing: ${required_manifest_literal}")
-  endif()
-endforeach()
-string(FIND "${manifest_content}" [=[RMDir "$INSTDIR\plugins\nested"]=]
-  nested_directory_position)
-string(FIND "${manifest_content}" [=[RMDir "$INSTDIR\plugins"]=]
-  parent_directory_position)
-if(nested_directory_position GREATER parent_directory_position)
-  message(FATAL_ERROR "Generated uninstall directories are not deepest-first")
-endif()
-string(FIND "${manifest_content}" "RMDir /r" recursive_manifest_position)
-if(NOT recursive_manifest_position EQUAL -1)
-  message(FATAL_ERROR "Generated uninstall manifest contains recursive deletion")
+file(READ "${manifest_staging}/.zzlogg-files.manifest" manifest_header LIMIT 16 HEX)
+if(NOT manifest_header MATCHES "^5a5a54584d414e3101000000[0-9a-f]+$")
+  message(FATAL_ERROR "Runtime landing manifest has an invalid header: ${manifest_header}")
 endif()
 
-set(manifest_action_line
-  [=[powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\GenerateNsisUninstallManifest.ps1 -StagingDirectory release]=])
+set(manifest_action_line "GenerateInstallerManifest.ps1 -StagingDirectory release")
 string(FIND "${action_content}" "${manifest_action_line}" manifest_action_position)
-string(FIND "${action_content}" "- name: Win installer" installer_step_position)
-if(manifest_action_position EQUAL -1 OR installer_step_position EQUAL -1
+string(FIND "${action_content}" "Build-InnoInstaller.ps1" installer_position)
+if(manifest_action_position EQUAL -1 OR installer_position EQUAL -1
    OR manifest_action_position LESS last_staging_position
-   OR manifest_action_position GREATER installer_step_position)
+   OR manifest_action_position GREATER installer_position)
   message(FATAL_ERROR
-    "Windows action must generate the uninstall manifest after staging and before makensis")
+    "Windows action must generate the landing manifest after staging and before Inno compilation")
 endif()
 
-set(nsis_path "${SOURCE_ROOT}/packaging/windows/ZzLogg.nsi")
-file(READ "${nsis_path}" nsis_content)
-string(REPLACE "\r\n" "\n" nsis_content "${nsis_content}")
+file(READ "${SOURCE_ROOT}/packaging/windows/ZzLogg.iss" inno_content)
+string(REPLACE "\r\n" "\n" inno_content "${inno_content}")
+# Strip full-line comments. Semicolons terminate Pascal statements and divide
+# Inno entry fields, so treating them as trailing comments would hide code.
+string(REGEX REPLACE "(^|\n)[ \t]*(;|//)[^\n]*" "\\1"
+  inno_active_content "${inno_content}")
 
-# Static NSIS identity assertions are intentionally scoped to active code blocks.
-# Strip full-line and trailing comments so contract words in commentary cannot pass.
-string(REGEX REPLACE "(^|\n)[ \t]*[#;][^\n]*" "\\1" nsis_active_content
-  "${nsis_content}")
-string(REGEX REPLACE "[ \t]+[#;][^\n]*" "" nsis_active_content
-  "${nsis_active_content}")
-
-function(extract_nsis_block content_variable start_marker end_marker block_name output_variable)
-  string(FIND "${${content_variable}}" "${start_marker}" block_start)
-  if(block_start EQUAL -1)
-    message(FATAL_ERROR "NSIS ${block_name} block is missing")
-  endif()
-  string(SUBSTRING "${${content_variable}}" ${block_start} -1 block_tail)
-  string(FIND "${block_tail}" "${end_marker}" block_end)
-  if(block_end EQUAL -1)
-    message(FATAL_ERROR "NSIS ${block_name} block is unterminated")
-  endif()
-  string(LENGTH "${end_marker}" end_marker_length)
-  math(EXPR block_length "${block_end} + ${end_marker_length}")
-  string(SUBSTRING "${block_tail}" 0 ${block_length} block_content)
-  set(${output_variable} "${block_content}" PARENT_SCOPE)
-endfunction()
-
-function(require_nsis_block_literal block_variable required_literal block_name)
-  string(FIND "${${block_variable}}" "${required_literal}" literal_position)
+function(require_inno_literal required_literal)
+  string(FIND "${inno_active_content}" "${required_literal}" literal_position)
   if(literal_position EQUAL -1)
-    message(FATAL_ERROR
-      "NSIS ${block_name} identity contract is missing: ${required_literal}")
+    message(FATAL_ERROR "Inno installer contract is missing: ${required_literal}")
   endif()
 endfunction()
 
 foreach(required_literal IN ITEMS
-    "InstallDirRegKey HKLM \"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ZzLogg\" \"InstallLocation\""
-    "SetRegView 64"
-    "\"UpdateIdentitySchema\" 2")
-  string(FIND "${nsis_active_content}" "${required_literal}" found)
-  if(found EQUAL -1)
-    message(FATAL_ERROR "Missing installer identity contract: ${required_literal}")
-  endif()
+    "ArchitecturesInstallIn64BitMode=x64compatible"
+    "PrivilegesRequired=admin"
+    "CreateUninstallRegKey=no"
+    [=[Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg]=]
+    "InstallLocation" "UpdateIdentitySchema" "DisplayVersion"
+    ".zzlogg-install-root" ".zzlogg-files.manifest"
+    "recursesubdirs" "createallsubdirs"
+    "uninsdeletekey" "HKLM64")
+  require_inno_literal("${required_literal}")
 endforeach()
 
-extract_nsis_block(nsis_active_content "Function .onInit" "FunctionEnd"
-  "installer .onInit" installer_on_init)
-extract_nsis_block(nsis_active_content "Function un.onInit" "FunctionEnd"
-  "uninstaller un.onInit" uninstaller_on_init)
-extract_nsis_block(nsis_active_content
-  [=[Section "ZzLogg application and runtime" zzlogg]=] "SectionEnd"
-  "application install section" application_install_section)
-extract_nsis_block(nsis_active_content [=[Section "Uninstall"]=] "SectionEnd"
-  "uninstall section" uninstall_section)
+require_inno_literal([=[ValueType: dword; ValueName: "UpdateIdentitySchema"; ValueData: "2"]=])
+require_inno_literal([=[ValueName: "InstallLocation"; ValueData: "{app}"]=])
+require_inno_literal([=[ValueName: "UninstallString"; ValueData: """{uninstallexe}"""]=])
+require_inno_literal("DefaultDirName={code:DefaultInstallDir}")
+require_inno_literal("RegQueryStringValue(HKLM64, RegistrationKey, 'InstallLocation', Result)")
+require_inno_literal("'ZzLogg {#VERSION}' + #13#10")
 
-set(expected_reg_view_selection [=[!ifdef ARCH32
-    SetRegView 32
-!else
-    SetRegView 64
-!endif]=])
-require_nsis_block_literal(installer_on_init "${expected_reg_view_selection}"
-  "installer .onInit")
-require_nsis_block_literal(uninstaller_on_init "${expected_reg_view_selection}"
-  "uninstaller un.onInit")
-
-set(uninstall_identity_key_delete
-  [=[DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg"]=])
-set(legacy_identity_key_delete [=[DeleteRegKey HKLM "Software\ZzLogg"]=])
-set(file_association_cleanup
-  [=[${unregisterExtension} ".log" "ZzLogg log file"]=])
-foreach(uninstall_identity_literal IN ITEMS
-    "${uninstall_identity_key_delete}"
-    "SetRegView 32"
-    "${legacy_identity_key_delete}"
-    "${expected_reg_view_selection}"
-    "${file_association_cleanup}")
-  require_nsis_block_literal(uninstall_section "${uninstall_identity_literal}"
-    "uninstall section")
-endforeach()
-string(FIND "${uninstall_section}" "${uninstall_identity_key_delete}"
-  uninstall_identity_delete_position)
-string(FIND "${uninstall_section}" "SetRegView 32" legacy_view_position)
-string(FIND "${uninstall_section}" "${legacy_identity_key_delete}"
-  legacy_identity_delete_position)
-string(FIND "${uninstall_section}" "${expected_reg_view_selection}"
-  restored_view_position)
-string(FIND "${uninstall_section}" "${file_association_cleanup}"
-  file_association_cleanup_position)
-if(NOT uninstall_identity_delete_position LESS legacy_view_position
-   OR NOT legacy_view_position LESS legacy_identity_delete_position
-   OR NOT legacy_identity_delete_position LESS restored_view_position
-   OR NOT restored_view_position LESS file_association_cleanup_position)
-  message(FATAL_ERROR
-    "NSIS uninstall must delete the new identity in the architecture view, "
-    "clean the legacy key in the 32-bit view, then restore the architecture view")
+# Exactly one recursive payload tree plus the two restricted-entry resources:
+# no separate Qt/runtime components and no transaction helper in {app}.
+string(REGEX MATCHALL "(^|\n)Source:" file_entries "${inno_active_content}")
+list(LENGTH file_entries file_entry_count)
+if(NOT file_entry_count EQUAL 3)
+  message(FATAL_ERROR "Inno must embed one runtime tree and two restricted-entry resources")
 endif()
+require_inno_literal([=[Source: "release\*"; DestDir: "{app}"]=])
+require_inno_literal([=[Source: "txpayload\ZzLoggUpdateTx.exe"; Flags: dontcopy]=])
+require_inno_literal([=[Source: "release\.zzlogg-files.manifest"; DestName: "files.manifest"; Flags: dontcopy]=])
+require_inno_literal([=[Excludes: ".zzlogg-uninstall.nsh"]=])
 
-set(installer_directory_read
-  [=[ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "InstallLocation"]=])
-foreach(installer_init_literal IN ITEMS
-    [=[System::Call 'kernel32::GetCommandLine()t.r0']=]
-    [=[${StrStr} $1 $0 " /D="]=]
-    [=[StrCmp $1 "" 0 zzlogg_on_init_done]=]
-    "${installer_directory_read}"
-    [=[StrCpy $INSTDIR "$0"]=])
-  require_nsis_block_literal(installer_on_init "${installer_init_literal}"
-    "installer .onInit")
-endforeach()
-string(FIND "${installer_on_init}" "SetRegView 64" installer_view_position)
-string(FIND "${installer_on_init}" [=[${StrStr} $1 $0 " /D="]=]
-  installer_override_check_position)
-string(FIND "${installer_on_init}" "${installer_directory_read}"
-  installer_directory_read_position)
-if(installer_view_position GREATER installer_directory_read_position
-   OR installer_override_check_position GREATER installer_directory_read_position)
-  message(FATAL_ERROR
-    "NSIS installer must select its registry view and preserve /D= before directory readback")
-endif()
+# The association task is opt-in and restores the previous default only while
+# still owned by ZzLogg, including migration of the old NSIS backup value.
+require_inno_literal([=[Name: "associate"; Description: "{cm:AssociateLog}"; Flags: unchecked]=])
+require_inno_literal("'PreviousLogHadValue'")
+require_inno_literal("'PreviousLogAssociation'")
+require_inno_literal("'backup_val'")
+require_inno_literal("(Current = 'ZzLogg.LogFile') or (Current = 'ZzLogg log file')")
+require_inno_literal("RegWriteStringValue(HKLM64, 'Software\\Classes\\.log', '', Previous)")
 
-foreach(application_identity_literal IN ITEMS
-    [=["InstallLocation" "$INSTDIR"]=]
-    [=[WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ZzLogg" "UpdateIdentitySchema" 2]=])
-  require_nsis_block_literal(application_install_section
-    "${application_identity_literal}" "application install section")
-endforeach()
-
-set(recursive_file_line [=[File /r /x .zzlogg-uninstall.nsh "release\*.*"]=])
-set(allowed_payload_file_lines
-  [=[File "/oname=$ZzLoggStaging\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=]
-  [=[File "/oname=$ZzLoggStaging\files.manifest" "release\.zzlogg-files.manifest"]=]
-  [=[File "/oname=$ZzLoggTxDir\recover\ZzLoggUpdateTx.exe" "txpayload\ZzLoggUpdateTx.exe"]=])
-string(REGEX MATCHALL "\n[ \t]+File[ \t][^\n]*" nsis_file_lines "${nsis_content}")
-set(recursive_file_line_count 0)
-foreach(actual_file_line IN LISTS nsis_file_lines)
-  string(STRIP "${actual_file_line}" actual_file_line)
-  if(actual_file_line STREQUAL recursive_file_line)
-    math(EXPR recursive_file_line_count "${recursive_file_line_count} + 1")
-    continue()
-  endif()
-  # Beyond the one recursive staging consumption, only the restricted-mode
-  # payload extraction may embed files: the transaction engine and the fresh
-  # landing manifest, always extracted beneath the protected transaction root.
-  if(NOT actual_file_line IN_LIST allowed_payload_file_lines)
-    message(FATAL_ERROR
-      "NSIS embeds a file outside the staging tree or restricted payload: ${actual_file_line}")
+# Refuse installation-root recursive deletion and user-data cleanup. Inno's
+# uninstall log removes only owned paths; custom roots/settings survive.
+foreach(forbidden_pattern IN ITEMS
+    "Type:[ \t]*filesandordirs"
+    "DelTree[ \t]*\\("
+    "\\{userappdata\\}.*ZzLogg.ini"
+    "\\{userappdata\\}.*ZzLogg.session")
+  if(inno_active_content MATCHES "${forbidden_pattern}")
+    message(FATAL_ERROR "Inno uninstall violates owned-path cleanup: ${forbidden_pattern}")
   endif()
 endforeach()
-if(NOT recursive_file_line_count EQUAL 1)
-  message(FATAL_ERROR
-    "NSIS must consume the complete release staging tree with one recursive File command")
-endif()
-
-foreach(forbidden_section IN ITEMS
-    [=[Section "Qt 6 Runtime libraries"]=]
-    [=[Section "MSVC Runtime libraries"]=])
-  string(FIND "${nsis_content}" "${forbidden_section}" forbidden_section_position)
-  if(NOT forbidden_section_position EQUAL -1)
-    message(FATAL_ERROR "NSIS retains a split runtime section: ${forbidden_section}")
-  endif()
-endforeach()
-
-set(required_uninstall_literals
-  [=[FileOpen $0 "$INSTDIR\.zzlogg-install-root" w]=]
-  [=[FileWrite $0 "ZzLogg ${VERSION}$\r$\n"]=]
-  [=[FileClose $0]=]
-  [=[!include "release\.zzlogg-uninstall.nsh"]=])
-foreach(required_uninstall_literal IN LISTS required_uninstall_literals)
-  string(FIND "${nsis_content}" "${required_uninstall_literal}" uninstall_position)
-  if(uninstall_position EQUAL -1)
-    message(FATAL_ERROR
-      "NSIS recursive uninstall safety contract is missing: ${required_uninstall_literal}")
-  endif()
-endforeach()
-
-string(FIND "${nsis_content}" "RMDir /r" recursive_delete_position)
-if(NOT recursive_delete_position EQUAL -1)
-  message(FATAL_ERROR "NSIS must never recursively delete the installation directory")
+# A legacy uninstaller may be removed as a file, but must never execute: its
+# cleanup would delete settings and files now owned by the Inno installation.
+if(inno_active_content MATCHES "Exec[^\n]*[Uu]ninstall\\.exe")
+  message(FATAL_ERROR "Migration must not run the legacy NSIS uninstaller")
 endif()
 
 message(STATUS
-  "NSIS installs the complete staging tree and uninstalls only installer-owned paths")
+  "Inno consumes the complete runtime tree and preserves installer identity and user data")

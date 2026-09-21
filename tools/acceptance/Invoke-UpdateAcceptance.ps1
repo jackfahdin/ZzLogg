@@ -56,7 +56,7 @@ function Skip-Case {
 }
 
 # 用例统一前置门禁：无安装包 → SKIP；显式给了假路径 → FAIL（失败语义不哑）；
-# 非管理员 → SKIP（安装包 RequestExecutionLevel=admin，非提权环境会触发 UAC 交互）。
+# 非管理员 → SKIP（安装包 PrivilegesRequired=admin，非提权环境会触发 UAC 交互）。
 # 返回 $null 表示可继续；否则返回应直接返回的结果对象。
 function Test-CasePrereqs {
     param([Parameter(Mandatory = $true)]$Context)
@@ -67,7 +67,7 @@ function Test-CasePrereqs {
         return (Fail-Case "SetupExe 不存在: $($Context.SetupExe)")
     }
     if (-not $Context.IsAdmin) {
-        return (Skip-Case '需管理员权限：安装包 RequestExecutionLevel=admin，非提权环境会触发 UAC 交互')
+        return (Skip-Case '需管理员权限：安装包 PrivilegesRequired=admin，非提权环境会触发 UAC 交互')
     }
     return $null
 }
@@ -88,8 +88,7 @@ function Invoke-SetupProcess {
     return @{ ExitCode = $null; TimedOut = $true }
 }
 
-# 静默安装。普通安装不禁 /D=（仅受限入口禁），显式 /D= 保证 CI 安装到指定路径；
-# 目标即默认 ProgramFiles\ZzLogg 时不传 /D=（保持 `setup.exe /S` 字面形态）。
+# Inno 静默安装；显式 /DIR= 保证 CI 安装到指定路径（受限入口禁止重定向）。
 function Invoke-ZzLoggInstall {
     param(
         [Parameter(Mandatory = $true)]$Context,
@@ -98,36 +97,37 @@ function Invoke-ZzLoggInstall {
     )
     $target = if ($TargetDir) { $TargetDir } else { $Context.InstallDir }
     $defaultDir = Join-Path $env:ProgramFiles 'ZzLogg'
-    $arguments = @('/S')
+    $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
     if ($target.TrimEnd('\') -ine $defaultDir.TrimEnd('\')) {
-        # NSIS 约定：/D= 必须为最后一个参数且路径不加引号
-        $arguments += "/D=$target"
+        $arguments += "/DIR=`"$target`""
     }
     $run = Invoke-SetupProcess -Exe $Context.SetupExe -Arguments $arguments -TimeoutSec $TimeoutSec
     return @{ Run = $run; TargetDir = $target }
 }
 
-# 静默卸载：以注册表 InstallLocation 为准定位 Uninstall.exe。
-# NSIS 卸载器会自我复制到临时目录后让原进程先退出，故以安装目录消失为完成判据。
+# Inno 的卸载器位于安装目录；用户额外文件可使目录继续存在。
 function Invoke-ZzLoggUninstall {
     param(
         [Parameter(Mandatory = $true)]$Context,
         [int]$TimeoutSec = 120
     )
     $location = $null
-    $item = Get-ItemProperty -Path $Context.UninstallKey -Name InstallLocation -ErrorAction SilentlyContinue
+    $item = Get-ItemProperty -Path $Context.UninstallKey -ErrorAction SilentlyContinue
     if ($item) { $location = $item.InstallLocation }
     if (-not $location) { return $true }
-    $uninstaller = Join-Path $location 'Uninstall.exe'
-    if (Test-Path -LiteralPath $uninstaller) {
-        $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru
-        [void]$process.WaitForExit(60000)
-    }
+    # Read the actual numbered uninstaller, but never execute arbitrary registry commands.
+    $match = [regex]::Match([string]$item.UninstallString, '^"(?<exe>[^"\r\n]+\\unins[0-9]{3}\.exe)"$', 'IgnoreCase')
+    if (-not $match.Success) { return $false }
+    $uninstaller = $match.Groups['exe'].Value
+    if ([IO.Path]::GetDirectoryName($uninstaller).TrimEnd('\') -ine $location.TrimEnd('\')) { return $false }
+    if (-not (Test-Path -LiteralPath $uninstaller)) { return $false }
+    $process = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru
+    if (-not $process.WaitForExit($TimeoutSec * 1000) -or $process.ExitCode -ne 0) { return $false }
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    while ((Test-Path -LiteralPath $location) -and (Get-Date) -lt $deadline) {
+    while (((Test-Path -LiteralPath (Join-Path $location 'ZzLogg.exe')) -or (Test-Path -Path $Context.UninstallKey)) -and (Get-Date) -lt $deadline) {
         Start-Sleep -Milliseconds 500
     }
-    return (-not (Test-Path -LiteralPath $location))
+    return (-not (Test-Path -LiteralPath (Join-Path $location 'ZzLogg.exe')) -and -not (Test-Path -Path $Context.UninstallKey))
 }
 
 # 仅当目录内有 .zzlogg-install-root 标记时才允许强制删除（防误删非安装目录）。

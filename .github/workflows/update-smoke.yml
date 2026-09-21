@@ -1,6 +1,6 @@
 name: "Update Smoke"
 
-# 更新冒烟流水线：真实构建 + NSIS 打包 + 调用 tools/acceptance 验收脚本包。
+# 更新冒烟流水线：真实构建 + Inno Setup 打包 + 调用 tools/acceptance 验收脚本包。
 # windows-2022 runner 是管理员权限的真实 Windows 环境（真实 ProgramData/HKLM/
 # 双卷 C:+D:），可覆盖真实安装/登记/ACL/受限入口失败关闭/分卷预检等验收条目。
 on:
@@ -10,6 +10,7 @@ on:
     paths:
       - 'src/updater/**'
       - 'packaging/windows/**'
+      - '.github/actions/agent-package-win/**'
       - 'tools/acceptance/**'
       - '.github/workflows/update-smoke.yml'
 
@@ -74,12 +75,12 @@ jobs:
       - uses: ./.github/actions/agent-package-win
 
       # 提权探测与 filter 策略（失败关闭原则：能跑的全绿，不能跑的显式排除并留痕）：
-      # - 用例 01-07 可 CI 自动化，但全部需管理员（安装包 RequestExecutionLevel=admin，
+      # - 用例 01-07、13 可 CI 自动化，但全部需管理员（安装包 PrivilegesRequired=admin，
       #   验收脚本 Test-CasePrereqs 在非管理员下直接 SKIP）；
       # - 用例 08-12 为固定 SKIP 的手工用例（交互 UAC/多账号/关机注销等，指向 VM 手册）。
-      # windows-2022 runner 预期提权（elevated=true）→ -Filter '*' 跑全部 12 用例；
+      # windows-2022 runner 预期提权（elevated=true）→ -Filter '*' 跑全部 13 用例；
       # 若 runner 非提权（elevated=false）→ 以 -Filter '0[89]-*'、'1[0-2]-*' 显式排除
-      # 01-07（此时无可自动化用例，仅留 08-12 的 SKIP 痕），并在 job summary 标注排除清单；
+      # 01-07、13（此时无可自动化用例，仅留 08-12 的 SKIP 痕），并在 job summary 标注排除清单；
       # 首跑后按实际 elevated 值复核本策略（预期 windows-2022 为 true）。
       - name: 提权能力探测
         id: elev
@@ -95,17 +96,17 @@ jobs:
         run: |
           $setup = Get-Item "ZzLogg-*-setup.exe" | Select-Object -First 1
           if (-not $setup) {
-            Write-Error "未找到 NSIS 安装包 ZzLogg-*-setup.exe（agent-package-win 应在工作区根产出）"
+            Write-Error "未找到 Inno Setup 安装包 ZzLogg-*-setup.exe（agent-package-win 应在工作区根产出）"
             exit 1
           }
           $elevated = '${{ steps.elev.outputs.elevated }}' -eq 'true'
           if ($elevated) {
             $filters = @('*')
-            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 已提权，跑全部 12 用例（08-12 为固定 SKIP 手工项，跳过原因见报告 Evidence）"
+            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 已提权，跑全部 13 用例（08-12 为固定 SKIP 手工项，跳过原因见报告 Evidence）"
           }
           else {
             $filters = @('0[89]-*', '1[0-2]-*')
-            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 非提权，显式排除需管理员用例 01-07（install-silent / registry-identity / protected-root-acl / upgrade-entry-badargs / recover-entry-nojournal / uninstall-keeps-userdata / space-preflight-multivolume），仅留 08-12 固定 SKIP 痕"
+            Add-Content $env:GITHUB_STEP_SUMMARY "更新冒烟：runner 非提权，显式排除需管理员用例 01-07、13（install-silent / registry-identity / protected-root-acl / upgrade-entry-badargs / recover-entry-nojournal / uninstall-keeps-userdata / space-preflight-multivolume / migrate-legacy-registration），仅留 08-12 固定 SKIP 痕"
           }
           $exitCode = 0
           $index = 0
