@@ -2,7 +2,7 @@ file(READ "${SOURCE_ROOT}/.github/workflows/ci-build.yml" ci)
 foreach(required IN ITEMS
     "cpack --config build-linux/CPackConfig.cmake -G DEB"
     "cpack --config build-linux/CPackConfig.cmake -G RPM"
-    "actions/upload-artifact@v4"
+    "actions/upload-artifact@"
     "name: packages-linux"
     "packages/*.deb"
     "packages/*.rpm"
