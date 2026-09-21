@@ -196,6 +196,12 @@ message(STATUS "Native target supports official identity: ${native_official_supp
 run_release_case(stable ${native_official_supported}
   OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
+# 空序号不再是错误：它从显示版本派生。Linux 上 native_official_supported 为 OFF，
+# 该用例退化为"官方身份在非 Windows 目标上失败关闭"，数值断言由
+# zzlogg_update.release_sequence 独立覆盖。
+run_release_case(derived_sequence ${native_official_supported}
+  OFFICIAL ON SEQUENCE "" CHANNEL stable SCHEMA 0 VERSION 26.09.03 TWEAK 0
+  EXPECT_AVAILABLE ON EXPECT_SEQUENCE 260903 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
 if(native_official_supported)
   run_release_case(compiler_architecture_descriptor TRUE
     OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
@@ -216,7 +222,7 @@ if(TEST_NATIVE_CASES_ONLY)
   return()
 endif()
 
-run_invalid_case(missing_sequence EMPTY_SEQUENCE)
+# 空序号已改为从显示版本派生，不再视为配置错误。
 run_invalid_case(missing_channel EMPTY_CHANNEL)
 run_invalid_case(missing_schema EMPTY_SCHEMA)
 run_invalid_case(zero_sequence SEQUENCE 0)

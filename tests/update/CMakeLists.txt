@@ -75,6 +75,9 @@ function(zzlogg_release_configuration_test suffix)
       ${ARGN}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/releaseconfigurationtest.cmake")
 endfunction()
+add_test(NAME zzlogg_update.release_sequence COMMAND "${CMAKE_COMMAND}"
+  "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+  -P "${CMAKE_CURRENT_SOURCE_DIR}/releasesequencetest.cmake")
 zzlogg_release_configuration_test("")
 # These exercise descriptor-based test routing using the current compiler;
 # they are not executions on Linux or ARM64.
