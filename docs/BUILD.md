@@ -160,10 +160,10 @@ Windows 安装脚本为 `packaging/windows/ZzLogg.iss`，使用 Inno Setup 7.1.0
 
 ```powershell
 ./packaging/windows/GenerateInstallerManifest.ps1 -StagingDirectory release
-./packaging/windows/Build-InnoInstaller.ps1 -Version 26.09.03 -Platform x64
+./packaging/windows/Build-InnoInstaller.ps1 -Version 26.09.04 -Platform x64
 ```
 
-产物仍为 `ZzLogg-26.09.03-x64-Qt6-setup.exe`。无人值守安装使用 `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`，自定义目录使用 `/DIR="C:\Apps\ZzLogg"`。安装器默认采用已登记的安装目录，可直接覆盖旧版 NSIS 安装；不会执行会清理用户配置的旧卸载器。卸载仅删除安装器所属文件，保留额外用户文件和 AppData 配置。跨安装器覆盖与受限升级入口需在 Windows 上执行验收。
+产物仍为 `ZzLogg-26.09.04-x64-Qt6-setup.exe`。无人值守安装使用 `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`，自定义目录使用 `/DIR="C:\Apps\ZzLogg"`。安装器默认采用已登记的安装目录，可直接覆盖旧版 NSIS 安装；不会执行会清理用户配置的旧卸载器。卸载仅删除安装器所属文件，保留额外用户文件和 AppData 配置。跨安装器覆盖与受限升级入口需在 Windows 上执行验收。
 
 源码中维护 macOS 应用包、发行元数据和 DMG 布局；实际构建与检查必须在 macOS 主机上完成。
 
