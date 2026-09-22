@@ -172,6 +172,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(github.release['make_latest'], 'legacy')
         self.assertIn('New feature', github.release['body'])
         self.assertNotIn('Future improvement', github.release['body'])
+        self.assertNotIn('Source commit:', github.release['body'])
+        self.assertIn(f'<!-- source-commit: {SHA} -->', github.release['body'])
         methods = [event[0] for event in github.events]
         self.assertLess(methods.index('UPLOAD'), methods.index('PATCH'))
         self.assertFalse(any(method != 'GET' and path.startswith('git/') for method, path, _ in github.events))

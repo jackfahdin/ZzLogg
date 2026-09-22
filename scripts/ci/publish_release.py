@@ -167,15 +167,9 @@ def publish(github, directory, info, mode, changelog=None):
             github.api(f'git/refs/tags/{tag}', method='PATCH', data={'sha': sha, 'force': True})
     elif tag_commit(github, tag) != sha:
         raise ValueError('Stable tag changed during upload')
-    notes = (
-        changes + '\n\n---\n\n'
-        + f'Source commit: {sha}\n\nBuild: {info["workflow_run"]}\n\n'
-        '包含 Windows x64 安装包和便携包、macOS x64/arm64 DMG、Linux x64 DEB/RPM。\n\n'
-        'Linux 基线：Ubuntu 24.04。安装包签名状态以各平台验证结果为准。\n'
-        '支持应用内检查更新及前往 GitHub 手动下载；不提供一键自动安装。\n\n'
-        + ('每日北京时间 00:00 触发，有新提交时更新；GitHub 调度及构建可能延迟。\n'
-           '应用内版本号沿用源码版本；同版本 Linux 快照可能需要显式重新安装。\n\n' if nightly else '')
-        + f'<!-- source-commit: {sha} -->\n')
+    # User-facing notes come only from CHANGELOG.md. Build/commit traceability stays
+    # in release-info-*.json and GitHub release metadata, not in the release body.
+    notes = changes + '\n\n' + f'<!-- source-commit: {sha} -->\n'
     github.api(f'releases/{release["id"]}', method='PATCH', data={
         'draft': False, 'prerelease': nightly, 'name': 'Continuous Build' if nightly else tag,
         'body': notes, 'target_commitish': sha, 'make_latest': 'false' if nightly else 'legacy'})
