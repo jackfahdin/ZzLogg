@@ -59,6 +59,8 @@ InstallationActivity& InstallationActivity::operator=(InstallationActivity&&) no
 ActivityError InstallationActivity::enter(const std::wstring& root) {
     // Do not silently drop an existing lease when a caller attempts re-entry.
     if(impl_) return ActivityError::Blocked;
+    const auto probe=probeEntry(root);
+    if(probe!=ActivityError::None) return probe;
     if(!detail::standardInstallationPath(root) || GetDriveTypeW(root.substr(0,3).c_str())!=DRIVE_FIXED)
         return ActivityError::InvalidRoot;
     auto lease=std::make_unique<Impl>();
@@ -75,14 +77,19 @@ ActivityError InstallationActivity::enter(const std::wstring& root) {
     }
     const auto name=InstallLock::mutexName(lease->directories.back().identity);
     if(name.empty()) return ActivityError::Unavailable;
-    // The lease chain is already held: a reservation racing us cannot pass its
-    // quiescence probe, and a completed reservation keeps its mutex, so the
-    // check-to-entry sequence has no pass-through window. Any existing object
-    // (owned, unowned or access-denied) is fail-closed.
+    impl_=std::move(lease);
+    return ActivityError::None;
+}
+ActivityError InstallationActivity::probeEntry(const std::wstring& root) {
+    if(!detail::standardInstallationPath(root) || GetDriveTypeW(root.substr(0,3).c_str())!=DRIVE_FIXED)
+        return ActivityError::InvalidRoot;
+    DirectoryIdentity identity{};
+    if(!probeIdentity(root,identity)) return ActivityError::Unavailable;
+    const auto name=InstallLock::mutexName(identity);
+    if(name.empty()) return ActivityError::Unavailable;
     Handle existing(OpenMutexW(SYNCHRONIZE,FALSE,name.c_str()));
     if(existing) return ActivityError::Blocked;
     if(GetLastError()!=ERROR_FILE_NOT_FOUND) return ActivityError::Unavailable;
-    impl_=std::move(lease);
     return ActivityError::None;
 }
 ActivityError InstallationActivity::reserveUpdate() {

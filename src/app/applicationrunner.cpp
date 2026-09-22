@@ -492,12 +492,31 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         return EXIT_FAILURE;
     }
 
-    // Enter the installation activity lease before the single-instance
-    // forwarding and --multi branches: forwarding processes must also respect
-    // an update reservation. Unsupported path forms keep manual use with the
-    // update capability off; observed reservations or identity failures never
-    // proceed and never reach the storage selector.
-    const auto guardStatus = app.updateGuard().enter( QCoreApplication::applicationDirPath() );
+    // Enter the installation activity lease before the storage selector on the
+    // primary path. Short-lived secondary forwarding processes must not hold a
+    // directory lease or they block the primary instance's update reservation.
+    const QString applicationDirectory = QCoreApplication::applicationDirPath();
+    if ( !parameters.multi_instance && app.isSecondary() ) {
+        const auto guardStatus
+            = ApplicationUpdateGuard::probeStartupWithoutLease( applicationDirectory );
+        if ( guardStatus == ApplicationUpdateGuard::Status::Blocked
+             || guardStatus == ApplicationUpdateGuard::Status::Unavailable ) {
+            const QString message
+                = guardStatus == ApplicationUpdateGuard::Status::Blocked
+                      ? QApplication::translate( "ApplicationRunner",
+                                                 "This ZzLogg installation is currently being updated. "
+                                                 "Start ZzLogg again after the update has finished." )
+                      : QApplication::translate( "ApplicationRunner",
+                                                 "ZzLogg could not verify its installation directory. "
+                                                 "Startup was cancelled to protect the installation." );
+            reportStartupGuardFailure( message, {}, showStorageBootstrapFailureDialog );
+            return EXIT_FAILURE;
+        }
+        app.sendFilesToPrimaryInstance( parameters.filenames );
+        return app.exec();
+    }
+
+    const auto guardStatus = app.updateGuard().enter( applicationDirectory );
     if ( guardStatus == ApplicationUpdateGuard::Status::Blocked
          || guardStatus == ApplicationUpdateGuard::Status::Unavailable ) {
         const QString message
@@ -513,11 +532,6 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         return EXIT_FAILURE;
     }
 
-    if ( !parameters.multi_instance && app.isSecondary() ) {
-        app.sendFilesToPrimaryInstance( parameters.filenames );
-        return app.exec();
-    }
-
     QString iconError;
     if ( !applyZzLoggApplicationIcon( app, &iconError ) ) {
         const QByteArray diagnostic
@@ -529,7 +543,6 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         return EXIT_FAILURE;
     }
 
-    const QString applicationDirectory = QCoreApplication::applicationDirPath();
     const auto smokeStoragePaths = resolveApplicationSmokeStoragePaths(
         uiSmoke.requested,
         qEnvironmentVariable( "ZZLOGG_UI_SMOKE_APP_CONFIG_DIR" ),

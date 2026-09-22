@@ -62,6 +62,9 @@ class ApplicationUpdateGuard {
     // before any single-instance forwarding or storage bootstrap. The lease is
     // held until this object is destroyed (real process teardown).
     Status enter( const QString& applicationDir );
+    // Observe update mutex / identity without holding a directory lease.
+    // Short-lived secondary processes use this instead of enter().
+    static Status probeStartupWithoutLease( const QString& applicationDir );
     Status status() const;
 
     // Update reservation for the update handoff controller. Failures are reported
