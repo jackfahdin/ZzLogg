@@ -389,9 +389,10 @@ DACL 仅授权精确登录 SID；客户端使用 SECURITY_IDENTIFICATION。双�
 
 ## 安装事务与恢复（3C）
 
-3C 交付协议 v2、bootstrap v3、持久事务日志、登记事务引擎、NSIS 受限入口与协调者
-生产链路。**生产门禁不变**：应用内组合真实协调者的生产会话工厂仍缺席，"退出并
-更新"不开放生产可见性；本节全部机制只在专用测试目标中真实执行。
+3C 交付协议 v2、bootstrap v4、持久事务日志、登记事务引擎、NSIS 受限入口与协调者
+生产链路。稳定版 Windows x64 注册安装已通过应用内生产会话工厂开放「退出并更新」；
+预览渠道与未满足开闸条件的安装仍只能手动下载。本节机制在专用测试目标与
+`ZzLoggUpdate.exe` 中继中真实执行。
 
 ### 线协议 v2 与 Proceed
 
@@ -408,12 +409,21 @@ AwaitingAppExit→ExitCommitted→ExitConfirmed→Complete（或 Aborted）：Ex
 ProceedSent。**引擎在收到 Proceed 之前不得修改安装目录，也不得报告 Complete**；
 违约由 fixture 违约模式（engine-violation、early-complete）真实证明协调者拒绝。
 
-### bootstrap v3
+### bootstrap v4
 
-bootstrap 映射版本升为 3，新增 240 wchar 容量的 `dataDirectory` 可选字段：非空时
-必须是绝对路径（本地盘或 UNC）、容量内 NUL 终止、不含控制字符；旧版本、畸形、
-相对路径、未终止一律拒绝。数据目录只是事务后重启上下文，不是安装授权。v2 引入
-的 DirectoryReserved 观察句柄语义不变。
+bootstrap 映射版本升为 4。路径字段统一为 240 wchar 容量（`PathCapacity`），
+NUL 终止、不含控制字符；非空时必须为绝对本地或 UNC 路径。
+
+- `dataDirectory`：可选，事务后受限重启上下文，不是安装授权。
+- `installerPath`、`installRoot`、`packageSize`、`packageSha256`：安装链路字段
+  **整组齐备或整组缺席**；半套一律拒绝。齐备时 `packageSize` 上限 512 MiB，
+  `packageSha256` 为 32 字节摘要（协调者在启动安装器前独立复核磁盘内容，不信任
+  父进程结论）。v2 引入的 DirectoryReserved 观察句柄语义不变；v3 映射拒绝。
+
+**协调者进程（`ZzLoggUpdate.exe`）退出码**（与事务引擎/Inno 受限入口 42–48
+不重叠）：0 = 已安装并重启；40 = ExecutionDisabled；41 = BootstrapRejected；
+60 = PackageRejected；61 = ElevationDeclined（UAC 拒绝）；62 =
+InstallerLaunchFailed；63 = RelayFailed；64 = RestartPending。
 
 ### "准备→预留→握手→提交/取消"时序
 
@@ -506,12 +516,12 @@ ERROR_CANCELLED 映射为 Cancelled（UAC 拒绝）。Complete 后协调者复�
   installedrelease/releaseidentity 断言矩阵锁定为 1；3C 交付的是事务与恢复
   机制，没有新增需要清单侧协商的执行能力，升为 2 会虚假声明一个清单可协商的
   新能力。
-- 线协议号（bootstrap v3、通道消息版本 2）是 ZzLogg.exe、协调者与事务引擎
+- 线协议号（bootstrap v4、通道消息版本 2）是 ZzLogg.exe、协调者与事务引擎
   之间的内部契约，不经清单协商，其演进不需要发布身份号同步。但这条契约只有
   ZzLogg.exe↔ZzLoggUpdate.exe 一段两端同构建部署；引擎段在真实部署中必然跨
   构建版本——事务引擎编译进**新安装包**载荷，协调者是**已安装旧构建**的子
   进程，bootstrap 映射由旧协调者写入、新引擎解析（`ChildBootstrap` 严格校验
-  version==3）。因此线协议或 bootstrap 升级必须保持新引擎对旧协调者的失败
+  version==4）。因此线协议或 bootstrap 升级必须保持新引擎对旧协调者的失败
   关闭：版本字节或 bootstrap 版本不匹配一律拒绝（decodeMessage/ChildBootstrap
   均严格失败关闭），任何跨版本兼容都必须显式设计并测试，不能默认假设同构建。
 - 边界：仅当发布执行语义出现需要清单侧协商的变化（例如新的执行或恢复能力
@@ -534,10 +544,9 @@ KloggApp 立即提交退出；取消路径同步恢复；准备丢失通知保�
 
 ### 3C 未交付项与阶段 4 真实环境验收清单
 
-仍未交付（不宣称自动更新上线）：应用内组合真实协调者的生产会话工厂（"退出并
-更新"生产可见性不开放）；生产发布者证书指纹允许列表（仍为空，任何生产输入
-PublisherPolicyMissing）；生产签名工具与正式发布流水线；生产 HTTPS 地址与公钥
-配置。
+仍未交付（不宣称全平台/预览渠道自动更新上线）：生产 Windows 代码签名证书与
+Authenticode 发布者钉扎（执行信任根已改为 Ed25519 清单锚定的包大小与 SHA-256，
+指纹列表非空时叠加 Authenticode）；生产签名工具与正式发布流水线的完整验收闭环。
 
 阶段 4 隔离环境验收清单（本机验收边界：不弹真实 UAC、不写真实 HKLM、不改真实
 安装目录、不运行真实 NSIS 安装包）：

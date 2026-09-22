@@ -188,8 +188,11 @@ bool ApplicationUpdateHandoff::begin()
     // The verified package offer is request data only: the production factory
     // stays absent, so it can never become execution authority this phase.
     const auto offer = d.app.verifiedUpdateOffer();
-    request.packagePath = offer.first;
-    request.releaseVersion = offer.second;
+    request.packagePath = offer.packagePath;
+    request.releaseVersion = offer.releaseVersion;
+    request.installRoot = offer.installRoot;
+    request.packageSize = offer.packageSize;
+    request.packageSha256 = offer.packageSha256;
     auto session = d.factory( request );
     if ( !session ) {
         d.app.updateGuard().cancelUpdate();

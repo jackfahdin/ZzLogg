@@ -176,8 +176,11 @@ void UpdateCheckDialog::refresh()
         hint_->setText(tr("The update is verified. Choose Quit and install update to continue."));
     else if(updateExecutionAvailable_)
         hint_->setText(tr("Download and verify the update before installing it."));
-    else
+    else if(snapshot_.status==CheckStatus::Available)
+        // Only talk about install capability once a new version actually exists.
         hint_->setText(tr("Update installation is not enabled for this build. Download releases from GitHub."));
+    else
+        hint_->clear();
     releases_->setText(tr("Open GitHub downloads"));
     releases_->setAutoDefault(false);
     releases_->setEnabled(handoffState_!=UpdateHandoffState::Preparing

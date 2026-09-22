@@ -57,6 +57,7 @@ jobs:
     uses: ./.github/workflows/ci-build.yml
     with:
       source_sha: ${{ needs.prepare.outputs.sha }}
+      release_mode: ${{ needs.prepare.outputs.mode }}
     secrets: inherit
 
   publish:

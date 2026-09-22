@@ -95,6 +95,9 @@ class ApplicationUpdateHandoff : public QObject
         // only dedicated test fixtures consume these fields.
         QString packagePath;
         QString releaseVersion;
+        QString installRoot;
+        quint64 packageSize = 0;
+        QString packageSha256;
     };
     using SessionFactory
         = std::function<std::unique_ptr<CoordinationSession>( const Request& )>;

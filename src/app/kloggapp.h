@@ -49,6 +49,7 @@
 #include "applicationrunner.h"
 #include "applicationupdateguard.h"
 #include "applicationupdatehandoff.h"
+#include "applicationupdatesession.h"
 #include "klogg_version.h"
 #include "log.h"
 #include "logger.h"
@@ -65,6 +66,9 @@
 #include "zzlogg/updateqt/updateservice.h"
 #include "zzlogg/updateqt/updatedownloadservice.h"
 #include "zzlogg/updateqt/updatecachepaths.h"
+#include "zzlogg/updateqt/currentinstallation.h"
+#include "zzlogg/updateqt/installationidentity.h"
+#include "zzlogg/update/releaseidentity.h"
 #include "zzlogg_brand.h"
 
 class KloggApp : public QApplication {
@@ -113,26 +117,45 @@ class KloggApp : public QApplication {
         return singleApplication_.primaryPid();
     }
 
-    // The verified installer package (3B.2 download output) and the release
-    // version it was verified for, offered to an update handoff request.
-    // Empty unless a package is verified; data only, never an execution
-    // capability.
-    std::pair<QString, QString> verifiedUpdateOffer() const
+    struct VerifiedUpdateOffer {
+        QString packagePath;
+        QString releaseVersion;
+        QString installRoot;
+        quint64 packageSize = 0;
+        QString packageSha256;
+    };
+
+    // Verified installer package (3B.2 output), release version, install root,
+    // and manifest-anchored bytes for a handoff request. Empty unless verified;
+    // data only, never execution authority by itself.
+    VerifiedUpdateOffer verifiedUpdateOffer() const
     {
+        VerifiedUpdateOffer offer;
         if ( !updateDownloadService_
              || updateDownloadService_->snapshot().status
                     != zzlogg::updateqt::DownloadStatus::Verified ) {
-            return {};
+            return offer;
         }
-        QString version;
+        const auto installation = zzlogg::updateqt::probeCurrentInstallation();
+        if ( installation.kind != zzlogg::updateqt::InstallationKind::Registered ) {
+            return offer;
+        }
+        offer.packagePath = updateDownloadService_->snapshot().verifiedPath;
+        offer.installRoot = installation.installRoot;
+        if ( updateService_ && updateService_->snapshot().decision
+             && updateService_->snapshot().decision->artifact ) {
+            const auto& artifact = *updateService_->snapshot().decision->artifact;
+            offer.packageSize = artifact.size;
+            offer.packageSha256 = QString::fromStdString( artifact.sha256 );
+        }
         if ( updateService_ && updateService_->snapshot().release ) {
             const auto& release = updateService_->snapshot().release->manifest().version;
-            version = QString( "%1.%2.%3" )
-                          .arg( release.year, 2, 10, QChar( '0' ) )
-                          .arg( release.month, 2, 10, QChar( '0' ) )
-                          .arg( release.patch, 2, 10, QChar( '0' ) );
+            offer.releaseVersion = QString( "%1.%2.%3" )
+                                       .arg( release.year, 2, 10, QChar( '0' ) )
+                                       .arg( release.month, 2, 10, QChar( '0' ) )
+                                       .arg( release.patch, 2, 10, QChar( '0' ) );
         }
-        return { updateDownloadService_->snapshot().verifiedPath, version };
+        return offer;
     }
 
     // Installation activity lease for this process. runKloggApplication enters
@@ -501,15 +524,17 @@ class KloggApp : public QApplication {
     void ensureUpdateService() {
         using namespace zzlogg::updateqt;
         if (updateService_ || !StorageContext::isInstalled()) return;
+        // 检查与下载必须针对同一个安装身份，只探测一次再分发给两个服务。
+        const auto installed=currentInstalledRelease();
         const auto root=StorageContext::current().runtimePaths().appConfigDirectory;
         const auto path=root.isEmpty() ? QString{} : QDir(root).filePath("updates/production/check-state-v1.json");
         updateService_=std::make_unique<UpdateService>(productionFeedConfiguration(),
-            std::make_shared<UpdateStateStore>(path),std::nullopt,
+            std::make_shared<UpdateStateStore>(path),installed,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
         updateService_->setDisplayVersion(zzlogg::update::parseVersion(QString(kloggVersion()).toStdString()));
         updateDownloadService_=std::make_unique<UpdateDownloadService>(productionFeedConfiguration(),
-            std::nullopt,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
+            installed,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateDownloadService_->setObjectName("applicationUpdateDownloadService");
         connect(updateDownloadService_.get(),&UpdateDownloadService::snapshotChanged,this,[this] {
             if(updateDialog_) { updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot()); pushUpdateExecutionCapability(); }
@@ -562,7 +587,12 @@ class KloggApp : public QApplication {
             connect(dialog,&UpdateCheckDialog::releasesPageRequested,this,[](const QUrl& url) {
                 QDesktopServices::openUrl(url);
             });
-            connect(dialog,&UpdateCheckDialog::installRequested,this,[this] { updateHandoff().begin(); });
+            connect(dialog,&UpdateCheckDialog::installRequested,this,[this] {
+                if ( updateHandoff_ && !updateHandoff_->isWaiting() ) {
+                    updateHandoff_.reset();
+                }
+                updateHandoff().begin();
+            } );
             connect(dialog,&UpdateCheckDialog::installCancelRequested,this,[this] { updateHandoff().cancel(); });
             connect(dialog,&UpdateCheckDialog::closing,this,[this,dialog] {
                 updateDialogDismissed_=true;
@@ -580,16 +610,23 @@ class KloggApp : public QApplication {
     }
 
 
-    // Lazily owned restricted handoff controller. The production factory is
-    // closed, so begin() always refuses; the wiring only forwards the dialog
-    // requests and arranges the real exit after a committed handoff. The
-    // session request carries the reserved directory identity plus the
-    // verified package offer above; production never composes a factory, so
-    // that data can never become execution authority this phase.
+    ApplicationUpdateSessionInputs updateSessionInputs() const
+    {
+        const auto offer = verifiedUpdateOffer();
+        ApplicationUpdateSessionInputs inputs;
+        inputs.registeredInstallRoot = offer.installRoot;
+        inputs.verifiedPackagePath = offer.packagePath;
+        inputs.packageSize = offer.packageSize;
+        inputs.packageSha256 = offer.packageSha256;
+        inputs.releaseIdentityAvailable = zzlogg::update::compiledReleaseIdentity().has_value();
+        return inputs;
+    }
+
     ApplicationUpdateHandoff& updateHandoff()
     {
         if ( !updateHandoff_ ) {
-            auto handoff = std::make_unique<ApplicationUpdateHandoff>( *this );
+            auto handoff = std::make_unique<ApplicationUpdateHandoff>(
+                *this, makeUpdateSessionFactory( updateSessionInputs() ) );
             connect( handoff.get(), &ApplicationUpdateHandoff::snapshotChanged, this,
                      [ this ]( const ApplicationUpdateHandoff::Snapshot& snapshot ) {
                          if ( updateDialog_ ) {
@@ -615,7 +652,8 @@ class KloggApp : public QApplication {
     void pushUpdateExecutionCapability()
     {
         if ( updateDialog_ ) {
-            updateDialog_->setUpdateExecutionAvailable( updateHandoff().executionAvailable() );
+            updateDialog_->setUpdateExecutionAvailable(
+                makeUpdateSessionFactory( updateSessionInputs() ) != nullptr );
         }
     }
 

@@ -4,6 +4,21 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_update_session_factory_test updatesessionfactorytest.cpp
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp")
+target_link_libraries(zzlogg_update_session_factory_test PRIVATE Qt6::Test)
+target_include_directories(zzlogg_update_session_factory_test PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/app"
+  "${PROJECT_SOURCE_DIR}/src/updater")
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_update_session_factory_test PRIVATE
+    zzlogg_update_handoff klogg_storage)
+endif()
+set_target_properties(zzlogg_update_session_factory_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.update_session_factory
+  COMMAND zzlogg_update_session_factory_test
+    -o "${CMAKE_CURRENT_BINARY_DIR}/update-session-factory-$<CONFIG>.txt,txt")
+
 add_executable(zzlogg_update_check_ui_test updatecheckuitest.cpp)
 target_link_libraries(zzlogg_update_check_ui_test PRIVATE klogg_ui Qt6::Test)
 target_include_directories(zzlogg_update_check_ui_test PRIVATE "${PROJECT_SOURCE_DIR}/src/update/src")
@@ -494,10 +509,14 @@ add_executable(zzlogg_restart_contract_test restartcontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.h"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.cpp"
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 target_link_libraries(zzlogg_restart_contract_test PRIVATE
   klogg_ui klogg_logdata klogg_support
   klogg_storage roaring kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_restart_contract_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_restart_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater"
@@ -510,9 +529,13 @@ add_executable(zzlogg_update_integration_test
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.h"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.h"
-  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.cpp")
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.cpp"
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp")
 target_link_libraries(zzlogg_update_integration_test PRIVATE
   klogg_ui klogg_support kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_update_integration_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_update_integration_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app" "${PROJECT_SOURCE_DIR}/src/updater")
 set_target_properties(zzlogg_update_integration_test PROPERTIES AUTOMOC ON)
@@ -600,11 +623,15 @@ add_executable(zzlogg_runtime_contract_test runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.h"
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.cpp"
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 add_dependencies(zzlogg_runtime_contract_test zzlogg_runtime_contract_moc)
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
   zzlogg_ui_runtime klogg_ui klogg_logdata
   klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_runtime_contract_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater")
@@ -765,6 +792,7 @@ if(WIN32 AND TARGET zzlogg_update_handoff)
     "${PROJECT_SOURCE_DIR}/src/app/applicationupdateguard.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.h"
     "${PROJECT_SOURCE_DIR}/src/app/applicationupdatehandoff.cpp"
+  "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
   add_dependencies(zzlogg_update_handoff_test
     zzlogg_runtime_contract_moc zzlogg_updater_handofffixture_test)

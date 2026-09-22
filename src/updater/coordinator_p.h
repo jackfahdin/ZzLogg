@@ -20,7 +20,16 @@ struct CoordinatorOptions {
 struct InstallerRequest {
     std::wstring installer;      // verified installer package path (3B.2 output)
     std::wstring installRoot;    // registered installation directory
-    std::wstring dataDirectory;  // optional bootstrap v3 restart context
+    std::wstring dataDirectory;  // optional bootstrap v4 restart context
+};
+// GUI -> coordinator handshake request. Empty installer-chain fields degrade
+// to a plain protocol handshake.
+struct HandoffRequest {
+    std::wstring dataDirectory;
+    std::wstring installerPath;
+    std::wstring installRoot;
+    uint64_t packageSize=0;
+    std::array<uint8_t,32> packageSha256{};
 };
 // Production launcher: ShellExecuteEx + runas with only the restricted
 // switch. ERROR_CANCELLED maps to LaunchError::Cancelled. Never invoked on
@@ -44,6 +53,11 @@ public:
     bool start(const std::wstring& coordinator,const std::wstring& runtimeBase,
         const DirectoryIdentity* reservedIdentity=nullptr,
         const ProcessIdentity* application=nullptr,const std::wstring& dataDirectory={});
+    // Handshake carrying the installer-chain fields; every other semantic is
+    // identical to the overload above.
+    bool start(const std::wstring& coordinator,const std::wstring& runtimeBase,
+        const DirectoryIdentity* reservedIdentity,const ProcessIdentity* application,
+        const HandoffRequest&);
     // 3C installer chain: writes the current-user-private credential file
     // (random locator-named temp file), launches the verified installer
     // through the launcher seam with only the restricted switch, holds the

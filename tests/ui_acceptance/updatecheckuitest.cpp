@@ -80,6 +80,16 @@ private Q_SLOTS:
         releases->click();
         QCOMPARE(open.count(), 0);
     }
+    void upToDateNeverMentionsInstallCapability() {
+        UpdateCheckDialog dialog;
+        auto* hint=dialog.findChild<QLabel*>("updateHint");
+        QVERIFY(hint);
+        dialog.setSnapshot({CheckStatus::UpToDate,Channel::Stable,{},{},true});
+        // Mentioning install capability here reads as "a new version exists but cannot be installed".
+        QVERIFY(hint->text().isEmpty());
+        dialog.setSnapshot({CheckStatus::Idle,Channel::Stable,{},{},true});
+        QVERIFY(hint->text().isEmpty());
+    }
     void notConfiguredIsNotUpToDate() {
         UpdateCheckDialog dialog;
         dialog.setSnapshot({CheckStatus::NotConfigured,Channel::Stable,{},{},true});

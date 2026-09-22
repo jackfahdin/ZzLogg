@@ -1,5 +1,6 @@
 #include "installationactivity_win.h"
 #include "installlock_win.h"
+#include "updatertesthelpers.h"
 #define NOMINMAX
 #include <windows.h>
 #include <algorithm>
@@ -109,7 +110,7 @@ int wmain(int argc,wchar_t** argv) {
     }
     static_assert(!std::is_copy_constructible_v<InstallationActivity>
         && std::is_nothrow_move_constructible_v<InstallationActivity>);
-    wchar_t temp[MAX_PATH]{}; GetTempPathW(MAX_PATH,temp);
+    const auto temp=detail::testTempDirectory();
     const auto root=fs::path(temp)/(L"ZzLogg-activity-test-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(GetTickCount64()));
     fs::create_directories(root/L"install"); fs::create_directories(root/L"other");
     const auto path=(root/L"install").wstring();
