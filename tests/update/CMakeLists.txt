@@ -13,9 +13,14 @@ zzlogg_update_test(release_identity releaseidentitytest.cpp)
 target_compile_definitions(zzlogg_update_release_identity_test PRIVATE
   TEST_OFFICIAL_RELEASE=$<BOOL:${ZZLOGG_OFFICIAL_RELEASE}>)
 if(ZZLOGG_OFFICIAL_RELEASE)
+  set(_test_release_sequence "${ZZLOGG_RELEASE_SEQUENCE}")
+  if(_test_release_sequence STREQUAL "")
+    include(ZzReleaseIdentity)
+    _zzlogg_derive_release_sequence("${ZZLOGG_DISPLAY_VERSION}" _test_release_sequence)
+  endif()
   target_compile_definitions(zzlogg_update_release_identity_test PRIVATE
     TEST_RELEASE_VERSION="${ZZLOGG_DISPLAY_VERSION}"
-    TEST_RELEASE_SEQUENCE=${ZZLOGG_RELEASE_SEQUENCE}ULL
+    TEST_RELEASE_SEQUENCE=${_test_release_sequence}ULL
     TEST_RELEASE_CHANNEL="${ZZLOGG_RELEASE_CHANNEL}"
     TEST_RELEASE_DATA_SCHEMA=${ZZLOGG_RELEASE_DATA_SCHEMA}U)
 endif()
