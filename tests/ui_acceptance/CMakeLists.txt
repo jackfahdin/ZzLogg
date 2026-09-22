@@ -514,6 +514,9 @@ add_executable(zzlogg_restart_contract_test restartcontracttest.cpp
 target_link_libraries(zzlogg_restart_contract_test PRIVATE
   klogg_ui klogg_logdata klogg_support
   klogg_storage roaring kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_restart_contract_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_restart_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater"
@@ -530,6 +533,9 @@ add_executable(zzlogg_update_integration_test
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp")
 target_link_libraries(zzlogg_update_integration_test PRIVATE
   klogg_ui klogg_support kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_update_integration_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_update_integration_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app" "${PROJECT_SOURCE_DIR}/src/updater")
 set_target_properties(zzlogg_update_integration_test PROPERTIES AUTOMOC ON)
@@ -623,6 +629,9 @@ add_dependencies(zzlogg_runtime_contract_test zzlogg_runtime_contract_moc)
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
   zzlogg_ui_runtime klogg_ui klogg_logdata
   klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)
+if(WIN32 AND TARGET zzlogg_update_handoff)
+  target_link_libraries(zzlogg_runtime_contract_test PRIVATE zzlogg_update_handoff)
+endif()
 target_include_directories(zzlogg_runtime_contract_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater")
