@@ -72,9 +72,10 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir /你的构建目录 --output-on-failu
 
 **任务 6 — 协调者生产中继（Windows）**
 
-- 重写：`src/updater/main.cpp`
+- 创建：`src/updater/relay_p.h`、`src/updater/relay.cpp` — 单一职责：中继时序
+- 重写：`src/updater/main.cpp` — 只剩生产入口
 - 修改：`src/updater/CMakeLists.txt`、`tests/updater/CMakeLists.txt`
-- 测试：`tests/updater/relaytest.cpp`
+- 测试：`tests/updater/relayfixture.cpp`、`tests/updater/relaytest.cpp`
 
 **任务 7 — 生产会话工厂（Windows）**
 
