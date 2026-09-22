@@ -100,6 +100,26 @@ ApplicationUpdateGuard::Status ApplicationUpdateGuard::enter( const QString& app
 #endif
 }
 
+ApplicationUpdateGuard::Status
+ApplicationUpdateGuard::probeStartupWithoutLease( const QString& applicationDir )
+{
+#ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
+    switch ( zzlogg::updater::InstallationActivity::probeEntry(
+                 nativeDirectoryPath( applicationDir ).toStdWString() ) ) {
+    case zzlogg::updater::ActivityError::None:
+    case zzlogg::updater::ActivityError::InvalidRoot:
+        return Status::Inactive;
+    case zzlogg::updater::ActivityError::Blocked:
+        return Status::Blocked;
+    default:
+        return Status::Unavailable;
+    }
+#else
+    Q_UNUSED( applicationDir );
+    return Status::Inactive;
+#endif
+}
+
 ApplicationUpdateGuard::Status ApplicationUpdateGuard::status() const
 {
     return impl_->status;

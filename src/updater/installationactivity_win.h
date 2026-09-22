@@ -36,6 +36,10 @@ public:
     // Resolves the directory identity without retaining any lease. Used for
     // directory-scoped single-instance naming at entry points.
     static bool probeIdentity(const std::wstring& directory, DirectoryIdentity& identity);
+    // Same fail-closed mutex observation as enter(), without acquiring the
+    // directory lease chain. Short-lived forwarding processes use this so they
+    // do not block a primary instance's update reservation.
+    static ActivityError probeEntry(const std::wstring& root);
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
