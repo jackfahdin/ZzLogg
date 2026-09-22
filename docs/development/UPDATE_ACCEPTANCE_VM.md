@@ -18,8 +18,9 @@
   （bootstrap 阶段）；42 = Rejected；43 = Conflict；44 = RolledBack；
   45 = NeedsAuthorizedRecovery；46 = RecoveryFailed；48 =
   InstallerRuntimeFailure（安装器侧运行期失败；引擎绝不以此码退出，
-  协调者对任何非零安装器退出均判 Failed）。协调者侧 UAC 用户拒绝映射为
-  Cancelled（ERROR_CANCELLED）。
+  协调者对任何非零安装器退出均判 Failed）。  协调者侧 UAC 用户拒绝映射为 Cancelled（ERROR_CANCELLED）；`ZzLoggUpdate.exe`
+  中继进程另用 61（ElevationDeclined）向 GUI 报告 UAC 拒绝。协调者专用码位
+  60–64 见 [UPDATE_PROTOCOL.md](UPDATE_PROTOCOL.md) bootstrap v4 节。
 - 预期结果引用的清单条目原文出自
   [UPDATE_PROTOCOL.md](UPDATE_PROTOCOL.md)「3C 未交付项与阶段 4 真实环境
   验收清单」及相邻 3C/3B 章节；引文逐字摘录，验收时以原文为准。
@@ -29,6 +30,27 @@
 ## v26.09.02 安装器迁移验收
 
 当前安装器为 Inno Setup 7.1.0。请在旧 v26.09.01 快照上交互运行新版安装包，确认中文和明暗主题、默认沿用旧目录、开始菜单/桌面/发送到选项及文件关联。连续覆盖安装两次后，确认系统应用列表仅有一个 ZzLogg，卸载能移除程序且保留 AppData 配置和安装目录内额外日志。用例 13 只模拟旧登记与文件，不替代真实旧版安装包的迁移验收。
+
+## 测试源预演（等待 v26.09.04 正式进 feed 前）
+
+在带 `ZZLOGG_OFFICIAL_RELEASE` 的稳定版尚未通过 `update-feed` 分支对外发布前，
+可在 VM 内用 `tools/update/testfeed.cpp` 构造**本地假清单**（Ed25519 签名、与生产
+相同 schema），指向当前构建目录中的安装包，让已安装客户端走完整「检查 → 下载 →
+校验 → 退出并安装」链路，而无需改动 GitHub 上的 `stable.json`。
+
+建议流程：在 VM 安装待测构建 → 用 testfeed 在 loopback 或共享目录提供清单与包
+→ 客户端指向该 URL（或临时改 feed 配置后重装）→ 执行下列 **v26.09.03 一键安装
+必做** 四条并记录证据：
+
+1. **真实 UAC 接受**：提权安装器与事务引擎完成，应用自动重启且数据目录保留。
+2. **真实 UAC 拒绝**：用户在 consent 界面点否，界面显示可理解的失败（非笼统
+   「无法启动」），安装目录未被部分改写。
+3. **替换事务中断恢复**：在引擎执行阶段杀进程或断电注入后，按协议走授权恢复或
+   回滚，目录不处于半新半旧不可启动状态。
+4. **装完自动重启与启动确认**：Complete 后原用户身份重启 GUI，单实例与
+   `--data-dir` 作用域正确。
+
+---
 
 ## §1 环境获取与快照基线
 
