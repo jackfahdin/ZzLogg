@@ -221,6 +221,8 @@ private Q_SLOTS:
     void checkingShowsCancelWhileActive() {
         UpdateCheckDialog dialog;
         dialog.setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
+        dialog.show();
+        QCoreApplication::processEvents();
         auto* cancel=dialog.findChild<QPushButton*>("updateCancel");
         QVERIFY(cancel);
         QVERIFY(cancel->isVisible());
