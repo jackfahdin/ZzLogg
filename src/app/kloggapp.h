@@ -584,9 +584,6 @@ class KloggApp : public QApplication {
                 updateService_->skipCurrentRelease();
                 if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
             });
-            connect(dialog,&UpdateCheckDialog::releasesPageRequested,this,[](const QUrl& url) {
-                QDesktopServices::openUrl(url);
-            });
             connect(dialog,&UpdateCheckDialog::installRequested,this,[this] {
                 if ( updateHandoff_ && !updateHandoff_->isWaiting() ) {
                     updateHandoff_.reset();

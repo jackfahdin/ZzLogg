@@ -2576,6 +2576,54 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>Current version %1 · %2 channel</source>
+        <translation>当前版本 %1 · %2 渠道</translation>
+    </message>
+    <message>
+        <source>Release information is available.</source>
+        <translation>有可用的发布信息。</translation>
+    </message>
+    <message>
+        <source>This build cannot use the online update service.</source>
+        <translation>此构建无法使用在线更新服务。</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation.</source>
+        <translation>当前安装不支持自动安装更新。</translation>
+    </message>
+    <message>
+        <source>The update package is verified. You can install it now.</source>
+        <translation>更新包已验证，可以立即安装。</translation>
+    </message>
+    <message>
+        <source>Download and verify the update before installing.</source>
+        <translation>请先下载并验证更新，再进行安装。</translation>
+    </message>
+    <message>
+        <source>Install in place is not available for this build.</source>
+        <translation>此构建不支持就地安装更新。</translation>
+    </message>
+    <message>
+        <source>Release %1</source>
+        <translation>发布版本 %1</translation>
+    </message>
+    <message>
+        <source>%1 · %2 bytes</source>
+        <translation>%1 · %2 字节</translation>
+    </message>
+    <message>
+        <source>This download is no longer available.</source>
+        <translation>此下载已不可用。</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Cancel check</source>
+        <translation>取消检查</translation>
+    </message>
+    <message>
         <source>A new version is available. Download it from GitHub.</source>
         <translation>发现新版本，请前往 GitHub 下载。</translation>
     </message>
