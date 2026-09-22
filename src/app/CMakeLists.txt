@@ -55,6 +55,8 @@ set(KLOGG_UI_COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateguard.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatehandoff.h
     ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatehandoff.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatesession.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdatesession.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/storagebootstrap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/zzloggapplicationidentity.h
