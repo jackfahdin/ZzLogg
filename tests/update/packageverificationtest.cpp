@@ -138,7 +138,7 @@ private slots:
         QCOMPARE(detail::verifyAuthenticode(lease.handle(),lease.path(),{wintrust_fixture::abcFingerprint()}),
                  PackageVerificationError::SignatureUntrusted);
     }
-    void productionCompositionRemainsClosed() {
+    void productionCompositionAnchorsOnManifest() {
         static_assert(!std::is_default_constructible_v<VerifiedPackage>);
         static_assert(!std::is_copy_constructible_v<VerifiedPackage>);
         static_assert(std::is_nothrow_move_constructible_v<VerifiedPackage>);
@@ -149,11 +149,28 @@ private slots:
         QCOMPARE(result.error,PackageVerificationError::SelectionRejected); QVERIFY(!result.package);
         SelectionFixture production(true);
         QVERIFY(!production.selection.signedEnvelope.empty());
+        // Manifest-anchored byte match authorises execution; without certificates
+        // this is the only execution trust root.
         result=verifyPackageForExecution(production.selection,production.context,installed(),files.file);
-        QCOMPARE(result.error,PackageVerificationError::PublisherPolicyMissing); QVERIFY(!result.package);
-        // The missing policy is checked before even trying to open this path.
+        QCOMPARE(result.error,PackageVerificationError::None); QVERIFY(result.package);
+        // Path validation is no longer short-circuited by the missing publisher policy.
         result=verifyPackageForExecution(production.selection,production.context,installed(),L"not a path");
-        QCOMPARE(result.error,PackageVerificationError::PublisherPolicyMissing); QVERIFY(!result.package);
+        QCOMPARE(result.error,PackageVerificationError::InvalidPath); QVERIFY(!result.package);
+        const auto rewrite=[&](const QByteArray& bytes) {
+            QFile output(QString::fromStdWString(files.file));
+            QVERIFY(output.open(QIODevice::WriteOnly));
+            QCOMPARE(output.write(bytes),qint64(bytes.size()));
+        };
+        // Equal length with different content must be a hash mismatch; a different
+        // length must be a size mismatch.
+        rewrite("abd");
+        result=verifyPackageForExecution(production.selection,production.context,installed(),files.file);
+        QCOMPARE(result.error,PackageVerificationError::HashMismatch); QVERIFY(!result.package);
+        rewrite("abcd");
+        result=verifyPackageForExecution(production.selection,production.context,installed(),files.file);
+        QCOMPARE(result.error,PackageVerificationError::SizeMismatch); QVERIFY(!result.package);
+        rewrite("abc");
+        // Every defence of the signed selection itself is unchanged.
         auto altered=production.selection; altered.artifact.sha256[0]='0';
         result=verifyPackageForExecution(altered,production.context,installed(),files.file);
         QCOMPARE(result.error,PackageVerificationError::SelectionRejected); QVERIFY(!result.package);

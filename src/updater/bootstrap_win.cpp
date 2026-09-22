@@ -7,9 +7,10 @@
 #include <limits>
 namespace zzlogg::updater::detail {
 namespace {
-// The data directory is restart context, never installation authority: it
-// must be an absolute local or UNC path without control characters.
-bool dataDirectoryPlausibleImpl(const wchar_t* text,std::size_t length) {
+// A bootstrap path is restart or locator context, never installation
+// authority: it must be an absolute local or UNC path without control
+// characters.
+bool absolutePathPlausibleImpl(const wchar_t* text,std::size_t length) {
     if(!length)return true;
     for(std::size_t i=0;i<length;++i)if(static_cast<uint16_t>(text[i])<0x20)return false;
     const bool drive=length>=3 && ((text[0]>=L'A' && text[0]<=L'Z') || (text[0]>=L'a' && text[0]<=L'z'))
@@ -29,9 +30,31 @@ bool locatorPlausible(const std::wstring& locator) {
     }
     return nonzero;
 }
+// NUL-terminated length inside a fixed-capacity array; PathCapacity when unterminated.
+std::size_t boundedLength(const wchar_t* text) {
+    std::size_t length=0;
+    while(length<PathCapacity && text[length])++length;
+    return length;
 }
-bool dataDirectoryPlausible(const wchar_t* text,std::size_t length) {
-    return dataDirectoryPlausibleImpl(text,length);
+// Package lease ceiling: the largest expected size the coordinator accepts.
+inline constexpr uint64_t PackageSizeLimit=512ull*1024*1024;
+// The installer-chain fields are either all absent, or all present and
+// individually valid; half a set is always rejected. Both the mapping parser
+// and the launch path answer this question here, so a request can never be
+// silently degraded into a plain handshake by one side's weaker test.
+bool installerFieldsConsistent(const wchar_t* installer,std::size_t installerLength,
+    const wchar_t* root,std::size_t rootLength,uint64_t packageSize,const uint8_t* digest) {
+    const bool digestSet=std::any_of(digest,digest+32,[](auto byte){return byte!=0;});
+    if(!installerLength && !rootLength && !packageSize && !digestSet)return true;
+    return installerLength && installerLength<PathCapacity
+        && absolutePathPlausibleImpl(installer,installerLength)
+        && rootLength && rootLength<PathCapacity
+        && absolutePathPlausibleImpl(root,rootLength)
+        && packageSize && packageSize<=PackageSizeLimit && digestSet;
+}
+}
+bool absolutePathPlausible(const wchar_t* text,std::size_t length) {
+    return absolutePathPlausibleImpl(text,length);
 }
 struct ChildBootstrap::Impl {
     update::detail::StablePackage self;
@@ -53,10 +76,13 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     BootstrapData data{};std::memcpy(&data,view,sizeof(data));UnmapViewOfFile(view);
     // Retired mapping versions are never adopted; the data directory must be
     // NUL-terminated inside its fixed capacity and pass the plausibility scan.
-    std::size_t directoryLength=0;
-    while(directoryLength<DataDirectoryCapacity && data.dataDirectory[directoryLength])++directoryLength;
-    if(data.magic!=0x42555a5a || data.version!=3 || (data.flags&~DirectoryReserved) || !data.parentHandle
-        || directoryLength==DataDirectoryCapacity || !dataDirectoryPlausible(data.dataDirectory,directoryLength)
+    const auto directoryLength=boundedLength(data.dataDirectory);
+    const bool installerConsistent=installerFieldsConsistent(
+        data.installerPath,boundedLength(data.installerPath),
+        data.installRoot,boundedLength(data.installRoot),data.packageSize,data.packageSha256);
+    if(data.magic!=0x42555a5a || data.version!=4 || (data.flags&~DirectoryReserved) || !data.parentHandle
+        || directoryLength==PathCapacity || !absolutePathPlausible(data.dataDirectory,directoryLength)
+        || !installerConsistent
         || endpointName(data.transaction).empty()
         || !encodeMessage({MessageKind::Hello,data.transaction,data.token}))return false;
     ProcessIdentity parent,self;
@@ -78,19 +104,32 @@ bool ChildBootstrap::open(int argc,wchar_t** argv){
     }
     data_=data;parent_=std::move(parent);impl_=std::move(lease);return true;
 }
-bool launchCopy(const RuntimeCopy& copy,const TransactionId& transaction,const SessionToken& token,const DirectoryIdentity* reservedIdentity,
-    const std::wstring& dataDirectory,ProcessIdentity& child){
-    if(!copy.unchanged() || dataDirectory.size()>=DataDirectoryCapacity
-        || !dataDirectoryPlausible(dataDirectory.data(),dataDirectory.size()))return false;
+bool launchCopy(const RuntimeCopy& copy,const ChildLaunchRequest& request,ProcessIdentity& child){
+    if(!copy.unchanged() || request.dataDirectory.size()>=PathCapacity
+        || !absolutePathPlausible(request.dataDirectory.data(),request.dataDirectory.size()))return false;
+    // Exactly the parser's acceptance: a half set fails the launch here
+    // instead of reaching the child as a plain handshake with the fields
+    // dropped.
+    if(!installerFieldsConsistent(request.installerPath.data(),request.installerPath.size(),
+        request.installRoot.data(),request.installRoot.size(),
+        request.packageSize,request.packageSha256.data()))return false;
+    const bool installerPresent=!request.installerPath.empty();
     ProcessIdentity parent;if(!parent.open(GetCurrentProcessId()))return false;
     HANDLE raw=nullptr;
     if(!DuplicateHandle(GetCurrentProcess(),parent.handle(),GetCurrentProcess(),&raw,PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,TRUE,0))return false;
     Handle inheritedParent(raw);
     Handle writable(CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,sizeof(BootstrapData),nullptr));if(!writable)return false;
     auto view=MapViewOfFile(writable.get(),FILE_MAP_WRITE,0,0,sizeof(BootstrapData));if(!view)return false;
-    BootstrapData data;data.parentHandle=reinterpret_cast<uint64_t>(inheritedParent.get());data.parent=parent.stamp();data.transaction=transaction;data.token=token;
-    if(reservedIdentity){data.flags=DirectoryReserved;data.directory=*reservedIdentity;}
-    if(!dataDirectory.empty())std::copy(dataDirectory.begin(),dataDirectory.end(),data.dataDirectory);
+    BootstrapData data;data.parentHandle=reinterpret_cast<uint64_t>(inheritedParent.get());
+    data.parent=parent.stamp();data.transaction=request.transaction;data.token=request.token;
+    if(request.reservedIdentity){data.flags=DirectoryReserved;data.directory=*request.reservedIdentity;}
+    std::copy(request.dataDirectory.begin(),request.dataDirectory.end(),data.dataDirectory);
+    if(installerPresent) {
+        std::copy(request.installerPath.begin(),request.installerPath.end(),data.installerPath);
+        std::copy(request.installRoot.begin(),request.installRoot.end(),data.installRoot);
+        data.packageSize=request.packageSize;
+        std::copy(request.packageSha256.begin(),request.packageSha256.end(),data.packageSha256);
+    }
     std::memcpy(view,&data,sizeof(data));UnmapViewOfFile(view);
     if(!DuplicateHandle(GetCurrentProcess(),writable.get(),GetCurrentProcess(),&raw,FILE_MAP_READ,TRUE,0))return false;
     Handle inheritedMapping(raw);writable.reset();

@@ -31,6 +31,9 @@ function(run_release_case name expect_success)
     POINTER_SIZE)
   cmake_parse_arguments(PARSE_ARGV 2 CASE "${options}" "${one_value_args}" "")
 
+  # 消费者断言版本三段，补丁号必须跟着用例的显示版本走，否则派生用例自相矛盾。
+  string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.0*([0-9])" "\\1" case_patch "${CASE_VERSION}")
+
   set(binary_dir "${TEST_ROOT}/${name}")
   set(configure_command
     "${CMAKE_COMMAND}"
@@ -47,6 +50,7 @@ function(run_release_case name expect_success)
     "-DCMAKE_BUILD_TYPE:STRING=${TEST_BUILD_TYPE}"
     "-DTEST_EXPECT_AVAILABLE:BOOL=${CASE_EXPECT_AVAILABLE}"
     "-DTEST_EXPECT_SEQUENCE:STRING=${CASE_EXPECT_SEQUENCE}"
+    "-DTEST_EXPECT_PATCH:STRING=${case_patch}"
     "-DTEST_EXPECT_SCHEMA:STRING=${CASE_EXPECT_SCHEMA}"
     "-DTEST_EXPECT_CHANNEL:STRING=${CASE_EXPECT_CHANNEL}")
 
@@ -196,6 +200,12 @@ message(STATUS "Native target supports official identity: ${native_official_supp
 run_release_case(stable ${native_official_supported}
   OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
+# 空序号不再是错误：它从显示版本派生。Linux 上 native_official_supported 为 OFF，
+# 该用例退化为"官方身份在非 Windows 目标上失败关闭"，数值断言由
+# zzlogg_update.release_sequence 独立覆盖。
+run_release_case(derived_sequence ${native_official_supported}
+  OFFICIAL ON SEQUENCE "" CHANNEL stable SCHEMA 0 VERSION 26.09.03 TWEAK 0
+  EXPECT_AVAILABLE ON EXPECT_SEQUENCE 260903 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
 if(native_official_supported)
   run_release_case(compiler_architecture_descriptor TRUE
     OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
@@ -216,7 +226,7 @@ if(TEST_NATIVE_CASES_ONLY)
   return()
 endif()
 
-run_invalid_case(missing_sequence EMPTY_SEQUENCE)
+# 空序号已改为从显示版本派生，不再视为配置错误。
 run_invalid_case(missing_channel EMPTY_CHANNEL)
 run_invalid_case(missing_schema EMPTY_SCHEMA)
 run_invalid_case(zero_sequence SEQUENCE 0)

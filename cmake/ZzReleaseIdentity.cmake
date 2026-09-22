@@ -1,7 +1,14 @@
-option(ZZLOGG_OFFICIAL_RELEASE "Build with an official ZzLogg release identity" OFF)
-set(ZZLOGG_RELEASE_SEQUENCE "" CACHE STRING "Official release sequence")
-set(ZZLOGG_RELEASE_CHANNEL "" CACHE STRING "Official release channel")
-set(ZZLOGG_RELEASE_DATA_SCHEMA "" CACHE STRING "Official release data schema")
+set(official_release_default OFF)
+if(DEFINED ENV{ZZLOGG_OFFICIAL_RELEASE})
+  set(official_release_default "$ENV{ZZLOGG_OFFICIAL_RELEASE}")
+endif()
+option(ZZLOGG_OFFICIAL_RELEASE "Build with an official ZzLogg release identity"
+  ${official_release_default})
+set(ZZLOGG_RELEASE_SEQUENCE "" CACHE STRING
+  "Official release sequence; empty derives it from the display version")
+set(ZZLOGG_RELEASE_CHANNEL "$ENV{ZZLOGG_RELEASE_CHANNEL}" CACHE STRING
+  "Official release channel")
+set(ZZLOGG_RELEASE_DATA_SCHEMA "0" CACHE STRING "Official release data schema")
 set(_ZZLOGG_RELEASE_IDENTITY_TEMPLATE
   "${CMAKE_CURRENT_LIST_DIR}/zzlogg_release_identity.h.in")
 
@@ -23,6 +30,16 @@ function(_zzlogg_validate_release_uint name value maximum)
   endif()
 endfunction()
 
+# 与 scripts/ci/publish_update_feed.py 的 int(version.replace('.', '')) 等价。
+function(_zzlogg_derive_release_sequence display_version output)
+  string(REPLACE "." "" derived "${display_version}")
+  string(REGEX REPLACE "^0+" "" derived "${derived}")
+  if(derived STREQUAL "")
+    set(derived "0")
+  endif()
+  set(${output} "${derived}" PARENT_SCOPE)
+endfunction()
+
 function(zzlogg_configure_release_identity output)
   set(ZZLOGG_RELEASE_IDENTITY_AVAILABLE 0)
   set(ZZLOGG_RELEASE_IDENTITY_VERSION "")
@@ -34,6 +51,14 @@ function(zzlogg_configure_release_identity output)
   set(ZZLOGG_RELEASE_IDENTITY_UPDATER_PROTOCOL 1U)
 
   if(ZZLOGG_OFFICIAL_RELEASE)
+    if(NOT "${ZZLOGG_DISPLAY_VERSION}" MATCHES
+        "^[0-9][0-9]\\.(0[1-9]|1[0-2])\\.[0-9][0-9]$")
+      message(FATAL_ERROR
+        "Official release identity: ZZLOGG_DISPLAY_VERSION must be YY.MM.PP")
+    endif()
+    if(ZZLOGG_RELEASE_SEQUENCE STREQUAL "")
+      _zzlogg_derive_release_sequence("${ZZLOGG_DISPLAY_VERSION}" ZZLOGG_RELEASE_SEQUENCE)
+    endif()
     _zzlogg_validate_release_uint(
       "ZZLOGG_RELEASE_SEQUENCE" "${ZZLOGG_RELEASE_SEQUENCE}"
       "18446744073709551615")
@@ -49,11 +74,6 @@ function(zzlogg_configure_release_identity output)
         AND NOT ZZLOGG_RELEASE_CHANNEL STREQUAL "preview")
       message(FATAL_ERROR
         "Official release identity: ZZLOGG_RELEASE_CHANNEL must be stable or preview")
-    endif()
-    if(NOT "${ZZLOGG_DISPLAY_VERSION}" MATCHES
-        "^[0-9][0-9]\\.(0[1-9]|1[0-2])\\.[0-9][0-9]$")
-      message(FATAL_ERROR
-        "Official release identity: ZZLOGG_DISPLAY_VERSION must be YY.MM.PP")
     endif()
     if(DEFINED PROJECT_VERSION_TWEAK
         AND NOT "${PROJECT_VERSION_TWEAK}" STREQUAL ""

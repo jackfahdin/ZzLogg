@@ -16,20 +16,6 @@ using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
 namespace {
-fs::path createTestRoot(const fs::path& base) {
-    std::array<unsigned char,16> nonce{};
-    if(!randomBytes(nonce.data(),static_cast<ULONG>(nonce.size())))
-        throw std::runtime_error("cannot generate a unique coordinator test directory");
-    std::wstring name=L"ZzLogg-coordinate-test-"+std::to_wstring(GetCurrentProcessId())+L"-";
-    constexpr wchar_t hex[]=L"0123456789abcdef";
-    for(auto byte:nonce){name+=hex[byte>>4];name+=hex[byte&15];}
-    auto root=base/name;
-    // Atomic creation must succeed: never adopt or erase another run's files.
-    if(!fs::create_directory(root))
-        throw fs::filesystem_error("coordinator test directory already exists",root,
-            std::make_error_code(std::errc::file_exists));
-    return root;
-}
 DWORD probeEnter(const fs::path& dir) {
     wchar_t executable[32768]{};GetModuleFileNameW(nullptr,executable,32768);
     std::wstring command=L"\""+std::wstring(executable)+L"\" --probe-enter \""+dir.wstring()+L"\"";
@@ -237,7 +223,7 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
     }
     if(argc!=3)return 2;int failures=0;
     auto check=[&](bool ok,const char* name){if(!ok){++failures;std::cerr<<"FAIL: "<<name<<" error="<<GetLastError()<<'\n';}};
-    wchar_t temp[MAX_PATH]{};GetTempPathW(MAX_PATH,temp);
+    const auto temp=detail::testTempDirectory();
     auto root=createTestRoot(temp);
     // A previous run's files must never be reused, even when Windows reuses its PID.
     const auto firstRoot=createTestRoot(root);
@@ -444,16 +430,16 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         std::error_code cleanup;fs::remove_all(reserveBase,cleanup);fs::remove(reserved,cleanup);
     }
     {
-        // Bootstrap mapping v3: crafted mappings drive the real child bootstrap
+        // Bootstrap mapping v4: crafted mappings drive the real child bootstrap
         // parser directly. 52 = bootstrap passed (channel connect then fails);
         // 51 = BootstrapRejected.
-        std::cout<<"coordinator bootstrap v3"<<std::endl;
+        std::cout<<"coordinator bootstrap v4"<<std::endl;
         SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
         BootstrapData base{};
         randomBytes(base.transaction.data(),16);randomBytes(base.token.data(),32);
-        check(spawnMappedFixture(source,base)==52,"valid v3 mapping passes bootstrap");
-        auto retired=base;retired.version=2;
-        check(spawnMappedFixture(source,retired)==51,"retired version 2 mapping rejected");
+        check(spawnMappedFixture(source,base)==52,"valid v4 mapping passes bootstrap");
+        auto retired=base;retired.version=3;
+        check(spawnMappedFixture(source,retired)==51,"retired version 3 mapping rejected");
         auto datadir=base;{const auto path=root.wstring();std::copy(path.begin(),path.end(),datadir.dataDirectory);}
         check(spawnMappedFixture(source,datadir)==52,"absolute data directory accepted");
         auto control=base;{auto path=root.wstring();path[4]=wchar_t(1);std::copy(path.begin(),path.end(),control.dataDirectory);}
@@ -462,6 +448,61 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         check(spawnMappedFixture(source,relative)==51,"relative data directory rejected");
         auto unterminated=base;std::fill(std::begin(unterminated.dataDirectory),std::end(unterminated.dataDirectory),L'x');
         check(spawnMappedFixture(source,unterminated)==51,"unterminated overlong data directory rejected");
+        auto installer=base;
+        {const auto file=(root/L"setup.exe").wstring();std::copy(file.begin(),file.end(),installer.installerPath);
+         const auto target=root.wstring();std::copy(target.begin(),target.end(),installer.installRoot);
+         installer.packageSize=3;installer.packageSha256[0]=1;}
+        check(spawnMappedFixture(source,installer)==52,"absolute installer path and install root accepted");
+        auto relativeInstaller=installer;
+        {const wchar_t text[]=L"relative\\setup.exe";
+         std::fill(std::begin(relativeInstaller.installerPath),std::end(relativeInstaller.installerPath),L'\0');
+         std::copy(text,text+_countof(text),relativeInstaller.installerPath);}
+        check(spawnMappedFixture(source,relativeInstaller)==51,"relative installer path rejected");
+        auto halfSet=installer;
+        std::fill(std::begin(halfSet.installRoot),std::end(halfSet.installRoot),L'\0');
+        check(spawnMappedFixture(source,halfSet)==51,"installer path without an install root rejected");
+        auto zeroSize=installer;zeroSize.packageSize=0;
+        check(spawnMappedFixture(source,zeroSize)==51,"installer fields without a package size rejected");
+        auto oversize=installer;oversize.packageSize=512ull*1024*1024+1;
+        check(spawnMappedFixture(source,oversize)==51,"package size beyond the lease limit rejected");
+        auto zeroDigest=installer;
+        std::fill(std::begin(zeroDigest.packageSha256),std::end(zeroDigest.packageSha256),uint8_t(0));
+        check(spawnMappedFixture(source,zeroDigest)==51,"all-zero package digest rejected");
+    }
+    {
+        // Write side of the same invariant, driven through the real
+        // HandoffRequest -> ChildLaunchRequest -> launchCopy path: a half set
+        // must refuse the launch, never degrade into a handshake that silently
+        // drops the installer fields.
+        std::cout<<"coordinator handoff request"<<std::endl;
+        SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
+        const auto runtime=(root/L"runtime").wstring();
+        HandoffRequest complete;
+        complete.installerPath=(root/L"setup.exe").wstring();
+        complete.installRoot=root.wstring();
+        complete.packageSize=3;complete.packageSha256[0]=1;
+        const auto refuses=[&](HandoffRequest request,const char* name){
+            Coordinator c;
+            check(!c.start(source.wstring(),runtime,nullptr,nullptr,request) && !c.canCommitExit(),name); };
+        auto rootOnly=complete;
+        rootOnly.installerPath.clear();rootOnly.packageSize=0;rootOnly.packageSha256.fill(0);
+        refuses(rootOnly,"install root alone refuses the launch");
+        auto sizeOnly=complete;
+        sizeOnly.installerPath.clear();sizeOnly.installRoot.clear();sizeOnly.packageSha256.fill(0);
+        refuses(sizeOnly,"package size alone refuses the launch");
+        auto digestOnly=complete;
+        digestOnly.installerPath.clear();digestOnly.installRoot.clear();digestOnly.packageSize=0;
+        refuses(digestOnly,"package digest alone refuses the launch");
+        auto installerOnly=complete;
+        installerOnly.installRoot.clear();installerOnly.packageSize=0;installerOnly.packageSha256.fill(0);
+        refuses(installerOnly,"installer path alone refuses the launch");
+        auto relative=complete;relative.installerPath=L"relative\\setup.exe";
+        refuses(relative,"relative installer path refuses the launch");
+        auto oversize=complete;oversize.packageSize=512ull*1024*1024+1;
+        refuses(oversize,"package size beyond the lease limit refuses the launch");
+        {Coordinator c;
+          check(c.start(source.wstring(),runtime,nullptr,nullptr,complete) && c.authenticate(after(2000)),
+              "complete installer group launches and authenticates");}
     }
     {
         // 3C installer chain: credential file + restricted switch launch of

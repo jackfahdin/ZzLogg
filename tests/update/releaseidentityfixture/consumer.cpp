@@ -7,7 +7,7 @@ int main()
     const auto release = zzlogg::update::compiledReleaseIdentity();
 #if TEST_EXPECT_AVAILABLE
     if (!release || release->version.year != 26 || release->version.month != 9
-        || release->version.patch != 0
+        || release->version.patch != TEST_EXPECT_PATCH
         || release->releaseSequence != std::uint64_t{TEST_EXPECT_SEQUENCE}
         || release->channel != TEST_EXPECT_CHANNEL || release->os != "windows"
         || release->arch != "x64"

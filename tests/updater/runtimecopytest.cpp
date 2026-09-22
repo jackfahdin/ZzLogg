@@ -1,11 +1,12 @@
 #include "runtimecopy_win_p.h"
+#include "updatertesthelpers.h"
 #include <filesystem>
 #include <iostream>
 using namespace zzlogg::updater::detail;
 namespace fs=std::filesystem;
 int wmain(int argc,wchar_t** argv) {
     if(argc!=2) return 2;
-    wchar_t temp[MAX_PATH]{}; GetTempPathW(MAX_PATH,temp);
+    const auto temp=testTempDirectory();
     auto root=fs::path(temp)/(L"ZzLogg-copy-test-"+std::to_wstring(GetCurrentProcessId()));
     fs::create_directory(root);fs::create_directory(root/L"install");fs::create_directory(root/L"runtime");
     auto source=root/L"install"/L"source.exe"; fs::copy_file(argv[1],source);

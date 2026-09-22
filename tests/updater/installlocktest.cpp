@@ -1,4 +1,5 @@
 #include "installlock_win.h"
+#include "updatertesthelpers.h"
 #define NOMINMAX
 #include <windows.h>
 #include <sddl.h>
@@ -72,15 +73,22 @@ int wmain(int argc,wchar_t** argv) {
         ExitProcess(0); // Deliberately bypass RAII to exercise a genuinely abandoned mutex.
     }
     static_assert(!std::is_copy_constructible_v<InstallLock> && std::is_nothrow_move_constructible_v<InstallLock>);
-    wchar_t temp[MAX_PATH]{}; GetTempPathW(MAX_PATH,temp);
+    const auto temp=detail::testTempDirectory();
     const auto root=fs::path(temp)/(L"ZzLogg-lock-test-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(GetTickCount64()));
     fs::create_directories(root/L"install"); fs::create_directories(root/L"other");
     const auto path=(root/L"install").wstring();
     DirectoryIdentity identity{};
     {
         InstallLock first;
-        check(first.acquire(path)==InstallLockError::None && first.ownsLock() && first.identityUnchanged(),"valid directory leased");
-        if(!first.ownsLock()) { std::error_code ec; fs::remove_all(root,ec); return 1; }
+        const auto leased=first.acquire(path);
+        check(leased==InstallLockError::None && first.ownsLock() && first.identityUnchanged(),"valid directory leased");
+        if(!first.ownsLock()) {
+            // Every rejection collapses into one enum, so an unfamiliar environment
+            // cannot be told apart without the inputs the lease actually saw.
+            std::wcerr<<L"DIAG temp="<<temp<<L" path="<<path<<L" error="<<static_cast<int>(leased)
+                <<L" drive="<<GetDriveTypeW(path.substr(0,3).c_str())<<L"\n";
+            std::error_code ec; fs::remove_all(root,ec); return 1;
+        }
         identity=first.identity();
         checkMutexAccess(InstallLock::mutexName(identity));
         check(identity.volumeSerial!=0 && std::any_of(identity.fileId.begin(),identity.fileId.end(),[](auto b){return b!=0;}),"volume and file ID captured");

@@ -88,6 +88,11 @@ Coordinator::~Coordinator(){
 }
 bool Coordinator::start(const std::wstring& source,const std::wstring& base,const DirectoryIdentity* reservedIdentity,
     const ProcessIdentity* application,const std::wstring& dataDirectory){
+    HandoffRequest request;request.dataDirectory=dataDirectory;
+    return start(source,base,reservedIdentity,application,request);
+}
+bool Coordinator::start(const std::wstring& source,const std::wstring& base,const DirectoryIdentity* reservedIdentity,
+    const ProcessIdentity* application,const HandoffRequest& request){
     if(impl_->session)return false;ProcessIdentity self;
     if(reservedIdentity && !reservedIdentity->volumeSerial)return false;
     if(application && !application->handle())return false;
@@ -102,15 +107,20 @@ bool Coordinator::start(const std::wstring& source,const std::wstring& base,cons
         impl_->applicationHeld=true;
     }
     impl_->elevated=self.elevated();impl_->session=std::make_unique<HandoffSession>(impl_->transaction,impl_->token);
+    ChildLaunchRequest launch;
+    launch.transaction=impl_->transaction;launch.token=impl_->token;launch.reservedIdentity=reservedIdentity;
+    launch.dataDirectory=request.dataDirectory;launch.installerPath=request.installerPath;
+    launch.installRoot=request.installRoot;launch.packageSize=request.packageSize;
+    launch.packageSha256=request.packageSha256;
     if(!impl_->copy.create(source,base) || !impl_->channel.create(impl_->transaction)
-        || !launchCopy(impl_->copy,impl_->transaction,impl_->token,reservedIdentity,dataDirectory,impl_->process)){impl_->abort();return false;}return true;
+        || !launchCopy(impl_->copy,launch,impl_->process)){impl_->abort();return false;}return true;
 }
 bool Coordinator::startInstaller(const InstallerRequest& request,const DirectoryIdentity* reservedIdentity,
     const ProcessIdentity* application,const CoordinatorOptions& options,LaunchError* error){
     if(error)*error=LaunchError::Failed;
     if(impl_->session || request.installer.empty() || request.installRoot.empty()
-        || request.dataDirectory.size()>=DataDirectoryCapacity
-        || !dataDirectoryPlausible(request.dataDirectory.data(),request.dataDirectory.size()))return false;
+        || request.dataDirectory.size()>=PathCapacity
+        || !absolutePathPlausible(request.dataDirectory.data(),request.dataDirectory.size()))return false;
     if(reservedIdentity && !reservedIdentity->volumeSerial)return false;
     if(application && !application->handle())return false;
     ProcessIdentity self;

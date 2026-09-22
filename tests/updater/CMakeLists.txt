@@ -79,6 +79,22 @@ add_test(NAME zzlogg_updater.production_dependencies
     "-DSTATIC_LIBRARIES=$<TARGET_FILE:zzlogg_updater_handoff>;$<TARGET_FILE:zzlogg_updater_execution>;$<TARGET_FILE:zzlogg_updater_core>;$<TARGET_FILE:zzlogg_updater_monocypher>"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/dependencytest.cmake")
 
+add_executable(zzlogg_updater_relayfixture relayfixture.cpp)
+target_link_libraries(zzlogg_updater_relayfixture PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(zzlogg_updater_relayfixture TRUE)
+add_executable(zzlogg_updater_relay_test relaytest.cpp)
+target_link_libraries(zzlogg_updater_relay_test PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(zzlogg_updater_relay_test TRUE)
+add_dependencies(zzlogg_updater_relay_test zzlogg_updater_handofffixture_test ZzLoggUpdate)
+add_test(NAME zzlogg_updater.relay_production
+  COMMAND zzlogg_updater_relay_test $<TARGET_FILE:ZzLoggUpdate>
+    $<TARGET_FILE:zzlogg_updater_handofffixture_test>)
+add_test(NAME zzlogg_updater.relay_fixture
+  COMMAND zzlogg_updater_relay_test $<TARGET_FILE:zzlogg_updater_relayfixture>
+    $<TARGET_FILE:zzlogg_updater_handofffixture_test>)
+set_tests_properties(zzlogg_updater.relay_production zzlogg_updater.relay_fixture
+  PROPERTIES TIMEOUT 120)
+
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
 zzlogg_relax_test_warnings_in_current_dir()

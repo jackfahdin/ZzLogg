@@ -594,8 +594,8 @@ class UpdateHandoffTest final : public QObject {
                   app_.updateGuard().reservedIdentity()->volumeSerial );
         QCOMPARE( capture->directory->fileId, app_.updateGuard().reservedIdentity()->fileId );
         const auto offer = app_.verifiedUpdateOffer();
-        QCOMPARE( capture->packagePath, offer.first );
-        QCOMPARE( capture->releaseVersion, offer.second );
+        QCOMPARE( capture->packagePath, offer.packagePath );
+        QCOMPARE( capture->releaseVersion, offer.releaseVersion );
         handoff.cancel();
         QTRY_VERIFY( !app_.updateGuard().isUpdateReserved() );
     }
