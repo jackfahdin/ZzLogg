@@ -2,6 +2,7 @@
 #include "configuration.h"
 #include "klogg_version.h"
 #include <QEvent>
+#include <QFrame>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -9,75 +10,120 @@
 #include <QScreen>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <algorithm>
 using namespace zzlogg::updateqt;
 namespace {
-QLabel* label(QWidget* parent) {
+QLabel* label(QWidget* parent,const char* objectName=nullptr) {
     auto* result=new QLabel(parent);
-    result->setTextFormat(Qt::PlainText); result->setWordWrap(true);
+    result->setTextFormat(Qt::PlainText);
+    result->setWordWrap(true);
     result->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    if(objectName) result->setObjectName(objectName);
     return result;
 }
+}
+void UpdateCheckDialog::setMuted(QLabel* label,bool muted)
+{
+    if(!label) return;
+    QPalette palette=label->palette();
+    palette.setColor(QPalette::WindowText,
+        muted ? palette.color(QPalette::PlaceholderText) : palette.color(QPalette::WindowText));
+    label->setPalette(palette);
 }
 UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
 {
     setObjectName("updateCheckDialog");
     setWindowFlag(Qt::WindowContextHelpButtonHint,false);
-    auto* outer=new QVBoxLayout(this); outer->setContentsMargins(20,20,20,16); outer->setSpacing(16);
-    auto* scroll=new QScrollArea(this); scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
-    auto* content=new QWidget(scroll); auto* body=new QVBoxLayout(content); body->setSpacing(14);
-    identity_=label(content); status_=label(content); details_=label(content); hint_=label(content);
-    hint_->setObjectName("updateHint");
-    downloadStatus_=label(this); downloadStatus_->setObjectName("updateDownloadStatus");
-    handoffStatus_=label(this); handoffStatus_->setObjectName("updateHandoffStatus");
-    progress_=new QProgressBar(this); progress_->setObjectName("updateDownloadProgress");
-    status_->setObjectName("updateStatus"); details_->setObjectName("updateDetails");
-    auto font=status_->font(); font.setBold(true); font.setPointSize(font.pointSize()+2); status_->setFont(font);
-    notes_=new QPlainTextEdit(content); notes_->setReadOnly(true); notes_->setObjectName("updateNotes");
-    notes_->setMinimumHeight(120); notes_->setFrameShape(QFrame::NoFrame);
-    body->addWidget(identity_); body->addWidget(status_); body->addWidget(details_);
-    body->addWidget(notes_,1); body->addWidget(hint_);
-    scroll->setWidget(content); outer->addWidget(scroll,1);
-    outer->addWidget(downloadStatus_); outer->addWidget(progress_); outer->addWidget(handoffStatus_);
-    auto* footer=new QHBoxLayout; outer->addLayout(footer);
-    check_=new QPushButton(this); cancel_=new QPushButton(this); later_=new QPushButton(this);
-    skip_=new QPushButton(this); close_=new QPushButton(this);
-    download_=new QPushButton(this); download_->setObjectName("updateDownload");
-    install_=new QPushButton(this); install_->setObjectName("updateInstall");
-    releases_=new QPushButton(this); releases_->setObjectName("updateReleases");
-    auto* releaseActions=new QHBoxLayout;
-    outer->addLayout(releaseActions);
-    releaseActions->addWidget(releases_);
-    releaseActions->addStretch();
-    connect(releases_, &QPushButton::clicked, this, [this] {
-        if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting
-            || handoffState_==UpdateHandoffState::ExitCommitted) return;
-        // Fixed project-owned pages, never a URL from unverified metadata.
-        const auto url=snapshot_.channel==Channel::Stable
-            ? QUrl(QStringLiteral("https://github.com/jackfahdin/ZzLogg/releases/latest"))
-            : QUrl(QStringLiteral("https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build"));
-        Q_EMIT releasesPageRequested(url);
-    });
-    check_->setObjectName("updateCheck"); cancel_->setObjectName("updateCancel"); close_->setObjectName("updateClose");
-    skip_->setObjectName("updateSkip"); later_->setObjectName("updateLater");
-    for(auto* button:{check_,download_,install_,cancel_,later_,skip_,close_}) { button->setAutoDefault(false); footer->addWidget(button); }
-    connect(check_,&QPushButton::clicked,this,&UpdateCheckDialog::checkRequested);
+    auto* outer=new QVBoxLayout(this);
+    outer->setContentsMargins(24,22,24,20);
+    outer->setSpacing(18);
+
+    identity_=label(this,"updateIdentity");
+    setMuted(identity_,true);
+    status_=label(this,"updateStatus");
+    QFont headline=status_->font();
+    headline.setPointSize(headline.pointSize()+3);
+    headline.setWeight(QFont::DemiBold);
+    status_->setFont(headline);
+    hint_=label(this,"updateHint");
+    setMuted(hint_,true);
+    outer->addWidget(identity_);
+    outer->addWidget(status_);
+    outer->addWidget(hint_);
+
+    notesFrame_=new QFrame(this);
+    notesFrame_->setObjectName("updateNotesFrame");
+    notesFrame_->setFrameShape(QFrame::StyledPanel);
+    auto* notesLayout=new QVBoxLayout(notesFrame_);
+    notesLayout->setContentsMargins(12,10,12,10);
+    notes_=new QPlainTextEdit(notesFrame_);
+    notes_->setReadOnly(true);
+    notes_->setObjectName("updateNotes");
+    notes_->setFrameShape(QFrame::NoFrame);
+    notes_->setMinimumHeight(140);
+    notes_->setMaximumHeight(280);
+    notesLayout->addWidget(notes_);
+    outer->addWidget(notesFrame_);
+
+    details_=label(this,"updateDetails");
+    setMuted(details_,true);
+    outer->addWidget(details_);
+
+    downloadStatus_=label(this,"updateDownloadStatus");
+    setMuted(downloadStatus_,true);
+    progress_=new QProgressBar(this);
+    progress_->setObjectName("updateDownloadProgress");
+    progress_->setTextVisible(false);
+    progress_->setFixedHeight(8);
+    outer->addWidget(downloadStatus_);
+    outer->addWidget(progress_);
+
+    handoffStatus_=label(this,"updateHandoffStatus");
+    setMuted(handoffStatus_,true);
+    outer->addWidget(handoffStatus_);
+
+    auto* footer=new QHBoxLayout;
+    footer->setSpacing(12);
+    skip_=new QPushButton(this);
+    skip_->setObjectName("updateSkip");
+    later_=new QPushButton(this);
+    later_->setObjectName("updateLater");
+    cancel_=new QPushButton(this);
+    cancel_->setObjectName("updateCancel");
+    download_=new QPushButton(this);
+    download_->setObjectName("updateDownload");
+    install_=new QPushButton(this);
+    install_->setObjectName("updateInstall");
+    for(auto* button:{skip_,later_}) {
+        button->setFlat(true);
+        button->setAutoDefault(false);
+        footer->addWidget(button);
+    }
+    footer->addStretch();
+    for(auto* button:{cancel_,download_,install_}) {
+        button->setAutoDefault(false);
+        footer->addWidget(button);
+    }
+    outer->addLayout(footer);
+
     connect(download_,&QPushButton::clicked,this,&UpdateCheckDialog::downloadRequested);
     connect(install_,&QPushButton::clicked,this,[this] {
-        // Defense in depth: capability and a fresh verified package are
-        // rechecked at click time, not only at refresh time.
         if(installAvailable()) Q_EMIT installRequested();
     });
     connect(cancel_,&QPushButton::clicked,this,[this] {
         if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting)
             Q_EMIT installCancelRequested();
-        else if(downloadSnapshot_.status==DownloadStatus::Downloading) Q_EMIT downloadCancelRequested();
-        else Q_EMIT cancelRequested();
+        else if(downloadSnapshot_.status==DownloadStatus::Downloading)
+            Q_EMIT downloadCancelRequested();
+        else
+            Q_EMIT cancelRequested();
     });
     connect(skip_,&QPushButton::clicked,this,&UpdateCheckDialog::skipRequested);
     connect(later_,&QPushButton::clicked,this,&UpdateCheckDialog::reject);
-    connect(close_,&QPushButton::clicked,this,&UpdateCheckDialog::reject);
-    resize(600,480); refresh();
+
+    resize(520,440);
+    refresh();
 }
 UpdateCheckDialog::~UpdateCheckDialog()
 {
@@ -93,13 +139,13 @@ void UpdateCheckDialog::setSnapshot(const CheckSnapshot& snapshot)
 {
     snapshot_=snapshot;
     checkedAt_=snapshot.checkedAt>0 ? QDateTime::fromSecsSinceEpoch(snapshot.checkedAt) : QDateTime{};
-    updateExecutionAvailable_=false; // any selection/check change clears the pushed capability
+    updateExecutionAvailable_=false;
     refresh();
 }
 void UpdateCheckDialog::setDownloadSnapshot(const DownloadSnapshot& snapshot)
 {
     downloadSnapshot_=snapshot;
-    updateExecutionAvailable_=false; // any download change clears the pushed capability
+    updateExecutionAvailable_=false;
     refresh();
 }
 void UpdateCheckDialog::setUpdateExecutionAvailable(bool available)
@@ -115,8 +161,6 @@ void UpdateCheckDialog::setHandoffState(UpdateHandoffState state, UpdateHandoffE
 }
 bool UpdateCheckDialog::installAvailable() const
 {
-    // Both the pushed execution capability and a fresh selected verified
-    // package are required; the Verified download state alone is never enough.
     const bool downloadable=snapshot_.status==CheckStatus::Available && snapshot_.release
         && snapshot_.decision
         && snapshot_.decision->status==zzlogg::update::DecisionStatus::Available
@@ -128,7 +172,8 @@ void UpdateCheckDialog::refresh()
 {
     setWindowTitle(tr("Check for updates"));
     const auto channel=snapshot_.channel==Channel::Stable ? tr("Stable") : tr("Preview");
-    identity_->setText(tr("Current version: %1\nChannel: %2").arg(kloggVersion(),channel));
+    identity_->setText(tr("Current version %1 · %2 channel").arg(kloggVersion(),channel));
+
     QString text;
     switch(snapshot_.status) {
     case CheckStatus::Idle: text=tr("Ready to check for updates."); break;
@@ -137,8 +182,8 @@ void UpdateCheckDialog::refresh()
     case CheckStatus::Cancelled: text=tr("Update check cancelled."); break;
     case CheckStatus::UpToDate: text=tr("You are using the latest version."); break;
     case CheckStatus::Available: text=tr("A new version is available."); break;
-    case CheckStatus::ManualUpdateAvailable: text=tr("A new version is available. Download it from GitHub."); break;
-    case CheckStatus::ReleaseInformation: text=tr("Verified release information. See GitHub for available builds."); break;
+    case CheckStatus::ManualUpdateAvailable: text=tr("A new version is available."); break;
+    case CheckStatus::ReleaseInformation: text=tr("Release information is available."); break;
     case CheckStatus::Unsupported: text=tr("This release is not compatible with this installation."); break;
     case CheckStatus::NetworkError: text=tr("Unable to retrieve the update manifest. Please try again later."); break;
     case CheckStatus::VerificationFailed: text=tr("Update verification failed. Check the system clock or try again later."); break;
@@ -147,47 +192,52 @@ void UpdateCheckDialog::refresh()
     case CheckStatus::StateWriteFailed: text=tr("Unable to save update state. No update has been accepted."); break;
     }
     status_->setText(text);
-    QString details=checkedAt_.isValid() ? tr("Last check: %1").arg(checkedAt_.toString(Qt::ISODate)) : QString{};
+
+    QStringList meta;
+    if(checkedAt_.isValid())
+        meta.append(tr("Last check: %1").arg(checkedAt_.toString(Qt::ISODate)));
     QString notes;
     if(snapshot_.release) {
         const auto& release=snapshot_.release->manifest();
         const auto version=QString("%1.%2.%3").arg(release.version.year,2,10,QChar('0'))
             .arg(release.version.month,2,10,QChar('0')).arg(release.version.patch,2,10,QChar('0'));
-        details+=QStringLiteral("\n")+tr("Release version: %1").arg(version);
+        meta.append(tr("Release %1").arg(version));
         const auto language=Configuration::get().language();
         const size_t index=language=="zh_CN" ? 1 : language=="zh_TW" ? 2 : 0;
         notes=QString::fromStdString(release.notes[index]);
         if(snapshot_.decision && snapshot_.decision->artifact) {
             const auto& artifact=*snapshot_.decision->artifact;
-            details+=QStringLiteral("\n")+tr("Package: %1 (%2 bytes)")
+            meta.append(tr("%1 · %2 bytes")
                 .arg(artifact.distribution==zzlogg::update::Distribution::Portable ? tr("Portable") : tr("Installer"))
-                .arg(qulonglong(artifact.size));
+                .arg(qulonglong(artifact.size)));
         }
     }
-    details_->setText(details);
+    details_->setText(meta.join(QStringLiteral("  ·  ")));
+    details_->setVisible(!meta.isEmpty());
     if(notes_->toPlainText()!=notes) notes_->setPlainText(notes);
-    notes_->setVisible(snapshot_.release.has_value());
+    const bool hasNotes=snapshot_.release.has_value() && !notes.trimmed().isEmpty();
+    notes_->setVisible(hasNotes);
+    notesFrame_->setVisible(hasNotes);
+
+    QString hintText;
     if(snapshot_.status==CheckStatus::NotConfigured)
-        hint_->setText(tr("Online updates are not configured for this build. Download releases from GitHub."));
+        hintText=tr("This build cannot use the online update service.");
     else if(snapshot_.status==CheckStatus::ReleaseInformation || snapshot_.status==CheckStatus::Unsupported
         || snapshot_.status==CheckStatus::ManualUpdateAvailable)
-        hint_->setText(tr("Automatic installation is unavailable for this installation. Download a compatible package from GitHub."));
+        hintText=tr("Automatic installation is unavailable for this installation.");
     else if(installAvailable())
-        hint_->setText(tr("The update is verified. Choose Quit and install update to continue."));
+        hintText=tr("The update package is verified. You can install it now.");
     else if(updateExecutionAvailable_)
-        hint_->setText(tr("Download and verify the update before installing it."));
+        hintText=tr("Download and verify the update before installing.");
     else if(snapshot_.status==CheckStatus::Available)
-        // Only talk about install capability once a new version actually exists.
-        hint_->setText(tr("Update installation is not enabled for this build. Download releases from GitHub."));
-    else
-        hint_->clear();
-    releases_->setText(tr("Open GitHub downloads"));
-    releases_->setAutoDefault(false);
-    releases_->setEnabled(handoffState_!=UpdateHandoffState::Preparing
-        && handoffState_!=UpdateHandoffState::Waiting
-        && handoffState_!=UpdateHandoffState::ExitCommitted);
-    check_->setText(tr("Check again")); cancel_->setText(tr("Cancel check"));
-    later_->setText(tr("Remind me later")); skip_->setText(tr("Skip this version")); close_->setText(tr("Close"));
+        hintText=tr("Install in place is not available for this build.");
+    hint_->setText(hintText);
+    hint_->setVisible(!hintText.isEmpty());
+
+    cancel_->setText(tr("Cancel"));
+    later_->setText(tr("Remind me later"));
+    skip_->setText(tr("Skip this version"));
+
     const bool checking=snapshot_.status==CheckStatus::Checking;
     const bool downloading=downloadSnapshot_.status==DownloadStatus::Downloading;
     const bool downloadable=snapshot_.status==CheckStatus::Available && snapshot_.release && snapshot_.decision
@@ -197,19 +247,27 @@ void UpdateCheckDialog::refresh()
     download_->setVisible(downloadable);
     download_->setEnabled(downloadable && !downloading && downloadSnapshot_.status!=DownloadStatus::Verified
         && downloadSnapshot_.status!=DownloadStatus::Unavailable);
-    check_->setEnabled(!checking && !downloading);
-    cancel_->setVisible(checking || downloading); cancel_->setEnabled(checking || downloading);
+    download_->setDefault(download_->isVisible() && download_->isEnabled() && !installAvailable());
+
+    cancel_->setVisible(checking || downloading);
+    cancel_->setEnabled(checking || downloading);
     if(downloading) cancel_->setText(tr("Cancel download"));
-    skip_->setVisible(snapshot_.release.has_value() && !downloading);
-    later_->setVisible(snapshot_.release.has_value() && !downloading);
-    skip_->setEnabled(!checking && !downloading); later_->setEnabled(!checking && !downloading);
+    else if(checking) cancel_->setText(tr("Cancel check"));
+
+    const bool offerDismiss=snapshot_.release.has_value() && !downloading
+        && handoffState_!=UpdateHandoffState::Preparing && handoffState_!=UpdateHandoffState::Waiting;
+    skip_->setVisible(offerDismiss);
+    later_->setVisible(offerDismiss);
+    skip_->setEnabled(offerDismiss && !checking);
+    later_->setEnabled(offerDismiss && !checking);
+
     QString downloadText;
     switch(downloadSnapshot_.status) {
     case DownloadStatus::Idle: break;
     case DownloadStatus::Downloading: downloadText=tr("Downloading update..."); break;
     case DownloadStatus::Verified: downloadText=tr("Download verified."); break;
     case DownloadStatus::Cancelled: downloadText=tr("Download cancelled. You can retry."); break;
-    case DownloadStatus::Unavailable: downloadText=tr("This download is no longer available. Check for updates again."); break;
+    case DownloadStatus::Unavailable: downloadText=tr("This download is no longer available."); break;
     case DownloadStatus::Failed:
         switch(downloadSnapshot_.error.value_or(DownloadError::Network)) {
         case DownloadError::InsufficientSpace: downloadText=tr("Not enough disk space. Free some space and retry."); break;
@@ -228,27 +286,31 @@ void UpdateCheckDialog::refresh()
         const auto received=std::max(qint64(0),downloadSnapshot_.received);
         const auto total=std::max(qint64(0),downloadSnapshot_.total);
         const auto percent=total>0 ? int(std::clamp(100.0L*received/total,0.0L,100.0L)) : 0;
-        progress_->setRange(0,total>0 ? 100 : 0); progress_->setValue(percent);
+        progress_->setRange(0,total>0 ? 100 : 0);
+        progress_->setValue(percent);
         downloadText+=QStringLiteral("\n")+(total>0
             ? tr("%1 / %2 bytes (%3%)").arg(received).arg(total).arg(percent)
             : tr("%1 bytes received").arg(received));
     }
-    downloadStatus_->setText(downloadText); downloadStatus_->setVisible(!downloadText.isEmpty());
-    // Restricted handoff presentation: the install action stays hidden unless
-    // the backend pushed the capability and a fresh verified package exists.
+    downloadStatus_->setText(downloadText);
+    downloadStatus_->setVisible(!downloadText.isEmpty());
+
     const bool handoffBusy=handoffState_==UpdateHandoffState::Preparing
         || handoffState_==UpdateHandoffState::Waiting;
     install_->setText(tr("Quit and install update"));
     install_->setVisible(installAvailable() || handoffBusy);
     install_->setEnabled(installAvailable() && !handoffBusy);
+    install_->setDefault(install_->isVisible() && install_->isEnabled());
+
     if(handoffBusy) {
-        // Preparing/waiting freezes every selection-changing action; the only
-        // offered operation is cancelling the handoff.
-        check_->setEnabled(false); download_->setEnabled(false);
-        skip_->setEnabled(false); later_->setEnabled(false);
+        download_->setEnabled(false);
+        skip_->setEnabled(false);
+        later_->setEnabled(false);
         cancel_->setText(tr("Cancel update"));
-        cancel_->setVisible(true); cancel_->setEnabled(true);
+        cancel_->setVisible(true);
+        cancel_->setEnabled(true);
     }
+
     QString handoffText;
     switch(handoffState_) {
     case UpdateHandoffState::Idle: break;
@@ -281,7 +343,8 @@ void UpdateCheckDialog::refresh()
         }
         break;
     }
-    handoffStatus_->setText(handoffText); handoffStatus_->setVisible(!handoffText.isEmpty());
+    handoffStatus_->setText(handoffText);
+    handoffStatus_->setVisible(!handoffText.isEmpty());
 }
 void UpdateCheckDialog::changeEvent(QEvent* event)
 {
@@ -295,8 +358,6 @@ void UpdateCheckDialog::showEvent(QShowEvent* event)
 }
 void UpdateCheckDialog::reject()
 {
-    // Closing or ESC during an active handoff is exactly the cancel operation;
-    // the dialog stays open so the cancelled/failed state remains visible.
     if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting) {
         Q_EMIT installCancelRequested();
         return;
@@ -307,7 +368,6 @@ void UpdateCheckDialog::reject()
     dismissed_=true;
     Q_EMIT closing();
     if(!guard) return;
-    // Hide before cancellation can synchronously publish another snapshot.
     QDialog::reject();
     if(guard && cancel) Q_EMIT cancelRequested();
     if(guard && cancelDownload) Q_EMIT downloadCancelRequested();

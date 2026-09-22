@@ -2498,6 +2498,54 @@
 <context>
     <name>UpdateCheckDialog</name>
     <message>
+        <source>Current version %1 · %2 channel</source>
+        <translation>Current version %1 · %2 channel</translation>
+    </message>
+    <message>
+        <source>Release information is available.</source>
+        <translation>Release information is available.</translation>
+    </message>
+    <message>
+        <source>This build cannot use the online update service.</source>
+        <translation>This build cannot use the online update service.</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation.</source>
+        <translation>Automatic installation is unavailable for this installation.</translation>
+    </message>
+    <message>
+        <source>The update package is verified. You can install it now.</source>
+        <translation>The update package is verified. You can install it now.</translation>
+    </message>
+    <message>
+        <source>Download and verify the update before installing.</source>
+        <translation>Download and verify the update before installing.</translation>
+    </message>
+    <message>
+        <source>Install in place is not available for this build.</source>
+        <translation>Install in place is not available for this build.</translation>
+    </message>
+    <message>
+        <source>Release %1</source>
+        <translation>Release %1</translation>
+    </message>
+    <message>
+        <source>%1 · %2 bytes</source>
+        <translation>%1 · %2 bytes</translation>
+    </message>
+    <message>
+        <source>This download is no longer available.</source>
+        <translation>This download is no longer available.</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>Cancel check</source>
+        <translation>Cancel check</translation>
+    </message>
+    <message>
         <source>A new version is available. Download it from GitHub.</source>
         <translation>A new version is available. Download it from GitHub.</translation>
     </message>

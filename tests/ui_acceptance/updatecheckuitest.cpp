@@ -54,31 +54,19 @@ private Q_SLOTS:
     void updateHintsReflectActualCapability() {
         UpdateCheckDialog dialog;
         auto* hint = dialog.findChild<QLabel*>("updateHint");
-        auto* releases = dialog.findChild<QPushButton*>("updateReleases");
         QVERIFY(hint);
-        QVERIFY(releases);
-        QSignalSpy open(&dialog, SIGNAL(releasesPageRequested(QUrl)));
-        QVERIFY(open.isValid());
         dialog.setSnapshot({CheckStatus::NotConfigured, Channel::Stable, {}, {}, true});
-        QVERIFY(hint->text().contains("not configured"));
-        releases->click();
-        QCOMPARE(open.takeFirst().at(0).toUrl(),
-                 QUrl("https://github.com/jackfahdin/ZzLogg/releases/latest"));
+        QVERIFY(hint->text().contains("online update service"));
         dialog.setSnapshot({CheckStatus::ReleaseInformation, Channel::Preview, {}, {}, true});
         QVERIFY(hint->text().contains("this installation"));
-        releases->click();
-        QCOMPARE(open.takeFirst().at(0).toUrl(),
-                 QUrl("https://github.com/jackfahdin/ZzLogg/releases/tag/continuous-build"));
         dialog.setSnapshot(availableRelease());
         dialog.setDownloadSnapshot({DownloadStatus::Verified, 100, 100, {}, "cache/package"});
-        QVERIFY(hint->text().contains("not enabled"));
+        QVERIFY(hint->text().contains("not available"));
         dialog.setUpdateExecutionAvailable(true);
-        QVERIFY(!hint->text().contains("not enabled"));
-        QVERIFY(hint->text().contains("Quit and install"));
+        QVERIFY(!hint->text().contains("not available"));
+        QVERIFY(hint->text().contains("install"));
         dialog.setHandoffState(UpdateCheckDialog::UpdateHandoffState::Waiting);
-        QVERIFY(!releases->isEnabled());
-        releases->click();
-        QCOMPARE(open.count(), 0);
+        QVERIFY(!dialog.findChild<QPushButton*>("updateSkip")->isEnabled());
     }
     void upToDateNeverMentionsInstallCapability() {
         UpdateCheckDialog dialog;
@@ -126,7 +114,6 @@ private Q_SLOTS:
         auto* download=dialog.findChild<QPushButton*>("updateDownload");
         QVERIFY(!download->isEnabled());
         QVERIFY(!dialog.findChild<QPushButton*>("updateSkip")->isEnabled());
-        QVERIFY(!dialog.findChild<QPushButton*>("updateCheck")->isEnabled());
         auto* status=dialog.findChild<QLabel*>("updateDownloadStatus");
         QVERIFY(status->text().contains("25 / 100 bytes (25%)"));
         QSignalSpy cancelled(&dialog,&UpdateCheckDialog::downloadCancelRequested);
@@ -143,7 +130,6 @@ private Q_SLOTS:
         QCOMPARE(progress->value(),100); QVERIFY(!download->isEnabled());
         QCOMPARE(status->text(),QString("Download verified.\n100 / 100 bytes (100%)"));
         dialog.setDownloadSnapshot({DownloadStatus::Unavailable}); QVERIFY(!download->isEnabled());
-        QVERIFY(dialog.findChild<QPushButton*>("updateCheck")->isEnabled());
     }
     // Network progress must preserve the user's place/selection in the release notes.
     void progressPreservesReleaseNotesSelection() {
@@ -232,13 +218,14 @@ private Q_SLOTS:
         delete parent;
         QCOMPARE(cancelled.count(),1);
     }
-    void checkingDisablesDuplicateCheck() {
+    void checkingShowsCancelWhileActive() {
         UpdateCheckDialog dialog;
         dialog.setSnapshot({CheckStatus::Checking,Channel::Stable,{},{},true});
-        auto* check=dialog.findChild<QPushButton*>("updateCheck");
         auto* cancel=dialog.findChild<QPushButton*>("updateCancel");
-        QVERIFY(check && cancel);
-        QVERIFY(!check->isEnabled()); QVERIFY(cancel->isEnabled());
+        QVERIFY(cancel);
+        QVERIFY(cancel->isVisible());
+        QVERIFY(cancel->isEnabled());
+        QVERIFY(!dialog.findChild<QPushButton*>("updateCheck"));
     }
     void parentDestructionCancelsServiceBeforeLateReply() {
         QTemporaryDir directory;
@@ -394,7 +381,6 @@ private Q_SLOTS:
         dialog.setDownloadSnapshot({DownloadStatus::Verified,100,100,{},"cache/package"});
         dialog.setUpdateExecutionAvailable(true);
         auto* install=dialog.findChild<QPushButton*>("updateInstall");
-        auto* check=dialog.findChild<QPushButton*>("updateCheck");
         auto* download=dialog.findChild<QPushButton*>("updateDownload");
         auto* skip=dialog.findChild<QPushButton*>("updateSkip");
         auto* later=dialog.findChild<QPushButton*>("updateLater");
@@ -403,7 +389,7 @@ private Q_SLOTS:
         QVERIFY(status);
         dialog.show();
         dialog.setHandoffState(S::Preparing);
-        QVERIFY(!check->isEnabled()); QVERIFY(!download->isEnabled());
+        QVERIFY(!download->isEnabled());
         QVERIFY(!skip->isEnabled()); QVERIFY(!later->isEnabled());
         QVERIFY(!install->isEnabled()); QVERIFY(!install->isHidden());
         QVERIFY(cancel->isEnabled()); QVERIFY(!cancel->isHidden());
@@ -413,17 +399,16 @@ private Q_SLOTS:
         QVERIFY(cancelledSpy.isValid());
         QTest::keyClick(&dialog,Qt::Key_Escape);
         QCOMPARE(cancelledSpy.count(),1);
-        QVERIFY(dialog.isVisible()); // cancelling is not closing
+        QVERIFY(dialog.isVisible());
         dialog.setHandoffState(S::Waiting);
         QCOMPARE(status->text(),QString("Closing ZzLogg and starting the update..."));
-        QVERIFY(!check->isEnabled());
         cancel->click(); QCOMPARE(cancelledSpy.count(),2);
         QVERIFY(dialog.isVisible());
         dialog.setHandoffState(S::Cancelled);
-        QVERIFY(check->isEnabled()); QVERIFY(install->isEnabled());
+        QVERIFY(install->isEnabled());
         QCOMPARE(status->text(),QString("Update cancelled. Your session is unchanged."));
         dialog.close();
-        QVERIFY(!dialog.isVisible()); // after cancellation the dialog closes normally
+        QVERIFY(!dialog.isVisible());
     }
     // Failure texts are the controller-to-UI error mapping, never raw detail.
     void handoffFailureStatesShowMappedTexts() {
