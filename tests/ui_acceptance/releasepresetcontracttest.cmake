@@ -15,20 +15,32 @@ function(find_preset section name output)
   endforeach()
   message(FATAL_ERROR "Missing ${section}: ${name}")
 endfunction()
+
+# 发布验收预设固定为 ninja-ui-release：Release 构建、启用 UI 专项测试，
+# 且测试预设不带 filter（跑全部已注册测试）。Windows 与 Linux 共用同一
+# Ninja 预设，本地与 CI 的生成器一致。
+set(release_preset ninja-ui-release)
+
+find_preset(configurePresets ${release_preset} configure_entry)
+string(JSON build_type GET "${configure_entry}" cacheVariables CMAKE_BUILD_TYPE)
+if(NOT build_type STREQUAL "Release")
+  message(FATAL_ERROR "${release_preset} must configure a Release build, got ${build_type}")
+endif()
+
 foreach(section IN ITEMS buildPresets testPresets)
-  find_preset(${section} windows-vs2026-ui-release entry)
-  string(JSON config GET "${entry}" configuration)
+  find_preset(${section} ${release_preset} entry)
   string(JSON configure GET "${entry}" configurePreset)
-  if(NOT config STREQUAL "Release" OR NOT configure STREQUAL "windows-vs2026-ui")
-    message(FATAL_ERROR "${section} must use the Release UI configuration")
+  if(NOT configure STREQUAL release_preset)
+    message(FATAL_ERROR "${section} must use the ${release_preset} configure preset")
   endif()
 endforeach()
 string(JSON filter ERROR_VARIABLE filter_error GET "${entry}" filter)
 if(NOT filter_error)
   message(FATAL_ERROR "Release acceptance must run the complete registered test suite")
 endif()
-find_preset(workflowPresets windows-vs2026-ui-release workflow)
-set(expected_names windows-vs2026-ui windows-vs2026-ui-release windows-vs2026-ui-release)
+
+find_preset(workflowPresets ${release_preset} workflow)
+set(expected_names ${release_preset} ${release_preset} ${release_preset})
 set(expected_types configure build test)
 string(JSON count LENGTH "${workflow}" steps)
 if(NOT count EQUAL 3)

@@ -120,18 +120,21 @@ VerifiedManifest 只能由完整验证器构造。失败结果没有 value，因
 仅测试使用，默认关闭，不安装、不部署到 runtime，不联网。测试程序可依赖 Qt Core，核心静态库仍不依赖 Qt。
 
 ```powershell
-cmake -S . -B out/ui-vs -DKLOGG_BUILD_UI_TESTS=ON -DZZLOGG_BUILD_UPDATE_TEST_TOOLS=ON
-cmake --build out/ui-vs --config Release --target zzlogg_update_testfeed
+# 在 MSVC 开发者命令行中执行（Ninja 单配置：产物直接在 output/ 下）
+cmake -S . -B out/update-tools -G Ninja -DCMAKE_BUILD_TYPE=Release `
+  -DKLOGG_BUILD_UI_TESTS=ON -DZZLOGG_BUILD_UPDATE_TEST_TOOLS=ON `
+  -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64
+cmake --build out/update-tools --target zzlogg_update_testfeed
 
 # 将本机 Qt bin 加到当前终端 PATH；不修改系统环境变量。
 $env:PATH = 'D:/SoftWare/Qt/6.11.0/msvc2022_64/bin;' + $env:PATH
-& out/ui-vs/output/Release/zzlogg_update_testfeed.exe generate --output out/test-manifest.json
-& out/ui-vs/output/Release/zzlogg_update_testfeed.exe verify --input out/test-manifest.json --now 1800000000
+& out/update-tools/output/zzlogg_update_testfeed.exe generate --output out/test-manifest.json
+& out/update-tools/output/zzlogg_update_testfeed.exe verify --input out/test-manifest.json --now 1800000000
 
-ctest --test-dir out/ui-vs -C Release -R '^zzlogg_update\.' --output-on-failure
+ctest --test-dir out/update-tools -R '^zzlogg_update\.' --output-on-failure
 ```
 
-示例假设已有 Windows VS 构建目录；首次配置参照 [编译文档](../BUILD.md)。generate 使用独占创建，拒绝覆盖已有文件。verify 同时确认同一测试文件在生产信任环境下被拒绝。
+示例使用 Ninja 构建目录；首次配置参照[编译文档](../BUILD.md)。generate 使用独占创建，拒绝覆盖已有文件。verify 同时确认同一测试文件在生产信任环境下被拒绝。
 
 固定 fixture：版本 26.10.00、元数据/发布序号 2、签发时间 1799999900、到期时间 1800003600、测试主机 updates.example.invalid。包大小和哈希仅用于结构测试，不对应真实发布包。
 

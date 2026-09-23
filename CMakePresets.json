@@ -23,8 +23,10 @@
       "generator": "Ninja"
     },
     {
-      "name": "ui-tests-base",
+      "name": "ninja-ui-base",
       "hidden": true,
+      "inherits": "ninja-base",
+      "binaryDir": "${sourceDir}/out/ui-ninja/${presetName}",
       "cacheVariables": {
         "KLOGG_BUILD_UI_TESTS": true,
         "KLOGG_BUILD_TESTS": false,
@@ -34,7 +36,7 @@
     {
       "name": "ninja-debug",
       "displayName": "Ninja Debug",
-      "description": "Cross-platform debug build using Ninja",
+      "description": "跨平台 Debug 构建；Windows 需在 MSVC 开发者环境中运行",
       "inherits": "ninja-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
@@ -43,7 +45,7 @@
     {
       "name": "ninja-release",
       "displayName": "Ninja Release",
-      "description": "Cross-platform release build using Ninja",
+      "description": "跨平台 Release 构建（启用 LTO）；Windows 需在 MSVC 开发者环境中运行",
       "inherits": "ninja-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -53,44 +55,24 @@
     {
       "name": "ninja-ui-debug",
       "displayName": "Ninja UI Debug",
-      "inherits": [
-        "ninja-debug",
-        "ui-tests-base"
-      ],
-      "binaryDir": "${sourceDir}/out/ui-ninja"
-    },
-    {
-      "name": "windows-vs2026",
-      "displayName": "Visual Studio 2026 x64",
-      "description": "Windows multi-config build; provide Qt through CMAKE_PREFIX_PATH",
-      "inherits": "base",
-      "generator": "Visual Studio 18 2026",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
+      "description": "Debug 构建并启用 UI 专项测试",
+      "inherits": "ninja-ui-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "windows-vs2026-ui",
-      "displayName": "Visual Studio 2026 UI x64",
-      "inherits": [
-        "windows-vs2026",
-        "ui-tests-base"
-      ],
-      "binaryDir": "${sourceDir}/out/ui-vs"
+      "name": "ninja-ui-release",
+      "displayName": "Ninja UI Release",
+      "description": "Release 构建（启用 LTO）并启用 UI 专项测试；发布验收入口",
+      "inherits": "ninja-ui-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "KLOGG_USE_LTO": true
+      }
     }
   ],
   "buildPresets": [
-    {
-      "name": "windows-vs2026-ui-release",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "Release"
-    },
     {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug"
@@ -104,30 +86,11 @@
       "configurePreset": "ninja-ui-debug"
     },
     {
-      "name": "windows-vs2026-debug",
-      "configurePreset": "windows-vs2026",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-vs2026-release",
-      "configurePreset": "windows-vs2026",
-      "configuration": "Release"
-    },
-    {
-      "name": "windows-vs2026-ui-debug",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "Debug"
+      "name": "ninja-ui-release",
+      "configurePreset": "ninja-ui-release"
     }
   ],
   "testPresets": [
-    {
-      "name": "windows-vs2026-ui-release",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "Release",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
     {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug",
@@ -155,53 +118,14 @@
       }
     },
     {
-      "name": "windows-vs2026-debug",
-      "configurePreset": "windows-vs2026",
-      "configuration": "Debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "windows-vs2026-release",
-      "configurePreset": "windows-vs2026",
-      "configuration": "Release",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "windows-vs2026-ui-debug",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "Debug",
-      "filter": {
-        "include": {
-          "name": "^zzlogg_ui\\."
-        }
-      },
+      "name": "ninja-ui-release",
+      "configurePreset": "ninja-ui-release",
       "output": {
         "outputOnFailure": true
       }
     }
   ],
   "workflowPresets": [
-    {
-      "name": "windows-vs2026-ui-release",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "windows-vs2026-ui"
-        },
-        {
-          "type": "build",
-          "name": "windows-vs2026-ui-release"
-        },
-        {
-          "type": "test",
-          "name": "windows-vs2026-ui-release"
-        }
-      ]
-    },
     {
       "name": "ninja-debug",
       "steps": [
@@ -254,19 +178,19 @@
       ]
     },
     {
-      "name": "windows-vs2026-ui-debug",
+      "name": "ninja-ui-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-vs2026-ui"
+          "name": "ninja-ui-release"
         },
         {
           "type": "build",
-          "name": "windows-vs2026-ui-debug"
+          "name": "ninja-ui-release"
         },
         {
           "type": "test",
-          "name": "windows-vs2026-ui-debug"
+          "name": "ninja-ui-release"
         }
       ]
     }
