@@ -41,16 +41,6 @@
       }
     },
     {
-      "name": "ninja-relwithdebinfo",
-      "displayName": "Ninja RelWithDebInfo",
-      "description": "Cross-platform optimized build with debug information",
-      "inherits": "ninja-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "KLOGG_USE_LTO": true
-      }
-    },
-    {
       "name": "ninja-release",
       "displayName": "Ninja Release",
       "description": "Cross-platform release build using Ninja",
@@ -106,10 +96,6 @@
       "configurePreset": "ninja-debug"
     },
     {
-      "name": "ninja-relwithdebinfo",
-      "configurePreset": "ninja-relwithdebinfo"
-    },
-    {
       "name": "ninja-release",
       "configurePreset": "ninja-release"
     },
@@ -123,11 +109,6 @@
       "configuration": "Debug"
     },
     {
-      "name": "windows-vs2026-relwithdebinfo",
-      "configurePreset": "windows-vs2026",
-      "configuration": "RelWithDebInfo"
-    },
-    {
       "name": "windows-vs2026-release",
       "configurePreset": "windows-vs2026",
       "configuration": "Release"
@@ -136,11 +117,6 @@
       "name": "windows-vs2026-ui-debug",
       "configurePreset": "windows-vs2026-ui",
       "configuration": "Debug"
-    },
-    {
-      "name": "windows-vs2026-ui-relwithdebinfo",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "RelWithDebInfo"
     }
   ],
   "testPresets": [
@@ -155,13 +131,6 @@
     {
       "name": "ninja-debug",
       "configurePreset": "ninja-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "ninja-relwithdebinfo",
-      "configurePreset": "ninja-relwithdebinfo",
       "output": {
         "outputOnFailure": true
       }
@@ -194,14 +163,6 @@
       }
     },
     {
-      "name": "windows-vs2026-relwithdebinfo",
-      "configurePreset": "windows-vs2026",
-      "configuration": "RelWithDebInfo",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
       "name": "windows-vs2026-release",
       "configurePreset": "windows-vs2026",
       "configuration": "Release",
@@ -213,19 +174,6 @@
       "name": "windows-vs2026-ui-debug",
       "configurePreset": "windows-vs2026-ui",
       "configuration": "Debug",
-      "filter": {
-        "include": {
-          "name": "^zzlogg_ui\\."
-        }
-      },
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "windows-vs2026-ui-relwithdebinfo",
-      "configurePreset": "windows-vs2026-ui",
-      "configuration": "RelWithDebInfo",
       "filter": {
         "include": {
           "name": "^zzlogg_ui\\."
@@ -272,23 +220,6 @@
       ]
     },
     {
-      "name": "ninja-relwithdebinfo",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "ninja-relwithdebinfo"
-        },
-        {
-          "type": "build",
-          "name": "ninja-relwithdebinfo"
-        },
-        {
-          "type": "test",
-          "name": "ninja-relwithdebinfo"
-        }
-      ]
-    },
-    {
       "name": "ninja-release",
       "steps": [
         {
@@ -336,23 +267,6 @@
         {
           "type": "test",
           "name": "windows-vs2026-ui-debug"
-        }
-      ]
-    },
-    {
-      "name": "windows-vs2026-ui-relwithdebinfo",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "windows-vs2026-ui"
-        },
-        {
-          "type": "build",
-          "name": "windows-vs2026-ui-relwithdebinfo"
-        },
-        {
-          "type": "test",
-          "name": "windows-vs2026-ui-relwithdebinfo"
         }
       ]
     }

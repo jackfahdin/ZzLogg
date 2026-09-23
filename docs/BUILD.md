@@ -62,7 +62,6 @@ cmake --list-presets=all
 
 ```bash
 cmake --workflow --preset ninja-debug
-cmake --workflow --preset ninja-relwithdebinfo
 cmake --workflow --preset ninja-release
 ```
 
@@ -88,8 +87,8 @@ cmake --workflow --preset ninja-ui-debug
 
 ```powershell
 cmake --preset windows-qt6
-cmake --build --preset windows-qt6-relwithdebinfo
-ctest --preset windows-qt6-relwithdebinfo
+cmake --build --preset windows-qt6-release
+ctest --preset windows-qt6-release
 ```
 
 `CMakeUserPresets.json` 已被 Git 忽略，机器专用路径不会进入版本控制。
@@ -98,8 +97,8 @@ ctest --preset windows-qt6-relwithdebinfo
 
 ```powershell
 cmake --preset windows-vs2026-ui -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64 -DKLOGG_USE_HYPERSCAN=OFF
-cmake --build --preset windows-vs2026-ui-relwithdebinfo
-ctest --preset windows-vs2026-ui-relwithdebinfo
+cmake --build --preset windows-vs2026-ui-release
+ctest --preset windows-vs2026-ui-release
 ```
 
 ## 直接使用命令行构建
@@ -108,7 +107,7 @@ ctest --preset windows-vs2026-ui-relwithdebinfo
 
 ```bash
 cmake -S . -B out/build/ZzLogg -G Ninja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCMAKE_BUILD_TYPE=Release \
   -DKLOGG_USE_HYPERSCAN=OFF
 cmake --build out/build/ZzLogg
 ctest --test-dir out/build/ZzLogg --output-on-failure
@@ -174,10 +173,10 @@ Windows 安装脚本为 `packaging/windows/ZzLogg.iss`，使用 Inno Setup 7.1.0
 配置 Windows 构建并确保 `windeployqt` 可用后，生成独立运行目录：
 
 ```powershell
-cmake --build --preset windows-vs2026-ui-relwithdebinfo --target zzlogg_runtime_folder
+cmake --build --preset windows-vs2026-ui-release --target zzlogg_runtime_folder
 ```
 
-生成位置为 `<build-directory>/runtime/RelWithDebInfo/ZzLogg-runtime/`。其中包含唯一的图形界面程序 `ZzLogg.exe`，以及所需 Qt、MSVC 运行库和 TBB 动态依赖；ZzPureTools 及其框架依赖已经静态链接进程序。
+生成位置为 `<build-directory>/runtime/Release/ZzLogg-runtime/`。其中包含唯一的图形界面程序 `ZzLogg.exe`，以及所需 Qt、MSVC 运行库和 TBB 动态依赖；ZzPureTools 及其框架依赖已经静态链接进程序。
 
 Windows 打包会将同一目录树复制到安装程序和独立归档包的暂存目录，两种形式均运行同一个 `ZzLogg.exe`。请从完整运行目录启动程序。
 
@@ -218,7 +217,7 @@ Release 测试预设运行所有已注册的测试，包括 `klogg_smoke`。运�
 
 应用 UI 实现在 `src/ui`。UI 验收测试位于 `tests/ui_acceptance`，CTest 名称统一为 `zzlogg_ui.*`；已有核心集成测试位于 `tests/ui`。
 
-使用 `KLOGG_BUILD_UI_TESTS` 和 `*-ui-*` 预设运行 UI 测试。Ninja UI 和 Windows UI 的 Debug、RelWithDebInfo 测试预设只选择 `zzlogg_ui.*`，Windows UI Release 预设运行全部已注册测试。
+使用 `KLOGG_BUILD_UI_TESTS` 和 `*-ui-*` 预设运行 UI 测试。Ninja UI 和 Windows UI 的 Debug 测试预设只选择 `zzlogg_ui.*`，Windows UI Release 预设运行全部已注册测试。
 
 早期 UI2 选项和预设别名已移除，本地脚本应使用上述入口。应用使用同一个 Qt Widgets 图形界面目标。
 

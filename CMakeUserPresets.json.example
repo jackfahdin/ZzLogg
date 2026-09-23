@@ -21,11 +21,6 @@
       "configuration": "Debug"
     },
     {
-      "name": "windows-qt6-relwithdebinfo",
-      "configurePreset": "windows-qt6",
-      "configuration": "RelWithDebInfo"
-    },
-    {
       "name": "windows-qt6-release",
       "configurePreset": "windows-qt6",
       "configuration": "Release"
@@ -33,7 +28,7 @@
     {
       "name": "windows-qt6-runtime",
       "configurePreset": "windows-qt6",
-      "configuration": "RelWithDebInfo",
+      "configuration": "Release",
       "targets": ["zzlogg_runtime_folder"]
     }
   ],
@@ -42,12 +37,6 @@
       "name": "windows-qt6-debug",
       "configurePreset": "windows-qt6",
       "configuration": "Debug",
-      "output": { "outputOnFailure": true }
-    },
-    {
-      "name": "windows-qt6-relwithdebinfo",
-      "configurePreset": "windows-qt6",
-      "configuration": "RelWithDebInfo",
       "output": { "outputOnFailure": true }
     },
     {
@@ -64,14 +53,6 @@
         { "type": "configure", "name": "windows-qt6" },
         { "type": "build", "name": "windows-qt6-debug" },
         { "type": "test", "name": "windows-qt6-debug" }
-      ]
-    },
-    {
-      "name": "windows-qt6-relwithdebinfo",
-      "steps": [
-        { "type": "configure", "name": "windows-qt6" },
-        { "type": "build", "name": "windows-qt6-relwithdebinfo" },
-        { "type": "test", "name": "windows-qt6-relwithdebinfo" }
       ]
     },
     {
