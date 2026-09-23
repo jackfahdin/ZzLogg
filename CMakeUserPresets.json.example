@@ -2,64 +2,124 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "windows-qt6",
-      "displayName": "Windows Qt 6",
-      "inherits": "windows-vs2026",
-      "binaryDir": "${sourceDir}/out/build/windows-qt6",
+      "name": "windows-ninja-qt6-debug",
+      "displayName": "Windows Qt 6 / Ninja Debug",
+      "description": "在 MSVC 开发者环境中运行；把两条路径替换为本机安装位置",
+      "inherits": "ninja-debug",
+      "binaryDir": "${sourceDir}/out/ninja-win/debug",
       "cacheVariables": {
         "CMAKE_GENERATOR_INSTANCE": "C:/Path/To/Microsoft Visual Studio/18/Community",
         "CMAKE_PREFIX_PATH": "C:/Qt/6.x/msvc2022_64",
-        "KLOGG_BUILD_UI_TESTS": true,
         "KLOGG_USE_HYPERSCAN": false
+      },
+      "environment": {
+        "PATH": "C:/Qt/6.x/msvc2022_64/bin;$penv{PATH}"
+      }
+    },
+    {
+      "name": "windows-ninja-qt6-release",
+      "displayName": "Windows Qt 6 / Ninja Release",
+      "description": "在 MSVC 开发者环境中运行；启用 LTO",
+      "inherits": "ninja-release",
+      "binaryDir": "${sourceDir}/out/ninja-win/release",
+      "cacheVariables": {
+        "CMAKE_GENERATOR_INSTANCE": "C:/Path/To/Microsoft Visual Studio/18/Community",
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.x/msvc2022_64",
+        "KLOGG_USE_HYPERSCAN": false
+      },
+      "environment": {
+        "PATH": "C:/Qt/6.x/msvc2022_64/bin;$penv{PATH}"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-qt6-debug",
-      "configurePreset": "windows-qt6",
-      "configuration": "Debug"
+      "name": "windows-ninja-qt6-debug",
+      "configurePreset": "windows-ninja-qt6-debug",
+      "environment": {
+        "PATH": "C:/Qt/6.x/msvc2022_64/bin;$penv{PATH}"
+      }
     },
     {
-      "name": "windows-qt6-release",
-      "configurePreset": "windows-qt6",
-      "configuration": "Release"
+      "name": "windows-ninja-qt6-release",
+      "configurePreset": "windows-ninja-qt6-release",
+      "environment": {
+        "PATH": "C:/Qt/6.x/msvc2022_64/bin;$penv{PATH}"
+      }
     },
     {
-      "name": "windows-qt6-runtime",
-      "configurePreset": "windows-qt6",
-      "configuration": "Release",
-      "targets": ["zzlogg_runtime_folder"]
+      "name": "windows-ninja-qt6-portable",
+      "configurePreset": "windows-ninja-qt6-release",
+      "targets": [
+        "klogg_portable_folder"
+      ],
+      "environment": {
+        "PATH": "C:/Qt/6.x/msvc2022_64/bin;$penv{PATH}"
+      }
     }
   ],
   "testPresets": [
     {
-      "name": "windows-qt6-debug",
-      "configurePreset": "windows-qt6",
-      "configuration": "Debug",
-      "output": { "outputOnFailure": true }
+      "name": "windows-ninja-qt6-debug",
+      "configurePreset": "windows-ninja-qt6-debug",
+      "output": {
+        "outputOnFailure": true
+      }
     },
     {
-      "name": "windows-qt6-release",
-      "configurePreset": "windows-qt6",
-      "configuration": "Release",
-      "output": { "outputOnFailure": true }
+      "name": "windows-ninja-qt6-release",
+      "configurePreset": "windows-ninja-qt6-release",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ],
   "workflowPresets": [
     {
-      "name": "windows-qt6-debug",
+      "name": "windows-ninja-qt6-debug",
       "steps": [
-        { "type": "configure", "name": "windows-qt6" },
-        { "type": "build", "name": "windows-qt6-debug" },
-        { "type": "test", "name": "windows-qt6-debug" }
+        {
+          "type": "configure",
+          "name": "windows-ninja-qt6-debug"
+        },
+        {
+          "type": "build",
+          "name": "windows-ninja-qt6-debug"
+        },
+        {
+          "type": "test",
+          "name": "windows-ninja-qt6-debug"
+        }
       ]
     },
     {
-      "name": "windows-qt6-runtime",
+      "name": "windows-ninja-qt6-release",
       "steps": [
-        { "type": "configure", "name": "windows-qt6" },
-        { "type": "build", "name": "windows-qt6-runtime" }
+        {
+          "type": "configure",
+          "name": "windows-ninja-qt6-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-ninja-qt6-release"
+        },
+        {
+          "type": "test",
+          "name": "windows-ninja-qt6-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-ninja-qt6-portable",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-ninja-qt6-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-ninja-qt6-portable"
+        }
       ]
     }
   ]
