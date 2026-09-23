@@ -7,7 +7,8 @@
 - [获取源码](#获取源码)
 - [构建要求](#构建要求)
 - [使用预设构建](#使用预设构建)
-- [直接使用命令行构建](#直接使用命令行构建)
+- [不使用预设（可选）](#不使用预设可选)
+- [CI 构建参数](#ci-构建参数)
 - [框架链接方式](#框架链接方式)
 - [数据目录与迁移](#数据目录与迁移)
 - [安装与 CPack](#安装与-cpack)
@@ -34,7 +35,7 @@ ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子
 
 ## 构建要求
 
-- 直接使用命令行构建需要 CMake 3.23 或更高版本；仓库内的预设和工作流需要 CMake 3.25 或更高版本。
+- 不使用预设、直接手写命令行时，CMake 3.23 或更高版本即可；仓库内的预设和工作流需要 CMake 3.25 或更高版本。
 - 编译器需支持 C++20：GCC 13.1+、Clang 17+、Apple Clang 15+，或 MSVC 19.38+（Visual Studio 2022 17.8+）。Apple 平台的 macOS 部署目标至少为 13.3。
 - Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、Network、Xml、LinguistTools 及匹配的私有开发文件。
   - `Core5Compat` 是 Qt 6 的模块，当前为日志编码检测和解码提供 `QTextCodec` / `QTextDecoder`，保留 GBK、Big5、Shift-JIS 等编码支持；不代表支持 Qt 5。移除此依赖需要先迁移编码层，并验证流式解码和已有编码设置。
@@ -50,22 +51,22 @@ Hyperscan 搜索需要 SSSE3 指令集、Boost 头文件和 Ragel。依赖不可
 
 ## 使用预设构建
 
-查看全部配置、构建、测试和工作流预设：
+**这是日常构建的唯一主路径。** 一个工作流预设即可完成配置、构建和测试：
+
+```bash
+cmake --workflow --preset ninja-debug
+cmake --workflow --preset ninja-release
+cmake --workflow --preset ninja-ui-debug
+cmake --workflow --preset windows-vs2026-ui-release
+```
+
+查看全部预设（配置、构建、测试、工作流）：
 
 ```bash
 cmake --list-presets=all
 ```
 
-### Ninja 工作流
-
-共享 Ninja 工作流通过一条命令完成配置、构建和测试：
-
-```bash
-cmake --workflow --preset ninja-debug
-cmake --workflow --preset ninja-release
-```
-
-也可以分步执行，并在配置时添加参数：
+需要临时改配置或只跑其中一步时，再分步执行：
 
 ```bash
 cmake --preset ninja-release -DKLOGG_USE_HYPERSCAN=OFF
@@ -73,11 +74,19 @@ cmake --build --preset ninja-release
 ctest --preset ninja-release
 ```
 
-UI 专项测试使用相同的 ZzLogg 图形界面目标：
+预设覆盖"生成器 × Debug/Release × 是否启用 UI 专项测试"，共 7 种组合：
 
-```bash
-cmake --workflow --preset ninja-ui-debug
-```
+| 生成器 | 配置 | UI 专项测试 | 构建预设 |
+| --- | --- | --- | --- |
+| Ninja（跨平台） | Debug | 关 | `ninja-debug` |
+| Ninja（跨平台） | Release | 关 | `ninja-release` |
+| Ninja（跨平台） | Debug | 开 | `ninja-ui-debug` |
+| Visual Studio 2026 | Debug | 关 | `windows-vs2026-debug` |
+| Visual Studio 2026 | Release | 关 | `windows-vs2026-release` |
+| Visual Studio 2026 | Debug | 开 | `windows-vs2026-ui-debug` |
+| Visual Studio 2026 | Release | 开 | `windows-vs2026-ui-release` |
+
+Windows 的多配置生成器共用两个配置预设（`windows-vs2026` 与 `windows-vs2026-ui`），Debug/Release 由构建预设的 `configuration` 区分。
 
 普通预设默认关闭 `KLOGG_BUILD_TESTS`；CTest 仅运行当前配置注册的测试。UI 预设通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 专项测试。
 
@@ -101,9 +110,9 @@ cmake --build --preset windows-vs2026-ui-release
 ctest --preset windows-vs2026-ui-release
 ```
 
-## 直接使用命令行构建
+## 不使用预设（可选）
 
-不使用预设时，可配置常规构建目录。以下为 Bash 命令；在 PowerShell 中请将多行配置命令合并为一行，或使用 PowerShell 的续行语法：
+仅在预设覆盖不到的场景（自定义编译器、自定义生成器、或需要完全手写参数）才需要这一节：
 
 ```bash
 cmake -S . -B out/build/ZzLogg -G Ninja \
@@ -113,13 +122,18 @@ cmake --build out/build/ZzLogg
 ctest --test-dir out/build/ZzLogg --output-on-failure
 ```
 
-唯一的图形界面程序为 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的 `klogg_grep` 目标不参与默认构建；开发该命令行前端时可显式构建：
+## CI 构建参数
 
-```bash
-cmake --build out/build/ZzLogg --target klogg_grep
-```
+CI 不使用开发者预设：runner 的 CPU 特性、符号保留和平台依赖与开发机不同，参数集中在 `.github/actions/prepare-workspace-env` 中的 `KLOGG_CMAKE_OPTS`，各 workflow 只追加平台差异：
 
-默认构建不会生成其他图形界面程序或额外的独立可执行文件目标。
+| 通道 | 生成器 / 构建类型 | 与本地预设的差异 | 原因 |
+| --- | --- | --- | --- |
+| Windows（CI Build、Update Smoke） | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，`KLOGG_BUILD_UI_TESTS=ON`（Update Smoke 除外），构建类型为 RelWithDebInfo | runner CPU 不保证 AVX 等特性；更新链路的测试目标仅 Windows 存在；保留符号便于排错 |
+| Linux（CI Build） | Ninja / Release | `KLOGG_BUILD_UI_TESTS=ON`，关闭 Vectorscan、Hyperscan、malloc 覆盖 | 覆盖 UI 验收与自包含运行库打包 |
+| macOS（CI Build，arm64 与 x64） | Ninja / RelWithDebInfo | 追加 `KLOGG_OSX_DEPLOYMENT_TARGET` | 两个架构的最低系统版本不同 |
+| CodeQL | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，关闭 Vectorscan | 只做静态分析，仅构建 `klogg` 目标 |
+
+CI 的构建目标是 `ci_build`（主程序、测试与打包所需的全部目标），打包与发布由 `publish.yml`、`update-feed.yml` 处理，二者不编译 C++。
 
 ## 框架链接方式
 
@@ -194,7 +208,13 @@ Windows 打包会将同一目录树复制到安装程序和独立归档包的暂
 | `KLOGG_USE_HYPERSCAN=OFF` | 使用 Qt 正则表达式后端 |
 | `zzlogg_runtime_folder` | 生成 Windows 独立运行目录 |
 
-这些选项不会创建第二个图形界面程序。公开的可执行文件、安装包和桌面入口仍统一使用 ZzLogg 名称。
+唯一的图形界面程序为 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的 `klogg_grep` 目标不参与默认构建；开发该命令行前端时可显式构建：
+
+```bash
+cmake --build out/build/ZzLogg --target klogg_grep
+```
+
+这些选项与目标都不会创建第二个图形界面程序。公开的可执行文件、安装包和桌面入口仍统一使用 ZzLogg 名称。
 
 ## 验证范围
 
