@@ -251,6 +251,42 @@ int runScenario( const QString& name, const QString& root )
                    ? EXIT_SUCCESS
                    : EXIT_FAILURE;
     }
+    if ( name == QStringLiteral( "legacy-managed-target-adopted" ) ) {
+        const QString portableConfig
+            = QDir{ fixture.applicationDirectory }.filePath( QStringLiteral( "ZzLogg.conf" ) );
+        const StorageLocation target{ StorageMode::ProgramDirectory,
+                                      QDir{ fixture.applicationDirectory }.filePath(
+                                          QStringLiteral( "data" ) ),
+                                      fixture.store.programLocatorPath(), false };
+        const StorageContext targetContext{ target };
+        if ( !prepareManagedRoot( target )
+             || !writeFile( targetContext.configFilePath(),
+                            QByteArrayLiteral( "[existing]\nkeep=1\n" ) )
+             || !writeFile( portableConfig,
+                            QByteArrayLiteral( "[legacy]\nkind=portable\n" ) ) ) {
+            return EXIT_FAILURE;
+        }
+        const auto result = run( fixture, {}, neverSelect );
+        QFile existing{ targetContext.configFilePath() };
+        const QByteArray existingBytes
+            = existing.open( QIODevice::ReadOnly ) ? existing.readAll() : QByteArray{};
+        const bool existingPreserved = existingBytes.contains( "keep=1" )
+                                       && !existingBytes.contains( "kind=portable" );
+        const auto resolution = fixture.store.resolve();
+        return expect( result.status == StorageBootstrapStatus::Ready, result.error )
+                       && expect( providerCalls == 0, QStringLiteral( "adoption invoked provider" ) )
+                       && expect( StorageContext::current().dataRoot()
+                                      == QDir::cleanPath( target.dataRoot ),
+                                  QStringLiteral( "adopted target was wrong" ) )
+                       && expect( existingPreserved,
+                                  QStringLiteral( "existing target config was overwritten" ) )
+                       && expect( resolution.state.has_value(),
+                                  QStringLiteral( "adoption did not register the locator" ) )
+                       && expect( QFileInfo::exists( portableConfig ),
+                                  QStringLiteral( "legacy source was deleted" ) )
+                   ? EXIT_SUCCESS
+                   : EXIT_FAILURE;
+    }
     if ( name == QStringLiteral( "explicit-user-legacy-settings-path" ) ) {
         const QString legacyConfig = QDir{ fixture.legacyUserSettingsDirectory }.filePath(
             QStringLiteral( "ZzLogg.ini" ) );
@@ -673,6 +709,7 @@ int main( int argc, char* argv[] )
         QStringLiteral( "cancelled" ),
         QStringLiteral( "empty-provider" ),
         QStringLiteral( "legacy-priority" ),
+        QStringLiteral( "legacy-managed-target-adopted" ),
         QStringLiteral( "explicit-user-legacy-settings-path" ),
         QStringLiteral( "empty-provider-ignores-legacy" ),
         QStringLiteral( "provider-write-failure" ),

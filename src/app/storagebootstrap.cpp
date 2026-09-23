@@ -215,6 +215,19 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
                                                              legacyUserSettingsDirectory );
         StorageLocation target
             = legacyTargetLocation( *legacy, store, applicationDirectory, userDataDirectory );
+        // 目标已经是自家受管目录（带兼容 manifest）说明该位置正在使用中：迁移的前提
+        // （目标为空）不成立，强行迁移会覆盖现有数据，改为直接采纳并登记 locator。
+        if ( StorageValidator::hasCompatibleManifest( target.dataRoot ) ) {
+            const auto adoption = installLocation( target, runtimePaths, true, false );
+            if ( adoption.status != StorageBootstrapStatus::Ready ) {
+                return adoption;
+            }
+            QString adoptError;
+            if ( !store.writeActive( target, &adoptError ) ) {
+                return errorResult( adoptError );
+            }
+            return { StorageBootstrapStatus::Ready, {} };
+        }
         const auto validation = StorageValidator::validate( target.dataRoot, false );
         if ( !validation.valid ) {
             return errorResult(
