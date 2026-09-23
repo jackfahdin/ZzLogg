@@ -108,6 +108,30 @@ def file_digest(path):
         return 'sha256:' + hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def verify_remote_assets(github, release_id, files):
+    assets = list_assets(github, release_id)
+    remote = {asset['name']: asset for asset in assets}
+    for path in files:
+        asset = remote.get(path.name)
+        if asset is None or asset['size'] != path.stat().st_size:
+            raise ValueError(f'Uploaded asset is missing or incomplete: {path.name}')
+        if asset.get('digest') != file_digest(path):
+            raise ValueError(f'Uploaded asset digest missing or mismatched: {path.name}')
+    return assets
+
+
+def refresh_nightly_release_listing(github, release, tag, sha, notes, files):
+    # GitHub orders releases by release created_at. Rolling previews reuse one tag,
+    # so recreate the release object after each publish to stay above stable tags.
+    github.api(f'releases/{release["id"]}', method='DELETE')
+    release = github.api('releases', method='POST', data={
+        'tag_name': tag, 'target_commitish': sha, 'draft': False,
+        'prerelease': True, 'name': 'Continuous Build', 'body': notes, 'make_latest': 'false'})
+    github.upload(tag, files, clobber=True)
+    verify_remote_assets(github, release['id'], files)
+    return release
+
+
 def publish(github, directory, info, mode, changelog=None):
     tag, sha = info['tag'], info['source_commit']
     files = verified_files(directory, info)
@@ -145,14 +169,8 @@ def publish(github, directory, info, mode, changelog=None):
                   or existing[path.name].get('digest') != file_digest(path)]
     if upload:
         github.upload(tag, upload, clobber=True)
-    assets = list_assets(github, release['id'])
-    remote = {asset['name']: asset for asset in assets}
-    for path in files:
-        asset = remote.get(path.name)
-        if asset is None or asset['size'] != path.stat().st_size:
-            raise ValueError(f'Uploaded asset is missing or incomplete: {path.name}')
-        if asset.get('digest') != file_digest(path):
-            raise ValueError(f'Uploaded asset digest missing or mismatched: {path.name}')
+    assets = verify_remote_assets(github, release['id'], files)
+    notes = changes + '\n\n' + f'<!-- source-commit: {sha} -->\n'
     if nightly:
         # Remove historical long names/metadata while still hidden. Failures
         # before promotion leave the old tag and a resumable draft.
@@ -165,14 +183,13 @@ def publish(github, directory, info, mode, changelog=None):
             github.api('git/refs', method='POST', data={'ref': f'refs/tags/{tag}', 'sha': sha})
         else:
             github.api(f'git/refs/tags/{tag}', method='PATCH', data={'sha': sha, 'force': True})
+        release = refresh_nightly_release_listing(github, release, tag, sha, notes, files)
     elif tag_commit(github, tag) != sha:
         raise ValueError('Stable tag changed during upload')
-    # User-facing notes come only from CHANGELOG.md. Build/commit traceability stays
-    # in release-info-*.json and GitHub release metadata, not in the release body.
-    notes = changes + '\n\n' + f'<!-- source-commit: {sha} -->\n'
-    github.api(f'releases/{release["id"]}', method='PATCH', data={
-        'draft': False, 'prerelease': nightly, 'name': 'Continuous Build' if nightly else tag,
-        'body': notes, 'target_commitish': sha, 'make_latest': 'false' if nightly else 'legacy'})
+    else:
+        github.api(f'releases/{release["id"]}', method='PATCH', data={
+            'draft': False, 'prerelease': False, 'name': tag,
+            'body': notes, 'target_commitish': sha, 'make_latest': 'legacy'})
 
 
 def main():

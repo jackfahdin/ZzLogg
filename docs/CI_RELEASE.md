@@ -12,6 +12,7 @@
 | 源码 | tag 对应的确切 commit | 调度/手动运行对应的 master commit |
 | 是否每次构建 | 是，tag 必须匹配源码版本 | 定时运行无新提交则跳过；手动运行强制重建 |
 | GitHub 类型 | 普通 Release | Prerelease，不成为正式版 Latest |
+| Releases 列表 | 按 Release 创建时间排序，新的稳定版会排在上面 | 每次成功发布后重建 `Continuous Build` Release 记录，刷新创建时间并保持在列表顶部（与 [VNote](https://github.com/vnotex/vnote) 相同做法） |
 | 更新策略 | 先草稿、上传校验后公开；已公开版本禁止覆盖 | 替换时临时转草稿，同名文件上传校验、旧文件清理后切换 tag 并公开 |
 
 定时表达式为 `0 16 * * *`，使用 UTC，对应北京时间次日 00:00。
