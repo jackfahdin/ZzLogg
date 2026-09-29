@@ -341,7 +341,7 @@ private Q_SLOTS:
         auto& config = Configuration::getSynced();
         config.setMinimizeToTray( true );
         config.save();
-        MainWindow* window = app_.newWindow();
+        QPointer<MainWindow> window = app_.newWindow();
         const QString restartWindowId = SessionInfo::getSynced().windows().constLast();
         QVERIFY( !restartWindowId.isEmpty() );
         window->resize( 913, 617 );
@@ -371,7 +371,9 @@ private Q_SLOTS:
 
         QCOMPARE( result, ZzLoggRestartExitCode );
         QCOMPARE( closedSpy.count(), 1 );
-        QVERIFY( !window->isVisible() );
+        // The committed exit closes the window and the app disposes it with
+        // deleteLater, which exec() processes before returning.
+        QVERIFY( window.isNull() || !window->isVisible() );
         QVERIFY( logging::currentLogFilePath().isEmpty() );
         auto& session = PersistentInfo::getSettings( session_settings{} );
         session.sync();
