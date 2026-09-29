@@ -205,6 +205,18 @@ void WindowChrome::setAlwaysOnTop( bool requested )
     if ( window_.isNull() || titleBar_.isNull() ) {
         return;
     }
+    if ( agent_ ) {
+        // The WindowKit backend updates the flag at the QWindow/native level:
+        // a visible window never goes through QWidget's hide/recreate cycle.
+        const auto result = agent_->setAlwaysOnTop( requested );
+        if ( !result ) {
+            LOG_WARNING << "Always-on-top update failed: "
+                        << result.error().technicalMessage();
+            return;
+        }
+        titleBar_->setAlwaysOnTop( window_->windowFlags().testFlag( Qt::WindowStaysOnTopHint ) );
+        return;
+    }
     const bool wasVisible = window_->isVisible();
     const auto previousState = window_->windowState();
     window_->setWindowFlag( Qt::WindowStaysOnTopHint, requested );

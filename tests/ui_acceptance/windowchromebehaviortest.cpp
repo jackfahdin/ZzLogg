@@ -39,6 +39,24 @@ protected:
     }
 };
 
+class VisibilityProbe final : public QObject {
+public:
+    int hideCount = 0;
+    int showCount = 0;
+
+protected:
+    bool eventFilter( QObject* watched, QEvent* event ) override
+    {
+        if ( event->type() == QEvent::Hide ) {
+            ++hideCount;
+        }
+        else if ( event->type() == QEvent::Show ) {
+            ++showCount;
+        }
+        return QObject::eventFilter( watched, event );
+    }
+};
+
 class ApplicationStyleReset final {
 public:
     ApplicationStyleReset()
@@ -204,7 +222,19 @@ void verifyAlwaysOnTopPreservesWindowPresentation()
     QTRY_VERIFY( window.isVisible() );
     QTRY_VERIFY( window.isMaximized() );
     const auto visibleState = window.windowState();
+    VisibilityProbe visibility;
+    window.installEventFilter( &visibility );
+    QVERIFY( QMetaObject::invokeMethod( titleBar, "alwaysOnTopRequested", Q_ARG( bool, true ) ) );
+    // The WindowKit path updates the native flag in place: no widget teardown.
+    QCOMPARE( visibility.hideCount, 0 );
+    QCOMPARE( visibility.showCount, 0 );
+    QVERIFY( window.isVisible() );
+    QCOMPARE( window.windowState(), visibleState );
+    QVERIFY( window.windowFlags().testFlag( Qt::WindowStaysOnTopHint ) );
+    QVERIFY( titleBar->isAlwaysOnTop() );
     QVERIFY( QMetaObject::invokeMethod( titleBar, "alwaysOnTopRequested", Q_ARG( bool, false ) ) );
+    QCOMPARE( visibility.hideCount, 0 );
+    QCOMPARE( visibility.showCount, 0 );
     QVERIFY( window.isVisible() );
     QCOMPARE( window.windowState(), visibleState );
     QVERIFY( !window.windowFlags().testFlag( Qt::WindowStaysOnTopHint ) );
