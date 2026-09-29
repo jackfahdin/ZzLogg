@@ -4,6 +4,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -166,6 +167,26 @@ int wmain(int argc,wchar_t** argv) {
         movedActivity.cancelUpdate();
     }
     check(probeEnter(path)==0,"lease fully released after destruction");
+    {
+        // A shortcut- or Explorer-launched process starts with its current
+        // directory inside the installation. Entry must move it out so the
+        // reservation quiescence probe measures only other processes.
+        std::array<wchar_t,32768> previous{},current{};
+        check(GetCurrentDirectoryW(static_cast<DWORD>(previous.size()),previous.data())!=0,"cwd captured");
+        check(SetCurrentDirectoryW(path.c_str())!=FALSE,"cwd moved into the installation");
+        InstallationActivity activity;
+        check(activity.enter(path)==ActivityError::None,"entry with cwd inside the installation");
+        check(GetCurrentDirectoryW(static_cast<DWORD>(current.size()),current.data())!=0,"cwd re-read");
+        DirectoryIdentity cwdIdentity{};
+        const auto cwdInside=InstallationActivity::probeIdentity(current.data(),cwdIdentity)
+            && cwdIdentity.volumeSerial==activity.identity().volumeSerial
+            && !std::memcmp(cwdIdentity.fileId.data(),activity.identity().fileId.data(),cwdIdentity.fileId.size());
+        check(!cwdInside,"entry moved cwd out of the installation");
+        check(activity.reserveUpdate()==ActivityError::None && activity.updateReserved(),
+            "reservation succeeds with cwd previously inside the installation");
+        activity.cancelUpdate();
+        check(SetCurrentDirectoryW(previous.data())!=FALSE,"cwd restored");
+    }
     {
         // Real multi-process coordination: a live child blocks this process.
         SECURITY_ATTRIBUTES attributes{sizeof(attributes),nullptr,TRUE};

@@ -1,5 +1,6 @@
 #include "installationactivity_win.h"
 #include "installlock_win_p.h"
+#include <array>
 #include <vector>
 namespace zzlogg::updater {
 namespace {
@@ -77,6 +78,24 @@ ActivityError InstallationActivity::enter(const std::wstring& root) {
     }
     const auto name=InstallLock::mutexName(lease->directories.back().identity);
     if(name.empty()) return ActivityError::Unavailable;
+    // A shortcut- or Explorer-launched process starts with its current
+    // directory inside the installation. That data-access handle would defeat
+    // the reservation quiescence probe (it is indistinguishable from another
+    // instance's activity) and pins the directory against replacement, so
+    // entry moves it out. Best-effort: reservation stays the arbiter.
+    {
+        std::array<wchar_t,32768> buffer{};
+        const auto length=GetCurrentDirectoryW(static_cast<DWORD>(buffer.size()),buffer.data());
+        if(length>0 && length<buffer.size()) {
+            DirectoryIdentity currentIdentity{};
+            if(probeIdentity(std::wstring(buffer.data(),length),currentIdentity)
+                && detail::sameDirectoryIdentity(currentIdentity,lease->directories.back().identity)) {
+                wchar_t neutral[MAX_PATH]{};
+                if(GetWindowsDirectoryW(neutral,static_cast<UINT>(std::size(neutral))))
+                    SetCurrentDirectoryW(neutral);
+            }
+        }
+    }
     impl_=std::move(lease);
     return ActivityError::None;
 }
