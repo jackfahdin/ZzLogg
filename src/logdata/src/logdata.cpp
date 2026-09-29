@@ -444,6 +444,22 @@ QTextCodec* LogData::getDetectedEncoding() const
     return IndexingData::ConstAccessor{ indexing_data_.get() }.getEncodingGuess();
 }
 
+LogData::LineEnding LogData::lineEnding() const
+{
+    const auto [ crlfLines, lfLines ]
+        = IndexingData::ConstAccessor{ indexing_data_.get() }.getLineEndingStats();
+    if ( crlfLines == 0 && lfLines == 0 ) {
+        return LineEnding::Unknown;
+    }
+    if ( crlfLines == 0 ) {
+        return LineEnding::Lf;
+    }
+    if ( lfLines == 0 ) {
+        return LineEnding::Crlf;
+    }
+    return LineEnding::Mixed;
+}
+
 void LogData::doAttachReader() const
 {
     attached_file_->attachReader();

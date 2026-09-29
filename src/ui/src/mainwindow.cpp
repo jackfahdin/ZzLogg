@@ -75,6 +75,7 @@
 #include <QTemporaryFile>
 #include <QTextBrowser>
 #include <QToolBar>
+#include <QToolButton>
 #include <QToolTip>
 #include <QUrl>
 #include <QUrlQuery>
@@ -86,6 +87,7 @@
 #include "windowchrome.h"
 
 #include "clipboard.h"
+#include "codesyntax.h"
 #include "crawlerwidget.h"
 #include "decompressor.h"
 #include "dispatch_to.h"
@@ -1815,6 +1817,8 @@ void MainWindow::updateInfoLine()
 
     infoLine->setPath( current_file );
     encodingField->setText( crawler->encodingText() );
+    lineEndingField->setText( crawler->lineEndingText() );
+    updateSyntaxLanguageIndicator();
     if ( infoDisplayState_ == InfoDisplayState::Loading ) {
         infoLine->setText(
             current_file + tr( " - Indexing lines... (%1 %)" ).arg( loadingProgress_ ) );
@@ -1841,6 +1845,34 @@ void MainWindow::updateInfoLine()
     }
     else {
         dateField->hide();
+    }
+}
+
+void MainWindow::updateSyntaxLanguageIndicator()
+{
+    auto* const crawler = currentCrawlerWidget();
+    if ( crawler == nullptr ) {
+        languageButton->setEnabled( false );
+        languageButton->setText( QString{} );
+        return;
+    }
+    languageButton->setEnabled( true );
+    const auto language = crawler->syntaxLanguage();
+    if ( language == QLatin1String( "auto" ) ) {
+        const auto effective = crawler->syntaxDefinitionName();
+        languageButton->setText( effective.isEmpty() ? tr( "Auto" ) : effective );
+    }
+    else if ( language == QLatin1String( "plain" ) ) {
+        languageButton->setText( tr( "Plain text" ) );
+    }
+    else {
+        for ( const auto& entry : CodeSyntax::availableLanguages() ) {
+            if ( entry.key == language ) {
+                languageButton->setText( entry.display );
+                return;
+            }
+        }
+        languageButton->setText( language );
     }
 }
 
@@ -2084,14 +2116,16 @@ void MainWindow::selectOpenedFile()
 
 void MainWindow::showInfoLabels( bool show )
 {
-    for ( auto separator : infoToolbarSeparators ) {
-        separator->setVisible( show );
-    }
     if ( !show ) {
         sizeField->clear();
         dateField->clear();
         encodingField->clear();
         lineNbField->clear();
+        lineEndingField->clear();
+    }
+    languageButton->setEnabled( show );
+    if ( !show ) {
+        languageButton->setText( QString{} );
     }
 }
 

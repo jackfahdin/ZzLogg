@@ -156,6 +156,17 @@ void IndexingData::setProgress( int progress )
     progress_ = progress;
 }
 
+void IndexingData::addLineEndingStats( quint64 crlfLines, quint64 lfLines )
+{
+    crlfLines_ += crlfLines;
+    lfLines_ += lfLines;
+}
+
+std::pair<quint64, quint64> IndexingData::getLineEndingStats() const
+{
+    return { crlfLines_, lfLines_ };
+}
+
 void IndexingData::clear()
 {
     const auto& config = Configuration::get();
@@ -163,6 +174,8 @@ void IndexingData::clear()
     maxLength_ = 0_length;
     hash_ = {};
     hashBuilder_.reset();
+    crlfLines_ = 0;
+    lfLines_ = 0;
     if ( config.useCompressedIndex() ) {
         linePosition_ = LinePositionArrayType( LinePositionArray{} );
     }
@@ -429,7 +442,8 @@ findNextLineFeed( const klogg::vector<char>& block, int posWithinBlock, const In
 
 FastLinePositionArray IndexOperation::parseDataBlock( OffsetInFile::UnderlyingType blockBeginning,
                                                       const klogg::vector<char>& block,
-                                                      IndexingState& state ) const
+                                                      IndexingState& state,
+                                                      LineEndingStats& lineEndingStats ) const
 {
     using namespace parse_data_block;
 
@@ -471,6 +485,25 @@ FastLinePositionArray IndexOperation::parseDataBlock( OffsetInFile::UnderlyingTy
         state.max_length = std::max( state.max_length, length );
 
         if ( !isEndOfBlock ) {
+            // The line feed unit starts at posWithinBlock; a carriage return
+            // unit immediately before it makes this a CRLF line.
+            const auto width = state.encodingParams.lineFeedWidth;
+            bool crlf = false;
+            if ( width == 1 ) {
+                crlf = posWithinBlock >= 1 && block[ posWithinBlock - 1 ] == '\r';
+            }
+            else if ( posWithinBlock >= width ) {
+                const char first = block[ posWithinBlock - width ];
+                const char second = block[ posWithinBlock - 1 ];
+                crlf = state.encodingParams.isUtf16LE ? ( first == '\r' && second == '\0' )
+                                                      : ( first == '\0' && second == '\r' );
+            }
+            if ( crlf ) {
+                ++lineEndingStats.crlfLines;
+            }
+            else {
+                ++lineEndingStats.lfLines;
+            }
             state.end = currentDataEnd;
             state.pos = state.end + state.encodingParams.lineFeedWidth;
             state.additional_spaces = 0;
@@ -579,7 +612,8 @@ void IndexOperation::indexNextBlock( IndexingState& state, const BlockData& bloc
     guessEncoding( block, scopedAccessor, state );
 
     if ( !block.empty() ) {
-        const auto linePositions = parseDataBlock( blockBeginning, block, state );
+        LineEndingStats lineEndingStats;
+        const auto linePositions = parseDataBlock( blockBeginning, block, state, lineEndingStats );
         auto maxLength = state.max_length;
         if ( maxLength > std::numeric_limits<LineLength::UnderlyingType>::max() ) {
             LOG_ERROR << "Too long lines " << maxLength;
@@ -589,6 +623,7 @@ void IndexOperation::indexNextBlock( IndexingState& state, const BlockData& bloc
         scopedAccessor.addAll(
             block, LineLength( type_safe::narrow_cast<LineLength::UnderlyingType>( maxLength ) ),
             linePositions, state.encodingGuess );
+        scopedAccessor.addLineEndingStats( lineEndingStats.crlfLines, lineEndingStats.lfLines );
 
         // Update the caller for progress indication
         const auto progress

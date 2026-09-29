@@ -89,6 +89,8 @@ public:
     void setSyntaxFileName( const QString& fileName );
     void setSyntaxLanguage( const QString& language );
     QString syntaxLanguage() const;
+    // Effective KSyntaxHighlighting definition name (empty when none/plain).
+    QString syntaxDefinitionName() const;
 
 
     // Get the line number of the first line displayed.
@@ -110,6 +112,10 @@ public:
     // Get the text description of the encoding effectively used,
     // suitable to display to the user.
     QString encodingText() const;
+
+    // Line-ending style of the indexed file ("LF"/"CRLF"/tr("Mixed")),
+    // empty until indexing observed a terminated line.
+    QString lineEndingText() const;
 
     // Returns whether follow is enabled in this crawler
     bool isFollowEnabled() const;

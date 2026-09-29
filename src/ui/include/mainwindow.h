@@ -67,6 +67,7 @@ class WindowChrome;
 
 class QAction;
 class QActionGroup;
+class QToolButton;
 class Session;
 class RecentFiles;
 class HighlightersMenu;
@@ -235,6 +236,7 @@ class MainWindow : public QMainWindow {
     void updateMenuBarFromDocument( const CrawlerWidget* crawler );
     void updateInfoLine();
     void renderLineNumberStatus();
+    void updateSyntaxLanguageIndicator();
     void showInfoLabels( bool show );
     void logScreenInfo( QScreen* screen );
     void removeFromFavorites( const QString& pathToRemove );
@@ -265,7 +267,8 @@ class MainWindow : public QMainWindow {
     QLabel* sizeField;
     QLabel* dateField;
     QLabel* encodingField;
-    std::vector<QAction*> infoToolbarSeparators;
+    QLabel* lineEndingField;
+    QToolButton* languageButton;
 
     QToolBar* toolBar;
 
