@@ -1,8 +1,12 @@
 #include <QtTest>
+#include <QLabel>
 #include <QScrollBar>
+#include <QStatusBar>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QToolButton>
 #include "abstractlogview.h"
+#include "codesyntax.h"
 #include "configuration.h"
 #include "logdata.h"
 #include "highlighterset.h"
@@ -182,11 +186,65 @@ private Q_SLOTS:
         QTRY_VERIFY_WITH_TIMEOUT(CrawlerAccess::loaded(*crawler), 10000);
         auto* menu = window.findChild<QMenu*>("syntaxHighlightingMenu");
         QVERIFY(menu);
-        QCOMPARE(menu->actions().size(), 5);
+        QCOMPARE(menu->actions().size(), CodeSyntax::availableLanguages().size() + 2);
         for (auto* action : menu->actions()) {
             action->trigger();
             QCOMPARE(crawler->syntaxLanguage(), action->data().toString());
         }
+    }
+    void statusBarShowsDocumentInfo() {
+        MainWindow window{WindowSession{std::make_shared<Session>(), "status-bar", 0}};
+        window.loadFileNonInteractive(file_);
+        auto* crawler = window.findChild<CrawlerWidget*>();
+        QVERIFY(crawler);
+        QTRY_VERIFY_WITH_TIMEOUT(CrawlerAccess::loaded(*crawler), 10000);
+        auto* statusBar = window.findChild<QStatusBar*>("mainStatusBar");
+        auto* sizeField = window.findChild<QLabel*>("sizeField");
+        auto* dateField = window.findChild<QLabel*>("dateField");
+        auto* encodingField = window.findChild<QLabel*>("encodingField");
+        auto* lineEndingField = window.findChild<QLabel*>("lineEndingField");
+        auto* languageButton = window.findChild<QToolButton*>("languageButton");
+        QVERIFY(statusBar);
+        QVERIFY(sizeField && dateField && encodingField && lineEndingField && languageButton);
+        // The info fields live in the status bar now, not the toolbar.
+        QVERIFY(statusBar->isAncestorOf(sizeField));
+        QVERIFY(statusBar->isAncestorOf(dateField));
+        QVERIFY(statusBar->isAncestorOf(encodingField));
+        QVERIFY(statusBar->isAncestorOf(lineEndingField));
+        QVERIFY(statusBar->isAncestorOf(languageButton));
+        QVERIFY(!sizeField->text().isEmpty());
+        QVERIFY(!encodingField->text().isEmpty());
+        QTRY_COMPARE_WITH_TIMEOUT(lineEndingField->text(), QStringLiteral("LF"), 5000);
+        // The auto language resolves the .log suffix to the Log File definition.
+        QCOMPARE(crawler->syntaxLanguage(), QStringLiteral("auto"));
+        QTRY_COMPARE_WITH_TIMEOUT(languageButton->text(), QStringLiteral("Log File (advanced)"),
+                                  5000);
+        // Picking a language from the status bar button updates the document.
+        auto* menu = languageButton->menu();
+        QVERIFY(menu);
+        QAction* rustAction = nullptr;
+        for (auto* action : menu->actions()) {
+            if (action->data().toString() == QLatin1String("rust"))
+                rustAction = action;
+        }
+        QVERIFY(rustAction);
+        rustAction->trigger();
+        QCOMPARE(crawler->syntaxLanguage(), QStringLiteral("rust"));
+        QCOMPARE(languageButton->text(), QStringLiteral("Rust"));
+    }
+    void statusBarDetectsCrlf() {
+        QFile file(file_);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("first\r\nsecond\r\nthird\r\n");
+        file.close();
+        MainWindow window{WindowSession{std::make_shared<Session>(), "status-bar-crlf", 0}};
+        window.loadFileNonInteractive(file_);
+        auto* crawler = window.findChild<CrawlerWidget*>();
+        QVERIFY(crawler);
+        QTRY_VERIFY_WITH_TIMEOUT(CrawlerAccess::loaded(*crawler), 10000);
+        auto* lineEndingField = window.findChild<QLabel*>("lineEndingField");
+        QVERIFY(lineEndingField);
+        QTRY_COMPARE_WITH_TIMEOUT(lineEndingField->text(), QStringLiteral("CRLF"), 5000);
     }
     void syntaxReadLimitUsesIndex() {
         const auto denied = data_->getLinesRaw(0_lnum, 1_lcount, 4);

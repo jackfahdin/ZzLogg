@@ -42,6 +42,7 @@
 #include "containers.h"
 #include "linetypes.h"
 #include <qthreadpool.h>
+#include <utility>
 #include <variant>
 
 #include <QFile>
@@ -146,6 +147,16 @@ public:
         data_->addAll( block, length, linePosition, encoding );
     }
 
+    void addLineEndingStats( quint64 crlfLines, quint64 lfLines )
+    {
+        data_->addLineEndingStats( crlfLines, lfLines );
+    }
+
+    std::pair<quint64, quint64> getLineEndingStats() const
+    {
+        return data_->getLineEndingStats();
+    }
+
     void setHeaderHash( quint64 digest, qint64 size )
     {
         data_->hash_.headerSize = size;
@@ -219,6 +230,10 @@ private:
     void addAll( const klogg::vector<char>& block, LineLength length,
                  const FastLinePositionArray& linePosition, QTextCodec* encoding );
 
+    // Accumulate per-block line-ending counts (CRLF-terminated vs LF-only lines).
+    void addLineEndingStats( quint64 crlfLines, quint64 lfLines );
+    std::pair<quint64, quint64> getLineEndingStats() const;
+
     // Completely clear the indexing data.
     void clear();
 
@@ -243,6 +258,9 @@ private:
     QTextCodec* encodingGuess_{};
     QTextCodec* encodingForced_{};
 
+    quint64 crlfLines_{};
+    quint64 lfLines_{};
+
     bool useFastModificationDetection_ = true;
 
     friend ConstAccessor;
@@ -260,6 +278,12 @@ struct IndexingState {
 
     QTextCodec* encodingGuess{};
     QTextCodec* fileTextCodec{};
+};
+
+// Per-block count of line endings seen while parsing.
+struct LineEndingStats {
+    quint64 crlfLines = 0;
+    quint64 lfLines = 0;
 };
 
 using OperationResult = std::variant<bool, MonitoredFileStatus>;
@@ -299,7 +323,8 @@ protected:
 
 private:
     FastLinePositionArray parseDataBlock( OffsetInFile::UnderlyingType blockBegining,
-                                          const BlockBuffer& block, IndexingState& state ) const;
+                                          const BlockBuffer& block, IndexingState& state,
+                                          LineEndingStats& lineEndingStats ) const;
 
     void guessEncoding( const BlockBuffer& block, IndexingData::MutateAccessor& scopedAccessor,
                         IndexingState& state ) const;

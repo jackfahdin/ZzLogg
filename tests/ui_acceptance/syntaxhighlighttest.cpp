@@ -15,6 +15,14 @@ private Q_SLOTS:
         syntax.setFileName( "example.json" );
         QCOMPARE( syntax.definitionName(), QString( "JSON" ) );
         syntax.setFileName( "example.log" );
+        QCOMPARE( syntax.definitionName(), QString( "Log File (advanced)" ) );
+        syntax.setFileName( "example.rs" );
+        QCOMPARE( syntax.definitionName(), QString( "Rust" ) );
+        syntax.setFileName( "example.md" );
+        QCOMPARE( syntax.definitionName(), QString( "Markdown" ) );
+        syntax.setFileName( "CMakeLists.txt" );
+        QCOMPARE( syntax.definitionName(), QString( "CMake" ) );
+        syntax.setFileName( "example.zzunknown" );
         QVERIFY( syntax.definitionName().isEmpty() );
         syntax.setLanguage( "cpp" );
         QCOMPARE( syntax.definitionName(), QString( "C++" ) );

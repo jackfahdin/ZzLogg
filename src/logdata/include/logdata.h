@@ -103,6 +103,11 @@ class LogData : public AbstractLogData {
     // Get the auto-detected encoding for the indexed text.
     QTextCodec* getDetectedEncoding() const;
 
+    // Line-ending style observed while indexing. Unknown until at least one
+    // terminated line has been indexed; Mixed when both styles occur.
+    enum class LineEnding { Unknown, Lf, Crlf, Mixed };
+    LineEnding lineEnding() const;
+
     void setPrefilter(const QString& prefilterPattern);
 
     struct RawLines {

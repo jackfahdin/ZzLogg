@@ -357,6 +357,24 @@ QString CrawlerWidget::syntaxLanguage() const
 {
     return codeSyntax_ ? codeSyntax_->language() : QStringLiteral("auto");
 }
+QString CrawlerWidget::syntaxDefinitionName() const
+{
+    return codeSyntax_ ? codeSyntax_->definitionName() : QString{};
+}
+QString CrawlerWidget::lineEndingText() const
+{
+    switch ( logData_->lineEnding() ) {
+    case LogData::LineEnding::Lf:
+        return QStringLiteral( "LF" );
+    case LogData::LineEnding::Crlf:
+        return QStringLiteral( "CRLF" );
+    case LogData::LineEnding::Mixed:
+        return tr( "Mixed" );
+    case LogData::LineEnding::Unknown:
+        break;
+    }
+    return {};
+}
 
 void CrawlerWidget::doSetQuickFindPattern( std::shared_ptr<QuickFindPattern> qfp )
 {

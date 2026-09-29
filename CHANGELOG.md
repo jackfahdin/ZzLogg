@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+### 新增
+
+- 新增 VSCode 风格的底部状态栏：文件大小、修改时间、行/列位置、编码从工具栏迁入；
+  新增行尾序列显示（LF / CRLF / Mixed，索引时统计）和语言模式选择器，
+  点击状态栏右侧即可切换语法高亮语言，与「视图 → 语法高亮」菜单共享同一份选择。
+- 语法高亮语言从 5 种扩充到 24 种常用语言（Rust、JavaScript、TypeScript、Python、
+  Go、Markdown、CMake、Bash、PowerShell、SQL、YAML、TOML、Lua、Makefile、日志等），
+  自动模式同步扩充文件扩展名映射。
+
+### 修复
+
+- 修复主题切换后滚动条 pageStep 断言过严导致运行时契约测试失败的问题：
+  统一后的 Fluent 控件在深浅主题下存在数像素样式度量差异，
+  Windows 侧改为与 Linux 一致的 ±5 容差（视口尺寸仍严格断言）。
+
 ## [26.09.08] - 2026-09-29
 
 ### 修复

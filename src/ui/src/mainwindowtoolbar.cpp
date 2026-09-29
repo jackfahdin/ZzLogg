@@ -2,7 +2,10 @@
 #include "mainwindowtext.h"
 #include <QApplication>
 #include <QLabel>
+#include <QMenu>
+#include <QStatusBar>
 #include <QToolBar>
+#include <QToolButton>
 
 void MainWindow::createToolBars()
 {
@@ -12,23 +15,6 @@ void MainWindow::createToolBars()
     infoLine->setFrameShadow( QFrame::Sunken );
     infoLine->setLineWidth( 0 );
     infoLine->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Minimum );
-
-    sizeField = new QLabel();
-    sizeField->setObjectName( QStringLiteral( "sizeField" ) );
-    sizeField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    dateField = new QLabel();
-    dateField->setObjectName( QStringLiteral( "dateField" ) );
-    dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    encodingField = new QLabel();
-    encodingField->setObjectName( QStringLiteral( "encodingField" ) );
-    dateField->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-
-    lineNbField = new QLabel();
-    lineNbField->setObjectName( QStringLiteral( "lineNumberField" ) );
-    lineNbField->setAlignment( Qt::AlignRight | Qt::AlignVCenter );
-    lineNbField->setContentsMargins( 2, 0, 2, 0 );
 
     toolBar = addToolBar( QApplication::translate( "klogg::mainwindow::toolbar",
                                                    klogg::mainwindow::toolbar::toolbarTitle ) );
@@ -41,18 +27,55 @@ void MainWindow::createToolBars()
     toolBar->addAction( addToFavoritesAction );
     toolBar->addWidget( infoLine );
     toolBar->addAction( stopAction );
-
-    infoToolbarSeparators.reserve( 5 );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( sizeField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( dateField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( encodingField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
-    toolBar->addWidget( lineNbField );
-    infoToolbarSeparators.push_back( toolBar->addSeparator() );
     toolBar->addAction( showScratchPadAction );
+
+    // VSCode-style status bar: file metadata on the left of the cluster,
+    // editor state on the right, language selector rightmost.
+    auto* status = statusBar();
+    status->setObjectName( QStringLiteral( "mainStatusBar" ) );
+
+    sizeField = new QLabel();
+    sizeField->setObjectName( QStringLiteral( "sizeField" ) );
+    sizeField->setContentsMargins( 6, 0, 6, 0 );
+
+    dateField = new QLabel();
+    dateField->setObjectName( QStringLiteral( "dateField" ) );
+    dateField->setContentsMargins( 6, 0, 6, 0 );
+
+    lineNbField = new QLabel();
+    lineNbField->setObjectName( QStringLiteral( "lineNumberField" ) );
+    lineNbField->setContentsMargins( 6, 0, 6, 0 );
+
+    encodingField = new QLabel();
+    encodingField->setObjectName( QStringLiteral( "encodingField" ) );
+    encodingField->setContentsMargins( 6, 0, 6, 0 );
+
+    lineEndingField = new QLabel();
+    lineEndingField->setObjectName( QStringLiteral( "lineEndingField" ) );
+    lineEndingField->setContentsMargins( 6, 0, 6, 0 );
+
+    languageButton = new QToolButton();
+    languageButton->setObjectName( QStringLiteral( "languageButton" ) );
+    languageButton->setToolButtonStyle( Qt::ToolButtonTextOnly );
+    languageButton->setAutoRaise( true );
+    // Shares the View > Syntax highlighting actions, so menu and status bar
+    // never disagree about the current language.
+    auto* languageMenu = new QMenu( languageButton );
+    languageMenu->addActions( syntaxMenu->actions() );
+    connect( languageMenu, &QMenu::aboutToShow, this, [ this, languageMenu ] {
+        const auto* crawler = currentCrawlerWidget();
+        for ( auto* action : languageMenu->actions() )
+            action->setChecked( crawler && action->data().toString() == crawler->syntaxLanguage() );
+    } );
+    languageButton->setMenu( languageMenu );
+    languageButton->setPopupMode( QToolButton::InstantPopup );
+
+    status->addPermanentWidget( sizeField );
+    status->addPermanentWidget( dateField );
+    status->addPermanentWidget( lineNbField );
+    status->addPermanentWidget( encodingField );
+    status->addPermanentWidget( lineEndingField );
+    status->addPermanentWidget( languageButton );
 
     showInfoLabels( false );
 }

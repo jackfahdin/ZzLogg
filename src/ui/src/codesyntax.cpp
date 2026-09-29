@@ -10,8 +10,10 @@
 #include <QCache>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QHash>
 #include <QTimer>
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <set>
 
@@ -19,6 +21,55 @@ namespace {
 constexpr quint64 MaxLines = 100000;
 constexpr int MaxLineLength = 16384;
 constexpr quint64 CheckpointInterval = 1024;
+// key is the stable session/menu token; definition is the KSyntaxHighlighting
+// repository name. Menu order follows this table.
+struct LanguageSpec {
+    const char* key;
+    const char* definition;
+};
+constexpr LanguageSpec kLanguages[] = {
+    { "bash", "Bash" },         { "cpp", "C++" },      { "csharp", "C#" },
+    { "cmake", "CMake" },       { "css", "CSS" },      { "diff", "Diff" },
+    { "go", "Go" },             { "html", "HTML" },    { "ini", "INI Files" },
+    { "java", "Java" },         { "js", "JavaScript" }, { "json", "JSON" },
+    { "log", "Log File (advanced)" }, { "lua", "Lua" }, { "make", "Makefile" },
+    { "markdown", "Markdown" }, { "powershell", "PowerShell" }, { "python", "Python" },
+    { "rust", "Rust" },         { "sql", "SQL" },      { "toml", "TOML" },
+    { "ts", "TypeScript" },     { "xml", "XML" },      { "yaml", "YAML" },
+};
+const char* definitionForKey( const QString& key )
+{
+    for ( const auto& spec : kLanguages ) {
+        if ( key == QLatin1String( spec.key ) )
+            return spec.definition;
+    }
+    return nullptr;
+}
+QString keyForSuffix( const QString& fileName )
+{
+    const QFileInfo info( fileName );
+    const auto name = info.fileName();
+    if ( name.compare( QLatin1String( "CMakeLists.txt" ), Qt::CaseInsensitive ) == 0 )
+        return QStringLiteral( "cmake" );
+    if ( name.compare( QLatin1String( "Makefile" ), Qt::CaseInsensitive ) == 0 )
+        return QStringLiteral( "make" );
+    const auto suffix = info.suffix().toLower();
+    static const QHash<QString, QString> map{
+        { "c", "cpp" },         { "cc", "cpp" },   { "cpp", "cpp" },  { "cxx", "cpp" },
+        { "h", "cpp" },         { "hh", "cpp" },   { "hpp", "cpp" },  { "hxx", "cpp" },
+        { "ipp", "cpp" },       { "inl", "cpp" },  { "cs", "csharp" }, { "java", "java" },
+        { "js", "js" },         { "mjs", "js" },   { "cjs", "js" },   { "ts", "ts" },
+        { "json", "json" },     { "py", "python" }, { "pyw", "python" }, { "rs", "rust" },
+        { "go", "go" },         { "xml", "xml" },  { "yaml", "yaml" }, { "yml", "yaml" },
+        { "md", "markdown" },   { "markdown", "markdown" }, { "cmake", "cmake" },
+        { "sh", "bash" },       { "bash", "bash" }, { "ps1", "powershell" },
+        { "psm1", "powershell" }, { "ini", "ini" }, { "cfg", "ini" }, { "diff", "diff" },
+        { "patch", "diff" },    { "sql", "sql" },  { "html", "html" }, { "htm", "html" },
+        { "css", "css" },       { "toml", "toml" }, { "lua", "lua" },  { "mk", "make" },
+        { "mak", "make" },      { "log", "log" },
+    };
+    return map.value( suffix );
+}
 struct StoredSpan {
     int offset;
     int length;
@@ -113,12 +164,22 @@ void CodeSyntax::setFileName( const QString& fileName )
     if ( d->language == QLatin1String( "auto" ) )
         chooseDefinition();
 }
+QVector<CodeSyntax::LanguageEntry> CodeSyntax::availableLanguages()
+{
+    QVector<LanguageEntry> entries;
+    entries.reserve( std::size( kLanguages ) );
+    for ( const auto& spec : kLanguages ) {
+        entries.push_back( { QString::fromLatin1( spec.key ),
+                             QString::fromLatin1( spec.definition ) } );
+    }
+    return entries;
+}
 void CodeSyntax::setLanguage( const QString& language )
 {
-    const QString normalized
-        = QStringList{ "auto", "plain", "cpp", "java", "json" }.contains( language )
-              ? language
-              : QStringLiteral( "auto" );
+    const bool known = language == QLatin1String( "auto" )
+                       || language == QLatin1String( "plain" )
+                       || definitionForKey( language ) != nullptr;
+    const QString normalized = known ? language : QStringLiteral( "auto" );
     if ( d->language == normalized )
         return;
     d->language = normalized;
@@ -126,24 +187,15 @@ void CodeSyntax::setLanguage( const QString& language )
 }
 void CodeSyntax::chooseDefinition()
 {
-    QString name;
     auto language = d->language;
     if ( language == QLatin1String( "auto" ) ) {
-        const auto suffix = QFileInfo( d->fileName ).suffix().toLower();
-        if ( QStringList{ "c", "cc", "cpp", "cxx", "h", "hh", "hpp", "hxx", "ipp", "inl" }.contains(
-                 suffix ) )
-            language = "cpp";
-        else if ( suffix == QLatin1String( "java" ) )
-            language = "java";
-        else if ( suffix == QLatin1String( "json" ) )
-            language = "json";
+        language = keyForSuffix( d->fileName );
     }
-    if ( language == QLatin1String( "cpp" ) )
-        name = "C++";
-    else if ( language == QLatin1String( "java" ) )
-        name = "Java";
-    else if ( language == QLatin1String( "json" ) )
-        name = "JSON";
+    if ( language == QLatin1String( "plain" ) )
+        language.clear();
+    QString name;
+    if ( const auto* definition = definitionForKey( language ) )
+        name = QString::fromLatin1( definition );
     d->lexer.setDefinition( d->repository.definitionForName( name ) );
     invalidate();
 }

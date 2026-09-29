@@ -20,6 +20,13 @@ public:
     };
     using ReadLine = std::function<std::optional<QString>( quint64 )>;
     using LineCount = std::function<quint64()>;
+    // Selectable language: stable key (persisted in sessions) and the display
+    // name shown in menus. "auto" and "plain" are implied and not listed.
+    struct LanguageEntry {
+        QString key;
+        QString display;
+    };
+    static QVector<LanguageEntry> availableLanguages();
     CodeSyntax( ReadLine readLine, LineCount lineCount, QObject* parent = nullptr );
     ~CodeSyntax() override;
     void setFileName( const QString& fileName );

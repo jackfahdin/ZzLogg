@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "crawlerwidget.h"
+#include "codesyntax.h"
 #include "mainwindowtext.h"
 #include "encodings.h"
 #include "highlightersmenu.h"
@@ -62,18 +63,20 @@ void MainWindow::createMenus(QMenuBar& container)
     syntaxMenu = viewMenu->addMenu(tr("Syntax highlighting"));
     syntaxMenu->setObjectName(QStringLiteral("syntaxHighlightingMenu"));
     auto* syntaxGroup = new QActionGroup(syntaxMenu);
-    const QList<QPair<QString, QString>> languages{
-        {"auto", tr("Automatic")}, {"plain", tr("Plain text")},
-        {"cpp", QStringLiteral("C++")}, {"java", QStringLiteral("Java")},
-        {"json", QStringLiteral("JSON")}};
+    QList<QPair<QString, QString>> languages{
+        {"auto", tr("Automatic")}, {"plain", tr("Plain text")}};
+    for (const auto& entry : CodeSyntax::availableLanguages())
+        languages.append({entry.key, entry.display});
     for (const auto& language : languages) {
         auto* action = syntaxMenu->addAction(language.second);
         action->setData(language.first);
         action->setCheckable(true);
         syntaxGroup->addAction(action);
         connect(action, &QAction::triggered, this, [this, action] {
-            if (auto* crawler = currentCrawlerWidget())
+            if (auto* crawler = currentCrawlerWidget()) {
                 crawler->setSyntaxLanguage(action->data().toString());
+                updateSyntaxLanguageIndicator();
+            }
         });
     }
     connect(viewMenu, &QMenu::aboutToShow, this, [this, syntaxGroup] {
