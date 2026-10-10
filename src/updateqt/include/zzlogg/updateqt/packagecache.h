@@ -47,4 +47,11 @@ private:
     class Impl;
     std::unique_ptr<Impl> impl_;
 };
+
+// Cache file name for an artifact: sha256 hex plus a real payload extension.
+// Installer packages must end in .exe — the update handoff launches the
+// verified package through ShellExecuteEx "runas", which requires an
+// executable association (a neutral extension fails with
+// ERROR_NO_ASSOCIATION before any UAC prompt).
+QString packageCacheFileName(const update::Artifact& artifact);
 }

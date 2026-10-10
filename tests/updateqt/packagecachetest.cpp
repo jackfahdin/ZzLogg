@@ -23,7 +23,7 @@ zzlogg::update::Artifact artifactFor(const QByteArray& bytes)
 
 QString packagePath(const QString& root,const zzlogg::update::Artifact& artifact)
 {
-    return QDir(root).filePath(QString::fromLatin1(artifact.sha256)+QStringLiteral(".package"));
+    return QDir(root).filePath(packageCacheFileName(artifact));
 }
 
 #ifdef Q_OS_WIN
@@ -71,6 +71,20 @@ public:
 class PackageCacheTest : public QObject {
     Q_OBJECT
 private slots:
+    void cacheFileNameExtensionMatchesPayloadKind()
+    {
+        // Installer packages must be cached as .exe: the update handoff runs
+        // the verified package through ShellExecuteEx "runas", which fails
+        // with ERROR_NO_ASSOCIATION for any non-executable extension.
+        auto artifact=artifactFor("x");
+        artifact.distribution=zzlogg::update::Distribution::Installer;
+        QCOMPARE(packageCacheFileName(artifact),
+                 QString::fromLatin1(artifact.sha256)+QStringLiteral(".exe"));
+        artifact.distribution=zzlogg::update::Distribution::Portable;
+        QCOMPARE(packageCacheFileName(artifact),
+                 QString::fromLatin1(artifact.sha256)+QStringLiteral(".zip"));
+    }
+
     void invalidArtifacts_data()
     {
         QTest::addColumn<qulonglong>("size");
@@ -370,8 +384,7 @@ private slots:
         QFile saved(cache.verifiedPath());
         QVERIFY(saved.open(QIODevice::ReadOnly));
         QCOMPARE(saved.readAll(),bytes);
-        QCOMPARE(QFileInfo(cache.verifiedPath()).fileName(),
-                 QString::fromLatin1(artifact.sha256)+QStringLiteral(".package"));
+        QCOMPARE(QFileInfo(cache.verifiedPath()).fileName(), packageCacheFileName(artifact));
     }
 
     void successReplacesOldPackage()
