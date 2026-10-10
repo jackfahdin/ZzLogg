@@ -166,6 +166,8 @@ def sign_manifest(args):
         for value in notes.values():
             require(isinstance(value, str) and len(value.encode('utf-8')) <= 16 * 1024,
                     'Each release note must be text of at most 16 KiB')
+    # 'format': 'nsis-exe' below is the historical protocol enum kept for
+    # already-released clients; installers are now built with Inno Setup 7.
     payload = {'schema': 1, 'product': 'com.gitcode.jackfahdinqt.zzlogg',
                'metadataSequence': args.metadata_sequence, 'issuedAt': issued,
                'expiresAt': issued + ttl, 'channel': args.channel,

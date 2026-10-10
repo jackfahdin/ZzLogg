@@ -38,6 +38,8 @@ std::optional<UpdateSelection> makeUpdateSelection(
 {
     if(!eligibleInstalledRelease(current)) return std::nullopt;
     const auto decision=selectUpdate(verified,current);
+    // "nsis-exe" is the historical protocol enum for installer packages (now
+    // built with Inno Setup); the name is kept for released-client compatibility.
     if(decision.status!=DecisionStatus::Available || !decision.artifact
         || decision.artifact->os!="windows" || decision.artifact->arch!="x64"
         || decision.artifact->distribution!=Distribution::Installer

@@ -84,6 +84,9 @@ ASCII("ZzLogg update manifest v1\n") || ASCII(keyId) || ASCII("\n") || rawPayloa
 | size | 正十进制字符串，最多 512 MiB |
 | sha256 | 64 个小写十六进制字符 |
 
+`nsis-exe` 是已发布客户端使用的历史协议枚举名，继续保留，不能据此判断
+当前打包工具（现为 Inno Setup 7 安装包）。
+
 URL 允许标准查询串，拒绝用户信息、片段、控制字符、反斜杠、非法百分号和域名后缀欺骗。主机转小写后与调用方提供的小写 DNS 允许列表精确比较；尾随点不接受。地址长度最多 8192 字节。
 
 清单验证器校验签名清单内的 URL；下载器另对**每次重定向及最终地址**重新检查，并限制下载大小、校验完整包 SHA-256。清单通过不代表包已经下载完成，也不授予安装权限。
@@ -390,7 +393,7 @@ DACL 仅授权精确登录 SID；客户端使用 SECURITY_IDENTIFICATION。双�
 
 ## 安装事务与恢复（3C）
 
-3C 交付协议 v2、bootstrap v4、持久事务日志、登记事务引擎、NSIS 受限入口与协调者
+3C 交付协议 v2、bootstrap v4、持久事务日志、登记事务引擎、安装器受限入口与协调者
 生产链路。稳定版 Windows x64 注册安装已通过应用内生产会话工厂开放「退出并更新」；
 预览渠道与未满足开闸条件的安装仍只能手动下载。本节机制在专用测试目标与
 `ZzLoggUpdate.exe` 中继中真实执行。
@@ -462,22 +465,23 @@ UTF-16 体，显式小端编码。打开时以原子 NtCreateFile 独占创建 `
 ### 登记事务引擎与恢复边界
 
 引擎（txengine_win）先写日志后操作：清单（ZZTXMAN1：16 字节头
-magic+version(1)+count，随后逐条目）有界敌意解析，与应用侧 NSIS 清单生成器
+magic+version(1)+count，随后逐条目）有界敌意解析，与应用侧安装清单生成器
 逐字节同源（共享枚举生成器）。普通失败逆序回滚；中断（杀进程/断电点）后经
 授权路径幂等恢复；登记白名单精确到卸载项键，要求 `UpdateIdentitySchema==2`；
 Corrupt 或 0 字节日志呈现为 NeedsAuthorizedRecovery（保留现场，交授权恢复，
 绝不自动继续）。退出码：Applied/Recovered/NothingToRecover=0、Rejected=42、
 Conflict=43、RolledBack=44、NeedsAuthorizedRecovery=45、RecoveryFailed=46。
 
-### 落地清单 schema 2 与 NSIS 受限入口
+### 落地清单 schema 2 与安装器受限入口
 
 新安装写入 `UpdateIdentitySchema=2`（HKLM 卸载项）；schema 1 或缺失按 Legacy
-处理，引擎对非 2 一律 Rejected。NSIS 提供两个受限入口：
+处理，引擎对非 2 一律 Rejected。安装器（历史 NSIS，现 Inno Setup 7）提供
+两个受限入口：
 `/ZzLoggUpgrade=<16 位小写 hex 定位名>` 与 `/ZzLoggRecover=<定位名>`。两种模式
 都禁止 `/D=`（受限运行绝不改变登记目标）、在任何页面显示前 Quit、VerifyTarget
 逐级拒绝 reparse、使用受保护事务目录并传播引擎退出码。升级模式按定稿 argv
 契约以五组 flag/value（--install/--staging/--txroot/--txid/--version）启动引擎；
-定位名格式在协调者、NSIS、引擎、凭据文件四方逐字节一致。受限入口在引擎启动
+定位名格式在协调者、安装器、引擎、凭据文件四方逐字节一致。受限入口在引擎启动
 前的失败分支一律 SetErrorLevel 后 Abort（裸 Abort 退出码恒 0），码位链接
 txcontract_win_p.h：用法拒绝（/D=、定位名非法）= UsageRejected(2)、目标复核
 失败 = exitForOutcome(Rejected)(42)、安装器侧运行期失败（事务 busy、保护目录/
@@ -490,7 +494,7 @@ MessageBox 带 /SD IDOK，/S 静默下不弹窗。
 是受保护根 `%ProgramData%\ZzLogg\UpdateTransactions`（仅在首次创建时执行
 `/inheritance:r`，Administrators/SYSTEM 完全 + Authenticated Users 只读）与
 同级兄弟暂存目录 `<根>\staging-<定位名>`（Administrators/SYSTEM 完全 +
-Users 只读），载荷引擎、新版清单与 nsis-entry.log 都落在暂存目录。引擎
+Users 只读），载荷引擎、新版清单与 inno-entry.log 都落在暂存目录。引擎
 受保护镜像断言对根只接受这一精确 ACL 形状（属主 Administrators/SYSTEM，
 除二者外无任何写位 ACE；写位为显式数据写位枚举 FILE_WRITE_DATA|
 FILE_APPEND_DATA|FILE_WRITE_EA|FILE_WRITE_ATTRIBUTES|DELETE|WRITE_DAC|

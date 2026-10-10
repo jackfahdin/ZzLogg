@@ -92,6 +92,8 @@ Manifest parsePayload(const Json& json,const VerificationContext& context) {
         require(distribution=="portable" || distribution=="installer");
         artifact.distribution=distribution=="portable" ? Distribution::Portable : Distribution::Installer;
         artifact.format=string(item.at("format"));
+        // "nsis-exe" is the historical protocol enum kept for released clients;
+        // installer packages are now built with Inno Setup.
         require(artifact.format==(artifact.distribution==Distribution::Portable ? "zip" : "nsis-exe"));
         artifact.minOsVersion=osVersion(string(item.at("minOsVersion")));
         artifact.url=string(item.at("url")); require(isAllowedUpdateUrl(artifact.url,context.allowedHosts));

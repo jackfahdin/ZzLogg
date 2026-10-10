@@ -268,9 +268,9 @@ std::vector<std::wstring> recordLines(const fs::path& path) {
     return lines;
 }
 // Injected installer launcher: models ShellExecuteEx runas by launching the
-// fixture installer (NSIS stand-in) as an ordinary child. The engine then
-// connects as a grandchild through the credential file, exactly like the
-// production restricted entry.
+// fixture installer (restricted-entry stand-in) as an ordinary child. The
+// engine then connects as a grandchild through the credential file, exactly
+// like the production restricted entry.
 struct LaunchCapture { std::wstring installer,arguments;DWORD launchedPid=0; };
 LauncherOutcome fixtureLaunch(LaunchCapture& capture,const std::wstring& installer,const std::wstring& restrictedSwitch) {
     capture.installer=installer; capture.arguments=restrictedSwitch; capture.launchedPid=0;
@@ -698,7 +698,7 @@ void makeDrive(EngineDrive& drive,const fs::path& base,bool withBig) {
 }
 DWORD runRecoveryFixture(const fs::path& fixtureExe,const EngineDrive& drive) {
     // engine-recover mode speaks no protocol; the environment carries the
-    // request. This models the NSIS restricted entry's authorized recovery.
+    // request. This models the installer restricted entry's authorized recovery.
     return spawnWait(fixtureExe,L"--engine-recover");
 }
 void testProtocolHappy(const fs::path& root,const fs::path& fixtureExe) {
