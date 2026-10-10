@@ -80,7 +80,7 @@ private slots:
         } else {
             QCOMPARE(success.count(),0); QCOMPARE(failure.count(),1);
             QCOMPARE(qvariant_cast<DownloadError>(failure[0][0]),DownloadError(expected));
-            QVERIFY(QDir(root.path()).entryList({"*.package"},QDir::Files).isEmpty());
+            QVERIFY(QDir(root.path()).entryList({"*.zip","*.exe"},QDir::Files).isEmpty());
         }
         qint64 previous=0;
         for(const auto& row:progress) { QVERIFY(row[0].toLongLong()>previous); previous=row[0].toLongLong(); QCOMPARE(row[1].toLongLong(),qint64(expectedBytes.size())); }
@@ -152,7 +152,7 @@ private slots:
             QTRY_COMPARE(failure.count(),1);
             QCOMPARE(qvariant_cast<DownloadError>(failure[0][0]),scenario==2?DownloadError::Cancelled:DownloadError::Timeout);
             QTest::qWait(100); QCOMPARE(failure.count(),1); QCOMPARE(success.count(),0);
-            QVERIFY(QDir(root.path()).entryList({"*.package"},QDir::Files).isEmpty());
+            QVERIFY(QDir(root.path()).entryList({"*.zip","*.exe"},QDir::Files).isEmpty());
         }
     }
     void replacementIgnoresLateFinish() {
@@ -259,7 +259,7 @@ private slots:
         downloader->start(artifact,context.allowedHosts,root.path()); delete downloader;
         PackageCache replacement(root.path(),artifact); QCOMPARE(replacement.begin(),CacheError::None);
         QTest::qWait(150); QCOMPARE(callbacks,0);
-        QVERIFY(QDir(root.path()).entryList({"*.package"},QDir::Files).isEmpty());
+        QVERIFY(QDir(root.path()).entryList({"*.zip","*.exe"},QDir::Files).isEmpty());
     }
 };
 QTEST_GUILESS_MAIN(PackageDownloaderTest)

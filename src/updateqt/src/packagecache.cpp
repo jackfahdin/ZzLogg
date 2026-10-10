@@ -120,8 +120,7 @@ CacheError PackageCache::begin()
     const QFileInfo rootInfo(impl_->cacheRoot);
     if (!rootInfo.isDir() || !hasSafeExistingPath(impl_->cacheRoot))
         return CacheError::InvalidPath;
-    impl_->destination=QDir(impl_->cacheRoot).filePath(
-        QString::fromLatin1(impl_->artifact.sha256)+QStringLiteral(".package"));
+    impl_->destination=QDir(impl_->cacheRoot).filePath(packageCacheFileName(impl_->artifact));
     const QString lockPath=impl_->destination+QStringLiteral(".lock");
     if (!hasSafeExistingPath(impl_->destination) || !hasSafeExistingPath(lockPath))
         return CacheError::InvalidPath;
@@ -179,4 +178,10 @@ CacheError PackageCache::cancel()
     return CacheError::Cancelled;
 }
 QString PackageCache::verifiedPath() const { return impl_->verifiedPath; }
+QString packageCacheFileName(const update::Artifact& artifact)
+{
+    return QString::fromLatin1(artifact.sha256)
+        + (artifact.distribution==update::Distribution::Installer
+               ? QStringLiteral(".exe") : QStringLiteral(".zip"));
+}
 }

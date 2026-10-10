@@ -160,7 +160,7 @@ private slots:
         QCOMPARE(network->requests.size(),1);
         service.requestDownload(next); QCOMPARE(service.snapshot().status,DownloadStatus::Unavailable);
         QCOMPARE(network->requests.size(),1); QVERIFY(service.snapshot().verifiedPath.isEmpty());
-        QTest::qWait(20); QVERIFY(QDir(root.path()).entryList({"*.package"},QDir::Files).isEmpty());
+        QTest::qWait(20); QVERIFY(QDir(root.path()).entryList({"*.zip","*.exe"},QDir::Files).isEmpty());
         service.requestDownload(next);
         QTRY_COMPARE_WITH_TIMEOUT(service.snapshot().status,DownloadStatus::Verified,1000);
         service.requestDownload(next); QCOMPARE(network->requests.size(),2);
@@ -249,7 +249,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(service.snapshot().status,DownloadStatus::Failed,1000);
         QCOMPARE(service.snapshot().error,std::optional<DownloadError>(DownloadError::HashMismatch));
         QVERIFY(service.snapshot().verifiedPath.isEmpty());
-        QVERIFY(QDir(root.path()).entryList({"*.package"},QDir::Files).isEmpty());
+        QVERIFY(QDir(root.path()).entryList({"*.zip","*.exe"},QDir::Files).isEmpty());
         service.requestDownload(available());
         QTRY_COMPARE_WITH_TIMEOUT(service.snapshot().status,DownloadStatus::Verified,1000);
     }
