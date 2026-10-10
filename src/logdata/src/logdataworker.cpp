@@ -490,11 +490,11 @@ FastLinePositionArray IndexOperation::parseDataBlock( OffsetInFile::UnderlyingTy
             const auto width = state.encodingParams.lineFeedWidth;
             bool crlf = false;
             if ( width == 1 ) {
-                crlf = posWithinBlock >= 1 && block[ posWithinBlock - 1 ] == '\r';
+                crlf = posWithinBlock >= 1 && *( block.data() + posWithinBlock - 1 ) == '\r';
             }
             else if ( posWithinBlock >= width ) {
-                const char first = block[ posWithinBlock - width ];
-                const char second = block[ posWithinBlock - 1 ];
+                const char first = *( block.data() + posWithinBlock - width );
+                const char second = *( block.data() + posWithinBlock - 1 );
                 crlf = state.encodingParams.isUtf16LE ? ( first == '\r' && second == '\0' )
                                                       : ( first == '\0' && second == '\r' );
             }
