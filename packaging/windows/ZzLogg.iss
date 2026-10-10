@@ -1,4 +1,4 @@
-﻿; Inno Setup 7.1.0. Compile from the repository root with /DVERSION and /DPLATFORM.
+; Inno Setup 7.1.0. Compile from the repository root with /DVERSION and /DPLATFORM.
 #ifndef VERSION
   #define VERSION "dev-build"
 #endif
@@ -73,9 +73,16 @@ Name: "sendto"; Description: "{cm:SendToShortcut}"; GroupDescription: "{cm:Addit
 Name: "associate"; Description: "{cm:AssociateLog}"; Flags: unchecked
 
 [Files]
-; Restricted entries extract only these two files. The helper is never installed.
+; Restricted entries extract the helper, the landing manifest and the payload
+; index directly; every payload file is embedded once more with a unique
+; dontcopy extraction name (Inno stores duplicate content once) so the
+; restricted upgrade entry can stage it for the transaction engine.
 Source: "txpayload\ZzLoggUpdateTx.exe"; Flags: dontcopy
 Source: "release\.zzlogg-files.manifest"; DestName: "files.manifest"; Flags: dontcopy
+Source: "txpayload\zzpayload-index.txt"; Flags: dontcopy
+#include "..\..\txpayload\zzpayload-staging.issinclude"
+; ".zzlogg-uninstall.nsh" is a historical NSIS-era staging leftover (no longer
+; generated); the exclusion below is retained harmlessly.
 Source: "release\*"; DestDir: "{app}"; Excludes: ".zzlogg-uninstall.nsh"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -367,6 +374,7 @@ end;
 
 procedure RunRestricted(Mode, Locator: String);
 var DataRoot, ProductRoot, TxRoot, TxDir, Stage, Parameters, Identity: String; ExitCode, Attempt: Integer;
+    IndexLines: TArrayOfString; Line, TmpName, Rel, Dest: String; P, I: Integer;
 begin
   if not VerifyTarget then RestrictedExit(42, 'Registered installation failed independent target validation.');
   Identity := TargetIdentity;
@@ -375,7 +383,7 @@ begin
   ProductRoot := DataRoot + '\ZzLogg';
   TxRoot := ProductRoot + '\UpdateTransactions'; TxDir := TxRoot + '\' + Locator;
   if Mode = 'upgrade' then begin
-    { The shared NSIS parent may retain its inherited ProgramData ACLs. Pin
+    { The shared legacy (NSIS-era) parent may retain its inherited ProgramData ACLs. Pin
       all ancestors; independently require a protected transaction root. }
     if WinAttributes(ProductRoot) = InvalidAttributes then begin
       if not CreateProtectedDirectory(ProductRoot, False) then
@@ -416,6 +424,29 @@ begin
     ExtractTemporaryFile('files.manifest');
     if not CopyFile(ExpandConstant('{tmp}\files.manifest'), Stage + '\files.manifest', True) then
       RestrictedExit(48, 'Cannot stage manifest.');
+    { Stage every payload file next to the manifest: the engine diffs the
+      installation against the manifest and hashes each staged file before
+      touching the target, so a missing or corrupt payload entry fails here. }
+    ExtractTemporaryFile('zzpayload-index.txt');
+    if not LoadStringsFromFile(ExpandConstant('{tmp}\zzpayload-index.txt'), IndexLines) then
+      RestrictedExit(48, 'Cannot read payload index.');
+    for I := 0 to GetArrayLength(IndexLines) - 1 do begin
+      Line := IndexLines[I];
+      P := Pos('|', Line);
+      if P < 2 then RestrictedExit(48, 'Malformed payload index line.');
+      TmpName := Copy(Line, 1, P - 1);
+      Rel := Copy(Line, P + 1, MaxInt);
+      if (Rel = '') or (Rel[1] = '\') or (Rel[1] = '/') or (Pos('..', Rel) > 0)
+          or (Pos(':', Rel) > 0) then
+        RestrictedExit(48, 'Unsafe payload path in index.');
+      ExtractTemporaryFile(TmpName);
+      Dest := Stage + '\' + Rel;
+      if not ForceDirectories(ExtractFileDir(Dest)) then
+        RestrictedExit(48, 'Cannot create payload directory.');
+      if not CopyFile(ExpandConstant('{tmp}\' + TmpName), Dest, False) then
+        RestrictedExit(48, 'Cannot stage payload: ' + Rel);
+      DeleteFile(ExpandConstant('{tmp}\' + TmpName));
+    end;
     SaveStringToFile(Stage + '\inno-entry.log', 'mode=upgrade locator=' + Locator +
       ' target=' + Target + ' identity=' + Identity + #13#10, False);
     Parameters := '--install "' + Target + '" --staging "' + Stage + '" --txroot "' + TxRoot +
