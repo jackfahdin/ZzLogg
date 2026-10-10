@@ -164,10 +164,11 @@ int runCredentialEngine(int argc,wchar_t** argv) {
     channel.send(message,after(1000));
     return 0;
 }
-// NSIS restricted-entry stand-in: validates the locator shape, then runs the
-// engine with the finalized argv contract and propagates its exit code
-// (ExecWait model). What NSIS would know independently (target, staging, tx
-// root, payload version) arrives through the fixture environment.
+// Installer restricted-entry stand-in (the entry was NSIS, now Inno Setup):
+// validates the locator shape, then runs the engine with the finalized argv
+// contract and propagates its exit code (ExecWait model). What the installer
+// would know independently (target, staging, tx root, payload version)
+// arrives through the fixture environment.
 int runInstallerFixture(const std::wstring& switchArg) {
     record(L"installer switch="+switchArg);
     if(switchArg.rfind(L"/ZzLoggUpgrade=",0)!=0) return UsageRejected;
@@ -213,7 +214,7 @@ int runGuiFixture(int argc,wchar_t** argv) {
     return 0;
 }
 // Authorized recovery stand-in: no handshake, target recheck plus strict
-// journal-driven reverse replay only. Models the NSIS restricted entry.
+// journal-driven reverse replay only. Models the installer restricted entry.
 int runEngineRecovery() {
     FileRegistry registry(envVar(L"ZZLOGG_TX_FAKEREG"));
     auto options=fixtureOptions(registry);
@@ -229,7 +230,7 @@ int wmain(int argc,wchar_t** argv) {
     // sleeper with no bootstrap and no channel.
     if(argc==3 && std::wstring(argv[1])==L"--app"){Sleep(static_cast<DWORD>(std::wcstoul(argv[2],nullptr,10)));return 0;}
     if(argc==2 && std::wstring(argv[1])==L"--engine-recover")return runEngineRecovery();
-    // 3C installer chain: the fixture plays the NSIS restricted entry, the
+    // 3C installer chain: the fixture plays the installer restricted entry, the
     // credential-bootstrapped engine, or (renamed to the production
     // executable name) the restarted GUI.
     if(argc==2 && std::wstring(argv[1]).rfind(L"/ZzLoggUpgrade=",0)==0)return runInstallerFixture(argv[1]);
