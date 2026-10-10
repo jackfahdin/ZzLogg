@@ -6,7 +6,10 @@
 param(
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
-    [string]$StagingDirectory
+    [string]$StagingDirectory,
+    # Receives the generated dontcopy include and the payload index consumed by
+    # the installer's restricted upgrade entry. Defaults to <repo>\txpayload.
+    [string]$PayloadOutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,6 +17,10 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'InstallerStagingFiles.ps1')
 
 $stagingRoot = (Resolve-Path -LiteralPath $StagingDirectory).Path.TrimEnd('\', '/')
+if (-not $PayloadOutputDirectory) {
+    $PayloadOutputDirectory = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path 'txpayload'
+}
+New-Item -ItemType Directory -Force -Path $PayloadOutputDirectory | Out-Null
 $manifestPath = Join-Path $stagingRoot '.zzlogg-files.manifest'
 if (Test-Path -LiteralPath $manifestPath) {
     Remove-Item -LiteralPath $manifestPath -Force
@@ -102,3 +109,28 @@ if ($bytes.Length -gt $maxManifestBytes) {
 [IO.File]::WriteAllBytes($manifestPath, $bytes)
 
 Write-Output "Generated landing manifest for $($relativeFiles.Count) staged files: $manifestPath"
+
+# Restricted-upgrade payload staging inputs. The installer cannot hand its
+# embedded payload to the transaction engine through the two fixed dontcopy
+# resources, so every payload file also gets a dontcopy entry with a unique
+# extraction name; the restricted entry replays this index into the protected
+# staging directory. Inno stores duplicate file content once, so the extra
+# entries do not grow the installer.
+$payloadIncludePath = Join-Path $PayloadOutputDirectory 'zzpayload-staging.issinclude'
+$payloadIndexPath = Join-Path $PayloadOutputDirectory 'zzpayload-index.txt'
+$index = 0
+$includeLines = New-Object System.Collections.Generic.List[string]
+$indexLines = New-Object System.Collections.Generic.List[string]
+foreach ($relativeFile in $relativeFiles) {
+    $normalized = $relativeFile.Replace('\', '/')
+    if ($normalized -notmatch '^[\x21-\x7e/]+$' -or $normalized.Contains('|')) {
+        throw "Payload path is not plain ASCII or contains the index separator: $normalized"
+    }
+    $extractName = 'zzp{0:d4}.bin' -f $index
+    $index += 1
+    $includeLines.Add(('Source: "release\{0}"; DestName: "{1}"; Flags: dontcopy' -f $relativeFile, $extractName))
+    $indexLines.Add(('{0}|{1}' -f $extractName, $relativeFile))
+}
+[IO.File]::WriteAllLines($payloadIncludePath, $includeLines)
+[IO.File]::WriteAllLines($payloadIndexPath, $indexLines)
+Write-Output "Generated payload staging inputs for $index files: $payloadIncludePath, $payloadIndexPath"

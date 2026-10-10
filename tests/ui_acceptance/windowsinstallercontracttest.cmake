@@ -184,16 +184,20 @@ require_inno_literal("DefaultDirName={code:DefaultInstallDir}")
 require_inno_literal("RegQueryStringValue(HKLM64, RegistrationKey, 'InstallLocation', Result)")
 require_inno_literal("'ZzLogg {#VERSION}' + #13#10")
 
-# Exactly one recursive payload tree plus the two restricted-entry resources:
-# no separate Qt/runtime components and no transaction helper in {app}.
+# Exactly one recursive payload tree plus the restricted-entry resources: the
+# helper, the landing manifest, the payload index, and the generated per-file
+# payload staging entries (included, not visible here). No separate Qt/runtime
+# components and no transaction helper in {app}.
 string(REGEX MATCHALL "(^|\n)Source:" file_entries "${inno_active_content}")
 list(LENGTH file_entries file_entry_count)
-if(NOT file_entry_count EQUAL 3)
-  message(FATAL_ERROR "Inno must embed one runtime tree and two restricted-entry resources")
+if(NOT file_entry_count EQUAL 4)
+  message(FATAL_ERROR "Inno must embed one runtime tree and the restricted-entry resources")
 endif()
 require_inno_literal([=[Source: "release\*"; DestDir: "{app}"]=])
 require_inno_literal([=[Source: "txpayload\ZzLoggUpdateTx.exe"; Flags: dontcopy]=])
 require_inno_literal([=[Source: "release\.zzlogg-files.manifest"; DestName: "files.manifest"; Flags: dontcopy]=])
+require_inno_literal([=[Source: "txpayload\zzpayload-index.txt"; Flags: dontcopy]=])
+require_inno_literal([=[#include "..\..\txpayload\zzpayload-staging.issinclude"]=])
 require_inno_literal([=[Excludes: ".zzlogg-uninstall.nsh"]=])
 
 # The association task is opt-in and restores the previous default only while
