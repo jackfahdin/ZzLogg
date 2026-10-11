@@ -154,6 +154,42 @@ bool stageToTemp(const std::wstring& staged,const TxManifestEntry& entry,const s
     std::array<std::uint8_t,32> digest{};std::uint64_t size=0;
     return copyWithHash(source.get(),temp,digest,size) && digest==entry.sha256 && size==entry.size;
 }
+// A just-exited application can hold image sections for a moment, and
+// antivirus scanners transiently open freshly written executables: placement
+// and deletion retry bounded times on sharing/lock errors instead of rolling
+// the whole transaction back on a momentary conflict.
+constexpr std::uint32_t kTransientRetryBudgetMs=30000;
+constexpr DWORD kTransientRetryStepMs=250;
+bool transientFileError(DWORD error){
+    return error==ERROR_ACCESS_DENIED || error==ERROR_SHARING_VIOLATION
+        || error==ERROR_LOCK_VIOLATION || error==ERROR_PIPE_BUSY;
+}
+template<class Fn> bool retryTransient(Fn&& fn){
+    for(std::uint32_t waited=0;;){
+        SetLastError(0);
+        if(fn())return true;
+        const auto error=GetLastError();
+        if(!transientFileError(error) || waited>=kTransientRetryBudgetMs)return false;
+        Sleep(kTransientRetryStepMs);waited+=kTransientRetryStepMs;
+    }
+}
+// Durable engine diagnostics: one line per terminal outcome next to the
+// transaction journal, so a failed update leaves evidence after every process
+// in the chain has exited.
+void engineLogLine(const std::wstring& journalRoot,std::uint64_t txid,const std::wstring& line){
+    wchar_t name[17];_snwprintf_s(name,_countof(name),_TRUNCATE,L"%016llx",static_cast<unsigned long long>(txid));
+    const auto path=journalRoot+L"\\engine-"+name+L".log";
+    detail::Handle file(CreateFileW(path.c_str(),FILE_APPEND_DATA,FILE_SHARE_READ,nullptr,
+        OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr));
+    if(!file)return;
+    SYSTEMTIME now{};GetLocalTime(&now);
+    wchar_t stamp[24];_snwprintf_s(stamp,_countof(stamp),_TRUNCATE,L"%04u-%02u-%02u %02u:%02u:%02u ",
+        now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond);
+    const std::wstring text=stamp+line+L"\r\n";
+    DWORD written=0;
+    WriteFile(file.get(),text.data(),static_cast<DWORD>(text.size()*sizeof(wchar_t)),&written,nullptr);
+    FlushFileBuffers(file.get());
+}
 bool ensureParentDirectories(const std::wstring& installRoot,const std::wstring& relpath){
     std::wstring current=installRoot;
     for(std::size_t begin=0;;){
@@ -444,7 +480,10 @@ struct TxEngine::Impl {
     bool prepared=false,executed=false;
     std::wstring oldDisplayVersion;
     std::vector<PlannedFile> plan;
-    TxEngineResult rejected(const wchar_t* detail){return {TxOutcome::Rejected,detail};}
+    TxEngineResult rejected(const wchar_t* detail){
+        engineLogLine(request.journalRoot,request.txid,std::wstring(L"rejected: ")+detail);
+        return {TxOutcome::Rejected,detail};
+    }
 };
 TxEngine::TxEngine(TxEngineRequest request,TxEngineOptions options)
     :impl_(std::make_unique<Impl>()){impl_->request=std::move(request);impl_->options=std::move(options);}
@@ -549,6 +588,7 @@ TxEngineResult TxEngine::prepare(){
             return state.rejected(L"staged payload does not match the new manifest");
     }
     state.prepared=true;
+    engineLogLine(state.request.journalRoot,state.request.txid,L"prepared");
     return {TxOutcome::Prepared,{}};
 }
 // Journal-first modification sequence; every record is durable before its
@@ -571,8 +611,14 @@ TxEngineResult TxEngine::execute(){
     std::vector<TxJournalRecord> records;
     std::uint64_t seq=1;
     const auto fail=[&](TxOutcome outcome,const wchar_t* detail){
+        engineLogLine(state.request.journalRoot,state.request.txid,
+            std::wstring(L"execute failed, rolling back: ")+detail);
         const auto context=contextFor(records,state.registry,tempDir);
-        if(!undoAll(records,context))return TxEngineResult{TxOutcome::NeedsAuthorizedRecovery,L"rollback incomplete; scene preserved"};
+        if(!undoAll(records,context)){
+            engineLogLine(state.request.journalRoot,state.request.txid,L"rollback incomplete; scene preserved");
+            return TxEngineResult{TxOutcome::NeedsAuthorizedRecovery,L"rollback incomplete; scene preserved"};
+        }
+        engineLogLine(state.request.journalRoot,state.request.txid,L"rolled back cleanly");
         return TxEngineResult{outcome,detail};
     };
     const auto append=[&](TxJournalRecord& record){
@@ -586,9 +632,10 @@ TxEngineResult TxEngine::execute(){
             record.sha256=file.incoming.sha256;record.size=file.incoming.size;
             if(!append(record))return fail(TxOutcome::RolledBack,L"journal append failed");
             const auto temp=tempDir+L"\\"+hexSeq(record.seq);
-            if(!stageToTemp(file.staged,file.incoming,temp))return fail(TxOutcome::RolledBack,L"staged copy failed");
+            if(!retryTransient([&]{return stageToTemp(file.staged,file.incoming,temp);}))
+                return fail(TxOutcome::RolledBack,L"staged copy failed");
             if(!ensureParentDirectories(state.request.installRoot,file.relpath)
-                || !MoveFileExW(temp.c_str(),file.target.c_str(),MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)){
+                || !retryTransient([&]{return MoveFileExW(temp.c_str(),file.target.c_str(),MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
                 DeleteFileW(temp.c_str());return fail(TxOutcome::RolledBack,L"create placement failed");
             }
             continue;
@@ -614,14 +661,16 @@ TxEngineResult TxEngine::execute(){
         apply.size=file.op==TxOperation::Delete?file.expectedOld.size:file.incoming.size;
         if(!append(apply))return fail(TxOutcome::RolledBack,L"journal append failed");
         if(file.op==TxOperation::Delete){
-            if(!notReparseFile(file.target) || !DeleteFileW(file.target.c_str()))
+            if(!notReparseFile(file.target)
+                || !retryTransient([&]{return DeleteFileW(file.target.c_str())!=FALSE;}))
                 return fail(TxOutcome::RolledBack,L"delete failed");
             continue;
         }
         const auto temp=tempDir+L"\\"+hexSeq(apply.seq);
-        if(!stageToTemp(file.staged,file.incoming,temp))return fail(TxOutcome::RolledBack,L"staged copy failed");
-        if(!MoveFileExW(temp.c_str(),file.target.c_str(),
-            MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)){
+        if(!retryTransient([&]{return stageToTemp(file.staged,file.incoming,temp);}))
+            return fail(TxOutcome::RolledBack,L"staged copy failed");
+        if(!retryTransient([&]{return MoveFileExW(temp.c_str(),file.target.c_str(),
+            MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
             const auto placementError=GetLastError();
             DeleteFileW(temp.c_str());
             return fail(TxOutcome::RolledBack,(L"replace placement failed "+std::to_wstring(placementError)).c_str());
@@ -668,13 +717,14 @@ TxEngineResult TxEngine::execute(){
         if(!append(replace))return fail(TxOutcome::RolledBack,L"journal append failed");
         const auto temp=tempDir+L"\\"+hexSeq(replace.seq);
         if(!stageToTemp(staged,stagedManifest,temp))return fail(TxOutcome::RolledBack,L"staged manifest copy failed");
-        if(!MoveFileExW(temp.c_str(),installed.c_str(),
-            MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)){
+        if(!retryTransient([&]{return MoveFileExW(temp.c_str(),installed.c_str(),
+            MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
             DeleteFileW(temp.c_str());return fail(TxOutcome::RolledBack,L"manifest placement failed");
         }
     }
     TxJournalRecord complete{};complete.op=TxOperation::Complete;
     if(!append(complete))return fail(TxOutcome::RolledBack,L"completion record failed");
+    engineLogLine(state.request.journalRoot,state.request.txid,L"applied");
     return {TxOutcome::Applied,{}};
 }
 // Authorized recovery: rechecks the target, then replays the journal strictly
