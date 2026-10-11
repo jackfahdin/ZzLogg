@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <sddl.h>
 #include <aclapi.h>
+#include <restartmanager.h>
 #include <algorithm>
 #include <map>
 #include <set>
@@ -189,6 +190,27 @@ void engineLogLine(const std::wstring& journalRoot,std::uint64_t txid,const std:
     DWORD written=0;
     WriteFile(file.get(),text.data(),static_cast<DWORD>(text.size()*sizeof(wchar_t)),&written,nullptr);
     FlushFileBuffers(file.get());
+}
+// When a placement keeps failing on sharing/lock errors, name the processes
+// holding the file so the log answers "locked by whom" instead of guessing.
+void logLockHolders(const std::wstring& journalRoot,std::uint64_t txid,const std::wstring& path){
+    DWORD session=0;WCHAR sessionKey[CCH_RM_SESSION_KEY+1]{};
+    if(RmStartSession(&session,0,sessionKey)!=ERROR_SUCCESS)return;
+    const wchar_t* resources[]={path.c_str()};
+    if(RmRegisterResources(session,1,resources,0,nullptr,0,nullptr)==ERROR_SUCCESS){
+        UINT needed=0,count=0;DWORD reason=0;
+        if(RmGetList(session,&needed,&count,nullptr,&reason)==ERROR_MORE_DATA && needed>0){
+            std::vector<RM_PROCESS_INFO> processes(needed);
+            count=needed;
+            if(RmGetList(session,&needed,&count,processes.data(),&reason)==ERROR_SUCCESS){
+                for(UINT i=0;i<count;++i){
+                    engineLogLine(journalRoot,txid,std::wstring(L"locked by: ")+processes[i].strAppName
+                        +L" pid="+std::to_wstring(processes[i].Process.dwProcessId));
+                }
+            }
+        }
+    }
+    RmEndSession(session);
 }
 bool ensureParentDirectories(const std::wstring& installRoot,const std::wstring& relpath){
     std::wstring current=installRoot;
@@ -636,6 +658,8 @@ TxEngineResult TxEngine::execute(){
                 return fail(TxOutcome::RolledBack,L"staged copy failed");
             if(!ensureParentDirectories(state.request.installRoot,file.relpath)
                 || !retryTransient([&]{return MoveFileExW(temp.c_str(),file.target.c_str(),MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
+                logLockHolders(state.request.journalRoot,state.request.txid,file.target);
+                logLockHolders(state.request.journalRoot,state.request.txid,temp);
                 DeleteFileW(temp.c_str());return fail(TxOutcome::RolledBack,L"create placement failed");
             }
             continue;
@@ -662,8 +686,10 @@ TxEngineResult TxEngine::execute(){
         if(!append(apply))return fail(TxOutcome::RolledBack,L"journal append failed");
         if(file.op==TxOperation::Delete){
             if(!notReparseFile(file.target)
-                || !retryTransient([&]{return DeleteFileW(file.target.c_str())!=FALSE;}))
+                || !retryTransient([&]{return DeleteFileW(file.target.c_str())!=FALSE;})){
+                logLockHolders(state.request.journalRoot,state.request.txid,file.target);
                 return fail(TxOutcome::RolledBack,L"delete failed");
+            }
             continue;
         }
         const auto temp=tempDir+L"\\"+hexSeq(apply.seq);
@@ -672,6 +698,8 @@ TxEngineResult TxEngine::execute(){
         if(!retryTransient([&]{return MoveFileExW(temp.c_str(),file.target.c_str(),
             MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
             const auto placementError=GetLastError();
+            logLockHolders(state.request.journalRoot,state.request.txid,file.target);
+            logLockHolders(state.request.journalRoot,state.request.txid,temp);
             DeleteFileW(temp.c_str());
             return fail(TxOutcome::RolledBack,(L"replace placement failed "+std::to_wstring(placementError)).c_str());
         }
