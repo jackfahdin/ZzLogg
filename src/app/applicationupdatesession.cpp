@@ -7,6 +7,8 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 
+#include "log.h"
+
 #ifdef Q_OS_WIN
 #include "bootstrap_win_p.h"
 #include "coordinator_p.h"
@@ -46,16 +48,23 @@ class CoordinatorSession final : public ApplicationUpdateHandoff::CoordinationSe
     {
         const auto* reserved = reserved_ ? &*reserved_ : nullptr;
         if ( !coordinator_.start( image_, base_, reserved, nullptr, request_ ) ) {
+            LOG_WARNING << "Update coordinator start failed, os error "
+                        << static_cast<quint64>( GetLastError() );
             return ApplicationUpdateHandoff::Failure::LaunchFailed;
         }
         if ( !coordinator_.authenticate( updater::after( 10000 ) ) ) {
+            LOG_WARNING << "Update coordinator handshake rejected, os error "
+                        << static_cast<quint64>( GetLastError() );
             return ApplicationUpdateHandoff::Failure::PeerRejected;
         }
         const auto waiting = coordinator_.awaitAppExit( updater::after( 300000 ) );
         if ( waiting == updater::CoordinationResult::WaitingForAppExit ) {
             return ApplicationUpdateHandoff::Failure::None;
         }
-        return failureFromChildExit();
+        const auto failure = failureFromChildExit();
+        LOG_WARNING << "Update coordinator peer ended early, result "
+                    << static_cast<int>( waiting ) << " failure " << static_cast<int>( failure );
+        return failure;
     }
     bool canCommitExit() const override
     {
@@ -112,10 +121,13 @@ ApplicationUpdateHandoff::SessionFactory makeUpdateSessionFactory(
         const auto base = QDir( QStandardPaths::writableLocation( QStandardPaths::CacheLocation ) )
                               .filePath( QStringLiteral( "updates/production/runtime-v1" ) );
         if ( !QFileInfo::exists( image ) || !QDir().mkpath( base ) ) {
+            LOG_WARNING << "Update session unavailable: helper present "
+                        << QFileInfo::exists( image ) << " at " << image;
             return nullptr;
         }
         const auto digest = QByteArray::fromHex( request.packageSha256.toLatin1() );
         if ( digest.size() != 32 ) {
+            LOG_WARNING << "Update session unavailable: malformed package digest";
             return nullptr;
         }
         updater::HandoffRequest native;
