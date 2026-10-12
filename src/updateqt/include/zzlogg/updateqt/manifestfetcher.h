@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <vector>
 #include <string>
+#include "zzlogg/update/manifest.h"
 
 namespace zzlogg::updateqt {
 enum class FetchError { InvalidUrl, Tls, Http, Network, TooLarge, Timeout, Redirect, Cancelled };
@@ -18,6 +19,8 @@ public:
     ~ManifestFetcher() override;
     void start(const QUrl&, const std::vector<std::string>& allowedHosts);
     void cancel();
+    // Test trust environment additionally permits plain http loopback feeds.
+    void setTrustEnvironment(update::TrustEnvironment environment) { environment_=environment; }
 Q_SIGNALS:
     void succeeded(QByteArray bytes);
     void failed(zzlogg::updateqt::FetchError error);
@@ -37,6 +40,7 @@ private:
     bool active_ = false;
     QByteArray bytes_;
     std::vector<std::string> hosts_;
+    update::TrustEnvironment environment_=update::TrustEnvironment::Production;
 };
 }
 Q_DECLARE_METATYPE(zzlogg::updateqt::FetchError)

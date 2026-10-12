@@ -18,6 +18,7 @@ UpdateService::UpdateService(FeedConfiguration config,std::shared_ptr<UpdateStat
       clock_(std::move(clock)),fetcher_(factory ? factory() : new QNetworkAccessManager,30000,10000)
 {
     Q_ASSERT(store_ && clock_);
+    fetcher_.setTrustEnvironment(config_.environment);
     connect(&fetcher_,&ManifestFetcher::succeeded,this,&UpdateService::received);
     connect(&fetcher_,&ManifestFetcher::failed,this,&UpdateService::failed);
     poll_.setInterval(60000);
@@ -29,7 +30,7 @@ UpdateService::~UpdateService() { abandon(); }
 bool UpdateService::configured(Channel channel) const
 {
     const auto& url=channel==Channel::Stable ? config_.stableUrl : config_.previewUrl;
-    if (!update::isAllowedUpdateUrl(url.toStdString(),config_.allowedHosts)) return false;
+    if (!update::isAllowedUpdateUrl(url.toStdString(),config_.allowedHosts,config_.environment)) return false;
     for (const auto& key:config_.keys) {
         const bool purpose=config_.environment==update::TrustEnvironment::Production
             ? key.purpose==update::KeyPurpose::Production : key.purpose==update::KeyPurpose::Test;

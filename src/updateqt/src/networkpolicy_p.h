@@ -3,9 +3,10 @@
 #include "zzlogg/update/urlpolicy.h"
 
 namespace zzlogg::updateqt::detail {
-inline bool allowed(const QUrl& url,const std::vector<std::string>& hosts)
+inline bool allowed(const QUrl& url,const std::vector<std::string>& hosts,
+                    update::TrustEnvironment environment=update::TrustEnvironment::Production)
 {
-    return url.isValid() && update::isAllowedUpdateUrl(url.toEncoded(QUrl::FullyEncoded).toStdString(),hosts);
+    return url.isValid() && update::isAllowedUpdateUrl(url.toEncoded(QUrl::FullyEncoded).toStdString(),hosts,environment);
 }
 inline bool redirectStatus(int status)
 {

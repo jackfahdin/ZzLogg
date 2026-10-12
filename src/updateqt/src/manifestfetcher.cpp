@@ -40,13 +40,13 @@ void ManifestFetcher::start(const QUrl& url,const std::vector<std::string>& host
     active_=false;
     total_.stop(); inactivity_.stop(); releaseReply();
     hosts_=hosts; bytes_.clear(); redirects_=0; active_=true;
-    if (!allowed(url,hosts_)) { fail(FetchError::InvalidUrl); return; }
+    if (!allowed(url,hosts_,environment_)) { fail(FetchError::InvalidUrl); return; }
     total_.start(totalMs_);
     request(url);
 }
 void ManifestFetcher::request(const QUrl& url)
 {
-    if (!allowed(url,hosts_)) { fail(FetchError::InvalidUrl); return; }
+    if (!allowed(url,hosts_,environment_)) { fail(FetchError::InvalidUrl); return; }
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
     request.setAttribute(QNetworkRequest::CookieLoadControlAttribute,QNetworkRequest::Manual);
@@ -71,7 +71,7 @@ void ManifestFetcher::request(const QUrl& url)
 bool ManifestFetcher::headers()
 {
     if (!active_ || !reply_) return false;
-    if (!allowed(reply_->url(),hosts_)) { fail(FetchError::InvalidUrl); return false; }
+    if (!allowed(reply_->url(),hosts_,environment_)) { fail(FetchError::InvalidUrl); return false; }
     const auto encoding=reply_->rawHeader("Content-Encoding").trimmed().toLower();
     if (!encoding.isEmpty() && encoding != "identity") { fail(FetchError::Http); return false; }
     if (reply_->hasRawHeader("Content-Length")) {
@@ -114,7 +114,7 @@ void ManifestFetcher::finish()
         const auto location=reply_->rawHeader("Location");
         if (redirects_>=3 || !validLocation(location)) { fail(FetchError::Redirect); return; }
         const auto target=reply_->url().resolved(QUrl::fromEncoded(location,QUrl::StrictMode));
-        if (!allowed(target,hosts_)) { fail(FetchError::Redirect); return; }
+        if (!allowed(target,hosts_,environment_)) { fail(FetchError::Redirect); return; }
         ++redirects_;
         releaseReply(); bytes_.clear(); request(target);
         return;

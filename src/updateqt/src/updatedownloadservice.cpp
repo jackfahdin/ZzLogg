@@ -47,12 +47,12 @@ bool UpdateDownloadService::configured(Channel channel) const
     if(config_.environment!=update::TrustEnvironment::Production && !test) return false;
     if(test!=QStandardPaths::isTestModeEnabled()) return false;
     if(!test) {
-        const auto systemRoot=updateCachePath();
+        const auto systemRoot=updateCachePath(config_.environment);
         if(systemRoot.isEmpty() || cacheRoot_.isEmpty()
             || QDir::cleanPath(cacheRoot_)!=QDir::cleanPath(systemRoot)) return false;
     }
     const auto& url=channel==Channel::Stable ? config_.stableUrl : config_.previewUrl;
-    if(!update::isAllowedUpdateUrl(url.toStdString(),config_.allowedHosts) || config_.keys.empty()) return false;
+    if(!update::isAllowedUpdateUrl(url.toStdString(),config_.allowedHosts,config_.environment) || config_.keys.empty()) return false;
     std::set<std::string> ids;
     for(const auto& key:config_.keys) {
         if(key.id.empty() || key.publicKey.size()!=32 || !ids.insert(key.id).second
@@ -77,7 +77,7 @@ bool UpdateDownloadService::trustedNow(const update::VerifiedManifest& verified,
     if(manifest.channel!=(channel==Channel::Stable ? "stable" : "preview")) return false;
     const auto decision=update::selectUpdate(verified,*installed_);
     return decision.status==update::DecisionStatus::Available && decision.artifact
-        && update::isAllowedUpdateUrl(decision.artifact->url,config_.allowedHosts);
+        && update::isAllowedUpdateUrl(decision.artifact->url,config_.allowedHosts,config_.environment);
 }
 void UpdateDownloadService::abandon()
 {
@@ -114,7 +114,7 @@ void UpdateDownloadService::requestDownload(const CheckSnapshot& check)
     if(!trustedNow(*release_,channel_)) { abandon(); publish(DownloadStatus::Unavailable); return; }
     // Keep arguments alive independently of synchronous progress/failure/cancellation callbacks.
     const auto artifact=*artifact_; const auto hosts=config_.allowedHosts; const auto root=cacheRoot_;
-    downloader_.start(artifact,hosts,root);
+    downloader_.start(artifact,hosts,root,config_.environment);
 }
 void UpdateDownloadService::cancel()
 {

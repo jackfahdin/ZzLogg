@@ -1,6 +1,7 @@
 #include <utility>
 
 #include <QProcess>
+#include <QStandardPaths>
 
 #include <cstdlib>
 #include <cstdio>
@@ -10,9 +11,15 @@
 
 #include "applicationrunner.h"
 #include "uiruntime.h"
+#include "zzlogg/updateqt/updateservice.h"
 
 int main( int argc, char* argv[] )
 {
+    // A local update feed is a Test trust environment, which the download path
+    // only accepts under Qt test mode; enable it before any path resolution.
+    if ( zzlogg::updateqt::localUpdateFeedRequested() ) {
+        QStandardPaths::setTestModeEnabled( true );
+    }
     const QString originalExecutable = QString::fromLocal8Bit( argv[ 0 ] );
     const QString executablePath = resolveRestartExecutablePath( originalExecutable );
     QStringList arguments;

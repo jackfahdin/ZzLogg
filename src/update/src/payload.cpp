@@ -96,7 +96,7 @@ Manifest parsePayload(const Json& json,const VerificationContext& context) {
         // installer packages are now built with Inno Setup.
         require(artifact.format==(artifact.distribution==Distribution::Portable ? "zip" : "nsis-exe"));
         artifact.minOsVersion=osVersion(string(item.at("minOsVersion")));
-        artifact.url=string(item.at("url")); require(isAllowedUpdateUrl(artifact.url,context.allowedHosts));
+        artifact.url=string(item.at("url")); require(isAllowedUpdateUrl(artifact.url,context.allowedHosts,context.environment));
         artifact.size=decimal(string(item.at("size")),512ULL*1024*1024);
         artifact.sha256=string(item.at("sha256"));
         require(artifact.sha256.size()==64 && std::all_of(artifact.sha256.begin(),artifact.sha256.end(),

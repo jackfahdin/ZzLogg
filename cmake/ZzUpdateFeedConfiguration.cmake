@@ -7,6 +7,15 @@ if(DEFINED ENV{ZZLOGG_ENABLE_GITHUB_FEED})
   set(github_feed_default "$ENV{ZZLOGG_ENABLE_GITHUB_FEED}")
 endif()
 option(ZZLOGG_ENABLE_GITHUB_FEED "Use the official GitHub signed update feed" ${github_feed_default})
+# Local update-loop development capability: lets a build accept a runtime
+# env-provided (ZZLOGG_UPDATE_FEED_URL/KEY/HOSTS) Test-environment feed over
+# plain http. Never enable for builds that leave your machine.
+option(ZZLOGG_UPDATE_LOCAL_FEED "Enable runtime opt-in local update feed (development only)" OFF)
+if(ZZLOGG_UPDATE_LOCAL_FEED)
+  message(WARNING
+    "ZZLOGG_UPDATE_LOCAL_FEED=ON: this build accepts an env-provided unsigned-channel "
+    "update feed (http, Test keys). Do not distribute the produced binaries.")
+endif()
 
 function(zzlogg_configure_update_feed output)
   if(ZZLOGG_ENABLE_GITHUB_FEED)

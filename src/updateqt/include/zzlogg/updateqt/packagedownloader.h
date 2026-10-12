@@ -17,7 +17,8 @@ public:
                       QObject* parent = nullptr);
     ~PackageDownloader() override;
     void start(const update::Artifact&, const std::vector<std::string>& allowedHosts,
-               const QString& cacheRoot);
+               const QString& cacheRoot,
+               update::TrustEnvironment environment=update::TrustEnvironment::Production);
     void cancel();
 Q_SIGNALS:
     void progress(qint64 received, qint64 total);
