@@ -226,9 +226,11 @@ begin
   Result := False;
   if (WinAttributes(Path) = InvalidAttributes) or
      ((WinAttributes(Path) and $450) <> $10) then Exit;
-  { Match the engine lease: share READ only, excluding directory mutation
-    and deletion; keep every ancestor pinned until the child exits. }
-  Handle := WinCreateFile(Path, $80000000, 1, 0, 3, $02200000, 0);
+  { Match the engine lease: share READ|WRITE so child file replacement during
+    the transaction works, while excluding DELETE keeps the directory itself
+    pinned against rename/replacement; keep every ancestor pinned until the
+    child exits. }
+  Handle := WinCreateFile(Path, $80000000, 3, 0, 3, $02200000, 0);
   if (Handle = -1) or (Handle = 0) then Exit;
   if WinFileInformation(Handle, Info) and ((Info.Attributes and $450) = $10) then begin
     SetLength(FinalPath, 1024);
