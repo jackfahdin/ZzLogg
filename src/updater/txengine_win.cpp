@@ -159,7 +159,7 @@ bool stageToTemp(const std::wstring& staged,const TxManifestEntry& entry,const s
 // antivirus scanners transiently open freshly written executables: placement
 // and deletion retry bounded times on sharing/lock errors instead of rolling
 // the whole transaction back on a momentary conflict.
-constexpr std::uint32_t kTransientRetryBudgetMs=30000;
+constexpr std::uint32_t kTransientRetryBudgetMs=120000;
 constexpr DWORD kTransientRetryStepMs=250;
 bool transientFileError(DWORD error){
     return error==ERROR_ACCESS_DENIED || error==ERROR_SHARING_VIOLATION
