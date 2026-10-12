@@ -626,6 +626,11 @@ class KloggApp : public QApplication {
                 *this, makeUpdateSessionFactory( updateSessionInputs() ) );
             connect( handoff.get(), &ApplicationUpdateHandoff::snapshotChanged, this,
                      [ this ]( const ApplicationUpdateHandoff::Snapshot& snapshot ) {
+                         if ( snapshot.state == ApplicationUpdateHandoff::State::Failed ) {
+                             LOG_WARNING << "Update handoff failed: "
+                                         << static_cast<int>( snapshot.failure ) << " "
+                                         << snapshot.detail;
+                         }
                          if ( updateDialog_ ) {
                              updateDialog_->setHandoffState( mapHandoffState( snapshot.state ),
                                                              mapHandoffError( snapshot.failure ) );
