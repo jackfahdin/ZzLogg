@@ -526,15 +526,19 @@ class KloggApp : public QApplication {
         if (updateService_ || !StorageContext::isInstalled()) return;
         // 检查与下载必须针对同一个安装身份，只探测一次再分发给两个服务。
         const auto installed=currentInstalledRelease();
+        const auto feedConfig=appFeedConfiguration();
+        // 本地/Test feed 的状态与缓存走 test 命名空间,不触碰生产状态。
+        const bool testFeed=feedConfig.environment==zzlogg::update::TrustEnvironment::Test;
         const auto root=StorageContext::current().runtimePaths().appConfigDirectory;
-        const auto path=root.isEmpty() ? QString{} : QDir(root).filePath("updates/production/check-state-v1.json");
-        updateService_=std::make_unique<UpdateService>(productionFeedConfiguration(),
+        const auto path=root.isEmpty() ? QString{} : QDir(root).filePath(
+            testFeed ? "updates/test/check-state-v1.json" : "updates/production/check-state-v1.json");
+        updateService_=std::make_unique<UpdateService>(feedConfig,
             std::make_shared<UpdateStateStore>(path),installed,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
         updateService_->setDisplayVersion(zzlogg::update::parseVersion(QString(kloggVersion()).toStdString()));
-        updateDownloadService_=std::make_unique<UpdateDownloadService>(productionFeedConfiguration(),
-            installed,updateCachePath(),[] { return QDateTime::currentSecsSinceEpoch(); },this);
+        updateDownloadService_=std::make_unique<UpdateDownloadService>(feedConfig,
+            installed,updateCachePath(feedConfig.environment),[] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateDownloadService_->setObjectName("applicationUpdateDownloadService");
         connect(updateDownloadService_.get(),&UpdateDownloadService::snapshotChanged,this,[this] {
             if(updateDialog_) { updateDialog_->setDownloadSnapshot(updateDownloadService_->snapshot()); pushUpdateExecutionCapability(); }

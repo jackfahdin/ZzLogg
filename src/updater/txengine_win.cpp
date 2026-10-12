@@ -747,7 +747,12 @@ TxEngineResult TxEngine::execute(){
         if(!stageToTemp(staged,stagedManifest,temp))return fail(TxOutcome::RolledBack,L"staged manifest copy failed");
         if(!retryTransient([&]{return MoveFileExW(temp.c_str(),installed.c_str(),
             MOVEFILE_REPLACE_EXISTING|MOVEFILE_COPY_ALLOWED|MOVEFILE_WRITE_THROUGH)!=FALSE;})){
-            DeleteFileW(temp.c_str());return fail(TxOutcome::RolledBack,L"manifest placement failed");
+            const auto placementError=GetLastError();
+            logLockHolders(state.request.journalRoot,state.request.txid,installed);
+            logLockHolders(state.request.journalRoot,state.request.txid,temp);
+            DeleteFileW(temp.c_str());
+            return fail(TxOutcome::RolledBack,
+                (L"manifest placement failed "+std::to_wstring(placementError)).c_str());
         }
     }
     TxJournalRecord complete{};complete.op=TxOperation::Complete;

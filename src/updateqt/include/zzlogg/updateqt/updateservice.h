@@ -19,6 +19,14 @@ struct FeedConfiguration {
     update::TrustEnvironment environment=update::TrustEnvironment::Production;
 };
 FeedConfiguration productionFeedConfiguration();
+// The feed the application actually uses: the production configuration unless
+// this build carries the local-feed capability (ZZLOGG_UPDATE_LOCAL_FEED) AND
+// the runtime opts in via ZZLOGG_UPDATE_FEED_URL. Test-environment feeds accept
+// only Test-purpose keys and permit plain http loopback URLs.
+FeedConfiguration appFeedConfiguration();
+// True when a local-feed build sees ZZLOGG_UPDATE_FEED_URL set. main() uses it
+// to enable Qt test mode, which the Test trust environment requires.
+bool localUpdateFeedRequested();
 struct CheckSnapshot {
     CheckStatus status=CheckStatus::Idle;
     Channel channel=Channel::Stable;

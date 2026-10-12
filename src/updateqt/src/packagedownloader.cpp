@@ -60,11 +60,13 @@ public:
         stop();
         Q_EMIT owner->failed(error);
     }
-    void start(const update::Artifact& artifact,const std::vector<std::string>& allowedHosts,const QString& root)
+    void start(const update::Artifact& artifact,const std::vector<std::string>& allowedHosts,const QString& root,
+               update::TrustEnvironment trustEnvironment)
     {
-        stop(); hosts=allowedHosts; expected=artifact.size; received=0; redirects=0; active=true;
+        stop(); hosts=allowedHosts; environment=trustEnvironment;
+        expected=artifact.size; received=0; redirects=0; active=true;
         // Artifact stores raw signed bytes: reject them before constructing a QUrl.
-        if(!update::isAllowedUpdateUrl(artifact.url,hosts)) { fail(DownloadError::InvalidUrl); return; }
+        if(!update::isAllowedUpdateUrl(artifact.url,hosts,environment)) { fail(DownloadError::InvalidUrl); return; }
         cache=std::make_unique<PackageCache>(root,artifact);
         const auto error=cache->begin();
         if(error!=CacheError::None) { fail(cacheError(error)); return; }
@@ -73,7 +75,7 @@ public:
     }
     void request(const QUrl& url)
     {
-        if(!detail::allowed(url,hosts)) { fail(DownloadError::InvalidUrl); return; }
+        if(!detail::allowed(url,hosts,environment)) { fail(DownloadError::InvalidUrl); return; }
         QNetworkRequest request(url);
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
         request.setAttribute(QNetworkRequest::CookieLoadControlAttribute,QNetworkRequest::Manual);
@@ -98,7 +100,7 @@ public:
     bool headers()
     {
         if(!active || !reply) return false;
-        if(!detail::allowed(reply->url(),hosts)) { fail(DownloadError::InvalidUrl); return false; }
+        if(!detail::allowed(reply->url(),hosts,environment)) { fail(DownloadError::InvalidUrl); return false; }
         const auto statusValue=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
         if(!statusValue.isValid()) {
             if(reply->isFinished()) fail(reply->error()!=QNetworkReply::NoError ? networkError(reply->error()) : DownloadError::Http);
@@ -109,7 +111,7 @@ public:
             const auto location=reply->rawHeader("Location");
             if(redirects>=3 || !detail::validLocation(location)) { fail(DownloadError::Redirect); return false; }
             const auto target=reply->url().resolved(QUrl::fromEncoded(location,QUrl::StrictMode));
-            if(!detail::allowed(target,hosts)) { fail(DownloadError::Redirect); return false; }
+            if(!detail::allowed(target,hosts,environment)) { fail(DownloadError::Redirect); return false; }
             // No redirect response bytes are consumed or written. Aborting bounds even endless bodies.
             ++redirects; releaseReply(); request(target);
             return false;
@@ -173,6 +175,7 @@ public:
     unsigned redirects=0;
     bool active=false,queued=false,consuming=false;
     std::vector<std::string> hosts;
+    update::TrustEnvironment environment=update::TrustEnvironment::Production;
     std::unique_ptr<PackageCache> cache;
 };
 PackageDownloader::PackageDownloader(QObject* parent)
@@ -180,7 +183,8 @@ PackageDownloader::PackageDownloader(QObject* parent)
 PackageDownloader::PackageDownloader(QNetworkAccessManager* transport,int totalMs,int inactivityMs,QObject* parent)
     : QObject(parent),impl_(std::make_unique<Impl>(this,transport,totalMs,inactivityMs)) {}
 PackageDownloader::~PackageDownloader() = default;
-void PackageDownloader::start(const update::Artifact& artifact,const std::vector<std::string>& hosts,const QString& root)
-{ impl_->start(artifact,hosts,root); }
+void PackageDownloader::start(const update::Artifact& artifact,const std::vector<std::string>& hosts,const QString& root,
+                              update::TrustEnvironment environment)
+{ impl_->start(artifact,hosts,root,environment); }
 void PackageDownloader::cancel() { impl_->fail(DownloadError::Cancelled); }
 }

@@ -159,6 +159,9 @@ def sign_manifest(args):
     for part in parts:
         decimal(part, UINT32_MAX, 'minimum OS version')
     info, installer = installer_from_release(Path(args.release_info).absolute(), args.channel)
+    if args.artifact_base_url:
+        require(re.fullmatch(r'[a-z][a-z0-9+.-]*://[0-9a-z.\-]+(:[0-9]{1,5})?', args.artifact_base_url,
+                             re.IGNORECASE), 'Invalid artifact base URL')
     notes = {'en': '', 'zh_CN': '', 'zh_TW': ''}
     if args.notes_file:
         notes = read_json(Path(args.notes_file).absolute(), 128 * 1024)
@@ -176,8 +179,10 @@ def sign_manifest(args):
                'notes': notes,
                'artifacts': [{'os': 'windows', 'arch': 'x64', 'distribution': 'installer',
                               'format': 'nsis-exe', 'minOsVersion': args.min_os_version,
-                              'url': f'https://github.com/{args.repository}/releases/download/'
-                                     f'{info["tag"]}/{installer["name"]}',
+                              'url': (f'{args.artifact_base_url.rstrip("/")}/{installer["name"]}'
+                                      if args.artifact_base_url else
+                                      f'https://github.com/{args.repository}/releases/download/'
+                                      f'{info["tag"]}/{installer["name"]}'),
                               'size': str(installer['size']), 'sha256': installer['sha256']}]}
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     require(len(raw) <= 128 * 1024, 'Payload exceeds protocol size limit')
@@ -210,6 +215,8 @@ def main():
     parser.add_argument('--min-os-version', required=True)
     parser.add_argument('--notes-file', help='Optional JSON object with en, zh_CN and zh_TW plain text')
     parser.add_argument('--key-id', required=True)
+    parser.add_argument('--artifact-base-url',
+                        help='Override the artifact download base URL (local feed testing)')
     key = parser.add_mutually_exclusive_group(required=True)
     key.add_argument('--private-key-file', help='Owner-only PEM file outside the checkout')
     key.add_argument('--private-key-env', help='Name of an environment variable containing the PEM key')

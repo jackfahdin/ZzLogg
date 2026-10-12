@@ -1,4 +1,5 @@
 #include "zzlogg/update/urlpolicy.h"
+#include "zzlogg/update/manifest.h"
 #include <algorithm>
 namespace zzlogg::update {
 namespace {
@@ -22,8 +23,15 @@ bool dnsName(std::string_view host) {
     return host.back()!='.';
 }
 }
-bool isAllowedUpdateUrl(std::string_view url,const std::vector<std::string>& hosts) {
-    if(url.substr(0,8)!="https://" || url.size()>8192) return false;
+bool isAllowedUpdateUrl(std::string_view url,const std::vector<std::string>& hosts,
+                        TrustEnvironment environment) {
+    const bool test=environment==TrustEnvironment::Test;
+    const auto schemeEnd=url.find("://");
+    if(schemeEnd==std::string_view::npos)return false;
+    const auto scheme=url.substr(0,schemeEnd);
+    if(test ? (scheme!="http" && scheme!="https") : scheme!="https") return false;
+    if(url.size()>8192) return false;
+    const auto authorityBegin=schemeEnd+3;
     constexpr std::string_view uriChars=
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?[]@!$&'()*+,;=%";
     for(size_t i=0;i<url.size();++i) {
@@ -35,11 +43,16 @@ bool isAllowedUpdateUrl(std::string_view url,const std::vector<std::string>& hos
             i+=2;
         }
     }
-    const auto end=url.find_first_of("/?",8);
-    auto authority=url.substr(8,end==url.npos ? url.size()-8 : end-8);
+    const auto end=url.find_first_of("/?",authorityBegin);
+    auto authority=url.substr(authorityBegin,end==url.npos ? url.size()-authorityBegin : end-authorityBegin);
     const auto colon=authority.find(':');
     if(colon!=authority.npos) {
-        if(authority.substr(colon)!=":443") return false;
+        if(!test && authority.substr(colon)!=":443") return false;
+        if(test) {
+            const auto port=authority.substr(colon+1);
+            if(port.empty() || port.size()>5) return false;
+            for(const char c:port) if(c<'0' || c>'9') return false;
+        }
         authority=authority.substr(0,colon);
     }
     std::string host(authority);
