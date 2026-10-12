@@ -34,6 +34,20 @@ int fail(LocalChannel& channel,Message message,int code) {
     message.kind=MessageKind::Failed;channel.send(message,after(ShortBudgetMs));
     return code;
 }
+// A rolled-back transaction leaves the installation intact but the
+// application already exited for the update; bring it back instead of
+// leaving the user with a silently vanished program.
+void relaunchAfterFailedTransaction(const std::wstring& installRoot) {
+    if(installRoot.empty())return;
+    const std::wstring image=installRoot+L"\\ZzLogg.exe";
+    std::wstring command=L"\""+image+L"\"";
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION launched{};
+    if(CreateProcessW(image.c_str(),command.data(),nullptr,nullptr,FALSE,0,nullptr,
+        installRoot.c_str(),&startup,&launched)) {
+        CloseHandle(launched.hThread);
+        CloseHandle(launched.hProcess);
+    }
+}
 }
 int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options) {
     LocalChannel channel;const auto deadline=after(3000);
@@ -70,8 +84,11 @@ int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options)
     }
     if(proceeded!=CoordinationResult::ProceedSent)return fail(channel,message,RelayFailed);
     const auto finished=coordinator.finish(after(FinishBudgetMs));
-    if(finished!=CoordinationResult::Complete)
+    if(finished!=CoordinationResult::Complete) {
+        if(finished!=CoordinationResult::ManualRestartRequired)
+            relaunchAfterFailedTransaction(std::wstring(data.installRoot));
         return finished==CoordinationResult::ManualRestartRequired?RestartPending:RelayFailed;
+    }
     return coordinator.restart(after(RestartBudgetMs))==CoordinationResult::Restarted?0:RestartPending;
 }
 }
