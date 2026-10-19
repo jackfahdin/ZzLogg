@@ -83,10 +83,10 @@ foreach(forbidden IN ITEMS "RegWrite" "CreateProtectedDirectory" "ExtractTempora
     message(FATAL_ERROR "Target verification must remain read-only: ${forbidden}")
   endif()
 endforeach()
-# Refuse reparse/device directories; open existing directories with read-only
-# sharing (no write/delete sharing). Keep every ancestor pinned through engine exit.
+# Refuse reparse/device directories. Share READ|WRITE so the engine can replace
+# child files, but exclude DELETE to pin every ancestor through engine exit.
 require_order(PinDirectory "WinAttributes(Path)" "and $450" "$10"
-  "WinCreateFile(Path, $80000000, 1, 0, 3, $02200000, 0)"
+  "WinCreateFile(Path, $80000000, 3, 0, 3, $02200000, 0)"
   "WinFileInformation" "WinFinalPath" "Info.VolumeSerial" "Pins[N] := Handle")
 require_order(PinPath "StandardPath(Path)" "PinDirectory(Copy(Path, 1, 3)"
   "for I := 4 to Length(Path)" "PinDirectory(Copy(Path, 1, I - 1)"
