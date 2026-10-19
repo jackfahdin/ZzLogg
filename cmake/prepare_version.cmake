@@ -29,7 +29,7 @@ generate_product_version(
   ORIGINAL_FILENAME
   "${ZZLOGG_PRODUCT_NAME}.exe"
   ICON
-  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  "${CMAKE_SOURCE_DIR}/packaging/assets/ZzLogg.ico"
   FILE_DESCRIPTION
   "${ZZLOGG_PRODUCT_DESCRIPTION}"
   VERSION_MAJOR
@@ -57,7 +57,7 @@ generate_product_version(
   ORIGINAL_FILENAME
   "${ZZLOGG_PRODUCT_NAME}_grep.exe"
   ICON
-  "${CMAKE_SOURCE_DIR}/Resources/ZzLogg.ico"
+  "${CMAKE_SOURCE_DIR}/packaging/assets/ZzLogg.ico"
   FILE_DESCRIPTION
   "${ZZLOGG_PRODUCT_DESCRIPTION}"
   VERSION_MAJOR

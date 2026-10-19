@@ -86,9 +86,9 @@ foreach(DOC_LANGUAGE IN ITEMS en zh_TW)
   add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/generated/documentation-${DOC_LANGUAGE}.html
     COMMAND $<TARGET_FILE:maddy>
-      ${CMAKE_SOURCE_DIR}/docs/i18n/${DOC_LANGUAGE}/DOCUMENTATION.md
+      ${CMAKE_SOURCE_DIR}/docs/user/i18n/${DOC_LANGUAGE}/DOCUMENTATION.md
       ${CMAKE_BINARY_DIR}/generated/documentation-${DOC_LANGUAGE}.html
-    DEPENDS maddy ${CMAKE_SOURCE_DIR}/docs/i18n/${DOC_LANGUAGE}/DOCUMENTATION.md
+    DEPENDS maddy ${CMAKE_SOURCE_DIR}/docs/user/i18n/${DOC_LANGUAGE}/DOCUMENTATION.md
     VERBATIM)
 endforeach()
 add_custom_target(zzlogg_documentation DEPENDS ${DOCUMENTATION_HTML}

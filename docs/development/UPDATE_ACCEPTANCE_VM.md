@@ -1,7 +1,7 @@
 # 阶段 4 VM 真实环境验收手册（Windows 安装版在线更新）
 
 本手册覆盖 CI 无法自动化的真实环境验收条目。验收脚本包
-`tools/acceptance/`（运行器 `Invoke-UpdateAcceptance.ps1`）中用例 01–07
+`tests/acceptance/`（运行器 `Invoke-UpdateAcceptance.ps1`）中用例 01–07
 及 13（旧安装登记迁移夹具）已由 CI 冒烟流水线（`.github/workflows/update-smoke.yml`）自动化；用例
 08–12 为固定 SKIP 手工项，其 SKIP Evidence 逐字指向本手册 §2.1–§2.5。
 
@@ -96,7 +96,7 @@ VM 配置要求：
 
 ### §2.1 用例 08：旧版升级端到端（真实协调者链）
 
-对应脚本 `tools/acceptance/cases/08-upgrade-endtoend.ps1`（固定 SKIP：
+对应脚本 `tests/acceptance/cases/08-upgrade-endtoend.ps1`（固定 SKIP：
 "需协调者生产链路真实凭据 + 旧版应用，CI 无法构造活协调者身份"）。
 
 **前置：**
@@ -166,7 +166,7 @@ VM 配置要求：
 
 ### §2.2 用例 09：真实 UAC 提权与用户拒绝路径
 
-对应脚本 `tools/acceptance/cases/09-uac-cancel.ps1`（固定 SKIP：
+对应脚本 `tests/acceptance/cases/09-uac-cancel.ps1`（固定 SKIP：
 "CI 无交互桌面，无法弹真实 UAC 并走用户取消路径"）。
 
 **前置：** 交互桌面 VM，UAC 默认开启；§2.1 链路已可驱动。
@@ -197,7 +197,7 @@ ERROR_CANCELLED 映射为 Cancelled（UAC 拒绝）。"
 
 ### §2.3 用例 10：另一管理员账号下的升级
 
-对应脚本 `tools/acceptance/cases/10-multi-admin-account.ps1`（固定
+对应脚本 `tests/acceptance/cases/10-multi-admin-account.ps1`（固定
 SKIP："需第二个管理员账户的交互会话，CI 单账户无人值守环境无法构造"）。
 
 **前置：** VM 已建第二个本地管理员账户并完成过一次交互登录；§2.1
@@ -233,7 +233,7 @@ SKIP："需第二个管理员账户的交互会话，CI 单账户无人值守环
 
 ### §2.4 用例 11：关机/注销与 Prepared 窗口（WM_QUERYENDSESSION）
 
-对应脚本 `tools/acceptance/cases/11-session-end-queryendsession.ps1`
+对应脚本 `tests/acceptance/cases/11-session-end-queryendsession.ps1`
 （固定 SKIP："需真实关机/注销交互（Prepared 期 WM_QUERYENDSESSION 否决
 抽查），CI 无法触发真实会话结束"）。
 
@@ -268,7 +268,7 @@ SKIP："需第二个管理员账户的交互会话，CI 单账户无人值守环
 
 ### §2.5 用例 12：文件占用升级失败与回滚
 
-对应脚本 `tools/acceptance/cases/12-file-in-use-upgrade.ps1`（固定
+对应脚本 `tests/acceptance/cases/12-file-in-use-upgrade.ps1`（固定
 SKIP："依赖用例 08 的真实升级链（升级事务中目标文件被占用场景），
 CI 无法构造活协调者会话"）。
 
@@ -546,7 +546,7 @@ GitHub 上观察首跑（本阶段不 push）。首跑逐项核对：
    上传成功且含 12 条 testcase（7 PASS + 5 SKIP 为全绿标准；FAIL>0
    即红）。
 7. 首跑全绿后，以 push 触发路径（`src/updater/**`、
-   `packaging/windows/**`、`tools/acceptance/**`、workflow 自身）再
+   `packaging/windows/**`、`tests/acceptance/**`、workflow 自身）再
    验证一次自动触发链路。
 
 ---

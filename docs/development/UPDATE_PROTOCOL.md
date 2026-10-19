@@ -7,7 +7,7 @@
 
 静态 C++ 验证核心提供版本解析、Ed25519 验签、严格清单解析、防回放和发布载荷选择。核心不依赖 Qt；独立 Qt 层已实现 HTTPS 检查、状态持久化、包下载与校验，主程序已有对应设置、检查和进度界面。更新代码不写注册表、不替换安装目录，也不修改用户日志数据。
 
-**生产在线更新已在 GitHub 签名清单上运行**（稳定版与预览版渠道、Windows/macOS/Linux 检查与下载）。Windows 稳定版 x64 注册安装自 v26.09.03 起支持验签后的应用内一键安装与失败回滚；便携版仍手动更新，预览渠道仍主要依赖发布页手动下载。当前只支持全量包下载，不支持增量更新。范围及历史阶段见 [仅安装版在线更新设计](../superpowers/specs/2026-09-15-installer-only-update-design.md)。
+**生产在线更新已在 GitHub 签名清单上运行**（稳定版与预览版渠道、Windows/macOS/Linux 检查与下载）。Windows 稳定版 x64 注册安装自 v26.09.03 起支持验签后的应用内一键安装与失败回滚；便携版仍手动更新，预览渠道仍主要依赖发布页手动下载。当前只支持全量包下载，不支持增量更新。范围及历史阶段见 [仅安装版在线更新设计](../archive/superpowers/specs/2026-09-15-installer-only-update-design.md)。
 
 ## 代码入口
 
@@ -137,7 +137,7 @@ $env:PATH = 'D:/SoftWare/Qt/6.11.0/msvc2022_64/bin;' + $env:PATH
 ctest --test-dir out/update-tools -R '^zzlogg_update\.' --output-on-failure
 ```
 
-示例使用 Ninja 构建目录；首次配置参照[编译文档](../BUILD.md)。generate 使用独占创建，拒绝覆盖已有文件。verify 同时确认同一测试文件在生产信任环境下被拒绝。
+示例使用 Ninja 构建目录；首次配置参照[编译文档](BUILD.md)。generate 使用独占创建，拒绝覆盖已有文件。verify 同时确认同一测试文件在生产信任环境下被拒绝。
 
 固定 fixture：版本 26.10.00、元数据/发布序号 2、签发时间 1799999900、到期时间 1800003600、测试主机 updates.example.invalid。包大小和哈希仅用于结构测试，不对应真实发布包。
 
@@ -151,7 +151,7 @@ Qt 网络获取、渠道状态存储、统一检查服务、下载服务、进�
 
 生产地址与公钥尚未提供，当前程序显示“更新服务尚未配置”，不发网络请求；真实生产 HTTPS 互通尚未验证。测试信任仅存在独立测试程序，不部署到运行目录。
 
-下载、缓存和校验后端已实现；安装版受保护暂存、文件替换事务、安装器提权、恢复及正式发布签名工具仍未实现。按安装身份基础、安全交接、安装事务及真实发布验收推进，不实现便携执行器。第一段任务见 [安装身份基础计划](../superpowers/plans/2026-09-15-installer-identity.md)。包已下载不代表可以执行或安装。
+下载、缓存和校验后端已实现；安装版受保护暂存、文件替换事务、安装器提权、恢复及正式发布签名工具仍未实现。按安装身份基础、安全交接、安装事务及真实发布验收推进，不实现便携执行器。第一段任务见 [安装身份基础计划](../archive/superpowers/plans/2026-09-15-installer-identity.md)。包已下载不代表可以执行或安装。
 
 ## 更新包下载与缓存
 
@@ -577,7 +577,7 @@ Authenticode 发布者钉扎（执行信任根已改为 Ed25519 清单锚定的�
 - 延后项甄别与裁决表 [UPDATE_STAGE4_TRIAGE.md](UPDATE_STAGE4_TRIAGE.md)；
 - 测试签名工具链（`packaging/windows/New-ZzLoggTestCertificate.ps1` 与
   `Sign-ZzLoggArtifacts.ps1`，规格与红线见下节）；
-- 验收脚本包 `tools/acceptance/`（运行器 + 12 用例：01–07 可 CI 自动化，
+- 验收脚本包 `tests/acceptance/`（运行器 + 12 用例：01–07 可 CI 自动化，
   08–12 固定 SKIP 指向 VM 手册）；
 - CI 冒烟流水线 `.github/workflows/update-smoke.yml`（windows-2022 runner
   真实 NSIS 安装 + 验收冒烟 + 报告 artifact）；

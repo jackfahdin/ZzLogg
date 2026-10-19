@@ -37,9 +37,9 @@ build_root_clang/
 build_root_gcc/
 build_root_qt5/
 build_root_qt6/
-test_data/
 build/
 out/
+/packages/
 /.worktrees/
 
 # Local machine paths and personal CMake preset overrides
@@ -74,6 +74,3 @@ website/resources/
 # Python release tooling
 __pycache__/
 *.py[cod]
-
-# SDD 隔离工作树
-.worktrees/

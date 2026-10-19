@@ -34,8 +34,8 @@
 | 24 | coordinator.cpp:237-239（原 650-653） | restarted.adopt 失败疑似泄漏原始句柄（与 launchCopy 同模式） | 不修 | — | 经核实不构成泄漏：adopt 进入即 `handle_.reset(raw)` 接管所有权（processidentity_win.cpp:37），失败时局部 restarted 析构即关闭句柄；launchCopy 亦同（失败路径 adopt 进 child 交收割者） |
 | 25 | coordinator.cpp:246 | 单实例端点名依赖硬编码 L"ZzLogg.exe" 与 GUI fileName() 大小写一致 | 真实环境验收 | VM 手册注意项 | 改名场景 fail-closed（重启确认失败而非误放行）；原记录即 "note for stage 4"，写入验收注意项即可 |
 | 26 | tests/updater/coordinatortest.cpp:490,574,598 | 提权 harness 跳过 restart/confirm/recheck 三处断言（仅 cout 说明） | 真实环境验收 | 任务 5 用例 | CI 提权账户覆盖缺口；需在真实提权环境补齐三处断言或登记 VM 手册手动项 |
-| 27 | src/app/applicationupdatehandoff.cpp:33 + tests/ui_acceptance/updatehandofftest.cpp:890-914 | 析构等待测试固定 ~15s 运行时，kDestructWaitMs 不可注入 | 本批修复 | 任务 2 | 测试 seam：把 kDestructWaitMs 改为可注入参数，缩短 CI 时间；本机可修可测 |
-| 28 | tests/ui_acceptance/updatehandofftest.cpp:209,899-906 | warningCapture 为裸全局指针，qScopeGuard 恢复更整洁 | 不修 | — | 测试专用、GUI 单线程、QVERIFY 失败即中止该用例；整洁性事项，风险已接受 |
+| 27 | src/app/applicationupdatehandoff.cpp:33 + tests/ui_acceptance/update/updatehandofftest.cpp:890-914 | 析构等待测试固定 ~15s 运行时，kDestructWaitMs 不可注入 | 本批修复 | 任务 2 | 测试 seam：把 kDestructWaitMs 改为可注入参数，缩短 CI 时间；本机可修可测 |
+| 28 | tests/ui_acceptance/update/updatehandofftest.cpp:209,899-906 | warningCapture 为裸全局指针，qScopeGuard 恢复更整洁 | 不修 | — | 测试专用、GUI 单线程、QVERIFY 失败即中止该用例；整洁性事项，风险已接受 |
 
 ## 裁决统计
 

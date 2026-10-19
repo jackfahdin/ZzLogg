@@ -93,7 +93,7 @@ runs:
     #    mkdir -p pkg_resources/en.lproj
     #    cp ../COPYING pkg_resources/en.lproj
     #    cp ../packaging/description.txt pkg_resources/en.lproj
-    #    sed -e s/%zzlogg_version%/${{ env.KLOGG_VERSION }}/ -e s/%zzlogg_pkg%/ZzLogg-${{ env.KLOGG_VERSION }}-OSX.pkg/ ../packaging/osx/distribution.xml > distribution.xml
+    #    sed -e s/%zzlogg_version%/${{ env.KLOGG_VERSION }}/ -e s/%zzlogg_pkg%/ZzLogg-${{ env.KLOGG_VERSION }}-OSX.pkg/ ../packaging/macos/distribution.xml > distribution.xml
     #    pkgbuild --component ./output/ZzLogg.app --install-location /Applications --version ${{ env.KLOGG_VERSION }} --sign "${{ env.KLOGG_INSTALLERSIGN }}" --timestamp ./output/ZzLogg-${{ env.KLOGG_VERSION }}-OSX.pkg
     #    productbuild --package-path ./output --distribution distribution.xml --resources ./pkg_resources --sign "${{ env.KLOGG_INSTALLERSIGN }}" --timestamp ./output/ZzLogg-${{ env.KLOGG_VERSION }}-OSX-product.pkg
     #    pkgutil --expand ./output/ZzLogg-${{ env.KLOGG_VERSION }}-OSX-product.pkg ./output/ZzLogg_product_pkg

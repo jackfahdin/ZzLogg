@@ -4,15 +4,15 @@ endif()
 
 set(current_entry_files
   "${SOURCE_ROOT}/CMakeLists.txt"
-  "${SOURCE_ROOT}/packaging/osx/distribution.xml"
+  "${SOURCE_ROOT}/packaging/macos/distribution.xml"
   "${SOURCE_ROOT}/README.md"
-  "${SOURCE_ROOT}/docs/BUILD.md"
-  "${SOURCE_ROOT}/docs/DOCUMENTATION.md"
+  "${SOURCE_ROOT}/docs/development/BUILD.md"
+  "${SOURCE_ROOT}/docs/user/DOCUMENTATION.md"
   "${SOURCE_ROOT}/.github/CONTRIBUTING.md"
   "${SOURCE_ROOT}/src/app/CMakeLists.txt"
   "${SOURCE_ROOT}/cmake/ZzLoggBrand.cmake"
   "${SOURCE_ROOT}/cmake/ZzLoggIconInstall.cmake"
-  "${SOURCE_ROOT}/packaging/osx/dmg_setup.scpt"
+  "${SOURCE_ROOT}/packaging/macos/dmg_setup.scpt"
   "${SOURCE_ROOT}/.github/actions/agent-package-win/action.yml"
   "${SOURCE_ROOT}/.github/actions/docker-package/action.yml"
   "${SOURCE_ROOT}/.github/actions/agent-package-mac/action.yml"
@@ -22,7 +22,7 @@ set(expected_scanned_entries
   "${SOURCE_ROOT}/src/app/CMakeLists.txt"
   "${SOURCE_ROOT}/cmake/ZzLoggBrand.cmake"
   "${SOURCE_ROOT}/cmake/ZzLoggIconInstall.cmake"
-  "${SOURCE_ROOT}/packaging/osx/dmg_setup.scpt")
+  "${SOURCE_ROOT}/packaging/macos/dmg_setup.scpt")
 
 list(APPEND current_entry_files "${SOURCE_ROOT}/packaging/windows/ZzLogg.iss")
 
@@ -166,7 +166,7 @@ require_entry_literal(
 require_entry_literal(
   "src/app/CMakeLists.txt" "macOS icon name is not exact" "set(MACOSX_BUNDLE_ICON_FILE \"ZzLogg.icns\")")
 require_entry_literal(
-  "packaging/osx/dmg_setup.scpt" "DMG layout does not position the ZzLogg bundle" "set position of item \"ZzLogg.app\"")
+  "packaging/macos/dmg_setup.scpt" "DMG layout does not position the ZzLogg bundle" "set position of item \"ZzLogg.app\"")
 
 require_entry_literal(
   "cmake/ZzLoggIconInstall.cmake" "Linux PNG install sizes are incomplete" "foreach(size IN ITEMS 16 32 48 64 128 256 512)")
@@ -198,27 +198,27 @@ require_entry_literal(
 require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt 6.8+ dependency list omits required modules" "Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、")
+  "docs/development/BUILD.md" "formal Qt 6.8+ dependency list omits required modules" "Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Core" "包含 Core、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Core" "包含 Core、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Core5Compat" "Core5Compat、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Core5Compat" "Core5Compat、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Gui" "Gui、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Gui" "Gui、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Widgets" "Widgets、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Widgets" "Widgets、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Svg" "Svg、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Svg" "Svg、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Concurrent" "Concurrent、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Concurrent" "Concurrent、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Network" "Network、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Network" "Network、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits Xml" "Xml、")
+  "docs/development/BUILD.md" "formal Qt dependency list omits Xml" "Xml、")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits LinguistTools" "LinguistTools 及")
+  "docs/development/BUILD.md" "formal Qt dependency list omits LinguistTools" "LinguistTools 及")
 require_entry_literal(
-  "docs/BUILD.md" "formal Qt dependency list omits matching private development files" "匹配的私有开发文件")
+  "docs/development/BUILD.md" "formal Qt dependency list omits matching private development files" "匹配的私有开发文件")
 require_entry_literal(
   ".github/CONTRIBUTING.md" "contribution guide does not identify the current project" "contributing to ZzLogg")
 require_entry_literal(
@@ -226,10 +226,10 @@ require_entry_literal(
 
 set(required_entry_literals
   "README.md|https://github.com/jackfahdin/ZzLogg"
-  "docs/BUILD.md|https://github.com/jackfahdin/ZzLogg"
-  "packaging/osx/distribution.xml|com.gitcode.jackfahdinqt.zzlogg"
+  "docs/development/BUILD.md|https://github.com/jackfahdin/ZzLogg"
+  "packaging/macos/distribution.xml|com.gitcode.jackfahdinqt.zzlogg"
   "packaging/windows/ZzLogg.iss|ZzLogg.exe"
-  "docs/DOCUMENTATION.md|未配置更新清单 URL"
+  "docs/user/DOCUMENTATION.md|未配置更新清单 URL"
   ".github/actions/agent-package-win/action.yml|zzlogg_runtime_folder"
   ".github/actions/agent-package-win/action.yml|packaging/windows/Build-InnoInstaller.ps1"
   ".github/actions/docker-package/action.yml|packages/ZzLogg-"

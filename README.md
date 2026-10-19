@@ -8,11 +8,16 @@ ZzLogg 是一款跨平台桌面日志查看工具，用于浏览、跟随、过�
 
 ## 文档导航
 
+[全部文档与目录说明](docs/README.md)按用户、开发、架构和历史资料组织。
+
 | 文档 | 内容 |
 | --- | --- |
-| [用户手册](docs/DOCUMENTATION.md) | 文件操作、搜索、快捷键和设置；另有 [English](docs/i18n/en/DOCUMENTATION.md) 与 [繁體中文](docs/i18n/zh_TW/DOCUMENTATION.md) |
-| [构建指南](docs/BUILD.md) | 依赖、平台要求、CMake 预设、测试、安装与运行目录 |
-| [UI 代码学习指南](docs/UI_CODE_GUIDE.md) | 界面源码结构、职责划分与建议阅读顺序 |
+| [用户手册](docs/user/DOCUMENTATION.md) | 文件操作、搜索、快捷键和设置；另有 [English](docs/user/i18n/en/DOCUMENTATION.md) 与 [繁體中文](docs/user/i18n/zh_TW/DOCUMENTATION.md) |
+| [构建指南](docs/development/BUILD.md) | 依赖、平台要求、CMake 预设、测试、安装与运行目录 |
+| [UI 代码学习指南](docs/architecture/UI_CODE_GUIDE.md) | 界面源码结构、职责划分与建议阅读顺序 |
+| [CI 与发布](docs/development/CI_RELEASE.md) | 构建流水线、发布渠道与安装包 |
+| [架构参考](docs/architecture/README.md) | UI、语法高亮与相关设计依据 |
+| [历史资料](docs/archive/README.md) | 阶段计划、设计记录、性能实验与任务报告 |
 
 应用内帮助内嵌简体中文、繁体中文和英文手册，并随界面语言切换。
 
@@ -46,7 +51,7 @@ cmake --build --preset ninja-release
 ctest --preset ninja-release
 ```
 
-未安装 Boost 和 Ragel 时，在配置命令中添加 `-DKLOGG_USE_HYPERSCAN=OFF`，使用 Qt 正则表达式后端。详细的平台要求、UI 专项测试预设、安装命令和 Windows 运行目录目标见[构建指南](docs/BUILD.md)。
+未安装 Boost 和 Ragel 时，在配置命令中添加 `-DKLOGG_USE_HYPERSCAN=OFF`，使用 Qt 正则表达式后端。详细的平台要求、UI 专项测试预设、安装命令和 Windows 运行目录目标见[构建指南](docs/development/BUILD.md)。
 
 默认构建只生成一个图形界面程序 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的命令行目标 `klogg_grep` 需要显式构建，不属于默认构建内容。
 

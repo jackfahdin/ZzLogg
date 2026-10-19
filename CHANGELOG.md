@@ -16,7 +16,7 @@
 ### 新增
 
 - 开发者可在本地完整验证更新链路:`-DZZLOGG_UPDATE_LOCAL_FEED=ON` 构建后,
-  用 `scripts/local_update_feed.py` 生成并签名本地 feed(含 http 服务),
+  用 `scripts/dev/local_update_feed.py` 生成并签名本地 feed(含 http 服务),
   应用通过 `ZZLOGG_UPDATE_FEED_URL/KEY/HOSTS` 环境变量启用,无需等待 CI。
 
 ## [26.10.04] - 2026-10-12

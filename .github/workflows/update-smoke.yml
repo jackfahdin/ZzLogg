@@ -1,6 +1,6 @@
 name: "Update Smoke"
 
-# 更新冒烟流水线：真实构建 + Inno Setup 打包 + 调用 tools/acceptance 验收脚本包。
+# 更新冒烟流水线：真实构建 + Inno Setup 打包 + 调用 tests/acceptance 验收脚本包。
 # windows-2022 runner 是管理员权限的真实 Windows 环境（真实 ProgramData/HKLM/
 # 双卷 C:+D:），可覆盖真实安装/登记/ACL/受限入口失败关闭/分卷预检等验收条目。
 on:
@@ -13,7 +13,7 @@ on:
       - 'src/app/applicationupdatesession.cpp'
       - 'packaging/windows/**'
       - '.github/actions/agent-package-win/**'
-      - 'tools/acceptance/**'
+      - 'tests/acceptance/**'
       - '.github/workflows/update-smoke.yml'
 
 jobs:
@@ -115,7 +115,7 @@ jobs:
           foreach ($filter in $filters) {
             $index++
             $report = if ($elevated) { 'smoke-report.txt' } else { "smoke-report-$index.txt" }
-            pwsh -NoProfile -ExecutionPolicy Bypass -File tools/acceptance/Invoke-UpdateAcceptance.ps1 -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
+            pwsh -NoProfile -ExecutionPolicy Bypass -File tests/acceptance/Invoke-UpdateAcceptance.ps1 -SetupExe $setup.FullName -InstallDir "$env:ProgramFiles\ZzLogg" -Filter $filter -ReportPath $report
             if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
           }
           if ($exitCode -ne 0) { exit $exitCode }
