@@ -1,6 +1,7 @@
 #include <QtTest>
 #include "fixturehelper.h"
 #include "zzlogg/update/policy.h"
+#include "zzlogg/update/urlpolicy.h"
 using namespace zzlogg::update;
 using namespace update_fixture;
 namespace {
@@ -92,10 +93,10 @@ private slots:
         QVERIFY(!verify(p).value);
     }
     void urls() {
-        for(const auto* url:{"http://updates.example.invalid/a","https://user@updates.example.invalid/a",
+        for(const auto* url:{"https://user@updates.example.invalid/a",
             "https://updates.example.invalid/a#x","https://updates.example.invalid/a\r\nX",
             "https://updates.example.invalid\\a","https://updates.example.invalid/%zz",
-            "https://updates.example.invalid:444/a","https://updates.example.invalid.evil/a",
+            "https://updates.example.invalid.evil/a",
             "https://evilupdates.example.invalid/a","https://updates.example.invalid./a",
             "https://updates.example.invalid/a b","https://updates.example.invalid/%0d",
             "https:///a","https://updates.example.invalid:443:443/a"}) {
@@ -105,6 +106,25 @@ private slots:
         for(const auto* url:{"https://updates.example.invalid:443/a?x=1&y=%20",
                             "https://UPDATES.EXAMPLE.INVALID/a"}) {
             auto p=payload(); p["artifacts"][0]["url"]=url; QVERIFY(verify(p).value);
+        }
+    }
+    void urlTransportRespectsTrustEnvironment() {
+        const std::vector<std::string> hosts{"updates.example.invalid"};
+        for(const auto* url:{"http://updates.example.invalid/a",
+                            "http://updates.example.invalid:8080/a",
+                            "https://updates.example.invalid:444/a"}) {
+            QVERIFY2(isAllowedUpdateUrl(url,hosts,TrustEnvironment::Test),url);
+            QVERIFY2(!isAllowedUpdateUrl(url,hosts,TrustEnvironment::Production),url);
+            // Callers that omit the environment must retain production policy.
+            QVERIFY2(!isAllowedUpdateUrl(url,hosts),url);
+            auto p=payload(); p["artifacts"][0]["url"]=url;
+            QVERIFY2(verify(p).value,url);
+        }
+        for(const auto environment:{TrustEnvironment::Production,TrustEnvironment::Test}) {
+            QVERIFY(isAllowedUpdateUrl("https://updates.example.invalid/a",hosts,environment));
+            QVERIFY(isAllowedUpdateUrl("https://updates.example.invalid:443/a",hosts,environment));
+            QVERIFY(!isAllowedUpdateUrl("http://evil.example.invalid/a",hosts,environment));
+            QVERIFY(!isAllowedUpdateUrl("https://evil.example.invalid/a",hosts,environment));
         }
     }
     void timeAndReplay() {

@@ -16,7 +16,8 @@ private Q_SLOTS:
         auto& app=*qobject_cast<KloggApp*>(qApp);
         // This executable links an offline configuration fixture; the real
         // application's production feed is verified by separate tests.
-        QVERIFY(productionFeedConfiguration().stableUrl.isEmpty());
+        QVERIFY(appFeedConfiguration().stableUrl.isEmpty());
+        QVERIFY(appFeedConfiguration().previewUrl.isEmpty());
         auto* first=app.newWindow(); auto* second=app.newWindow();
         auto* action=first->findChild<QAction*>("checkUpdatesAction"); QVERIFY(action);
         action->trigger();
