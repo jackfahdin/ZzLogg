@@ -6,7 +6,7 @@ find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
 add_executable(zzlogg_update_session_factory_test updatesessionfactorytest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp")
-target_link_libraries(zzlogg_update_session_factory_test PRIVATE Qt6::Test)
+target_link_libraries(zzlogg_update_session_factory_test PRIVATE klogg_logging Qt6::Test)
 target_include_directories(zzlogg_update_session_factory_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater")
