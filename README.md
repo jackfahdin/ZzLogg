@@ -43,15 +43,14 @@ cd ZzLogg
 
 ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子模块。
 
-构建需要支持 C++20 的编译器、CMake 3.23 或更高版本、Perl，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；典型的 Ninja 构建如下：
+构建需要支持 C++20 的编译器、CMake 3.23 或更高版本、Perl，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；Linux/GCC 的 Ninja 构建示例如下：
 
 ```bash
-cmake --preset ninja-release
-cmake --build --preset ninja-release
-ctest --preset ninja-release
+export QT_ROOT="$HOME/Qt/6.12.0/gcc_64" # 替换为本机 Qt kit 路径
+cmake --workflow --preset linux-gcc-release
 ```
 
-未安装 Boost 和 Ragel 时，在配置命令中添加 `-DKLOGG_USE_HYPERSCAN=OFF`，使用 Qt 正则表达式后端。详细的平台要求、UI 专项测试预设、安装命令和 Windows 运行目录目标见[构建指南](docs/development/BUILD.md)。
+Windows/MSVC 和 macOS/Clang 使用各自的平台预设；Qt 路径也可统一写在本地用户预设中。预设默认启用验收测试、关闭 LTO 和 Hyperscan/Vectorscan，使用 Qt 正则表达式后端。详细的平台要求、预设用法、安装命令和 Windows 运行目录目标见[构建指南](docs/development/BUILD.md)。
 
 默认构建只生成一个图形界面程序 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的命令行目标 `klogg_grep` 需要显式构建，不属于默认构建内容。
 

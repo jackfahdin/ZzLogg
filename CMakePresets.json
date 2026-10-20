@@ -9,188 +9,295 @@
     {
       "name": "base",
       "hidden": true,
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "environment": {
+        "PATH": "$env{QT_ROOT}/bin${pathListSep}$penv{PATH}"
+      },
       "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "$env{QT_ROOT}",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "KLOGG_BUILD_TESTS": false,
-        "KLOGG_USE_LTO": false
+        "KLOGG_BUILD_UI_TESTS": true,
+        "KLOGG_USE_LTO": false,
+        "KLOGG_USE_HYPERSCAN": false,
+        "KLOGG_USE_VECTORSCAN": false,
+        "FETCHCONTENT_QUIET": false
       }
     },
     {
-      "name": "ninja-base",
+      "name": "linux-gcc-base",
       "hidden": true,
       "inherits": "base",
-      "generator": "Ninja"
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
     },
     {
-      "name": "ninja-ui-base",
-      "hidden": true,
-      "inherits": "ninja-base",
-      "binaryDir": "${sourceDir}/out/ui-ninja/${presetName}",
+      "name": "linux-gcc-debug",
+      "displayName": "Linux / GCC / Debug",
+      "inherits": "linux-gcc-base",
       "cacheVariables": {
-        "KLOGG_BUILD_UI_TESTS": true,
-        "KLOGG_BUILD_TESTS": false,
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux / GCC / Release",
+      "inherits": "linux-gcc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-msvc-base",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows / MSVC / Debug",
+      "inherits": "windows-msvc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows / MSVC / Release",
+      "inherits": "windows-msvc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "macos-clang-base",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
         "KLOGG_OSX_DEPLOYMENT_TARGET": "13.3"
       }
     },
     {
-      "name": "ninja-debug",
-      "displayName": "Ninja Debug",
-      "description": "跨平台 Debug 构建；Windows 需在 MSVC 开发者环境中运行",
-      "inherits": "ninja-base",
+      "name": "macos-clang-debug",
+      "displayName": "Darwin / CLANG / Debug",
+      "inherits": "macos-clang-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "ninja-release",
-      "displayName": "Ninja Release",
-      "description": "跨平台 Release 构建（启用 LTO）；Windows 需在 MSVC 开发者环境中运行",
-      "inherits": "ninja-base",
+      "name": "macos-clang-release",
+      "displayName": "Darwin / CLANG / Release",
+      "inherits": "macos-clang-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "KLOGG_USE_LTO": true
-      }
-    },
-    {
-      "name": "ninja-ui-debug",
-      "displayName": "Ninja UI Debug",
-      "description": "Debug 构建并启用 UI 专项测试",
-      "inherits": "ninja-ui-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "ninja-ui-release",
-      "displayName": "Ninja UI Release",
-      "description": "Release 构建（启用 LTO）并启用 UI 专项测试；发布验收入口",
-      "inherits": "ninja-ui-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "KLOGG_USE_LTO": true
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "ninja-debug",
-      "configurePreset": "ninja-debug"
+      "name": "build-base",
+      "hidden": true,
+      "targets": [
+        "ci_build"
+      ]
     },
     {
-      "name": "ninja-release",
-      "configurePreset": "ninja-release"
+      "name": "linux-gcc-debug",
+      "inherits": "build-base",
+      "configurePreset": "linux-gcc-debug"
     },
     {
-      "name": "ninja-ui-debug",
-      "configurePreset": "ninja-ui-debug"
+      "name": "linux-gcc-release",
+      "inherits": "build-base",
+      "configurePreset": "linux-gcc-release"
     },
     {
-      "name": "ninja-ui-release",
-      "configurePreset": "ninja-ui-release"
+      "name": "windows-msvc-debug",
+      "inherits": "build-base",
+      "configurePreset": "windows-msvc-debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "build-base",
+      "configurePreset": "windows-msvc-release"
+    },
+    {
+      "name": "macos-clang-debug",
+      "inherits": "build-base",
+      "configurePreset": "macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "inherits": "build-base",
+      "configurePreset": "macos-clang-release"
     }
   ],
   "testPresets": [
     {
-      "name": "ninja-debug",
-      "configurePreset": "ninja-debug",
+      "name": "test-base",
+      "hidden": true,
       "output": {
         "outputOnFailure": true
-      }
-    },
-    {
-      "name": "ninja-release",
-      "configurePreset": "ninja-release",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "ninja-ui-debug",
-      "configurePreset": "ninja-ui-debug",
-      "filter": {
-        "include": {
-          "name": "^zzlogg_ui\\."
-        }
       },
-      "output": {
-        "outputOnFailure": true
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
-      "name": "ninja-ui-release",
-      "configurePreset": "ninja-ui-release",
-      "output": {
-        "outputOnFailure": true
-      }
+      "name": "linux-gcc-debug",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-debug"
+    },
+    {
+      "name": "linux-gcc-release",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-release"
+    },
+    {
+      "name": "windows-msvc-debug",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc-debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc-release"
+    },
+    {
+      "name": "macos-clang-debug",
+      "inherits": "test-base",
+      "configurePreset": "macos-clang-debug"
+    },
+    {
+      "name": "macos-clang-release",
+      "inherits": "test-base",
+      "configurePreset": "macos-clang-release"
     }
   ],
   "workflowPresets": [
     {
-      "name": "ninja-debug",
+      "name": "linux-gcc-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "ninja-debug"
+          "name": "linux-gcc-debug"
         },
         {
           "type": "build",
-          "name": "ninja-debug"
+          "name": "linux-gcc-debug"
         },
         {
           "type": "test",
-          "name": "ninja-debug"
+          "name": "linux-gcc-debug"
         }
       ]
     },
     {
-      "name": "ninja-release",
+      "name": "linux-gcc-release",
       "steps": [
         {
           "type": "configure",
-          "name": "ninja-release"
+          "name": "linux-gcc-release"
         },
         {
           "type": "build",
-          "name": "ninja-release"
+          "name": "linux-gcc-release"
         },
         {
           "type": "test",
-          "name": "ninja-release"
+          "name": "linux-gcc-release"
         }
       ]
     },
     {
-      "name": "ninja-ui-debug",
+      "name": "windows-msvc-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "ninja-ui-debug"
+          "name": "windows-msvc-debug"
         },
         {
           "type": "build",
-          "name": "ninja-ui-debug"
+          "name": "windows-msvc-debug"
         },
         {
           "type": "test",
-          "name": "ninja-ui-debug"
+          "name": "windows-msvc-debug"
         }
       ]
     },
     {
-      "name": "ninja-ui-release",
+      "name": "windows-msvc-release",
       "steps": [
         {
           "type": "configure",
-          "name": "ninja-ui-release"
+          "name": "windows-msvc-release"
         },
         {
           "type": "build",
-          "name": "ninja-ui-release"
+          "name": "windows-msvc-release"
         },
         {
           "type": "test",
-          "name": "ninja-ui-release"
+          "name": "windows-msvc-release"
+        }
+      ]
+    },
+    {
+      "name": "macos-clang-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "macos-clang-debug"
+        },
+        {
+          "type": "build",
+          "name": "macos-clang-debug"
+        },
+        {
+          "type": "test",
+          "name": "macos-clang-debug"
+        }
+      ]
+    },
+    {
+      "name": "macos-clang-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "macos-clang-release"
+        },
+        {
+          "type": "build",
+          "name": "macos-clang-release"
+        },
+        {
+          "type": "test",
+          "name": "macos-clang-release"
         }
       ]
     }

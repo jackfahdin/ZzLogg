@@ -43,72 +43,81 @@ ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子
 - 固定版本的 ZzPureTools 子模块，以及仓库内随附的其他第三方依赖。
 - Perl，用于生成高亮语法资源。首次配置会下载并校验 KSyntaxHighlighting 6.22.0 和 Extra CMake Modules 6.22.0；离线配置方式见[代码文本高亮](../architecture/code-syntax-highlighting.md)。
 
-UI 专项测试还需要 Qt Test。UI 测试预设将 macOS 部署目标设为 13.3；其他 macOS 配置也必须满足这一最低要求，可显式传入 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`。
+预设默认启用 UI 专项测试，因此还需要 Qt Test。macOS 预设将部署目标设为 13.3；其他 macOS 配置也必须满足这一最低要求，可显式传入 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`。
 
 Hyperscan 搜索需要 SSSE3 指令集、Boost 头文件和 Ragel。依赖不可用时，传入 `-DKLOGG_USE_HYPERSCAN=OFF`，改用 Qt 正则表达式后端。其余第三方依赖由仓库提供或在 CMake 配置过程中解析。
 
 所有仓库预设都使用 Ninja 生成器：需要安装 Ninja。Windows 上还必须在 MSVC 开发者环境中运行（"x64 Native Tools Command Prompt for VS 2026"，或先执行 `VC\Auxiliary\Build\vcvars64.bat`），否则 CMake 找不到 `cl.exe`。Ninja 整图并行调度，编译速度优于 MSBuild，也不需要额外设置 `/MP`；代价是没有多配置生成器，每个构建类型使用独立构建目录。
 
-构建期间 Qt 的 `bin` 目录必须在 `PATH` 中：语法高亮索引步骤会运行 `katehighlightingindexer`，它依赖 `Qt6Core.dll`。`CMakeUserPresets.json.example` 通过预设的 `environment.PATH` 设置（CI 由 `install-qt-action` 提供），否则该步骤会以 `0xC0000135`（找不到 DLL）失败。
+构建期间 Qt 的 `bin` 目录必须在 `PATH` 中：语法高亮索引步骤会运行 `katehighlightingindexer`，它依赖 `Qt6Core.dll`。仓库预设根据 `QT_ROOT` 自动设置 `environment.PATH`（CI 由 `install-qt-action` 提供），否则该步骤会以 `0xC0000135`（找不到 DLL）失败。
 
 ## 使用预设构建
 
-**这是日常构建的唯一主路径。** 一个工作流预设即可完成配置、构建和测试：
+仓库预设保存公共构建规则；本机 Qt 路径通过环境变量 `QT_ROOT` 或被 Git 忽略的 `CMakeUserPresets.json` 提供。`QT_ROOT` 必须指向具体的 **Qt kit 目录**（包含 `bin`、`lib`），不能只填 Qt 版本目录。
+
+| 平台 / 编译器 | Debug | Release |
+| --- | --- | --- |
+| Linux / GCC | `linux-gcc-debug` | `linux-gcc-release` |
+| Windows / MSVC | `windows-msvc-debug` | `windows-msvc-release` |
+| macOS / Clang | `macos-clang-debug` | `macos-clang-release` |
+
+每个名称都有同名的配置、构建、测试和工作流预设。平台条件限制配置预设只能在对应主机上运行。所有构建目录统一为 `out/build/<配置预设名>`。
+
+公共 `base` 管理 Ninja、Qt 路径、测试和性能开关；三个平台基类管理编译器及平台专用设置；Debug/Release 只选择构建类型。所有预设默认启用 `KLOGG_BUILD_UI_TESTS`，关闭旧的 `KLOGG_BUILD_TESTS`、LTO、Hyperscan 和 Vectorscan，便于本地增量构建且无需额外安装 Boost/Ragel。需要 LTO 或其他搜索后端时，在配置命令或本地预设中覆盖相应开关。
+
+构建预设使用 `ci_build`，确保主程序、已注册测试和打包辅助程序一起构建。测试预设运行全部已注册测试、失败时打印输出，没有测试时报告错误。首次配置显示 FetchContent 下载进度；仍需能访问依赖下载站点。
+
+### 直接使用环境变量
+
+Linux 示例（替换 Qt 路径）：
 
 ```bash
-cmake --workflow --preset ninja-debug
-cmake --workflow --preset ninja-release
-cmake --workflow --preset ninja-ui-debug
-cmake --workflow --preset ninja-ui-release
+export QT_ROOT="$HOME/Qt/6.12.0/gcc_64"
+cmake --workflow --preset linux-gcc-release
 ```
 
-Windows 上请从 MSVC 开发者命令行执行（见[构建要求](#构建要求)），并用 `-DCMAKE_PREFIX_PATH=<Qt 路径>` 提供 Qt，或在本地用户预设里固定该路径。
+macOS 将 `QT_ROOT` 改为本机 Qt 的 `macos` kit 目录，使用 `macos-clang-release`。Windows 在已初始化 MSVC x64 环境的 PowerShell 中执行：
 
-查看全部预设（配置、构建、测试、工作流）：
+```powershell
+$env:QT_ROOT = "D:/SoftWare/Qt/6.12.0/msvc2022_64"
+cmake --workflow --preset windows-msvc-release
+```
+
+`QT_ROOT` 同时用于 `CMAKE_PREFIX_PATH` 和 `PATH`，构建、测试继承配置预设的环境，无需重复填写 Qt 路径。使用环境变量时，每个新终端也需要设置它。Ninja 不使用 `CMAKE_GENERATOR_INSTANCE`；Visual Studio 的编译器环境由开发者终端提供。
+
+需要临时改配置或只跑其中一步时，例如 Linux 上开启 LTO：
+
+```bash
+cmake --preset linux-gcc-release -DKLOGG_USE_LTO=ON
+cmake --build --preset linux-gcc-release --parallel 8
+ctest --preset linux-gcc-release
+```
+
+此时请分步构建和测试：重新运行工作流会再次配置，并恢复预设中明确设置的默认值。
+
+### 本地用户预设
+
+复制示例后，只需修改 `local-machine.environment.QT_ROOT` 一处：
+
+```powershell
+Copy-Item CMakeUserPresets.json.example CMakeUserPresets.json
+# 编辑 CMakeUserPresets.json 中的 QT_ROOT，然后执行：
+cmake --workflow --preset local-windows-release
+```
+
+示例默认使用 Windows/MSVC，提供 `local-windows-debug`、`local-windows-release` 和生成独立运行目录的 `local-windows-runtime`。本地配置首先继承 `local-machine`（本机覆盖项优先），再继承仓库的平台预设；构建和测试仅关联本地配置，不重复路径和选项。
+
+Linux/macOS 可直接使用环境变量，也可将示例中的 `windows-msvc-*` 父预设改为表中对应平台的名称、重命名本地预设及其引用，并删除仅供 Windows 使用的 runtime 构建和工作流。不要提交 `CMakeUserPresets.json`。
+
+查看所有可见预设：
 
 ```bash
 cmake --list-presets=all
 ```
 
-需要临时改配置或只跑其中一步时，再分步执行：
+旧的 `ninja-*`、`ninja-ui-*` 和 `windows-ninja-qt6-*` 名称已移除。已有本地用户文件需要按新示例迁移；旧构建目录不会复用。
 
-```bash
-cmake --preset ninja-release -DKLOGG_USE_HYPERSCAN=OFF
-cmake --build --preset ninja-release
-ctest --preset ninja-release
-```
-
-预设覆盖"Debug/Release × 是否启用 UI 专项测试"，共 4 种组合：
-
-| 配置 | UI 专项测试 | 预设（配置、构建、测试、工作流同名） |
-| --- | --- | --- |
-| Debug | 关 | `ninja-debug` |
-| Release | 关 | `ninja-release` |
-| Debug | 开 | `ninja-ui-debug` |
-| Release | 开 | `ninja-ui-release` |
-
-`ninja-ui-release` 是发布验收入口：Release、启用 UI 专项测试，且测试预设不带 filter（运行全部已注册测试）。Debug 与 Release 使用各自的构建目录（`out/build/<预设名>`、`out/ui-ninja/<预设名>`），因为 Ninja 是单配置生成器。
-
-普通预设默认关闭 `KLOGG_BUILD_TESTS`；CTest 仅运行当前配置注册的测试。UI 预设通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 专项测试。Release 预设启用 LTO。
-
-### Windows 本地预设
-
-需要快速验证 Windows 安装版更新时，使用 [Windows 本地编译与更新测试](WINDOWS_LOCAL_UPDATE.md)：它串联增量编译、Inno 打包、本地签名更新源和测试客户端启动，无需等待 GitHub CI。
-
-复制 `CMakeUserPresets.json.example` 为 `CMakeUserPresets.json`，填入本机 Qt 路径。本机路径只能写在被 Git 忽略的 `CMakeUserPresets.json` 里，不能提交到仓库：
-
-```powershell
-# 在 MSVC 开发者命令行中执行
-cmake --workflow --preset windows-ninja-qt6-release
-```
-
-如果不想维护本地预设，也可以直接给仓库预设传 Qt 路径：
-
-```powershell
-cmake --preset ninja-ui-release -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64 -DKLOGG_USE_HYPERSCAN=OFF
-cmake --build --preset ninja-ui-release
-ctest --preset ninja-ui-release
-```
+需要验证 Windows 安装版更新时，使用 [Windows 本地编译与更新测试](WINDOWS_LOCAL_UPDATE.md)：该脚本独立管理自己的构建参数和 `out/local-windows` 目录，串联增量编译、Inno 打包、本地签名更新源和测试客户端启动。
 
 ## 不使用预设（可选）
 
@@ -162,7 +171,7 @@ Linux GNU 运行库的打包由宿主应用单独处理，与框架采用静态�
 将已配置的 Ninja 构建安装到暂存目录：
 
 ```bash
-cmake --install out/build/ninja-release --prefix staging/ZzLogg
+cmake --install out/build/linux-gcc-release --prefix staging/ZzLogg
 ```
 
 Linux 安装规则会将 `ZzLogg.desktop`、16、32、48、64、128、256、512 像素的 PNG 图标，以及可缩放的 `ZzLogg.svg` 安装到标准位置。受支持的 Unix 配置会生成 CPack 配置，并使用统一的产品元数据。
@@ -187,10 +196,10 @@ Windows 安装脚本为 `packaging/windows/ZzLogg.iss`，使用 Inno Setup 7.1.0
 配置 Windows 构建并确保 `windeployqt` 可用后，生成独立运行目录：
 
 ```powershell
-cmake --build --preset ninja-ui-release --target zzlogg_runtime_folder
+cmake --build --preset windows-msvc-release --target zzlogg_runtime_folder
 ```
 
-生成位置为 `<build-directory>/runtime/Release/ZzLogg-runtime/`（当前预设即 `out/ui-ninja/ninja-ui-release/runtime/Release/ZzLogg-runtime/`）。其中包含唯一的图形界面程序 `ZzLogg.exe`，以及所需 Qt、MSVC 运行库和 TBB 动态依赖；ZzPureTools 及其框架依赖已经静态链接进程序。
+生成位置为 `<build-directory>/runtime/Release/ZzLogg-runtime/`（当前预设即 `out/build/windows-msvc-release/runtime/Release/ZzLogg-runtime/`）。其中包含唯一的图形界面程序 `ZzLogg.exe`，以及所需 Qt、MSVC 运行库和 TBB 动态依赖；ZzPureTools 及其框架依赖已经静态链接进程序。
 
 Windows 打包会将同一目录树复制到安装程序和独立归档包的暂存目录，两种形式均运行同一个 `ZzLogg.exe`。请从完整运行目录启动程序。
 
@@ -223,21 +232,22 @@ cmake --build out/build/ZzLogg --target klogg_grep
 在 MSVC 开发者命令行中执行以下命令，并显式提供 Qt 路径：
 
 ```powershell
-cmake --preset ninja-ui-release -DCMAKE_PREFIX_PATH=D:/SoftWare/Qt/6.11.0/msvc2022_64 -DKLOGG_USE_HYPERSCAN=OFF
-cmake --build --preset ninja-ui-release --parallel 8
-ctest --preset ninja-ui-release
-cmake --build --preset ninja-ui-release --target zzlogg_runtime_folder
+$env:QT_ROOT = "D:/SoftWare/Qt/6.12.0/msvc2022_64"
+cmake --preset windows-msvc-release
+cmake --build --preset windows-msvc-release --parallel 8
+ctest --preset windows-msvc-release
+cmake --build --preset windows-msvc-release --target zzlogg_runtime_folder
 ```
 
-对应的 `ninja-ui-release` 工作流依次执行配置、构建和测试。缺省时 Qt 路径需由本地用户预设提供；缺少 Hyperscan 依赖时需关闭 `KLOGG_USE_HYPERSCAN`。
+对应的 `windows-msvc-release` 工作流依次执行配置、构建和测试。Qt 路径由 `QT_ROOT` 提供；也可使用本地用户预设中的对应工作流。
 
-Release 测试预设运行所有已注册的测试，包括 `klogg_smoke`。运行目录为 `out/ui-ninja/ninja-ui-release/runtime/Release/ZzLogg-runtime/`，应从该目录启动 `ZzLogg.exe`，而不是从缺少依赖的构建输出目录启动；验收无需先制作 ZIP。
+Release 测试预设运行所有已注册的测试，包括 `klogg_smoke`。运行目录为 `out/build/windows-msvc-release/runtime/Release/ZzLogg-runtime/`，应从该目录启动 `ZzLogg.exe`，而不是从缺少依赖的构建输出目录启动；验收无需先制作 ZIP。
 
 ### UI 测试入口
 
 应用 UI 实现在 `src/ui`。UI 验收测试位于 `tests/ui_acceptance`，CTest 名称统一为 `zzlogg_ui.*`；已有核心集成测试位于 `tests/ui`。
 
-使用 `KLOGG_BUILD_UI_TESTS` 和 `*-ui-*` 预设运行 UI 测试：`ninja-ui-debug` 只选择 `zzlogg_ui.*`，`ninja-ui-release` 运行全部已注册测试。
+六个公共预设均通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 验收，并运行全部已注册测试。临时只运行 UI 专项测试时，可使用 `ctest --preset <预设名> -R "^zzlogg_ui\."`。
 
 早期 UI2 选项和预设别名已移除，本地脚本应使用上述入口。应用使用同一个 Qt Widgets 图形界面目标。
 
