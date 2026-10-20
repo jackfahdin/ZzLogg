@@ -2844,8 +2844,8 @@ Channel: %2</translation>
         <translation>Unable to prepare the update. Your session is unchanged.</translation>
     </message>
     <message>
-        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
-        <translation>Another ZzLogg instance is active in this installation. Close it and try again.</translation>
+        <source>The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again.</source>
+        <translation>The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again.</translation>
     </message>
     <message>
         <source>A previous update did not finish cleanly. Wait a moment and try again.</source>

@@ -434,7 +434,7 @@ private Q_SLOTS:
         QVERIFY(status);
         const QList<QPair<E,QString>> cases{
             {E::Preparation,QString("Unable to prepare the update. Your session is unchanged.")},
-            {E::Blocked,QString("Another ZzLogg instance is active in this installation. Close it and try again.")},
+            {E::Blocked,QString("The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again.")},
             {E::Abandoned,QString("A previous update did not finish cleanly. Wait a moment and try again.")},
             {E::Unavailable,QString("The installation directory could not be verified. The update was not started.")},
             {E::Helper,QString("The update helper could not be started. Your session is unchanged.")},

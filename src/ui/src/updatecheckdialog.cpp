@@ -347,7 +347,7 @@ void UpdateCheckDialog::refresh()
         case UpdateHandoffError::Preparation:
             handoffText=tr("Unable to prepare the update. Your session is unchanged."); break;
         case UpdateHandoffError::Blocked:
-            handoffText=tr("Another ZzLogg instance is active in this installation. Close it and try again."); break;
+            handoffText=tr("The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again."); break;
         case UpdateHandoffError::Abandoned:
             handoffText=tr("A previous update did not finish cleanly. Wait a moment and try again."); break;
         case UpdateHandoffError::Unavailable:

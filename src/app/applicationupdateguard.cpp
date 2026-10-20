@@ -143,7 +143,7 @@ bool ApplicationUpdateGuard::reserveUpdate()
     case zzlogg::updater::ActivityError::Blocked:
         impl_->reservationError = ReservationError::Blocked;
         impl_->errorText
-            = QStringLiteral( "another instance is active in the installation directory" );
+            = QStringLiteral( "the installation directory is in use (another instance, directory watcher, or working-directory handle)" );
         break;
     case zzlogg::updater::ActivityError::Abandoned:
         impl_->reservationError = ReservationError::Abandoned;

@@ -2922,8 +2922,8 @@ Channel: %2</source>
         <translation>無法準備更新，工作階段未變更。</translation>
     </message>
     <message>
-        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
-        <translation>另一個 ZzLogg 執行個體正在使用此安裝目錄，請關閉後重試。</translation>
+        <source>The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again.</source>
+        <translation>安裝目錄正在被佔用。請關閉其他 ZzLogg 執行個體，以及正在使用該目錄的檔案總管視窗或終端機，然後重試。</translation>
     </message>
     <message>
         <source>A previous update did not finish cleanly. Wait a moment and try again.</source>

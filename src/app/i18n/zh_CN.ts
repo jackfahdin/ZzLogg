@@ -2922,8 +2922,8 @@ Channel: %2</source>
         <translation>无法准备更新，会话未更改。</translation>
     </message>
     <message>
-        <source>Another ZzLogg instance is active in this installation. Close it and try again.</source>
-        <translation>另一个 ZzLogg 实例正在使用此安装目录，请关闭后重试。</translation>
+        <source>The installation directory is in use. Close other ZzLogg instances and any File Explorer or terminal windows using this directory, then try again.</source>
+        <translation>安装目录正在被占用。请关闭其他 ZzLogg 实例，以及正在使用该目录的资源管理器窗口或终端，然后重试。</translation>
     </message>
     <message>
         <source>A previous update did not finish cleanly. Wait a moment and try again.</source>

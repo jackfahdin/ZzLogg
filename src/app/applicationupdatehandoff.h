@@ -49,7 +49,7 @@ class ApplicationUpdateHandoff : public QObject
         None,
         ExecutionClosed,        // production execution capability is closed
         PreparationFailed,      // session save/preparation failed
-        ReservationBlocked,     // another instance is active in the directory
+        ReservationBlocked,     // an instance, directory watcher or working directory blocks the reservation
         ReservationAbandoned,   // a previous reservation holder died without releasing
         ReservationUnavailable, // directory identity could not be verified
         LaunchFailed,           // helper process could not be started

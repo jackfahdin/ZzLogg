@@ -8,12 +8,17 @@
 #include <QStandardPaths>
 
 #include "log.h"
+#include "storagecontext.h"
 
 #ifdef Q_OS_WIN
 #include "bootstrap_win_p.h"
 #include "coordinator_p.h"
-#include "storagecontext.h"
 #endif
+
+QString updateRestartDataDirectory( const StorageContext& storage )
+{
+    return QDir::toNativeSeparators( storage.dataRoot() );
+}
 
 namespace {
 bool lowercaseHexDigest( const QString& value )
@@ -132,7 +137,7 @@ ApplicationUpdateHandoff::SessionFactory makeUpdateSessionFactory(
         }
         updater::HandoffRequest native;
         native.dataDirectory
-            = QDir::toNativeSeparators( StorageContext::current().runtimePaths().appConfigDirectory )
+            = updateRestartDataDirectory( StorageContext::current() )
                   .toStdWString();
         native.installerPath = QDir::toNativeSeparators( request.packagePath ).toStdWString();
         native.installRoot = QDir::toNativeSeparators( request.installRoot ).toStdWString();

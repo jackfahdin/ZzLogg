@@ -3,6 +3,10 @@
 
 #include "applicationupdatehandoff.h"
 
+class StorageContext;
+// The --data-dir carried through the updater must reopen the active storage.
+QString updateRestartDataDirectory( const StorageContext& storage );
+
 // Production session-factory inputs. A non-null factory is returned only when
 // every condition holds; otherwise executionAvailable() stays false and the UI
 // does not offer quit-and-install.

@@ -1,12 +1,12 @@
 add_executable(zzlogg_update_session_factory_test update/updatesessionfactorytest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp")
-target_link_libraries(zzlogg_update_session_factory_test PRIVATE klogg_logging Qt6::Test)
+target_link_libraries(zzlogg_update_session_factory_test PRIVATE klogg_logging klogg_storage Qt6::Test)
 target_include_directories(zzlogg_update_session_factory_test PRIVATE
   "${PROJECT_SOURCE_DIR}/src/app"
   "${PROJECT_SOURCE_DIR}/src/updater")
 if(WIN32 AND TARGET zzlogg_update_handoff)
   target_link_libraries(zzlogg_update_session_factory_test PRIVATE
-    zzlogg_update_handoff klogg_storage)
+    zzlogg_update_handoff)
 endif()
 set_target_properties(zzlogg_update_session_factory_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.update_session_factory
