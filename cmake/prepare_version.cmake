@@ -83,6 +83,9 @@ set(AllProductVersionResourceFiles
 
 add_custom_target(
   generate_version ALL
+  # Ninja must know this header is regenerated before deciding whether its
+  # consumers need recompiling during the same incremental build.
+  BYPRODUCTS "${CMAKE_BINARY_DIR}/generated/version.h"
   COMMAND ${CMAKE_COMMAND} -DBUILD_VERSION=${PROJECT_VERSION}.${PROJECT_VERSION_TWEAK} -P
           ${CMAKE_SOURCE_DIR}/cmake/generate_version_h.cmake
   DEPENDS ${AllProductVersionResourceFiles}

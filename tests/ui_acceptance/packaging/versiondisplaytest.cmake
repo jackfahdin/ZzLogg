@@ -18,6 +18,55 @@ foreach(case IN ITEMS "26.9.0.0|26.09.00" "26.10.3.42|26.10.03" "26.09.08|26.09.
   endif()
 endforeach()
 
+# A package version bump must reach the compiled display string in the first
+# incremental build, not just the generated header and Windows RC resource.
+set(incremental_work "${BINARY_ROOT}/version-display-test/incremental")
+file(REMOVE_RECURSE "${incremental_work}")
+set(fixture "${incremental_work}/source")
+set(build "${incremental_work}/build")
+file(MAKE_DIRECTORY "${fixture}/cmake")
+foreach(module IN ITEMS prepare_version.cmake generate_version_h.cmake
+    ZzLoggVersion.cmake win32_rc.cmake version_info.h.in version_resource.rc.in)
+  configure_file("${SOURCE_ROOT}/cmake/${module}" "${fixture}/cmake/${module}" COPYONLY)
+endforeach()
+file(WRITE "${fixture}/CMakeLists.txt" [=[
+cmake_minimum_required(VERSION 3.25)
+project(VersionProbe VERSION 26.10.9 LANGUAGES CXX)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(ZZLOGG_PRODUCT_NAME ZzLogg)
+include(prepare_version)
+add_library(display_version STATIC version.cpp)
+add_dependencies(display_version generate_version)
+add_executable(probe main.cpp)
+target_link_libraries(probe PRIVATE display_version)
+enable_testing()
+add_test(NAME compiled_display_version COMMAND probe)
+set_tests_properties(compiled_display_version PROPERTIES
+  PASS_REGULAR_EXPRESSION "version=${ZZLOGG_DISPLAY_VERSION}!")
+]=])
+file(WRITE "${fixture}/version.cpp"
+  "#include \"version.h\"\nconst char* displayVersion() { return KLOGG_VERSION; }\n")
+file(WRITE "${fixture}/main.cpp"
+  "#include <cstdio>\nconst char* displayVersion();\nint main() { std::printf(\"version=%s!\\n\", displayVersion()); }\n")
+foreach(version IN ITEMS 26.10.09 26.10.10)
+  execute_process(COMMAND "${CMAKE_COMMAND}" -S "${fixture}" -B "${build}"
+    -G Ninja "-DBUILD_VERSION=${version}" RESULT_VARIABLE configure_result
+    OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error)
+  if(NOT configure_result EQUAL 0)
+    message(FATAL_ERROR "Version fixture configure failed:\n${configure_output}\n${configure_error}")
+  endif()
+  execute_process(COMMAND "${CMAKE_COMMAND}" --build "${build}"
+    RESULT_VARIABLE build_result OUTPUT_VARIABLE build_output ERROR_VARIABLE build_error)
+  if(NOT build_result EQUAL 0)
+    message(FATAL_ERROR "Version fixture build failed:\n${build_output}\n${build_error}")
+  endif()
+  execute_process(COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${build}" --output-on-failure
+    RESULT_VARIABLE test_result OUTPUT_VARIABLE test_output ERROR_VARIABLE test_error)
+  if(NOT test_result EQUAL 0)
+    message(FATAL_ERROR "Compiled display version is stale after building ${version}:\n${test_output}\n${test_error}")
+  endif()
+endforeach()
+
 # CI must export the project version, not the historical upstream version.
 set(ci_work "${BINARY_ROOT}/version-display-test/ci")
 file(MAKE_DIRECTORY "${ci_work}")
