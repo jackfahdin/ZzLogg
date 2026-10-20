@@ -396,7 +396,7 @@ private Q_SLOTS:
         QVERIFY(!install->isEnabled()); QVERIFY(!install->isHidden());
         QVERIFY(cancel->isEnabled()); QVERIFY(!cancel->isHidden());
         QCOMPARE(cancel->text(),QString("Cancel update"));
-        QCOMPARE(status->text(),QString("Preparing the update. Your session is being saved..."));
+        QCOMPARE(status->text(),QString("Preparing the update. Waiting for the installer to be ready..."));
         QSignalSpy cancelledSpy(&dialog,SIGNAL(installCancelRequested()));
         QVERIFY(cancelledSpy.isValid());
         QTest::keyClick(&dialog,Qt::Key_Escape);
@@ -449,8 +449,8 @@ private Q_SLOTS:
         auto* status=dialog.findChild<QLabel*>("updateHandoffStatus");
         const QStringList languages{"en","zh_CN","zh_TW"};
         const QStringList installLabels{"Quit and install update","退出并安装更新","結束並安裝更新"};
-        const QStringList preparingTexts{"Preparing the update. Your session is being saved...",
-            "正在准备更新，会话正在保存...","正在準備更新，工作階段正在儲存..."};
+        const QStringList preparingTexts{"Preparing the update. Waiting for the installer to be ready...",
+            "正在准备更新，等待安装程序就绪...","正在準備更新，等待安裝程式就緒..."};
         const QStringList cancelledTexts{"Update cancelled. Your session is unchanged.",
             "更新已取消，会话未更改。","更新已取消，工作階段未變更。"};
         const QStringList abandonedTexts{"A previous update did not finish cleanly. Wait a moment and try again.",

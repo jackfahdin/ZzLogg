@@ -2834,8 +2834,8 @@ Channel: %2</source>
         <translation>取消更新</translation>
     </message>
     <message>
-        <source>Preparing the update. Your session is being saved...</source>
-        <translation>正在准备更新，会话正在保存...</translation>
+        <source>Preparing the update. Waiting for the installer to be ready...</source>
+        <translation>正在准备更新，等待安装程序就绪...</translation>
     </message>
     <message>
         <source>Closing ZzLogg and starting the update...</source>

@@ -2756,8 +2756,8 @@ Channel: %2</translation>
         <translation>Cancel update</translation>
     </message>
     <message>
-        <source>Preparing the update. Your session is being saved...</source>
-        <translation>Preparing the update. Your session is being saved...</translation>
+        <source>Preparing the update. Waiting for the installer to be ready...</source>
+        <translation>Preparing the update. Waiting for the installer to be ready...</translation>
     </message>
     <message>
         <source>Closing ZzLogg and starting the update...</source>

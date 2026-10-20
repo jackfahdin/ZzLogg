@@ -315,7 +315,7 @@ void UpdateCheckDialog::refresh()
     switch(handoffState_) {
     case UpdateHandoffState::Idle: break;
     case UpdateHandoffState::Preparing:
-        handoffText=tr("Preparing the update. Your session is being saved..."); break;
+        handoffText=tr("Preparing the update. Waiting for the installer to be ready..."); break;
     case UpdateHandoffState::Waiting:
     case UpdateHandoffState::ExitCommitted:
         handoffText=tr("Closing ZzLogg and starting the update..."); break;

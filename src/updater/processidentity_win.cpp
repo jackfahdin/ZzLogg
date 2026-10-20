@@ -63,7 +63,11 @@ std::wstring userSecurityDescriptor() {
     std::vector<BYTE> user,logon;DWORD session=0;bool elevated=false;
     if(!principals(GetCurrentProcess(),user,logon,session,elevated))return {};
     LPWSTR sid=nullptr;if(!ConvertSidToStringSidW(user.data(),&sid))return {};
-    std::wstring result=L"D:P(A;;GA;;;"+std::wstring(sid)+L")";LocalFree(sid);return result;
+    // Elevated tokens may default new files to Administrators ownership.
+    // The engine requires TokenUser ownership, so bind it atomically at
+    // creation as well as granting the user the protected DACL.
+    const std::wstring userSid(sid);LocalFree(sid);
+    return L"O:"+userSid+L"D:P(A;;GA;;;"+userSid+L")";
 }
 SecurityAttributes::SecurityAttributes() {
     const auto descriptor=logonSecurityDescriptor();

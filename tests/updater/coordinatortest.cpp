@@ -655,7 +655,29 @@ int runCoordinatorTest(int argc,wchar_t** argv) {
         data.coordinatorPid=self.stamp().pid;data.coordinatorCreated=self.stamp().created;
         const auto locator=credentialLocator(data.transaction);
         check(locatorShape(locator),"locator is 16 lowercase hex nonzero");
+        // An elevated token can default new files to Administrators ownership.
+        // Require an explicit user owner even on runners whose default happens
+        // to be the user, then check the real file and the reader below.
+        PSECURITY_DESCRIPTOR security=nullptr;
+        const auto descriptor=userSecurityDescriptor();
+        check(ConvertStringSecurityDescriptorToSecurityDescriptorW(descriptor.c_str(),
+            SDDL_REVISION_1,&security,nullptr)!=FALSE,"credential descriptor parses");
+        PSID expectedOwner=nullptr;BOOL ownerDefaulted=TRUE;LPWSTR ownerText=nullptr;
+        const bool explicitOwner=security && GetSecurityDescriptorOwner(security,&expectedOwner,&ownerDefaulted)
+            && expectedOwner && !ownerDefaulted && ConvertSidToStringSidW(expectedOwner,&ownerText);
+        check(explicitOwner && std::wstring(ownerText)==currentUserSid(),
+            "credential creation explicitly binds ownership to the current user");
+        if(ownerText)LocalFree(ownerText);
+        if(security)LocalFree(security);
         check(writeCredentialFile(data),"credential file written");
+        PSECURITY_DESCRIPTOR fileSecurity=nullptr;PSID actualOwner=nullptr;ownerText=nullptr;
+        const bool ownerRead=GetNamedSecurityInfoW(credentialPath(locator).c_str(),SE_FILE_OBJECT,
+            OWNER_SECURITY_INFORMATION,&actualOwner,nullptr,nullptr,nullptr,&fileSecurity)==ERROR_SUCCESS
+            && actualOwner && ConvertSidToStringSidW(actualOwner,&ownerText);
+        check(ownerRead && std::wstring(ownerText)==currentUserSid(),
+            "credential file belongs to the user rather than the default token owner");
+        if(ownerText)LocalFree(ownerText);
+        if(fileSecurity)LocalFree(fileSecurity);
         bool protectedDacl=false;const auto aces=fileDacl(credentialPath(locator),protectedDacl);
         check(protectedDacl && aces.size()==1 && aces[0].sid==currentUserSid(),
             "credential file DACL is protected and current-user only");
