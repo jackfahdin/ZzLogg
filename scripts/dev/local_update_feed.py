@@ -23,7 +23,7 @@ import hashlib
 import http.server
 import json
 import os
-import socketserver
+import subprocess
 import re
 import time
 from pathlib import Path
@@ -59,25 +59,34 @@ def main():
     parser.add_argument('--version', required=True, help='YY.MM.PP, must be newer than the installed build')
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--no-serve', action='store_true', help='Sign only, do not start the http server')
+    parser.add_argument('--workspace', type=Path, default=WORKSPACE, help='Directory for the local feed and package')
+    parser.add_argument('--launch', type=Path, help='Start this installed test client after binding the HTTP server')
+    parser.add_argument('--launch-args', nargs=argparse.REMAINDER, default=[],
+                        help='Client arguments; this option must be last')
     args = parser.parse_args()
 
     if not re.fullmatch(r'[0-9]{2}\.(?:0[1-9]|1[0-2])\.[0-9]{2}', args.version):
         parser.error('version must be YY.MM.PP')
     if not 1 <= args.port <= 65535:
         parser.error('port must be between 1 and 65535')
+    if args.launch and (args.no_serve or not args.launch.is_file()):
+        parser.error('--launch requires an existing executable and cannot be combined with --no-serve')
+    if args.launch_args and not args.launch:
+        parser.error('--launch-args requires --launch')
     installer = Path(args.installer).resolve()
     if not installer.is_file():
         parser.error(f'installer not found: {installer}')
     public = ensure_key()
 
-    WORKSPACE.mkdir(parents=True, exist_ok=True)
+    workspace = args.workspace.resolve()
+    workspace.mkdir(parents=True, exist_ok=True)
     # The signer pins the release asset naming convention.
-    staged_installer = WORKSPACE / f'ZzLogg-{args.version}-windows-x64-setup.exe'
+    staged_installer = workspace / f'ZzLogg-{args.version}-windows-x64-setup.exe'
     staged_installer.write_bytes(installer.read_bytes())
     digest = hashlib.sha256(staged_installer.read_bytes()).hexdigest()
     size = staged_installer.stat().st_size
 
-    release_info = WORKSPACE / f'release-info-{args.version}.json'
+    release_info = workspace / f'release-info-{args.version}.json'
     release_info.write_text(json.dumps({
         'schema': 1, 'version': args.version, 'release_sequence': str(int(args.version.replace('.', ''))),
         'artifact_label': args.version,
@@ -85,7 +94,7 @@ def main():
         'assets': [{'name': staged_installer.name, 'size': size, 'sha256': digest}],
     }, indent=2), encoding='utf-8')
 
-    notes = WORKSPACE / 'notes.json'
+    notes = workspace / 'notes.json'
     notes.write_text(json.dumps({'en': 'Local test update', 'zh_CN': '本地测试更新',
                                  'zh_TW': '本機測試更新'}, ensure_ascii=False), encoding='utf-8')
 
@@ -110,10 +119,10 @@ def main():
     envelope = {'schema': 1, 'keyId': KEY_ID, 'payload': base64.b64encode(raw).decode(),
                 'signature': base64.b64encode(key.sign(
                     b'ZzLogg update manifest v1\n' + KEY_ID.encode() + b'\n' + raw)).decode()}
-    (WORKSPACE / 'update-stable.json').write_text(json.dumps(envelope), encoding='utf-8')
+    (workspace / 'update-stable.json').write_text(json.dumps(envelope), encoding='utf-8')
 
-    signed_feed = WORKSPACE / 'update-stable.json'
-    feed = WORKSPACE / 'stable.json'
+    signed_feed = workspace / 'update-stable.json'
+    feed = workspace / 'stable.json'
     if feed.exists():
         feed.unlink()
     signed_feed.replace(feed)
@@ -126,10 +135,21 @@ def main():
     print()
     if args.no_serve:
         return
-    print(f'Serving {WORKSPACE} on http://127.0.0.1:{args.port} (Ctrl+C to stop)')
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(WORKSPACE))
-    with socketserver.TCPServer(('127.0.0.1', args.port), handler) as server:
-        server.serve_forever()
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(workspace))
+    with http.server.ThreadingHTTPServer(('127.0.0.1', args.port), handler) as server:
+        print(f'Serving {workspace} on http://127.0.0.1:{args.port} (Ctrl+C to stop)', flush=True)
+        if args.launch:
+            environment = dict(os.environ,
+                ZZLOGG_UPDATE_FEED_URL=f'http://127.0.0.1:{args.port}/stable.json',
+                ZZLOGG_UPDATE_FEED_PREVIEW_URL=f'http://127.0.0.1:{args.port}/stable.json',
+                ZZLOGG_UPDATE_FEED_KEY=f'{KEY_ID}:{public}',
+                ZZLOGG_UPDATE_FEED_HOSTS='127.0.0.1;localhost')
+            subprocess.Popen([str(args.launch.resolve()), *args.launch_args], env=environment,
+                             cwd=args.launch.resolve().parent)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == '__main__':

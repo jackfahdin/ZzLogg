@@ -93,6 +93,8 @@ ctest --preset ninja-release
 
 ### Windows 本地预设
 
+需要快速验证 Windows 安装版更新时，使用 [Windows 本地编译与更新测试](WINDOWS_LOCAL_UPDATE.md)：它串联增量编译、Inno 打包、本地签名更新源和测试客户端启动，无需等待 GitHub CI。
+
 复制 `CMakeUserPresets.json.example` 为 `CMakeUserPresets.json`，填入本机 Qt 路径。本机路径只能写在被 Git 忽略的 `CMakeUserPresets.json` 里，不能提交到仓库：
 
 ```powershell
