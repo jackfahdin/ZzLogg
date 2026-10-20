@@ -15,7 +15,7 @@ public:
     void start(const QString& packagePath,const QByteArray& sha256Hex,qint64 expectedSize,
                const QString& installRoot);
     void cancel();
-signals:
+Q_SIGNALS:
     void readyToExit();
     void failed(const QString& error);
 private:

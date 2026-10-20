@@ -16,7 +16,7 @@ if(WIN32 AND TARGET zzlogg_update_handoff)
     zzlogg_runtime_contract_moc zzlogg_updater_handofffixture_test)
   target_link_libraries(zzlogg_update_handoff_test PRIVATE
     klogg_ui klogg_logdata klogg_support klogg_storage roaring kdsingleapp
-    zzlogg_update_handoff Qt6::Test Qt6::Widgets)
+    zzlogg_update_handoff zzlogg_portableupdater Qt6::Test Qt6::Widgets)
   target_include_directories(zzlogg_update_handoff_test PRIVATE
     "${PROJECT_SOURCE_DIR}/src/app"
     "${PROJECT_SOURCE_DIR}/src/updater"

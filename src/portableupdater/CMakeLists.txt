@@ -2,6 +2,8 @@ zzlogg_update_clean_legacy_crt_flags()
 add_library(zzlogg_portableupdater STATIC package.cpp transaction.cpp portableupdateinstaller.cpp portableupdateinstaller.h)
 target_include_directories(zzlogg_portableupdater PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_features(zzlogg_portableupdater PUBLIC cxx_std_17)
+# Compile with the same Qt keyword policy as the application's UI consumers.
+target_compile_definitions(zzlogg_portableupdater PRIVATE QT_NO_KEYWORDS)
 target_link_libraries(zzlogg_portableupdater PUBLIC Qt6::Core PRIVATE klogg_karchive Qt6::Concurrent)
 
 set_target_properties(zzlogg_portableupdater PROPERTIES AUTOMOC ON)

@@ -44,7 +44,7 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
     connect(&impl_->watcher,&QFutureWatcher<Outcome>::finished,this,[this] {
         const auto result=impl_->watcher.result();
         auto fail=[this](const QString& error) {
-            impl_->busy=false; save(logPath(),error.toUtf8()+"\n");emit failed(error+tr("\nUpdate log: %1").arg(logPath()));
+            impl_->busy=false; save(logPath(),error.toUtf8()+"\n");Q_EMIT failed(error+tr("\nUpdate log: %1").arg(logPath()));
         };
         if(!result.error.isEmpty()) {fail(result.error);return;}
         if(impl_->cancelled->load()) {fail(tr("Portable update cancelled."));return;}
@@ -76,16 +76,16 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         QFile failure(impl_->stage+"/failed");
         if(failure.open(QIODevice::ReadOnly)) {
             impl_->timer.stop();impl_->busy=false;
-            emit failed(QString::fromUtf8(failure.read(8192))+tr("\nUpdate log: %1").arg(logPath()));return;
+            Q_EMIT failed(QString::fromUtf8(failure.read(8192))+tr("\nUpdate log: %1").arg(logPath()));return;
         }
         if(WaitForSingleObject(impl_->child,0)==WAIT_OBJECT_0 || impl_->handshake.elapsed()>60000) {
             impl_->timer.stop();save(impl_->stage+"/cancel","cancel\n");
             TerminateProcess(impl_->child,1);impl_->busy=false;
-            emit failed(tr("The portable update helper exited or did not become ready in time.\nUpdate log: %1").arg(logPath()));return;
+            Q_EMIT failed(tr("The portable update helper exited or did not become ready in time.\nUpdate log: %1").arg(logPath()));return;
         }
         QFile ready(impl_->stage+"/ready");
         if(ready.open(QIODevice::ReadOnly) && ready.readAll()=="READY\n") {
-            impl_->timer.stop();impl_->handedOff=true;emit readyToExit();
+            impl_->timer.stop();impl_->handedOff=true;Q_EMIT readyToExit();
         }
 #endif
     });
@@ -97,13 +97,13 @@ PortableUpdateInstaller::~PortableUpdateInstaller() {
 bool PortableUpdateInstaller::busy() const {return impl_->busy;}
 QString PortableUpdateInstaller::logPath() const {return impl_->stage+"/portable-update.log";}
 void PortableUpdateInstaller::start(const QString& packagePath,const QByteArray& sha256Hex,qint64 expectedSize,const QString& root) {
-    if(impl_->busy) {emit failed(tr("A portable update is already being prepared."));return;}
+    if(impl_->busy) {Q_EMIT failed(tr("A portable update is already being prepared."));return;}
     impl_->root=QDir(root).absolutePath();impl_->handedOff=false;
 #ifdef Q_OS_WIN
     if(impl_->child) {CloseHandle(impl_->child);impl_->child=nullptr;}
 #endif
     impl_->stage=QStandardPaths::writableLocation(QStandardPaths::CacheLocation)+"/portable-updates/"+QUuid::createUuid().toString(QUuid::WithoutBraces);
-    if(!QDir().mkpath(impl_->stage)) {emit failed(tr("Cannot create portable update staging directory."));return;}
+    if(!QDir().mkpath(impl_->stage)) {Q_EMIT failed(tr("Cannot create portable update staging directory."));return;}
     impl_->busy=true;impl_->cancelled=std::make_shared<std::atomic_bool>(false);
     const auto stage=impl_->stage,installRoot=impl_->root;const auto cancelFlag=impl_->cancelled;
     impl_->watcher.setFuture(QtConcurrent::run([packagePath,sha256Hex,expectedSize,installRoot,stage,cancelFlag] {
@@ -123,6 +123,6 @@ void PortableUpdateInstaller::cancel() {
     if(impl_->cancelled) impl_->cancelled->store(true);
     if(!impl_->stage.isEmpty()) save(impl_->stage+"/cancel","cancel\n");
     if(impl_->timer.isActive() || wasHandedOff) {
-        impl_->timer.stop();impl_->busy=false;emit failed(tr("Portable update cancelled."));
+        impl_->timer.stop();impl_->busy=false;Q_EMIT failed(tr("Portable update cancelled."));
     }
 }
