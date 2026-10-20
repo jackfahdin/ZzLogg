@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][ValidatePattern('^[0-9]{2}\.[0-9]{2}\.[0-9]{2}$')][string]$Version,
-    [ValidateSet('x64')][string]$Platform = 'x64'
+    [ValidateSet('x64')][string]$Platform = 'x64',
+    [string]$IsccPath = $env:ZZLOGG_ISCC
 )
 $ErrorActionPreference = 'Stop'
 
@@ -12,7 +13,14 @@ $compilerDigest = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40d
 $temporaryRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
 $compilerRoot = Join-Path $temporaryRoot "ZzLogg-InnoSetup-$innoVersion"
 $iscc = Join-Path $compilerRoot 'ISCC.exe'
-if (-not (Test-Path -LiteralPath $iscc)) {
+if ($IsccPath) {
+    if (-not (Test-Path -LiteralPath $IsccPath -PathType Leaf)) {
+        throw "Inno Setup compiler not found: $IsccPath. Set ZZLOGG_ISCC to the full ISCC.exe path."
+    }
+    $iscc = (Resolve-Path -LiteralPath $IsccPath).Path
+    Write-Host "Using installed Inno Setup compiler: $iscc"
+}
+elseif (-not (Test-Path -LiteralPath $iscc)) {
     $download = Join-Path $temporaryRoot "innosetup-$innoVersion-x64.exe"
     Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-$innoVersion-x64.exe" -OutFile $download
     if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ine $compilerDigest) {
@@ -29,7 +37,7 @@ if (-not (Test-Path -LiteralPath $iscc)) {
 # supported CLI instead of rejecting the official compiler's file metadata.
 $reportedVersion = (& $iscc '--version' | Out-String).Trim()
 if ($LASTEXITCODE -ne 0 -or $reportedVersion -cne $innoVersion) {
-    throw "Unexpected Inno Setup compiler version: $reportedVersion"
+    throw "Unexpected Inno Setup compiler version: $reportedVersion (required: $innoVersion; path: $iscc)"
 }
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 & $iscc '/Qp' "/DVERSION=$Version" "/DPLATFORM=$Platform" "/O$repositoryRoot" (Join-Path $PSScriptRoot 'ZzLogg.iss')

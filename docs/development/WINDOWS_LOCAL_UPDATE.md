@@ -17,6 +17,15 @@ python -m pip install -r scripts/ci/requirements-update.txt
 
 依赖和 Inno Setup 编译器首次下载需要联网。Inno Setup 复用现有固定版本及 SHA-256 校验，首次安装编译器时可能需要系统授权；之后使用本机缓存。
 
+如果本机已安装 **Inno Setup 7.1.0**，在同一 PowerShell 终端指定编译器，打包时就不会下载或安装 Inno Setup：
+
+```powershell
+$env:ZZLOGG_ISCC = "D:\SoftWare\Inno Setup 7\ISCC.exe"
+& $env:ZZLOGG_ISCC --version
+```
+
+脚本会校验具体版本为 `7.1.0`。路径不存在或版本不符时直接报错；未设置该变量时沿用缓存及自动下载。直接调用 `Build-InnoInstaller.ps1` 也可传入 `-IsccPath`。
+
 ## 1. 构建并安装基准版本 A
 
 ```powershell
@@ -73,6 +82,7 @@ python scripts/dev/windows_local_update.py serve --version 26.10.06 --app "D:\So
 
 - 找不到 Qt：指定完整 `--qt` kit 路径；若包含多个 MSVC kit，脚本不会自行猜选。
 - 找不到 `cl`：使用 x64 MSVC 开发者终端，普通 PowerShell 默认没有编译器环境。
+- 打包工具下载出现 `unexpected EOF`：可设置上面的 `ZZLOGG_ISCC` 使用已安装的编译器，再执行原来的 build 命令；无需删除已有构建目录。
 - 没有发现更新：确认是脚本生成并安装的 A、B 版本更高，且启动前所有旧实例已退出；不能直接从构建输出目录运行 A 进行安装版升级测试。
 - 下载或安装失败：保留软件提示、安装日志，以及终端输出。脚本遇到编译、清单或打包失败会停止，不会把失败的构建标记为新包。
 
