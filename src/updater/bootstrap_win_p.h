@@ -43,7 +43,7 @@ struct BootstrapData {
 };
 // bootstrap carries a reserved directory identity: the child opens the
 // computed existing mutex with SYNCHRONIZE and holds it (observer only) before
-// Hello. Never waited on, never released, never installation authority.
+// Hello. Never waited on or owned, and never installation authority.
 inline constexpr uint32_t DirectoryReserved=1;
 // GUI -> coordinator child launch request. Empty installer-chain fields
 // degrade to a plain protocol handshake.
@@ -90,6 +90,9 @@ public:
     const BootstrapData& data() const { return data_; }
     const ProcessIdentity& parent() const { return parent_; }
     bool directoryReserved() const;
+    // Close our observer only after the transaction engine has completed and
+    // exited, before launching the application again. Does not ReleaseMutex.
+    void releaseDirectoryObserver();
 private:
     BootstrapData data_{};
     ProcessIdentity parent_;

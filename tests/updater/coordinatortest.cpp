@@ -190,6 +190,9 @@ int driveChainToComplete(ChainDrive& drive,const fs::path& fixtureExe,const fs::
         || drive.coordinator.awaitAppExit(after(3000))!=CoordinationResult::WaitingForAppExit
         || !drive.coordinator.commitExit(after(500))
         || proceedWhenExited(drive.coordinator,drive.app.process)!=CoordinationResult::ProceedSent) return 0;
+    // The stand-in process has exited; release the reservation the harness
+    // held on its behalf. Only the coordinator's observer now keeps the gate shut.
+    drive.activity.cancelUpdate();
     const auto finished=drive.coordinator.finish(after(5000));
     return finished==CoordinationResult::Complete?1:finished==CoordinationResult::ManualRestartRequired?2:0;
 }

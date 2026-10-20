@@ -1,4 +1,5 @@
 #include "bootstrap_win_p.h"
+#include "installationactivity_win.h"
 #include "updatertesthelpers.h"
 #include <bcrypt.h>
 #include <algorithm>
@@ -162,7 +163,12 @@ int runGuiParent(wchar_t** arguments) {
     SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_ENGINE",L"light");
     SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_GUI",L"ok");
     SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
-    const auto data=makeBootstrap(request);
+    InstallationActivity activity;
+    if(activity.enter(request.installRoot)!=ActivityError::None
+        || activity.reserveUpdate()!=ActivityError::None)return 9;
+    auto data=makeBootstrap(request);
+    data.flags=DirectoryReserved;
+    data.directory=activity.identity();
     LocalChannel server;
     if(!server.create(data.transaction))return 4;
     RelayChild child;

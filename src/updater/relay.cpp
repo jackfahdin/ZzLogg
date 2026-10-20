@@ -89,6 +89,9 @@ int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options)
             relaunchAfterFailedTransaction(std::wstring(data.installRoot));
         return finished==CoordinationResult::ManualRestartRequired?RestartPending:RelayFailed;
     }
+    // This bootstrap owns a second observer independently of Coordinator.
+    // Both handles must close after confirmed completion and before restart.
+    bootstrap.releaseDirectoryObserver();
     return coordinator.restart(after(RestartBudgetMs))==CoordinationResult::Restarted?0:RestartPending;
 }
 }

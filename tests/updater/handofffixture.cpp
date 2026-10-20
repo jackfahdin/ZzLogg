@@ -203,6 +203,10 @@ int runGuiFixture(int argc,wchar_t** argv) {
     wchar_t self[32768]{};const auto length=GetModuleFileNameW(nullptr,self,32768);
     if(!length || length>=32768) return 8;
     const fs::path image(std::wstring(self,length));
+    // Match the real application's startup gate: an endpoint alone must not
+    // make a restart look successful while an update observer still blocks entry.
+    InstallationActivity activity;
+    if(activity.enter(image.parent_path().wstring())!=ActivityError::None) return 9;
     DirectoryIdentity identity{};
     if(!InstallationActivity::probeIdentity(image.parent_path().wstring(),identity)) return 8;
     const auto name=singleInstancePipeName(identity,image.filename().wstring());

@@ -244,6 +244,10 @@ CoordinationResult Coordinator::restart(Deadline deadline){
     if(!filePrefix(impl_->installRoot+L"\\.zzlogg-install-root","ZzLogg ")
         || !filePrefix(impl_->installRoot+L"\\.zzlogg-files.manifest","ZZTXMAN1")
         || !filePresent(image))return fail();
+    // finish() proved the transaction engine exited successfully. Close the
+    // observer before creating the GUI: merely retaining an unowned mutex
+    // makes InstallationActivity::enter reject the new process.
+    impl_->directoryObserver.reset();
     // Ordinary-user relaunch: the coordinator never elevates the GUI, and
     // only the bounded --data-dir value rides the command line.
     std::wstring command=L"\""+image+L"\"";

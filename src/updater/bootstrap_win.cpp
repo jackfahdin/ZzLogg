@@ -59,14 +59,16 @@ bool absolutePathPlausible(const wchar_t* text,std::size_t length) {
 struct ChildBootstrap::Impl {
     update::detail::StablePackage self;
     // Observer handle on the reserved directory mutex, opened with SYNCHRONIZE
-    // before Hello. Never waited on and never released: the handle keeps the
-    // named object alive so every new entry/lock stays fail-closed until this
-    // child ends. Its existence is coordination continuity, not installation
-    // authority.
+    // before Hello. Never waited on or owned: the handle keeps the named
+    // object alive until the transaction finishes or this child ends. It must
+    // close before restarting the application, whose startup checks existence.
     Handle directoryObserver;
 };
 ChildBootstrap::ChildBootstrap()=default;ChildBootstrap::~ChildBootstrap()=default;
 bool ChildBootstrap::directoryReserved() const { return impl_ && static_cast<bool>(impl_->directoryObserver); }
+void ChildBootstrap::releaseDirectoryObserver() {
+    if(impl_)impl_->directoryObserver.reset();
+}
 bool ChildBootstrap::open(int argc,wchar_t** argv){
     if(argc!=2 || impl_)return false;
     uint64_t value=0;const std::wstring text=argv[1];if(text.empty() || text.size()>20)return false;
