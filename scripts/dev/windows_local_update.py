@@ -17,7 +17,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / 'out/local-windows'
-DEFAULT_QT = r'D:\SoftWare\Qt\6.12.0'
+DEFAULT_QT = r'D:\SoftWare\Qt\6.11.0'
 
 
 def version_argument(value):
