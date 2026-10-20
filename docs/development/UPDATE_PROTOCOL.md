@@ -159,6 +159,8 @@ Qt 网络获取、渠道状态存储、统一检查服务、下载服务、进�
 
 生产缓存来自系统 `QStandardPaths::CacheLocation`，固定追加 `updates/production/packages-v1`，不随日志路径或用户数据目录变化。测试缓存使用 `updates/test/packages-v1`，且要求 Qt test mode。路径工厂不创建目录；只有明确下载操作通过信任检查后才开始写入。
 
+Windows 安装包在缓存中使用 `<sha256>/<安装包文件名>`，例如 `ZzLogg-26.10.09-x64-Qt6-setup.exe`，使 UAC 授权窗口显示可辨认的名称。文件名取自已验证清单中的下载 URL，仅接受受限的 `ZzLogg-*.exe` 名称，否则使用 `ZzLogg-setup.exe`；哈希子目录隔离同名的不同构建。下载大小、SHA-256 校验及路径安全检查仍然生效。
+
 - 文件名由 SHA-256 生成，忽略 HTTP 文件名；根、祖先、目标及锁路径拒绝符号链接和 Windows 重解析点。
 - 包上限为 512 MiB，预检缓存卷可用空间至少为包大小加 16 MiB；实际写入仍处理短写、磁盘满和提交失败。
 - 使用同名锁和 `QSaveFile` 临时写入，禁止直接写回退。长度与 SHA-256 同时匹配后才提交并提供可用路径。

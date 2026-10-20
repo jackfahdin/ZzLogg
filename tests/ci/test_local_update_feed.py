@@ -85,6 +85,8 @@ class LocalUpdateFeedTests(unittest.TestCase):
                         base64.b64decode(envelope['signature']),
                         b'ZzLogg update manifest v1\nzzlogg-update-local\n' + raw)
                     payload = json.loads(raw)
+                    self.assertEqual(payload['artifacts'][0]['url'],
+                        f'http://127.0.0.1:{port}/ZzLogg-26.10.06-x64-Qt6-setup.exe')
                     with urllib.request.urlopen(payload['artifacts'][0]['url'], timeout=3) as response:
                         self.assertEqual(response.read(), package.read_bytes())
                 finally:

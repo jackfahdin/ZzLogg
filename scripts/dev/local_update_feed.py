@@ -80,8 +80,8 @@ def main():
 
     workspace = args.workspace.resolve()
     workspace.mkdir(parents=True, exist_ok=True)
-    # The signer pins the release asset naming convention.
-    staged_installer = workspace / f'ZzLogg-{args.version}-windows-x64-setup.exe'
+    # Keep the local download name aligned with the installer output and UAC.
+    staged_installer = workspace / f'ZzLogg-{args.version}-x64-Qt6-setup.exe'
     staged_installer.write_bytes(installer.read_bytes())
     digest = hashlib.sha256(staged_installer.read_bytes()).hexdigest()
     size = staged_installer.stat().st_size

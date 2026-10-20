@@ -3,8 +3,10 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QLockFile>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QStorageInfo>
+#include <QUrl>
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
 #endif
@@ -13,6 +15,11 @@ namespace zzlogg::updateqt {
 namespace {
 constexpr quint64 maxPackageSize=512ULL*1024*1024;
 constexpr quint64 safetyMargin=16ULL*1024*1024;
+
+bool isWindowsInstaller(const update::Artifact& artifact)
+{
+    return artifact.os=="windows" && artifact.distribution==update::Distribution::Installer;
+}
 
 bool isLinkOrReparsePoint(const QString& path)
 {
@@ -112,22 +119,26 @@ CacheError PackageCache::begin()
         || !validHash(impl_->artifact.sha256)) return CacheError::InvalidArtifact;
     if (impl_->cacheRoot.isEmpty() || !QDir::isAbsolutePath(impl_->cacheRoot))
         return CacheError::InvalidPath;
-    impl_->cacheRoot=QDir::cleanPath(impl_->cacheRoot);
-    if (!hasSafeExistingPath(impl_->cacheRoot)) return CacheError::InvalidPath;
-    const QFileInfo existingRoot(impl_->cacheRoot);
+    // Keep the executable name readable in UAC, while isolating rebuilt
+    // packages with the same name by their verified content digest.
+    const QString packageRoot=isWindowsInstaller(impl_->artifact)
+        ? QDir(impl_->cacheRoot).filePath(QString::fromLatin1(impl_->artifact.sha256))
+        : QDir::cleanPath(impl_->cacheRoot);
+    if (!hasSafeExistingPath(packageRoot)) return CacheError::InvalidPath;
+    const QFileInfo existingRoot(packageRoot);
     if (existingRoot.exists() && !existingRoot.isDir()) return CacheError::InvalidPath;
-    if (!QDir().mkpath(impl_->cacheRoot)) return CacheError::InvalidPath;
-    const QFileInfo rootInfo(impl_->cacheRoot);
-    if (!rootInfo.isDir() || !hasSafeExistingPath(impl_->cacheRoot))
+    if (!QDir().mkpath(packageRoot)) return CacheError::InvalidPath;
+    const QFileInfo rootInfo(packageRoot);
+    if (!rootInfo.isDir() || !hasSafeExistingPath(packageRoot))
         return CacheError::InvalidPath;
-    impl_->destination=QDir(impl_->cacheRoot).filePath(packageCacheFileName(impl_->artifact));
+    impl_->destination=QDir(packageRoot).filePath(packageCacheFileName(impl_->artifact));
     const QString lockPath=impl_->destination+QStringLiteral(".lock");
     if (!hasSafeExistingPath(impl_->destination) || !hasSafeExistingPath(lockPath))
         return CacheError::InvalidPath;
     if (QFileInfo(impl_->destination).exists() && QFileInfo(impl_->destination).isDir())
         return CacheError::InvalidPath;
     if (!impl_->storage) return CacheError::InsufficientSpace;
-    const auto available=impl_->storage->availableBytes(impl_->cacheRoot);
+    const auto available=impl_->storage->availableBytes(packageRoot);
     const quint64 required=impl_->artifact.size+safetyMargin;
     if (!available || *available<required) return CacheError::InsufficientSpace;
     impl_->lock=std::make_unique<QLockFile>(lockPath);
@@ -180,6 +191,14 @@ CacheError PackageCache::cancel()
 QString PackageCache::verifiedPath() const { return impl_->verifiedPath; }
 QString packageCacheFileName(const update::Artifact& artifact)
 {
+    if (isWindowsInstaller(artifact)) {
+        const auto name=QUrl(QString::fromStdString(artifact.url)).fileName(QUrl::FullyDecoded);
+        // Accept only a bounded product filename, never path separators,
+        // device names, alternate data streams or URL query parameters.
+        static const QRegularExpression allowed(QStringLiteral("\\AZzLogg-[A-Za-z0-9._-]+\\.exe\\z"));
+        if (name.size()<=160 && allowed.match(name).hasMatch()) return name;
+        return QStringLiteral("ZzLogg-setup.exe");
+    }
     if (artifact.os == "linux" && (artifact.format == "deb" || artifact.format == "rpm"))
         return QString::fromLatin1(artifact.sha256) + QLatin1Char('.') + QString::fromStdString(artifact.format);
     return QString::fromLatin1(artifact.sha256)

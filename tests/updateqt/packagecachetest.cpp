@@ -71,6 +71,62 @@ public:
 class PackageCacheTest : public QObject {
     Q_OBJECT
 private slots:
+    void windowsInstallerRetainsNameAndSeparatesDifferentContents()
+    {
+        QTemporaryDir root;
+        const QString name=QStringLiteral("ZzLogg-26.10.09-x64-Qt6-setup.exe");
+        QStringList paths;
+        for (const QByteArray bytes : {QByteArray("first build"),QByteArray("second build")}) {
+            auto artifact=artifactFor(bytes);
+            artifact.os="windows";
+            artifact.distribution=zzlogg::update::Distribution::Installer;
+            artifact.url="https://example.invalid/releases/"+name.toStdString()+"?download=1";
+            PackageCache cache(root.path(),artifact);
+            QCOMPARE(cache.begin(),CacheError::None);
+            QCOMPARE(cache.append(bytes),CacheError::None);
+            QCOMPARE(cache.finish(),CacheError::None);
+            QCOMPARE(QFileInfo(cache.verifiedPath()).fileName(),name);
+            QCOMPARE(QFileInfo(cache.verifiedPath()).dir().dirName(),QString::fromLatin1(artifact.sha256));
+            paths.append(cache.verifiedPath());
+        }
+        QVERIFY(paths[0]!=paths[1]);
+        QFile first(paths[0]),second(paths[1]);
+        QVERIFY(first.open(QIODevice::ReadOnly));
+        QVERIFY(second.open(QIODevice::ReadOnly));
+        QCOMPARE(first.readAll(),QByteArray("first build"));
+        QCOMPARE(second.readAll(),QByteArray("second build"));
+    }
+
+    void windowsInstallerUnsafeNamesUseReadableFallback()
+    {
+        auto artifact=artifactFor("x");
+        artifact.os="windows";
+        artifact.distribution=zzlogg::update::Distribution::Installer;
+        for (const auto* name : {"", "CON.exe", "ZzLogg-bad%5cname.exe",
+                                "ZzLogg-bad%2fname.exe", "ZzLogg-file.exe%3astream", "ZzLogg-file.zip"}) {
+            artifact.url=std::string("https://example.invalid/")+name;
+            QCOMPARE(packageCacheFileName(artifact),QStringLiteral("ZzLogg-setup.exe"));
+        }
+    }
+
+    void windowsInstallerRejectsLinkedHashDirectory()
+    {
+        QTemporaryDir root,target;
+        auto artifact=artifactFor("x");
+        artifact.os="windows";
+        artifact.distribution=zzlogg::update::Distribution::Installer;
+        artifact.url="https://example.invalid/ZzLogg-26.10.09-x64-Qt6-setup.exe";
+        const auto directory=root.filePath(QString::fromLatin1(artifact.sha256));
+#ifdef Q_OS_WIN
+        QVERIFY(createJunction(directory,target.path()));
+#else
+        QVERIFY(QFile::link(target.path(),directory));
+#endif
+        PackageCache cache(root.path(),artifact);
+        QCOMPARE(cache.begin(),CacheError::InvalidPath);
+        QVERIFY(QDir(target.path()).isEmpty());
+    }
+
     void cacheFileNameExtensionMatchesPayloadKind()
     {
         // Installer packages must be cached as .exe: the update handoff runs
