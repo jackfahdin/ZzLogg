@@ -5,7 +5,6 @@ or make the Windows executable Authenticode signed.
 """
 import argparse
 import base64
-import hashlib
 import html
 import json
 from pathlib import Path
@@ -14,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from publish_release import GitHub, list_assets
 from release_assets import is_preview_label
-from sign_update_manifest import decimal, no_duplicate_keys
+from sign_update_manifest import decimal, no_duplicate_keys, packages_from_release, release_targets
 
 TRUST_KEY_PATH = Path(__file__).resolve().parents[2] / 'packaging/update/github-public-key.json'
 PRODUCT = 'com.gitcode.jackfahdinqt.zzlogg'
@@ -141,13 +141,13 @@ def verified_payload(content, channel, key_id, public_key):
         raise ValueError('Manifest product/channel/version is invalid')
     decimal(payload.get('metadataSequence'), 2**64 - 1, 'metadataSequence', 1)
     sequence = decimal(payload.get('releaseSequence'), 2**64 - 1, 'releaseSequence', 1)
-    if sequence != int(payload['version'].replace('.', '')):
+    if channel == 'stable' and sequence != int(payload['version'].replace('.', '')):
         raise ValueError('Manifest release sequence does not match version')
     return payload
 
 
-def previous_manifest(github, channel, key_id, public_key):
-    old = github.api(f'contents/{channel}.json?ref={BRANCH}', optional=True)
+def previous_feed_file(github, name, reference):
+    old = github.api(f'contents/{name}?ref={reference}', optional=True)
     if old is None:
         return None, None
     if (old.get('type') != 'file' or not old.get('sha') or old.get('encoding') != 'base64'
@@ -157,7 +157,12 @@ def previous_manifest(github, channel, key_id, public_key):
     content = base64.b64decode(''.join(old['content'].split()), validate=True)
     if len(content) != old['size']:
         raise ValueError('Existing feed file size mismatch')
-    return old, verified_payload(content, channel, key_id, public_key)
+    return old, content
+
+
+def previous_manifest(github, channel, key_id, public_key, reference=BRANCH):
+    old, content = previous_feed_file(github, f'{channel}.json', reference)
+    return old, verified_payload(content, channel, key_id, public_key) if content is not None else None
 
 
 def check_progress(previous, current, channel):
@@ -175,32 +180,56 @@ def check_progress(previous, current, channel):
             raise ValueError('Published stable version contents are immutable')
 
 
-def store_manifest(github, channel, content, old):
-    name = f'{channel}.json'
-    if github.api(f'git/ref/heads/{BRANCH}', optional=True) is None:
-        if old is not None:
-            raise ValueError('Feed branch disappeared after reading the manifest')
-        # Publish the first verified manifest in an independent root commit.
-        # No base_tree/parents means no source files or source history. Creating
-        # the ref last is atomic; a concurrent creation fails without a reset.
-        tree = github.api('git/trees', method='POST', data={'tree': [
-            {'path': name, 'mode': '100644', 'type': 'blob',
-             'content': content.decode('utf-8')}]})
-        commit = github.api('git/commits', method='POST', data={
-            'message': 'Initialize signed update metadata',
-            'tree': tree['sha'], 'parents': []})
+def store_manifests(github, contents, baseline, old):
+    # Publish all platform indexes in one commit. A non-forced ref update can
+    # only fast-forward from the head captured before downloads/signing; a
+    # competing publication makes this sibling commit fail without retry.
+    entries = [{'path': name, 'mode': '100644', 'type': 'blob',
+                'content': content.decode('utf-8')} for name, content in contents.items()]
+    tree_data = {'tree': entries}
+    parents = []
+    if baseline is not None:
+        head = baseline['object']['sha']
+        commit = github.api(f'git/commits/{head}')
+        tree_data['base_tree'] = commit['tree']['sha']
+        parents = [head]
+    elif old is not None:
+        raise ValueError('Feed branch disappeared after reading the manifest')
+    tree = github.api('git/trees', method='POST', data=tree_data)
+    commit = github.api('git/commits', method='POST', data={
+        'message': 'Publish signed desktop update metadata', 'tree': tree['sha'], 'parents': parents})
+    if baseline is None:
         github.api('git/refs', method='POST', data={
             'ref': f'refs/heads/{BRANCH}', 'sha': commit['sha']})
-        return
-    data = {'message': f'Renew signed {channel} update metadata', 'branch': BRANCH,
-            'content': base64.b64encode(content).decode('ascii')}
-    if old is not None:
-        if old.get('type') != 'file' or not old.get('sha'):
-            raise ValueError('Feed path is not a regular file')
-        data['sha'] = old['sha']
-    # Contents API's blob SHA is the compare-and-swap guard. Never retry a
-    # conflict with a newly read SHA: that could overwrite a newer publication.
-    github.api(f'contents/{name}', method='PUT', data=data)
+    else:
+        github.api(f'git/refs/heads/{BRANCH}', method='PATCH',
+                   data={'sha': commit['sha'], 'force': False})
+
+
+def verified_appcast(content, info, asset, arch, repository, public_key, directory):
+    if not 0 < len(content) <= MAX_MANIFEST_BYTES:
+        raise ValueError('Appcast exceeds size limit')
+    root = ET.fromstring(content)
+    items = root.findall('./channel/item')
+    if len(items) != 1:
+        raise ValueError('Appcast must contain exactly one release')
+    ns = '{http://www.andymatuschak.org/xml-namespaces/sparkle}'
+    enclosure = items[0].find('enclosure')
+    minimum = items[0].find(ns + 'minimumSystemVersion')
+    expected_url = f'https://github.com/{repository}/releases/download/{info["tag"]}/{asset["name"]}'
+    if (enclosure is None or minimum is None
+            or minimum.text != ('13.3' if arch == 'x64' else '14.0')
+            or enclosure.get('url') != expected_url
+            or enclosure.get('length') != str(asset['size'])
+            or enclosure.get(ns + 'version') != info['release_sequence']
+            or enclosure.get(ns + 'shortVersionString') != info['version']):
+        raise ValueError('Appcast does not match verified release')
+    try:
+        signature = base64.b64decode(enclosure.get(ns + 'edSignature'), validate=True)
+        public_key.verify(signature, (directory / asset['name']).read_bytes())
+    except (InvalidSignature, TypeError, ValueError):
+        raise ValueError('Appcast signature does not match pinned key and DMG') from None
+    return content
 
 
 def publish_channel(github, channel, key_id=None, *, now_ms=None):
@@ -222,7 +251,9 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
             channel == 'preview' and tag != 'continuous-build'):
         raise ValueError('Release tag does not match feed channel')
     # Capture and verify the CAS baseline before downloads/signing can race a newer run.
-    old, previous = previous_manifest(github, channel, key_id, public_key)
+    baseline = github.api(f'git/ref/heads/{BRANCH}', optional=True)
+    reference = baseline['object']['sha'] if baseline is not None else BRANCH
+    old, previous = previous_manifest(github, channel, key_id, public_key, reference)
     assets = list_assets(github, release['id'])
     metadata = [asset for asset in assets if asset.get('name', '').startswith('release-info-')
                 and asset['name'].endswith('.json')]
@@ -235,7 +266,7 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
         download(info_asset['browser_download_url'], info_path, info_asset['size'])
         if info_path.stat().st_size != info_asset['size']:
             raise ValueError('Release metadata size mismatch')
-        info = json.loads(info_path.read_text(encoding='utf-8'))
+        info = json.loads(info_path.read_text(encoding='utf-8'), object_pairs_hook=no_duplicate_keys)
         version, label = info.get('version'), info.get('artifact_label')
         if not isinstance(version, str) or not re.fullmatch(r'[0-9]{2}\.(?:0[1-9]|1[0-2])\.[0-9]{2}', version):
             raise ValueError('Invalid release version')
@@ -247,23 +278,21 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
                 raise ValueError('Stable version/tag/label mismatch')
         elif not is_preview_label(label):
             raise ValueError('Invalid preview artifact label')
-        name = f'ZzLogg-{label}-windows-x64-setup.exe'
-        asset = checked_asset(assets, name, github.repository, tag, MAX_PACKAGE_BYTES)
-        packages = [item for item in info.get('assets', []) if item.get('name') == name]
-        if len(packages) != 1 or type(packages[0].get('size')) is not int or packages[0]['size'] != asset['size']:
-            raise ValueError('Installer metadata does not match release asset')
-        package = directory / name
-        download(asset['browser_download_url'], package, asset['size'])
-        with package.open('rb') as stream:
-            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-        if package.stat().st_size != asset['size'] or digest != packages[0].get('sha256'):
-            raise ValueError('Installer SHA256 or size mismatch')
+        for name, _, _, _, _ in release_targets(label):
+            asset = checked_asset(assets, name, github.repository, tag, MAX_PACKAGE_BYTES)
+            packages = [item for item in info.get('assets', []) if item.get('name') == name]
+            if len(packages) != 1 or type(packages[0].get('size')) is not int or packages[0]['size'] != asset['size']:
+                raise ValueError('Package metadata does not match release asset')
+            download(asset['browser_download_url'], directory / name, asset['size'])
+        # Independently validate all downloaded package bytes before invoking
+        # the signer. This also validates the complete release record schema.
+        info, packages = packages_from_release(info_path, channel)
         notes_path = directory / 'notes.json'
         notes_path.write_text(json.dumps(plain_notes(release.get('body') or ''), ensure_ascii=False), encoding='utf-8')
         sequence = now_ms if now_ms is not None else time.time_ns() // 1_000_000
         options = {'--release-info': str(info_path), '--repository': github.repository,
                    '--channel': channel, '--metadata-sequence': str(sequence),
-                   '--release-sequence': str(int(version.replace('.', ''))),
+                   '--release-sequence': info['release_sequence'],
                    '--issued-at': str(sequence // 1000), '--ttl-seconds': str(14 * 24 * 60 * 60),
                    '--min-data-schema': '0', '--max-data-schema': '0',
                    '--min-os-version': '10.0.19041', '--key-id': key_id,
@@ -278,8 +307,26 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
         content = manifest.read_bytes()
         current = verified_payload(content, channel, key_id, public_key)
         check_progress(previous, current, channel)
-        store_manifest(github, channel, content, old)
-    print(f'Published {channel} feed for {version}; installation remains separately gated')
+        contents = {f'{channel}.json': content}
+        for name, os_name, arch, _, _ in release_targets(label):
+            if os_name == 'macos':
+                appcast_name = f'macos-{arch}-{channel}.xml'
+                appcast = directory / 'signed' / appcast_name
+                if appcast.stat().st_size > MAX_MANIFEST_BYTES:
+                    raise ValueError('Appcast exceeds size limit')
+                contents[appcast_name] = verified_appcast(appcast.read_bytes(), info, packages[name],
+                                                        arch, github.repository, public_key, directory)
+                if channel == 'stable' and previous is not None and previous['version'] == version:
+                    _, prior_appcast = previous_feed_file(github, appcast_name, reference)
+                    if prior_appcast is None:
+                        raise ValueError('Published stable appcast is missing')
+                    # Validate the prior enclosure identity and its signature
+                    # against today's verified DMG bytes. Same-version DMG
+                    # replacement cannot satisfy the prior Ed25519 signature.
+                    verified_appcast(prior_appcast, info, packages[name], arch,
+                                     github.repository, public_key, directory)
+        store_manifests(github, contents, baseline, old)
+    print(f'Published {channel} desktop feeds for {version}')
     return True
 
 

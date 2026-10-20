@@ -127,3 +127,36 @@ if(WIN32)
   set_property(TEST zzlogg_ui.window_chrome PROPERTY ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
   set_property(TEST zzlogg_ui.window_chrome PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
 endif()
+
+# Compile the real settings implementation for each build default. Linking the
+# settings archive supplies its other dependencies without extracting its
+# configuration object, whose public symbols are supplied here.
+foreach(channel_case IN ITEMS preview stable development)
+  set(official_default 1)
+  set(build_channel stable)
+  set(expected_channel stable)
+  if(channel_case STREQUAL "preview")
+    set(build_channel preview)
+    set(expected_channel preview)
+  elseif(channel_case STREQUAL "development")
+    set(official_default 0)
+    set(build_channel preview)
+  endif()
+  add_executable(zzlogg_update_channel_${channel_case}_test
+    update/updatechannelconfigurationtest.cpp
+    "${PROJECT_SOURCE_DIR}/src/settings/src/configuration.cpp")
+  target_link_libraries(zzlogg_update_channel_${channel_case}_test
+    PRIVATE klogg_settings Qt6::Widgets)
+  target_compile_definitions(zzlogg_update_channel_${channel_case}_test PRIVATE
+    ZZLOGG_SETTINGS_OFFICIAL_RELEASE=${official_default}
+    ZZLOGG_SETTINGS_RELEASE_CHANNEL="${build_channel}"
+    TEST_DEFAULT_UPDATE_CHANNEL="${expected_channel}")
+  add_test(NAME zzlogg_ui.update_channel_${channel_case}
+    COMMAND zzlogg_update_channel_${channel_case}_test -platform offscreen)
+  if(WIN32)
+    set_property(TEST zzlogg_ui.update_channel_${channel_case} PROPERTY ENVIRONMENT
+      "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+    set_property(TEST zzlogg_ui.update_channel_${channel_case} APPEND PROPERTY
+      ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+  endif()
+endforeach()

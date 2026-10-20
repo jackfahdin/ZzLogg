@@ -83,7 +83,7 @@ private slots:
             QVERIFY2(!verify(p).value,p.dump().c_str());
         }
         auto p=good; p["artifacts"][0]["size"]="536870912"; QVERIFY(verify(p).value);
-        p=good; p["artifacts"][0]["os"]="linux"; QVERIFY(verify(p).value);
+        p=good; p["artifacts"][0]["os"]="linux"; QVERIFY(!verify(p).value);
         p=good; p["artifacts"][0]["extra"]=1; QVERIFY(!verify(p).value);
         p=good;
         for(int i=1;i<17;++i) {
@@ -91,6 +91,33 @@ private slots:
             p["artifacts"].push_back(a);
         }
         QVERIFY(!verify(p).value);
+    }
+    void linuxFormatsAreSelectedExplicitlyAndBoundToPlatform() {
+        auto p=payload();
+        auto& deb=p["artifacts"][0];
+        deb["os"]="linux"; deb["distribution"]="installer"; deb["format"]="deb";
+        deb["minOsVersion"]="0.0.0";
+        auto rpm=deb; rpm["format"]="rpm";
+        p["artifacts"].push_back(rpm);
+        auto result=verify(p); QVERIFY(result.value);
+        auto current=installed(); current.os="linux"; current.distribution=Distribution::Installer;
+        QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::NoCompatibleArtifact);
+        for(const auto* format:{"rpm","deb"}) {
+            current.packageFormat=format;
+            const auto decision=selectUpdate(*result.value,current);
+            QVERIFY(decision.artifact);
+            QCOMPARE(decision.artifact->format,std::string(format));
+        }
+        current.packageFormat="nsis-exe";
+        QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::NoCompatibleArtifact);
+        for(const auto* os:{"windows","macos"}) {
+            auto bad=p; bad["artifacts"][0]["os"]=os;
+            QVERIFY(!verify(bad).value);
+        }
+        auto bad=p; bad["artifacts"][0]["distribution"]="portable";
+        QVERIFY(!verify(bad).value);
+        bad=p; bad["artifacts"].push_back(bad["artifacts"][0]);
+        QVERIFY(!verify(bad).value);
     }
     void urls() {
         for(const auto* url:{"https://user@updates.example.invalid/a",
@@ -199,6 +226,23 @@ private slots:
         current=installed(); current.distribution=Distribution::Installer;
         QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::Available);
     }
+    void previewBuildSequenceOrdersSameDisplayVersion() {
+        auto p=payload(); p["channel"]="preview"; p["version"]="26.09.00";
+        p["releaseSequence"]="1234567891";
+        auto ctx=context(); ctx.channel="preview";
+        const auto result=verify(p,ctx); QVERIFY(result.value);
+        auto current=installed(); current.channel="preview"; current.releaseSequence=1234567890;
+        QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::Available);
+        current.releaseSequence=1234567891;
+        QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::NoUpdate);
+        current.releaseSequence=1234567889; current.version={26,10,0};
+        QCOMPARE(selectUpdate(*result.value,current).status,DecisionStatus::ReleaseConflict);
+        p["channel"]="stable"; ctx.channel="stable";
+        const auto stable=verify(p,ctx); QVERIFY(stable.value);
+        current=installed(); current.releaseSequence=1;
+        QCOMPARE(selectUpdate(*stable.value,current).status,DecisionStatus::ReleaseConflict);
+    }
+
     void selectsMatchingArtifactRegardlessOfOrder() {
         auto p=payload();
         auto installer=p["artifacts"][0];

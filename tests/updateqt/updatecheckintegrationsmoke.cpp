@@ -21,6 +21,7 @@ private Q_SLOTS:
         auto* first=app.newWindow(); auto* second=app.newWindow();
         auto* action=first->findChild<QAction*>("checkUpdatesAction"); QVERIFY(action);
         action->trigger();
+        QTRY_COMPARE(app.findChildren<UpdateService*>().size(),1);
         auto services=app.findChildren<UpdateService*>();
         QCOMPARE(services.size(),1);
         QCOMPARE(app.findChildren<UpdateDownloadService*>().size(),1);

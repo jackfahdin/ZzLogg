@@ -82,7 +82,7 @@ Manifest parsePayload(const Json& json,const VerificationContext& context) {
     }
     const auto& artifacts=json.at("artifacts");
     require(artifacts.is_array() && !artifacts.empty() && artifacts.size()<=16);
-    std::set<std::tuple<std::string,std::string,Distribution>> identities;
+    std::set<std::tuple<std::string,std::string,Distribution,std::string>> identities;
     for(const auto& item:artifacts) {
         fields(item,{"os","arch","distribution","format","minOsVersion","url","size","sha256"});
         Artifact artifact;
@@ -94,14 +94,17 @@ Manifest parsePayload(const Json& json,const VerificationContext& context) {
         artifact.format=string(item.at("format"));
         // "nsis-exe" is the historical protocol enum kept for released clients;
         // installer packages are now built with Inno Setup.
-        require(artifact.format==(artifact.distribution==Distribution::Portable ? "zip" : "nsis-exe"));
+        require((artifact.os=="windows"
+                 && artifact.format==(artifact.distribution==Distribution::Portable ? "zip" : "nsis-exe"))
+             || (artifact.os=="linux" && artifact.distribution==Distribution::Installer
+                 && (artifact.format=="deb" || artifact.format=="rpm")));
         artifact.minOsVersion=osVersion(string(item.at("minOsVersion")));
         artifact.url=string(item.at("url")); require(isAllowedUpdateUrl(artifact.url,context.allowedHosts,context.environment));
         artifact.size=decimal(string(item.at("size")),512ULL*1024*1024);
         artifact.sha256=string(item.at("sha256"));
         require(artifact.sha256.size()==64 && std::all_of(artifact.sha256.begin(),artifact.sha256.end(),
             [](char c){return (c>='0'&&c<='9') || (c>='a'&&c<='f');}));
-        require(identities.emplace(artifact.os,artifact.arch,artifact.distribution).second);
+        require(identities.emplace(artifact.os,artifact.arch,artifact.distribution,artifact.format).second);
         result.artifacts.push_back(std::move(artifact));
     }
     return result;

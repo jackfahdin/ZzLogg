@@ -2,10 +2,13 @@
 
 #include <QString>
 #include <optional>
+#include <functional>
+
+class QObject;
 
 namespace zzlogg::updateqt {
 
-enum class InstallationKind { Unregistered, Legacy, Registered, Invalid, Unsupported };
+enum class InstallationKind { Unregistered, Legacy, Registered, Invalid, Unsupported, Portable, SystemPackage };
 
 struct InstallationEvidence {
     bool supportedPlatform = false;
@@ -24,9 +27,13 @@ struct InstallationEvidence {
 struct InstallationIdentity {
     InstallationKind kind = InstallationKind::Invalid;
     QString installRoot;
+    QString packageFormat;
 };
 
 InstallationIdentity evaluateInstallation(const InstallationEvidence& evidence);
 InstallationIdentity probeCurrentInstallation();
+// Callback runs on context's thread and is discarded if context is destroyed.
+void probeCurrentInstallationAsync(QObject* context,
+    std::function<void(InstallationIdentity)> callback);
 
 } // namespace zzlogg::updateqt

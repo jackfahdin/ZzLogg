@@ -83,6 +83,14 @@ private slots:
         artifact.distribution=zzlogg::update::Distribution::Portable;
         QCOMPARE(packageCacheFileName(artifact),
                  QString::fromLatin1(artifact.sha256)+QStringLiteral(".zip"));
+        artifact.distribution=zzlogg::update::Distribution::Installer;
+        artifact.os="linux";
+        artifact.format="deb";
+        QCOMPARE(packageCacheFileName(artifact),
+                 QString::fromLatin1(artifact.sha256)+QStringLiteral(".deb"));
+        artifact.format="rpm";
+        QCOMPARE(packageCacheFileName(artifact),
+                 QString::fromLatin1(artifact.sha256)+QStringLiteral(".rpm"));
     }
 
     void invalidArtifacts_data()

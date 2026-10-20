@@ -115,6 +115,37 @@ public:
 class InstallationProbeTest : public QObject {
     Q_OBJECT
 private slots:
+    void asynchronousProbeReturnsOnOwnerThread()
+    {
+        bool finished = false;
+        probeCurrentInstallationAsync(this, [&](InstallationIdentity) {
+            QCOMPARE(QThread::currentThread(), thread());
+            finished = true;
+        });
+        QVERIFY(!finished);
+        QTRY_VERIFY(finished);
+    }
+
+    void markedPortableDoesNotRequireRegistryAccess()
+    {
+#if !defined(Q_OS_WIN) || !defined(_M_X64)
+        QSKIP("Windows x64 filesystem probe required");
+#else
+        QTemporaryDir root;
+        QVERIFY(root.isValid());
+        QVERIFY(writeFile(root.filePath("ZzLogg.exe"), "fixture"));
+        QVERIFY(writeFile(root.filePath(".zzlogg-portable"), "ZzLogg portable\n"));
+        QVERIFY(writeFile(root.filePath(".zzlogg-portable-files.json"), "{\"schema\":1,\"files\":[\"ZzLogg.exe\"]}"));
+        FakeRegistry registry;
+        registry.value.readFailed = true;
+        const auto result = probeInstallation(root.filePath("ZzLogg.exe"), registry);
+        QCOMPARE(result.kind, InstallationKind::Portable);
+        QCOMPARE(result.packageFormat, QStringLiteral("zip"));
+        QVERIFY(writeFile(root.filePath(".zzlogg-install-root"), "ZzLogg 26.10.05\n"));
+        QCOMPARE(probeInstallation(root.filePath("ZzLogg.exe"), registry).kind, InstallationKind::Invalid);
+#endif
+    }
+
     // Catches missing probe logic, prefix matching, trusting copied markers and malformed files.
     void filesystemEvidence_data()
     {

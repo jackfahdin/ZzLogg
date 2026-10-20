@@ -102,12 +102,14 @@ class ReleaseTests(unittest.TestCase):
         self.artifacts = self.root / 'artifacts'
         files = [
             ('klogg_version/klogg_version.txt', VERSION),
+            ('klogg_version/klogg_release_sequence.txt', '1234567890'),
             (f'packages-linux/ZzLogg-{VERSION}-Linux.deb', 'deb'),
             (f'packages-linux/ZzLogg-{VERSION}-Linux.rpm', 'rpm'),
             (f'packages-macos-intel-qt6/ZzLogg-{VERSION}-mac-x64.dmg', 'intel'),
             (f'packages-macos-arm-qt6/ZzLogg-{VERSION}-mac-arm64.dmg', 'arm'),
             (f'packages-windows-x64-qt6/ZzLogg-{VERSION}-x64-Qt6-setup.exe', 'installer'),
             (f'packages-windows-x64-qt6/ZzLogg-{VERSION}-x64-Qt6-portable/ZzLogg.exe', 'portable'),
+            (f'packages-windows-x64-qt6/ZzLogg-{VERSION}-x64-Qt6-portable/ZzLoggPortableUpdate.exe', 'helper'),
         ]
         for name, value in files:
             path = self.artifacts / name
@@ -125,6 +127,24 @@ class ReleaseTests(unittest.TestCase):
         return assemble(self.artifacts, self.output, VERSION,
                         'Continuous-Build' if nightly else VERSION,
                         SHA, 'continuous-build' if nightly else 'v' + VERSION, 'https://example.com/run/123')
+
+    def test_missing_portable_update_helper_prevents_release(self):
+        next(self.artifacts.rglob('ZzLoggPortableUpdate.exe')).unlink()
+        with self.assertRaises(ValueError):
+            self.bundle()
+
+    def test_preview_sequence_is_preserved_from_the_platform_build_run(self):
+        info = self.bundle(True)
+        self.assertEqual(info['release_sequence'], '1234567890')
+        saved = json.loads((self.output / 'release-info-Continuous-Build.json').read_bytes())
+        self.assertEqual(saved['release_sequence'], '1234567890')
+
+    def test_preview_without_valid_build_sequence_is_rejected(self):
+        sequence = self.artifacts / 'klogg_version/klogg_release_sequence.txt'
+        for invalid in ['', '0', '01', '-1', '1.5', '18446744073709551616']:
+            sequence.write_text(invalid)
+            with self.subTest(sequence=invalid), self.assertRaises(ValueError):
+                self.bundle(True)
 
     def test_version_uses_cmake_export(self):
         (self.root / 'CMakeLists.txt').write_text('project(\n  Test\n  VERSION 26.9.0\n)\n')
@@ -349,7 +369,11 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue((self.output / 'release-info-Continuous-Build.json').is_file())
         self.assertTrue((self.output / 'SHA256SUMS-Continuous-Build.txt').is_file())
         with zipfile.ZipFile(next(self.output.glob('*.zip'))) as archive:
-            self.assertEqual(archive.namelist(), ['ZzLogg-Continuous-Build-windows-x64-portable/ZzLogg.exe'])
+            root = 'ZzLogg-Continuous-Build-windows-x64-portable/'
+            self.assertEqual(set(archive.namelist()), {root + name for name in [
+                'ZzLogg.exe', 'ZzLoggPortableUpdate.exe', '.zzlogg-portable', '.zzlogg-portable-files.json']})
+            manifest = json.loads(archive.read(root + '.zzlogg-portable-files.json'))
+            self.assertEqual(manifest, {'schema': 1, 'files': ['.zzlogg-portable', 'ZzLogg.exe', 'ZzLoggPortableUpdate.exe']})
 
     def test_prepare_uses_fixed_preview_label_without_run_identity_suffix(self):
         output = self.root / 'github-output'

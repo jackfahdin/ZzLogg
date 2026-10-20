@@ -45,6 +45,16 @@ def assemble(artifacts, output, version, label, sha, tag, run_url):
     version_file = artifacts / 'klogg_version' / 'klogg_version.txt'
     if version_file.read_text().strip() != version:
         raise ValueError('Build artifact version does not match release version')
+    if tag == 'continuous-build':
+        sequence_path = artifacts / 'klogg_version' / 'klogg_release_sequence.txt'
+        if not sequence_path.is_file():
+            raise ValueError('Preview build sequence artifact is required')
+        release_sequence = sequence_path.read_text().strip()
+        if (not re.fullmatch(r'[1-9][0-9]{0,19}', release_sequence)
+                or int(release_sequence) > 2**64 - 1):
+            raise ValueError('Preview build sequence must be canonical positive uint64')
+    else:
+        release_sequence = str(int(version.replace('.', '')))
     sources = {
         f'ZzLogg-{label}-linux-x64.deb': artifacts / 'packages-linux' / f'ZzLogg-{version}-Linux.deb',
         f'ZzLogg-{label}-linux-x64.rpm': artifacts / 'packages-linux' / f'ZzLogg-{version}-Linux.rpm',
@@ -53,7 +63,7 @@ def assemble(artifacts, output, version, label, sha, tag, run_url):
         f'ZzLogg-{label}-windows-x64-setup.exe': artifacts / 'packages-windows-x64-qt6' / f'ZzLogg-{version}-x64-Qt6-setup.exe',
     }
     portable = artifacts / 'packages-windows-x64-qt6' / f'ZzLogg-{version}-x64-Qt6-portable'
-    for path in [*sources.values(), portable / 'ZzLogg.exe']:
+    for path in [*sources.values(), portable / 'ZzLogg.exe', portable / 'ZzLoggPortableUpdate.exe']:
         if not path.is_file() or path.stat().st_size == 0:
             raise ValueError(f'Missing or empty release payload: {path}')
     if output.exists() and any(output.iterdir()):
@@ -62,11 +72,23 @@ def assemble(artifacts, output, version, label, sha, tag, run_url):
     for name, path in sources.items():
         shutil.copyfile(path, output / name)
     portable_name = f'ZzLogg-{label}-windows-x64-portable'
+    owned = sorted(path.relative_to(portable).as_posix() for path in portable.rglob('*')
+                   if path.is_file() and path.relative_to(portable).as_posix()
+                   not in {'.zzlogg-portable', '.zzlogg-portable-files.json'})
+    owned = sorted([*owned, '.zzlogg-portable'])
+    generated = {'.zzlogg-portable': b'ZzLogg portable\n',
+                 '.zzlogg-portable-files.json': (json.dumps({'schema': 1, 'files': owned},
+                                                          separators=(',', ':')) + '\n').encode()}
     with zipfile.ZipFile(output / f'{portable_name}.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+        for name, content in generated.items():
+            member = zipfile.ZipInfo(f'{portable_name}/{name}', date_time=(1980, 1, 1, 0, 0, 0))
+            member.compress_type = zipfile.ZIP_DEFLATED
+            member.external_attr = 0o100644 << 16
+            archive.writestr(member, content)
         for path in sorted(portable.rglob('*')):
             if path.is_symlink():
                 raise ValueError(f'Unexpected symlink in Windows portable package: {path}')
-            if path.is_file():
+            if path.is_file() and path.relative_to(portable).as_posix() not in generated:
                 # download-artifact resets mtimes. Keep identical bytes on a
                 # failed-job rerun so already uploaded snapshot assets are reusable.
                 member = zipfile.ZipInfo((Path(portable_name) / path.relative_to(portable)).as_posix(),
@@ -80,7 +102,7 @@ def assemble(artifacts, output, version, label, sha, tag, run_url):
         with path.open('rb') as stream:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         payloads.append({'name': path.name, 'size': path.stat().st_size, 'sha256': digest})
-    info = {'schema': 1, 'version': version, 'artifact_label': label,
+    info = {'schema': 1, 'version': version, 'release_sequence': release_sequence, 'artifact_label': label,
             'source_commit': sha, 'tag': tag, 'workflow_run': run_url, 'assets': payloads}
     metadata = output / f'release-info-{label}.json'
     metadata.write_text(json.dumps(info, indent=2) + '\n', encoding='utf-8')

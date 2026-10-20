@@ -20,8 +20,18 @@ private slots:
         QCOMPARE(release->version.patch, expectedVersion->patch);
         QCOMPARE(release->releaseSequence, std::uint64_t{TEST_RELEASE_SEQUENCE});
         QCOMPARE(release->channel, std::string{TEST_RELEASE_CHANNEL});
+#if defined(_WIN32)
         QCOMPARE(release->os, std::string{"windows"});
+#elif defined(__APPLE__)
+        QCOMPARE(release->os, std::string{"macos"});
+#else
+        QCOMPARE(release->os, std::string{"linux"});
+#endif
+#if defined(__aarch64__) || defined(__arm64__)
+        QCOMPARE(release->arch, std::string{"arm64"});
+#else
         QCOMPARE(release->arch, std::string{"x64"});
+#endif
         QCOMPARE(release->dataSchema, std::uint32_t{TEST_RELEASE_DATA_SCHEMA});
         QCOMPARE(release->updaterProtocol, std::uint32_t{1});
 #else

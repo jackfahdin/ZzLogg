@@ -534,6 +534,22 @@
         <source>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</source>
         <translation>&lt;p&gt;重要變更：&lt;/p&gt;&lt;ul&gt;</translation>
     </message>
+    <message>
+        <source>Update cancelled.</source>
+        <translation>更新已取消。</translation>
+    </message>
+    <message>
+        <source>The update is no longer valid. Check for updates and download again.</source>
+        <translation>此更新已失效。請重新檢查更新並下載。</translation>
+    </message>
+    <message>
+        <source>The update was installed. Please close and reopen ZzLogg.</source>
+        <translation>更新已安裝。請關閉並重新開啟 ZzLogg。</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation.</source>
+        <translation>此安裝不支援自動安裝更新。</translation>
+    </message>
 </context>
 <context>
     <name>MainWindow</name>
@@ -1524,6 +1540,62 @@
         <location filename="../applicationrunner.cpp" line="676"/>
         <source>ZzLogg UI</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Update postponed</source>
+        <translation>更新已暫緩</translation>
+    </message>
+    <message>
+        <source>The session could not be saved. The application will stay open. Resolve the save problem, then check for updates again.</source>
+        <translation>無法儲存工作階段，應用程式將保持開啟。請解決儲存問題後重新檢查更新。</translation>
+    </message>
+    <message>
+        <source>The downloaded package path contains a symbolic link.</source>
+        <translation>下載套件路徑包含符號連結。</translation>
+    </message>
+    <message>
+        <source>Cannot open the downloaded package safely.</source>
+        <translation>無法安全地開啟下載套件。</translation>
+    </message>
+    <message>
+        <source>The downloaded package is not a regular file of the expected size.</source>
+        <translation>下載套件不是符合預期大小的一般檔案。</translation>
+    </message>
+    <message>
+        <source>Cannot read the downloaded package.</source>
+        <translation>無法讀取下載套件。</translation>
+    </message>
+    <message>
+        <source>System package installation is only supported on Linux.</source>
+        <translation>系統套件安裝僅支援 Linux。</translation>
+    </message>
+    <message>
+        <source>Cannot create a private installation directory.</source>
+        <translation>無法建立私有安裝目錄。</translation>
+    </message>
+    <message>
+        <source>Cannot create the private installation package.</source>
+        <translation>無法建立安裝套件的私有複本。</translation>
+    </message>
+    <message>
+        <source>Reading the downloaded package failed.</source>
+        <translation>讀取下載套件失敗。</translation>
+    </message>
+    <message>
+        <source>The downloaded package size changed during verification.</source>
+        <translation>下載套件大小在驗證期間發生變化。</translation>
+    </message>
+    <message>
+        <source>Writing the private installation package failed.</source>
+        <translation>寫入安裝套件的私有複本失敗。</translation>
+    </message>
+    <message>
+        <source>The downloaded package failed size or SHA-256 verification. Download it again.</source>
+        <translation>下載套件未通過大小或 SHA-256 驗證。請重新下載。</translation>
+    </message>
+    <message>
+        <source>Saving the verified installation package failed.</source>
+        <translation>儲存已驗證的安裝套件失敗。</translation>
     </message>
 </context>
 <context>
@@ -2877,6 +2949,14 @@ Channel: %2</source>
         <source>Updates are not available for this installation.</source>
         <translation>此安裝不支援更新。</translation>
     </message>
+    <message>
+        <source>Installing the update. Complete any system authorization prompt and wait for the package manager to finish.</source>
+        <translation>正在安裝更新。請完成系統授權，並等待套件管理員執行完畢。</translation>
+    </message>
+    <message>
+        <source>Open installation log</source>
+        <translation>開啟安裝日誌</translation>
+    </message>
 </context>
 <context>
     <name>UpdateSettingsPage</name>
@@ -2921,6 +3001,96 @@ Channel: %2</source>
     <message>
         <source>Check for updates</source>
         <translation>檢查更新</translation>
+    </message>
+</context>
+<context>
+    <name>PortableUpdateInstaller</name>
+    <message>
+        <source>
+Update log: %1</source>
+        <translation>
+更新日誌：%1</translation>
+    </message>
+    <message>
+        <source>Portable update cancelled.</source>
+        <translation>可攜版更新已取消。</translation>
+    </message>
+    <message>
+        <source>Cannot save the portable update plan.</source>
+        <translation>無法儲存可攜版更新計畫。</translation>
+    </message>
+    <message>
+        <source>Cannot copy the portable update helper. Extract a complete portable release first.</source>
+        <translation>無法複製可攜版更新輔助程式。請先解壓縮完整的可攜版發行套件。</translation>
+    </message>
+    <message>
+        <source>The portable update helper could not start.</source>
+        <translation>無法啟動可攜版更新輔助程式。</translation>
+    </message>
+    <message>
+        <source>Cannot monitor the portable update helper.</source>
+        <translation>無法監控可攜版更新輔助程式。</translation>
+    </message>
+    <message>
+        <source>Portable ZIP installation is only supported on Windows.</source>
+        <translation>可攜 ZIP 更新僅支援 Windows。</translation>
+    </message>
+    <message>
+        <source>The portable update helper exited or did not become ready in time.
+Update log: %1</source>
+        <translation>可攜版更新輔助程式已結束或未能及時就緒。
+更新日誌：%1</translation>
+    </message>
+    <message>
+        <source>A portable update is already being prepared.</source>
+        <translation>正在準備另一項可攜版更新。</translation>
+    </message>
+    <message>
+        <source>Cannot create portable update staging directory.</source>
+        <translation>無法建立可攜版更新暫存目錄。</translation>
+    </message>
+</context>
+<context>
+    <name>zzlogg::updateqt::SystemPackageInstaller</name>
+    <message>
+        <source>This is not a supported Linux x64 DEB or RPM installation package.</source>
+        <translation>此檔案不是受支援的 Linux x64 DEB 或 RPM 安裝套件。</translation>
+    </message>
+    <message>
+        <source>System package installation is only supported on Linux.</source>
+        <translation>系統套件安裝僅支援 Linux。</translation>
+    </message>
+    <message>
+        <source>The required system package manager or pkexec authorization tool is unavailable.</source>
+        <translation>所需的系統套件管理員或 pkexec 授權工具無法使用。</translation>
+    </message>
+    <message>
+        <source>Cannot create the installation log directory.</source>
+        <translation>無法建立安裝日誌目錄。</translation>
+    </message>
+    <message>
+        <source>Cannot create the installation log.</source>
+        <translation>無法建立安裝日誌。</translation>
+    </message>
+    <message>
+        <source>Installing verified package using %1</source>
+        <translation>正在使用 %1 安裝已驗證的套件</translation>
+    </message>
+    <message>
+        <source>Cannot start the system package installer: %1</source>
+        <translation>無法啟動系統套件安裝程式：%1</translation>
+    </message>
+    <message>
+        <source>The system package manager installed the update successfully.</source>
+        <translation>系統套件管理員已成功安裝更新。</translation>
+    </message>
+    <message>
+        <source>The system package installer crashed (exit code %1). See the installation log.</source>
+        <translation>系統套件安裝程式已當機（結束代碼 %1）。請查看安裝日誌。</translation>
+    </message>
+    <message>
+        <source>The system package installer failed (exit code %1). See the installation log.</source>
+        <translation>系統套件安裝失敗（結束代碼 %1）。請查看安裝日誌。</translation>
     </message>
 </context>
 </TS>

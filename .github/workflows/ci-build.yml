@@ -19,7 +19,7 @@ on:
         required: true
         type: string
       release_mode:
-        description: stable 时构建官方发布身份；其他值保持关闭
+        description: stable 和 nightly 构建官方更新身份；普通 CI 保持关闭
         required: false
         default: ''
         type: string
@@ -32,6 +32,9 @@ permissions:
   contents: read
 
 env:
+  ZZLOGG_OFFICIAL_RELEASE: ${{ (inputs.release_mode == 'stable' || inputs.release_mode == 'nightly') && 'ON' || 'OFF' }}
+  ZZLOGG_RELEASE_CHANNEL: ${{ inputs.release_mode == 'nightly' && 'preview' || 'stable' }}
+  ZZLOGG_RELEASE_SEQUENCE: ${{ inputs.release_mode == 'nightly' && github.run_id || '' }}
   ZZLOGG_ENABLE_GITHUB_FEED: ${{ vars.ZZLOGG_UPDATE_FEED_ENABLED == 'true' && 'ON' || 'OFF' }}
 
 jobs:
@@ -45,12 +48,18 @@ jobs:
       - uses: ./.github/actions/klogg-version
 
       - name: Save version 
-        run: echo $KLOGG_VERSION > klogg_version.txt
+        run: |
+          echo "$KLOGG_VERSION" > klogg_version.txt
+          if [ -n "$ZZLOGG_RELEASE_SEQUENCE" ]; then
+            echo "$ZZLOGG_RELEASE_SEQUENCE" > klogg_release_sequence.txt
+          fi
 
       - uses: actions/upload-artifact@v7
         with:
           name: klogg_version
-          path: 'klogg_version.txt'
+          path: |
+            klogg_version.txt
+            klogg_release_sequence.txt
           if-no-files-found: error
 
   Linux:
@@ -274,7 +283,7 @@ jobs:
             qt_modules: qt5compat qtimageformats
             arch: x64
             artifacts_id: macos-intel-qt6
-            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.3
+            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.3 -DKLOGG_BUILD_UI_TESTS=ON
           - os: macos
             os_version: 14
             qt_version: 6.11.2
@@ -282,7 +291,7 @@ jobs:
             qt_modules: qt5compat qtimageformats
             arch: arm64
             artifacts_id: macos-arm-qt6
-            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0
+            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0 -DKLOGG_BUILD_UI_TESTS=ON
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
@@ -340,10 +349,6 @@ jobs:
 
   Windows:
     if: "inputs.source_sha != '' || !contains(github.event.head_commit.message, '[skip ci]')"
-    env:
-      # 只有稳定版发布构建取得官方发布身份；PR 与预览构建保持关闭。
-      ZZLOGG_OFFICIAL_RELEASE: ${{ inputs.release_mode == 'stable' && 'ON' || 'OFF' }}
-      ZZLOGG_RELEASE_CHANNEL: stable
     strategy:
       fail-fast: false
       matrix:

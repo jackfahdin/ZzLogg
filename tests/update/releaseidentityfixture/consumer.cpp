@@ -9,8 +9,8 @@ int main()
     if (!release || release->version.year != 26 || release->version.month != 9
         || release->version.patch != TEST_EXPECT_PATCH
         || release->releaseSequence != std::uint64_t{TEST_EXPECT_SEQUENCE}
-        || release->channel != TEST_EXPECT_CHANNEL || release->os != "windows"
-        || release->arch != "x64"
+        || release->channel != TEST_EXPECT_CHANNEL || release->os != TEST_EXPECT_OS
+        || (release->arch != "x64" && !(release->os == "macos" && release->arch == "arm64"))
         || release->dataSchema != std::uint32_t{TEST_EXPECT_SCHEMA}
         || release->updaterProtocol != 1) {
         return 1;

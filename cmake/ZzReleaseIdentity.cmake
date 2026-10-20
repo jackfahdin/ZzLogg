@@ -4,7 +4,7 @@ if(DEFINED ENV{ZZLOGG_OFFICIAL_RELEASE})
 endif()
 option(ZZLOGG_OFFICIAL_RELEASE "Build with an official ZzLogg release identity"
   ${official_release_default})
-set(ZZLOGG_RELEASE_SEQUENCE "" CACHE STRING
+set(ZZLOGG_RELEASE_SEQUENCE "$ENV{ZZLOGG_RELEASE_SEQUENCE}" CACHE STRING
   "Official release sequence; empty derives it from the display version")
 set(ZZLOGG_RELEASE_CHANNEL "$ENV{ZZLOGG_RELEASE_CHANNEL}" CACHE STRING
   "Official release channel")
@@ -82,9 +82,11 @@ function(zzlogg_configure_release_identity output)
         "Official release identity: PROJECT_VERSION_TWEAK must be zero")
     endif()
 
-    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows"
+        AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux"
+        AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
       message(FATAL_ERROR
-        "Official release identity: the target operating system must be Windows")
+        "Official release identity: unsupported target operating system")
     endif()
     if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
       message(FATAL_ERROR
@@ -92,7 +94,9 @@ function(zzlogg_configure_release_identity output)
     endif()
 
     set(target_architecture "")
-    if(NOT "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "")
+      set(target_architecture "${CMAKE_OSX_ARCHITECTURES}")
+    elseif(NOT "${CMAKE_GENERATOR_PLATFORM}" STREQUAL "")
       set(target_architecture "${CMAKE_GENERATOR_PLATFORM}")
     elseif(NOT "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}" STREQUAL "")
       set(target_architecture "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
@@ -100,17 +104,24 @@ function(zzlogg_configure_release_identity output)
       set(target_architecture "${CMAKE_SYSTEM_PROCESSOR}")
     endif()
     string(TOLOWER "${target_architecture}" target_architecture)
-    if(NOT target_architecture MATCHES "^(x64|amd64|x86_64)$")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND target_architecture MATCHES "^(arm64|aarch64)$")
+      set(ZZLOGG_RELEASE_IDENTITY_ARCH "arm64")
+    elseif(target_architecture MATCHES "^(x64|amd64|x86_64)$")
+      set(ZZLOGG_RELEASE_IDENTITY_ARCH "x64")
+    else()
       message(FATAL_ERROR
-        "Official release identity: the compiler target architecture must be x64")
+        "Official release identity: unsupported compiler target architecture")
     endif()
 
     set(ZZLOGG_RELEASE_IDENTITY_AVAILABLE 1)
     set(ZZLOGG_RELEASE_IDENTITY_VERSION "${ZZLOGG_DISPLAY_VERSION}")
     set(ZZLOGG_RELEASE_IDENTITY_SEQUENCE "${ZZLOGG_RELEASE_SEQUENCE}ULL")
     set(ZZLOGG_RELEASE_IDENTITY_CHANNEL "${ZZLOGG_RELEASE_CHANNEL}")
-    set(ZZLOGG_RELEASE_IDENTITY_OS "windows")
-    set(ZZLOGG_RELEASE_IDENTITY_ARCH "x64")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+      set(ZZLOGG_RELEASE_IDENTITY_OS "macos")
+    else()
+      string(TOLOWER "${CMAKE_SYSTEM_NAME}" ZZLOGG_RELEASE_IDENTITY_OS)
+    endif()
     set(ZZLOGG_RELEASE_IDENTITY_DATA_SCHEMA "${ZZLOGG_RELEASE_DATA_SCHEMA}U")
   endif()
 

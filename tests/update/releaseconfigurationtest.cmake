@@ -200,9 +200,7 @@ message(STATUS "Native target supports official identity: ${native_official_supp
 run_release_case(stable ${native_official_supported}
   OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
-# 空序号不再是错误：它从显示版本派生。Linux 上 native_official_supported 为 OFF，
-# 该用例退化为"官方身份在非 Windows 目标上失败关闭"，数值断言由
-# zzlogg_update.release_sequence 独立覆盖。
+# 空序号从显示版本派生；所有受支持的桌面目标均执行消费者断言。
 run_release_case(derived_sequence ${native_official_supported}
   OFFICIAL ON SEQUENCE "" CHANNEL stable SCHEMA 0 VERSION 26.09.03 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 260903 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable)
@@ -211,6 +209,8 @@ if(native_official_supported)
     OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
     EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable
     CLEAR_GENERATOR_PLATFORM COMPILER_ARCHITECTURE_ID X64 SYSTEM_PROCESSOR ARM64)
+endif()
+if(WIN32 AND native_official_supported)
   run_release_case(arm64ec_cpp_guard TRUE
     OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
     EXPECT_AVAILABLE OFF EXPECT_SEQUENCE 0 EXPECT_SCHEMA 0 EXPECT_CHANNEL unused
@@ -245,12 +245,12 @@ run_invalid_case(schema_leading_zero SCHEMA 00)
 run_invalid_case(invalid_month VERSION 26.13.00)
 run_invalid_case(extra_display_component VERSION 26.09.00.1)
 run_invalid_case(nonzero_resource_tweak TWEAK 1)
-run_invalid_case(non_windows_target SYSTEM_NAME Linux)
-run_invalid_case(arm64_target GENERATOR_PLATFORM_OVERRIDE ARM64)
+run_invalid_case(unsupported_target SYSTEM_NAME FreeBSD)
+run_invalid_case(arm64_windows_target SYSTEM_NAME Windows GENERATOR_PLATFORM_OVERRIDE ARM64)
 run_release_case(compiler_arm64_precedes_processor FALSE
   OFFICIAL ON SEQUENCE 123 CHANNEL stable SCHEMA 0 VERSION 26.09.00 TWEAK 0
   EXPECT_AVAILABLE ON EXPECT_SEQUENCE 123 EXPECT_SCHEMA 0 EXPECT_CHANNEL stable
-  CLEAR_GENERATOR_PLATFORM COMPILER_ARCHITECTURE_ID ARM64
+  SYSTEM_NAME Windows CLEAR_GENERATOR_PLATFORM COMPILER_ARCHITECTURE_ID ARM64
   SYSTEM_PROCESSOR AMD64)
 run_invalid_case(thirty_two_bit_target POINTER_SIZE 4)
 run_invalid_case(unknown_target_architecture CLEAR_TARGET_ARCHITECTURE)

@@ -1,7 +1,7 @@
-"""Sign a GitHub release's Windows installer manifest without publishing it.
+"""Sign a complete desktop release's JSON manifest and Sparkle appcasts.
 
-The installer must already be assembled (and, when applicable, Authenticode
-signed) beside release-info-LABEL.json. Keys are unencrypted Ed25519 PKCS8 PEM,
+All six desktop packages must already be assembled (and platform signed
+where applicable) beside release-info-LABEL.json. Keys are unencrypted Ed25519 PKCS8 PEM,
 read only from the named environment variable or a protected file outside the
 checkout. No private key is accepted on the command line or written to output.
 Sequence allocation and periodic renewal remain the caller's responsibility.
@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import xml.etree.ElementTree as ET
 
 from release_assets import is_preview_label
 
@@ -67,9 +68,20 @@ def read_json(path, maximum):
     return json.loads(data.decode('utf-8'), object_pairs_hook=no_duplicate_keys)
 
 
-def installer_from_release(path, channel):
+def release_targets(label):
+    return [
+        (f'ZzLogg-{label}-windows-x64-setup.exe', 'windows', 'x64', 'installer', 'nsis-exe'),
+        (f'ZzLogg-{label}-windows-x64-portable.zip', 'windows', 'x64', 'portable', 'zip'),
+        (f'ZzLogg-{label}-linux-x64.deb', 'linux', 'x64', 'installer', 'deb'),
+        (f'ZzLogg-{label}-linux-x64.rpm', 'linux', 'x64', 'installer', 'rpm'),
+        (f'ZzLogg-{label}-macos-x64.dmg', 'macos', 'x64', 'installer', 'dmg'),
+        (f'ZzLogg-{label}-macos-arm64.dmg', 'macos', 'arm64', 'installer', 'dmg'),
+    ]
+
+
+def packages_from_release(path, channel):
     info = read_json(path, 1024 * 1024)
-    fields(info, ['schema', 'version', 'artifact_label', 'source_commit', 'tag',
+    fields(info, ['schema', 'version', 'release_sequence', 'artifact_label', 'source_commit', 'tag',
                   'workflow_run', 'assets'], 'release information')
     require(type(info['schema']) is int and info['schema'] == 1, 'Unsupported release schema')
     version, label, tag = info['version'], info['artifact_label'], info['tag']
@@ -87,10 +99,13 @@ def installer_from_release(path, channel):
     else:
         require(tag == 'continuous-build', 'Preview tag must be continuous-build')
         require(is_preview_label(label), 'Invalid preview artifact label')
+    sequence = decimal(info['release_sequence'], UINT64_MAX, 'release sequence', 1)
+    if channel == 'stable':
+        require(sequence == int(version.replace('.', '')), 'Stable sequence must match display version')
     assets = info['assets']
     require(isinstance(assets, list) and 1 <= len(assets) <= 64, 'Invalid release assets')
-    expected_name = f'ZzLogg-{label}-windows-x64-setup.exe'
-    installer = None
+    expected = {target[0] for target in release_targets(label)}
+    packages = {}
     seen = set()
     for asset in assets:
         fields(asset, ['name', 'size', 'sha256'], 'release asset')
@@ -101,23 +116,52 @@ def installer_from_release(path, channel):
         seen.add(name)
         require(type(size) is int and size > 0, 'Invalid asset size')
         require(isinstance(digest, str) and re.fullmatch(r'[0-9a-f]{64}', digest), 'Invalid asset SHA-256')
-        if name == expected_name:
-            installer = asset
-    require(installer is not None, 'Release must contain the exact Windows x64 installer asset')
-    require(installer['size'] <= MAX_PACKAGE_SIZE, 'Installer exceeds 512 MiB')
-    package = path.parent / installer['name']
-    regular_file(package)
-    digest = hashlib.sha256()
-    count = 0
-    with package.open('rb') as stream:
-        require(os.fstat(stream.fileno()).st_size == installer['size'], 'Installer size mismatch')
-        while block := stream.read(64 * 1024):
-            count += len(block)
-            require(count <= installer['size'], 'Installer size changed during hashing')
-            digest.update(block)
-    require(count == installer['size'] and digest.hexdigest() == installer['sha256'],
-            'Installer size or SHA-256 mismatch')
-    return info, installer
+        if name in expected:
+            require(size <= MAX_PACKAGE_SIZE, 'Package exceeds 512 MiB')
+            packages[name] = asset
+    require(set(packages) == expected, 'Release must contain all six desktop package assets')
+    for asset in packages.values():
+        package = path.parent / asset['name']
+        regular_file(package)
+        digest = hashlib.sha256()
+        count = 0
+        with package.open('rb') as stream:
+            require(os.fstat(stream.fileno()).st_size == asset['size'], 'Package size mismatch')
+            while block := stream.read(64 * 1024):
+                count += len(block)
+                require(count <= asset['size'], 'Package size changed during hashing')
+                digest.update(block)
+        require(count == asset['size'] and digest.hexdigest() == asset['sha256'],
+                'Package size or SHA-256 mismatch')
+    return info, packages
+
+
+def artifact_url(args, info, name):
+    if args.artifact_base_url:
+        return f'{args.artifact_base_url.rstrip("/")}/{name}'
+    return f'https://github.com/{args.repository}/releases/download/{info["tag"]}/{name}'
+
+
+def sparkle_appcast(args, info, asset, arch, key):
+    ns = 'http://www.andymatuschak.org/xml-namespaces/sparkle'
+    ET.register_namespace('sparkle', ns)
+    rss = ET.Element('rss', {'version': '2.0'})
+    channel = ET.SubElement(rss, 'channel')
+    ET.SubElement(channel, 'title').text = f'ZzLogg macOS {arch} {args.channel}'
+    item = ET.SubElement(channel, 'item')
+    ET.SubElement(item, 'title').text = f'ZzLogg {info["version"]}'
+    ET.SubElement(item, f'{{{ns}}}minimumSystemVersion').text = '13.3' if arch == 'x64' else '14.0'
+    dmg = (Path(args.release_info).parent / asset['name']).read_bytes()
+    require(len(dmg) == asset['size'] and hashlib.sha256(dmg).hexdigest() == asset['sha256'],
+            'DMG changed before signing')
+    ET.SubElement(item, 'enclosure', {
+        'url': artifact_url(args, info, asset['name']), 'length': str(len(dmg)),
+        'type': 'application/octet-stream',
+        f'{{{ns}}}version': info['release_sequence'],
+        f'{{{ns}}}shortVersionString': info['version'],
+        f'{{{ns}}}edSignature': base64.b64encode(key.sign(dmg)).decode('ascii'),
+    })
+    return ET.tostring(rss, encoding='utf-8', xml_declaration=True) + b'\n'
 
 
 def load_key(args):
@@ -158,7 +202,8 @@ def sign_manifest(args):
     require(len(parts) == 3, 'Minimum OS version must have three components')
     for part in parts:
         decimal(part, UINT32_MAX, 'minimum OS version')
-    info, installer = installer_from_release(Path(args.release_info).absolute(), args.channel)
+    info, packages = packages_from_release(Path(args.release_info).absolute(), args.channel)
+    require(args.release_sequence == info['release_sequence'], 'Release sequence must match build record')
     if args.artifact_base_url:
         require(re.fullmatch(r'[a-z][a-z0-9+.-]*://[0-9a-z.\-]+(:[0-9]{1,5})?', args.artifact_base_url,
                              re.IGNORECASE), 'Invalid artifact base URL')
@@ -177,13 +222,15 @@ def sign_manifest(args):
                'releaseSequence': args.release_sequence, 'version': info['version'],
                'minUpdaterProtocol': 1, 'minDataSchema': minimum, 'maxDataSchema': maximum,
                'notes': notes,
-               'artifacts': [{'os': 'windows', 'arch': 'x64', 'distribution': 'installer',
-                              'format': 'nsis-exe', 'minOsVersion': args.min_os_version,
-                              'url': (f'{args.artifact_base_url.rstrip("/")}/{installer["name"]}'
-                                      if args.artifact_base_url else
-                                      f'https://github.com/{args.repository}/releases/download/'
-                                      f'{info["tag"]}/{installer["name"]}'),
-                              'size': str(installer['size']), 'sha256': installer['sha256']}]}
+               'artifacts': [
+                   {'os': os_name, 'arch': arch, 'distribution': distribution,
+                    'format': package_format,
+                    'minOsVersion': args.min_os_version if os_name == 'windows' else '0.0.0',
+                    'url': artifact_url(args, info, name),
+                    'size': str(packages[name]['size']), 'sha256': packages[name]['sha256']}
+                   for name, os_name, arch, distribution, package_format
+                   in release_targets(info['artifact_label']) if os_name != 'macos']}
+
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     require(len(raw) <= 128 * 1024, 'Payload exceeds protocol size limit')
     key = load_key(args)
@@ -194,9 +241,16 @@ def sign_manifest(args):
     encoded = (json.dumps(envelope, separators=(',', ':')) + '\n').encode('utf-8')
     require(len(encoded) <= 256 * 1024, 'Envelope exceeds protocol size limit')
     output = Path(args.output_dir) / f'update-{args.channel}.json'
+    outputs = {output: encoded}
+    for name, os_name, arch, _, _ in release_targets(info['artifact_label']):
+        if os_name == 'macos':
+            outputs[output.parent / f'macos-{arch}-{args.channel}.xml'] = sparkle_appcast(
+                args, info, packages[name], arch, key)
+    require(not any(path.exists() for path in outputs), 'Signed output already exists')
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open('xb') as stream:
-        stream.write(encoded)
+    for path, content in outputs.items():
+        with path.open('xb') as stream:
+            stream.write(content)
     return {'keyId': args.key_id, 'publicKey': key.public_key().public_bytes_raw().hex(),
             'output': str(output)}
 

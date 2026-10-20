@@ -180,6 +180,8 @@ CacheError PackageCache::cancel()
 QString PackageCache::verifiedPath() const { return impl_->verifiedPath; }
 QString packageCacheFileName(const update::Artifact& artifact)
 {
+    if (artifact.os == "linux" && (artifact.format == "deb" || artifact.format == "rpm"))
+        return QString::fromLatin1(artifact.sha256) + QLatin1Char('.') + QString::fromStdString(artifact.format);
     return QString::fromLatin1(artifact.sha256)
         + (artifact.distribution==update::Distribution::Installer
                ? QStringLiteral(".exe") : QStringLiteral(".zip"));

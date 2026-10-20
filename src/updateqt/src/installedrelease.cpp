@@ -24,14 +24,20 @@ std::optional<update::InstalledRelease> makeInstalledRelease(
     const InstallationIdentity& installation,
     const update::OsVersion& osVersion)
 {
-    if (!release || installation.kind != InstallationKind::Registered
+    if (!release
         || installation.installRoot.isEmpty() || !isValidVersion(release->version)
         || release->releaseSequence == 0
         || (release->channel != "stable" && release->channel != "preview")
-        || release->os != "windows" || release->arch != "x64"
+        || release->arch != "x64"
         || release->updaterProtocol != 1 || osVersion.major == 0) {
         return std::nullopt;
     }
+    const bool registered = release->os == "windows" && installation.kind == InstallationKind::Registered;
+    const bool portable = release->os == "windows" && installation.kind == InstallationKind::Portable
+        && installation.packageFormat == QStringLiteral("zip");
+    const bool systemPackage = release->os == "linux" && installation.kind == InstallationKind::SystemPackage
+        && (installation.packageFormat == QStringLiteral("deb") || installation.packageFormat == QStringLiteral("rpm"));
+    if (!registered && !portable && !systemPackage) return std::nullopt;
 
     update::InstalledRelease result;
     result.version = release->version;
@@ -40,7 +46,8 @@ std::optional<update::InstalledRelease> makeInstalledRelease(
     result.channel = release->channel;
     result.os = release->os;
     result.arch = release->arch;
-    result.distribution = update::Distribution::Installer;
+    result.distribution = portable ? update::Distribution::Portable : update::Distribution::Installer;
+    result.packageFormat = registered ? "nsis-exe" : installation.packageFormat.toStdString();
     result.osVersion = osVersion;
     result.dataSchema = release->dataSchema;
     result.updaterProtocol = release->updaterProtocol;

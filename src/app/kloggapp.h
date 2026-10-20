@@ -50,6 +50,13 @@
 #include "applicationupdateguard.h"
 #include "applicationupdatehandoff.h"
 #include "applicationupdatesession.h"
+#include "zzlogg/updateqt/systempackageinstaller.h"
+#ifdef Q_OS_WIN
+#include "portableupdateinstaller.h"
+#endif
+#ifdef ZZLOGG_HAS_SPARKLE
+#include "macupdatecontroller.h"
+#endif
 #include "klogg_version.h"
 #include "log.h"
 #include "logger.h"
@@ -67,6 +74,7 @@
 #include "zzlogg/updateqt/updatedownloadservice.h"
 #include "zzlogg/updateqt/updatecachepaths.h"
 #include "zzlogg/updateqt/currentinstallation.h"
+#include "zzlogg/updateqt/osversion.h"
 #include "zzlogg/updateqt/installationidentity.h"
 #include "zzlogg/update/releaseidentity.h"
 #include "zzlogg_brand.h"
@@ -136,7 +144,7 @@ class KloggApp : public QApplication {
                     != zzlogg::updateqt::DownloadStatus::Verified ) {
             return offer;
         }
-        const auto installation = zzlogg::updateqt::probeCurrentInstallation();
+        const auto installation = updateInstallation();
         if ( installation.kind != zzlogg::updateqt::InstallationKind::Registered ) {
             return offer;
         }
@@ -384,9 +392,17 @@ class KloggApp : public QApplication {
         ensureUpdateService();
     }
 
-#ifdef Q_OS_MAC
     bool event( QEvent* event ) override
     {
+        if (event->type() == QEvent::Quit) {
+            if (nativeInstallBusy_) { event->ignore(); return true; }
+#ifdef ZZLOGG_HAS_SPARKLE
+            if (macUpdateExitPrepared_ && isApplicationExitPrepared() && !commitApplicationExit()) {
+                event->ignore(); return true;
+            }
+#endif
+        }
+#ifdef Q_OS_MAC
         if ( event->type() == QEvent::FileOpen ) {
             QFileOpenEvent* openEvent = static_cast<QFileOpenEvent*>( event );
             LOG_INFO << "File open request " << openEvent->file();
@@ -399,9 +415,9 @@ class KloggApp : public QApplication {
             }
         }
 
+#endif
         return QApplication::event( event );
     }
-#endif
 
   private:
     MainWindow* newWindow( WindowSession&& session )
@@ -445,15 +461,17 @@ class KloggApp : public QApplication {
         connect( window, &MainWindow::restartRequested,
                  [ this ] { restartApplication(); } );
         connect(window, &MainWindow::checkUpdatesRequested, this, [this, window] {
-            ensureUpdateService();
-            if (!updateService_) return;
-            updateDownloadService_->invalidate();
-            updateDialogDismissed_=false;
-            showUpdateDialog(window,true);
-            updateService_->requestCheck(configuredUpdateChannel(),zzlogg::updateqt::CheckOrigin::Manual);
+            requestManualUpdate(window);
         });
         connect(window, &MainWindow::updatePreferencesChanged, this, [this] {
             ensureUpdateService();
+#ifdef ZZLOGG_HAS_SPARKLE
+            if (macUpdater_ && macUpdater_->available()) {
+                if (singleApplication_.isPrimaryInstance() && Configuration::get().versionCheckingEnabled())
+                    macUpdater_->checkForUpdates(false);
+                return;
+            }
+#endif
             if (!updateService_) return;
             if(updateService_->snapshot().channel!=configuredUpdateChannel()) updateDownloadService_->invalidate();
             updateService_->setChannel(configuredUpdateChannel());
@@ -484,6 +502,7 @@ class KloggApp : public QApplication {
 
     void exitApplication()
     {
+        if (nativeInstallBusy_) return;
         LOG_INFO << "exit application";
         if ( !closeAllWindowsForApplicationExit() ) {
             return;
@@ -521,19 +540,71 @@ class KloggApp : public QApplication {
             ? zzlogg::updateqt::Channel::Preview : zzlogg::updateqt::Channel::Stable;
     }
 
+    zzlogg::updateqt::InstallationIdentity updateInstallation() const {
+#ifdef Q_OS_LINUX
+        return updateInstallation_.value_or(zzlogg::updateqt::InstallationIdentity{});
+#else
+        return zzlogg::updateqt::probeCurrentInstallation();
+#endif
+    }
+
+    void requestManualUpdate(QWidget* window) {
+        if (nativeInstallBusy_) return;
+        ensureUpdateService();
+#ifdef ZZLOGG_HAS_SPARKLE
+        if (macUpdater_ && macUpdater_->available()) { macUpdater_->checkForUpdates(true); return; }
+#endif
+        if (!updateService_) { pendingUpdateWindow_ = window; return; }
+        updateDownloadService_->invalidate();
+        updateDialogDismissed_ = false;
+        showUpdateDialog(window, true);
+        updateService_->requestCheck(configuredUpdateChannel(), zzlogg::updateqt::CheckOrigin::Manual);
+    }
+
     void ensureUpdateService() {
         using namespace zzlogg::updateqt;
+#ifdef ZZLOGG_HAS_SPARKLE
+        if (!macUpdater_) {
+            macUpdater_=std::make_unique<MacUpdateController>(
+                [this] { macUpdateExitPrepared_ = prepareApplicationExit(); return macUpdateExitPrepared_; },
+                [this] { macUpdateExitPrepared_ = false; cancelApplicationExitPreparation(); }, this);
+            if (singleApplication_.isPrimaryInstance() && Configuration::get().versionCheckingEnabled())
+                QTimer::singleShot(10000, this, [this] {
+                    if (Configuration::get().versionCheckingEnabled()) macUpdater_->checkForUpdates(false);
+                });
+        }
+        if (macUpdater_->available()) return;
+#endif
         if (updateService_ || !StorageContext::isInstalled()) return;
+#ifdef Q_OS_LINUX
+        if (!updateInstallation_) {
+            if (updateProbePending_) return;
+            updateProbePending_ = true;
+            probeCurrentInstallationAsync(this, [this](InstallationIdentity identity) {
+                updateProbePending_ = false;
+                updateInstallation_ = std::move(identity);
+                ensureUpdateService();
+                if (pendingUpdateWindow_) {
+                    auto window = pendingUpdateWindow_;
+                    pendingUpdateWindow_.clear();
+                    requestManualUpdate(window);
+                }
+            });
+            return;
+        }
+#endif
         // 检查与下载必须针对同一个安装身份，只探测一次再分发给两个服务。
-        const auto installed=currentInstalledRelease();
+        const auto installed=composeInstalledRelease(zzlogg::update::compiledReleaseIdentity(),
+            updateInstallation(), currentOsVersion());
         const auto feedConfig=appFeedConfiguration();
         // 本地/Test feed 的状态与缓存走 test 命名空间,不触碰生产状态。
         const bool testFeed=feedConfig.environment==zzlogg::update::TrustEnvironment::Test;
         const auto root=StorageContext::current().runtimePaths().appConfigDirectory;
         const auto path=root.isEmpty() ? QString{} : QDir(root).filePath(
             testFeed ? "updates/test/check-state-v1.json" : "updates/production/check-state-v1.json");
+        updateStateStore_=std::make_shared<UpdateStateStore>(path);
         updateService_=std::make_unique<UpdateService>(feedConfig,
-            std::make_shared<UpdateStateStore>(path),installed,
+            updateStateStore_,installed,
             [] { return QDateTime::currentSecsSinceEpoch(); },this);
         updateService_->setObjectName("applicationUpdateService");
         updateService_->setDisplayVersion(zzlogg::update::parseVersion(QString(kloggVersion()).toStdString()));
@@ -548,6 +619,7 @@ class KloggApp : public QApplication {
             && Configuration::get().versionCheckingEnabled());
         connect(updateService_.get(),&UpdateService::snapshotChanged,this,[this] {
             const auto& snapshot=updateService_->snapshot();
+            if (nativeInstallBusy_) return;
             if (snapshot.status==CheckStatus::Checking) {
                 updateDownloadService_->invalidate();
                 updateDialogDismissed_=false;
@@ -589,12 +661,18 @@ class KloggApp : public QApplication {
                 if (updateDialog_ && !updateService_->snapshot().presentToUser) updateDialog_->close();
             });
             connect(dialog,&UpdateCheckDialog::installRequested,this,[this] {
-                if ( updateHandoff_ && !updateHandoff_->isWaiting() ) {
-                    updateHandoff_.reset();
-                }
-                updateHandoff().begin();
+                installDownloadedUpdate();
             } );
-            connect(dialog,&UpdateCheckDialog::installCancelRequested,this,[this] { updateHandoff().cancel(); });
+            connect(dialog,&UpdateCheckDialog::installCancelRequested,this,[this] {
+#ifdef Q_OS_WIN
+                if (portableInstaller_ && portableInstaller_->busy()) {
+                    portableInstaller_->cancel();
+                    nativeInstallFailed(tr("Update cancelled."), portableInstaller_->logPath());
+                    return;
+                }
+#endif
+                if (!nativeInstallBusy_) updateHandoff().cancel();
+            });
             connect(dialog,&UpdateCheckDialog::closing,this,[this,dialog] {
                 updateDialogDismissed_=true;
                 if(updateDialog_==dialog) updateDialog_.clear();
@@ -658,9 +736,135 @@ class KloggApp : public QApplication {
     void pushUpdateExecutionCapability()
     {
         if ( updateDialog_ ) {
+            bool nativeAvailable = false;
+            if (updateDownloadService_ && updateDownloadService_->snapshot().status == zzlogg::updateqt::DownloadStatus::Verified
+                && updateDownloadService_->snapshot().selection) {
+                const auto installation = updateInstallation();
+                nativeAvailable = installation.kind == zzlogg::updateqt::InstallationKind::Portable
+                    || installation.kind == zzlogg::updateqt::InstallationKind::SystemPackage;
+            }
             updateDialog_->setUpdateExecutionAvailable(
-                makeUpdateSessionFactory( updateSessionInputs() ) != nullptr );
+                !nativeInstallBusy_ && (nativeAvailable || makeUpdateSessionFactory( updateSessionInputs() ) != nullptr) );
         }
+    }
+
+    std::optional<zzlogg::update::Artifact> installationArtifact() const
+    {
+        using namespace zzlogg::updateqt;
+        if (!updateService_ || !updateDownloadService_ || !updateStateStore_) return {};
+        const auto& download = updateDownloadService_->snapshot();
+        if (download.status != DownloadStatus::Verified || !download.selection) return {};
+        const auto current = composeInstalledRelease(zzlogg::update::compiledReleaseIdentity(),
+            updateInstallation(), currentOsVersion());
+        if (!current) return {};
+        const auto channel = updateService_->snapshot().channel;
+        const auto state = updateStateStore_->read(channel);
+        if (!state.value) return {};
+        const auto config = appFeedConfiguration();
+        zzlogg::update::VerificationContext context{config.keys, config.environment, config.allowedHosts,
+            QDateTime::currentSecsSinceEpoch(), config.buildTime,
+            channel == Channel::Stable ? "stable" : "preview", state.value->accepted};
+        return zzlogg::update::revalidateUpdateSelection(*download.selection, context, *current).artifact;
+    }
+
+    void nativeInstallFailed(const QString& detail, const QString& logPath)
+    {
+        nativeInstallBusy_ = false;
+        cancelApplicationExitPreparation();
+        updateGuard_.cancelUpdate();
+        LOG_WARNING << "Update installation failed: " << detail << " log: " << logPath;
+        if (updateDialog_) {
+            updateDialog_->setHandoffState(UpdateCheckDialog::UpdateHandoffState::Failed);
+            updateDialog_->setInstallationDetail(detail, logPath);
+            pushUpdateExecutionCapability();
+        }
+    }
+
+    void installDownloadedUpdate()
+    {
+        using namespace zzlogg::updateqt;
+        if (nativeInstallBusy_) return;
+#ifdef Q_OS_LINUX
+        nativeInstallBusy_ = true;
+        if (updateDialog_) updateDialog_->setHandoffState(UpdateCheckDialog::UpdateHandoffState::Installing);
+        probeCurrentInstallationAsync(this, [this](InstallationIdentity identity) {
+            updateInstallation_ = identity;
+            nativeInstallBusy_ = false;
+            performDownloadedUpdate(identity);
+        });
+#else
+        performDownloadedUpdate(probeCurrentInstallation());
+#endif
+    }
+
+    void performDownloadedUpdate(const zzlogg::updateqt::InstallationIdentity& installation)
+    {
+        using namespace zzlogg::updateqt;
+        const auto artifact = installationArtifact();
+        if (!artifact) {
+            nativeInstallFailed(tr("The update is no longer valid. Check for updates and download again."), {});
+            return;
+        }
+        if (updateDialog_) updateDialog_->setInstallationDetail({});
+        if (installation.kind == InstallationKind::Registered) {
+            if (updateHandoff_ && !updateHandoff_->isWaiting()) updateHandoff_.reset();
+            updateHandoff().begin();
+            return;
+        }
+        if (!prepareApplicationExit()) {
+            nativeInstallFailed(tr("Unable to save the current session for restart."), {});
+            return;
+        }
+        const auto packagePath = updateDownloadService_->snapshot().verifiedPath;
+#ifdef Q_OS_WIN
+        if (installation.kind == InstallationKind::Portable) {
+            if (!updateGuard_.reserveUpdate()) {
+                nativeInstallFailed(updateGuard_.errorText(), {});
+                return;
+            }
+            if (!portableInstaller_) {
+                portableInstaller_ = std::make_unique<PortableUpdateInstaller>(this);
+                connect(portableInstaller_.get(), &PortableUpdateInstaller::failed, this, [this](const QString& error) {
+                    nativeInstallFailed(error, portableInstaller_->logPath());
+                });
+                connect(portableInstaller_.get(), &PortableUpdateInstaller::readyToExit, this, [this] {
+                    if (!commitApplicationExit()) {
+                        portableInstaller_->cancel();
+                        nativeInstallFailed(tr("Unable to save the current session for restart."), portableInstaller_->logPath());
+                        return;
+                    }
+                    nativeInstallBusy_ = false;
+                    QCoreApplication::exit(0);
+                });
+            }
+            nativeInstallBusy_ = true;
+            if (updateDialog_) updateDialog_->setHandoffState(UpdateCheckDialog::UpdateHandoffState::Preparing);
+            portableInstaller_->start(packagePath, QByteArray::fromStdString(artifact->sha256),
+                qint64(artifact->size), installation.installRoot);
+            return;
+        }
+#elif defined(Q_OS_LINUX)
+        if (installation.kind == InstallationKind::SystemPackage) {
+            if (!systemInstaller_) {
+                systemInstaller_ = std::make_unique<SystemPackageInstaller>(this);
+                connect(systemInstaller_.get(), &SystemPackageInstaller::finished, this, [this](bool success, const QString& detail) {
+                    if (!success) { nativeInstallFailed(detail, systemInstaller_->logPath()); return; }
+                    nativeInstallBusy_ = false;
+                    if (!commitApplicationExit()) {
+                        nativeInstallFailed(tr("The update was installed. Please close and reopen ZzLogg."), systemInstaller_->logPath());
+                        return;
+                    }
+                    logging::enableFileLogging(false);
+                    QCoreApplication::exit(ZzLoggRestartExitCode);
+                });
+            }
+            nativeInstallBusy_ = true;
+            if (updateDialog_) updateDialog_->setHandoffState(UpdateCheckDialog::UpdateHandoffState::Installing);
+            systemInstaller_->start(packagePath, *artifact);
+            return;
+        }
+#endif
+        nativeInstallFailed(tr("Automatic installation is unavailable for this installation."), {});
     }
 
     static UpdateCheckDialog::UpdateHandoffState mapHandoffState( ApplicationUpdateHandoff::State state )
@@ -733,6 +937,19 @@ class KloggApp : public QApplication {
     MainWindowFactory mainWindowFactory_;
 
     std::unique_ptr<zzlogg::updateqt::UpdateService> updateService_;
+    std::optional<zzlogg::updateqt::InstallationIdentity> updateInstallation_;
+    bool updateProbePending_ = false;
+    QPointer<QWidget> pendingUpdateWindow_;
+    std::shared_ptr<zzlogg::updateqt::UpdateStateStore> updateStateStore_;
+    std::unique_ptr<zzlogg::updateqt::SystemPackageInstaller> systemInstaller_;
+    bool nativeInstallBusy_ = false;
+#ifdef Q_OS_WIN
+    std::unique_ptr<PortableUpdateInstaller> portableInstaller_;
+#endif
+#ifdef ZZLOGG_HAS_SPARKLE
+    std::unique_ptr<MacUpdateController> macUpdater_;
+    bool macUpdateExitPrepared_ = false;
+#endif
     std::unique_ptr<zzlogg::updateqt::UpdateDownloadService> updateDownloadService_;
     QPointer<UpdateCheckDialog> updateDialog_;
     bool updateDialogDismissed_=false;

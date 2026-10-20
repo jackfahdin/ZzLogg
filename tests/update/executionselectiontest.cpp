@@ -52,6 +52,31 @@ void compareArtifact(const Artifact& actual,const Artifact& expected) {
 class ExecutionSelectionTest : public QObject {
     Q_OBJECT
 private slots:
+    void selectsPortableAndLinuxPackagesWithSignedEvidence() {
+        for(const auto* format:{"zip", "deb", "rpm"}) {
+            auto payload=installerPayload();
+            auto& artifact=payload["artifacts"][0];
+            const bool portable=std::string(format)=="zip";
+            artifact["os"]=portable ? "windows" : "linux";
+            artifact["distribution"]=portable ? "portable" : "installer";
+            artifact["format"]=format;
+            artifact["minOsVersion"]=portable ? "10.0.19041" : "5.15.0";
+            const auto wire=update_fixture::envelope(payload.dump());
+            auto context=update_fixture::context();
+            const auto verified=verifyManifest(wire,context);
+            QVERIFY(verified.value);
+            auto current=installed();
+            current.os=portable ? "windows" : "linux";
+            current.distribution=portable ? Distribution::Portable : Distribution::Installer;
+            const auto selection=makeUpdateSelection(*verified.value,current);
+            QVERIFY(selection);
+            QCOMPARE(selection->signedEnvelope,wire);
+            QCOMPARE(selection->artifact.format,std::string(format));
+            context.lastAccepted=verified.value->acceptedMetadata();
+            QCOMPARE(revalidateUpdateSelection(*selection,context,current).error,SelectionError::None);
+        }
+    }
+
     void createsInstallerSelectionAndRevalidatesExactTarget() {
         Fixture fixture;
         QCOMPARE(fixture.selection.signedEnvelope,fixture.envelope);

@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -36,12 +37,19 @@ class ProductionPublicConfigurationTests(unittest.TestCase):
 class FeedTests(unittest.TestCase):
     def setUp(self):
         self.package = b'verified installer'
+        self.package_overrides = {}
+        self.now_ms = 1800000000123
         self.label = '26.09.00'
-        self.info = {'schema': 1, 'version': '26.09.00', 'artifact_label': self.label,
+        self.info = {'schema': 1, 'version': '26.09.00', 'release_sequence': '260900', 'artifact_label': self.label,
                      'tag': 'v26.09.00', 'source_commit': 'a' * 40,
                      'workflow_run': 'https://github.com/example/ZzLogg/actions/runs/123',
                      'assets': [{'name': f'ZzLogg-{self.label}-windows-x64-setup.exe',
                                  'size': len(self.package), 'sha256': hashlib.sha256(self.package).hexdigest()}]}
+        for suffix in ['windows-x64-portable.zip', 'linux-x64.deb', 'linux-x64.rpm',
+                       'macos-x64.dmg', 'macos-arm64.dmg']:
+            self.info['assets'].append({'name': f'ZzLogg-{self.label}-{suffix}',
+                                       'size': len(self.package),
+                                       'sha256': hashlib.sha256(self.package).hexdigest()})
         self.release = {'id': 123, 'tag_name': 'v26.09.00', 'draft': False,
                         'prerelease': False, 'body': '# Changes\n\n**Fixed** [logs](https://example.org).\n<!-- hidden -->'}
         self.stored = {}
@@ -63,6 +71,7 @@ class FeedTests(unittest.TestCase):
         self.blob_sha = 'old-sha'
         self.race = False
         self.wrong_signing_key = False
+        self.appcast_mutation = None
 
     def payload(self, **changes):
         payload = {'schema': 1, 'product': 'com.gitcode.jackfahdinqt.zzlogg', 'channel': 'stable',
@@ -82,10 +91,27 @@ class FeedTests(unittest.TestCase):
 
     def remote_assets(self):
         names = [(f'release-info-{self.label}.json', len(json.dumps(self.info).encode())),
-                 (self.info['assets'][0]['name'], len(self.package))]
+                 *[(asset['name'], len(self.package_overrides.get(asset['name'], self.package)))
+                   for asset in self.info['assets']]]
         return [{'id': n + 1, 'name': name, 'size': size,
                  'browser_download_url': f'https://github.com/example/ZzLogg/releases/download/{self.release["tag_name"]}/{name}'}
                 for n, (name, size) in enumerate(names)]
+
+    def appcast_xml(self, arch, channel='stable'):
+        name = f'ZzLogg-{self.label}-macos-{arch}.dmg'
+        data = self.package_overrides.get(name, self.package)
+        signature = base64.b64encode(self.key.sign(data)).decode()
+        url = f'https://github.com/example/ZzLogg/releases/download/{self.info["tag"]}/{name}'
+        minimum = '13.3' if arch == 'x64' else '14.0'
+        return (f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item>'
+                f'<sparkle:minimumSystemVersion>{minimum}</sparkle:minimumSystemVersion>'
+                f'<enclosure url="{url}" length="{len(data)}" sparkle:version="{self.info["release_sequence"]}" '
+                f'sparkle:shortVersionString="{self.info["version"]}" sparkle:edSignature="{signature}"/>'
+                f'</item></channel></rss>')
+
+    def seed_stable_appcasts(self):
+        self.stored.update({f'macos-{arch}-stable.xml': self.appcast_xml(arch).encode()
+                            for arch in ('x64', 'arm64')})
 
     def run_process(self, command, **kwargs):
         if command[0] != 'gh':
@@ -103,6 +129,11 @@ class FeedTests(unittest.TestCase):
                                                         version=self.info['version'], notes=json.loads(self.notes)),
                                             Ed25519PrivateKey.generate() if self.wrong_signing_key else None)
             (output / f'update-{opts["--channel"]}.json').write_bytes(self.signed_bytes)
+            for arch in ('x64', 'arm64'):
+                xml = self.appcast_xml(arch, opts['--channel'])
+                if self.appcast_mutation:
+                    xml = self.appcast_mutation(xml)
+                (output / f'macos-{arch}-{opts["--channel"]}.xml').write_text(xml)
             if self.race:
                 self.stored['stable.json'] = self.signed(self.payload(metadataSequence='1800000000999'))
                 self.blob_sha = 'newer-sha'
@@ -122,6 +153,17 @@ class FeedTests(unittest.TestCase):
             value = {'object': {'sha': 'b' * 40}}
             if not self.branch:
                 status = 404
+        elif path == 'git/commits/' + 'b' * 40:
+            value = {'tree': {'sha': 'a' * 40}}
+        elif path == 'git/refs/heads/update-feed':
+            self.assertEqual(method, 'PATCH')
+            self.assertFalse(data['force'])
+            self.updates.append(data)
+            if self.conflict or self.race:
+                status = 409
+            else:
+                self.stored.update({entry['path']: entry['content'].encode('utf-8')
+                                    for entry in self.created_tree['tree']})
         elif path == 'git/ref/heads/master':
             value = {'object': {'sha': 'c' * 40}}
         elif path == 'git/trees':
@@ -166,16 +208,17 @@ class FeedTests(unittest.TestCase):
 
     def network(self, request, **kwargs):
         name = request.full_url.rsplit('/', 1)[-1]
-        return Response(json.dumps(self.info).encode() if name.startswith('release-info-') else self.package)
+        return Response(json.dumps(self.info).encode() if name.startswith('release-info-') else self.package_overrides.get(name, self.package))
 
     def publish(self, channel='stable'):
         self.assertTrue(hasattr(feed, 'publish_channel'), 'feed publishing implementation is missing')
         with patch('subprocess.run', side_effect=self.run_process), patch.object(feed, 'open_download', side_effect=self.network), patch.object(feed, 'TRUST_KEY_PATH', self.trust_file, create=True):
-            return feed.publish_channel(feed.GitHub('example/ZzLogg'), channel, 'zzlogg-update-2026-09', now_ms=1800000000123)
+            return feed.publish_channel(feed.GitHub('example/ZzLogg'), channel, 'zzlogg-update-2026-09', now_ms=self.now_ms)
 
     def test_verified_signed_output_is_stored_with_version_sequence(self):
         self.publish()
-        self.assertEqual(self.stored, {'stable.json': self.signed_bytes})
+        self.assertEqual(self.stored['stable.json'], self.signed_bytes)
+        self.assertEqual(set(self.stored), {'stable.json', 'macos-x64-stable.xml', 'macos-arm64-stable.xml'})
         self.assertEqual(self.sign_options['--metadata-sequence'], '1800000000123')
         self.assertEqual(self.sign_options['--release-sequence'], '260900')
         self.assertEqual(self.sign_options['--ttl-seconds'], '1209600')
@@ -186,13 +229,16 @@ class FeedTests(unittest.TestCase):
 
     def test_existing_file_sha_is_used_and_other_channel_survives(self):
         self.stored = {'stable.json': self.signed(self.payload()), 'preview.json': b'keep'}
+        self.seed_stable_appcasts()
         self.publish()
         self.assertEqual(self.stored['preview.json'], b'keep')
-        self.assertEqual(self.updates[0]['sha'], 'old-sha')
+        self.assertEqual(self.created_commit['parents'], ['b' * 40])
+        self.assertEqual(self.created_tree['base_tree'], 'a' * 40)
 
     def test_concurrent_contents_change_fails_without_retry_or_overwrite(self):
         original = self.signed(self.payload())
         self.stored = {'stable.json': original}
+        self.seed_stable_appcasts()
         self.conflict = True
         with self.assertRaises(RuntimeError):
             self.publish()
@@ -203,7 +249,8 @@ class FeedTests(unittest.TestCase):
         self.branch = False
         self.publish()
         self.assertTrue(self.branch)
-        self.assertEqual(self.stored, {'stable.json': self.signed_bytes})
+        self.assertEqual(self.stored['stable.json'], self.signed_bytes)
+        self.assertEqual(set(self.stored), {'stable.json', 'macos-x64-stable.xml', 'macos-arm64-stable.xml'})
         self.assertEqual(self.created_commit['parents'], [])
         self.assertNotIn('base_tree', self.created_tree)
         self.assertEqual(self.updates, [])
@@ -264,6 +311,14 @@ class FeedTests(unittest.TestCase):
         self.assertFalse(self.branch)
         self.assertEqual(self.stored, {})
 
+    def test_every_required_package_must_exist_before_publication(self):
+        good = self.remote_assets()
+        for asset in good[1:]:
+            self.assets = [candidate for candidate in good if candidate != asset]
+            with self.subTest(name=asset['name']), self.assertRaises(ValueError):
+                self.publish()
+            self.assertEqual(self.stored, {})
+
     def test_missing_preview_is_skipped_but_missing_stable_fails(self):
         self.release = None
         self.assertFalse(self.publish('preview'))
@@ -273,20 +328,24 @@ class FeedTests(unittest.TestCase):
 
     def test_preview_has_separate_tag_label_and_destination(self):
         self.label = 'continuous-20260920-123-1-aaaaaaaaaaaa'
-        self.info.update(artifact_label=self.label, tag='continuous-build')
+        self.info.update(artifact_label=self.label, tag='continuous-build', release_sequence='1234567890')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
         self.info['assets'][0]['name'] = f'ZzLogg-{self.label}-windows-x64-setup.exe'
         self.release.update(tag_name='continuous-build', prerelease=True)
         self.publish('preview')
-        self.assertEqual(set(self.stored), {'preview.json'})
+        self.assertEqual(set(self.stored), {'preview.json', 'macos-x64-preview.xml', 'macos-arm64-preview.xml'})
 
 
     def test_fixed_preview_filename_is_accepted(self):
         self.label = 'Continuous-Build'
-        self.info.update(artifact_label=self.label, tag='continuous-build')
+        self.info.update(artifact_label=self.label, tag='continuous-build', release_sequence='1234567890')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
         self.info['assets'][0]['name'] = 'ZzLogg-Continuous-Build-windows-x64-setup.exe'
         self.release.update(tag_name='continuous-build', prerelease=True)
         self.publish('preview')
-        self.assertEqual(set(self.stored), {'preview.json'})
+        self.assertEqual(set(self.stored), {'preview.json', 'macos-x64-preview.xml', 'macos-arm64-preview.xml'})
 
     def test_preview_label_lookalikes_never_publish_feed(self):
         for label in ['continuous-build', 'Continuous-build', 'Continuous-Build-extra']:
@@ -300,7 +359,9 @@ class FeedTests(unittest.TestCase):
 
     def test_all_continues_preview_after_stable_failure_and_returns_failure(self):
         self.label = 'continuous-20260920-123-1-aaaaaaaaaaaa'
-        self.info.update(artifact_label=self.label, tag='continuous-build')
+        self.info.update(artifact_label=self.label, tag='continuous-build', release_sequence='1234567890')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
         self.info['assets'][0]['name'] = f'ZzLogg-{self.label}-windows-x64-setup.exe'
         self.release.update(tag_name='continuous-build', prerelease=True)
         def boundary(command, **kwargs):
@@ -318,7 +379,7 @@ class FeedTests(unittest.TestCase):
             except Exception:
                 self.fail('One channel failure must not interrupt the other channel')
         self.assertEqual(status, 1)
-        self.assertEqual(set(self.stored), {'preview.json'})
+        self.assertEqual(set(self.stored), {'preview.json', 'macos-x64-preview.xml', 'macos-arm64-preview.xml'})
         self.assertIn('stable', errors.getvalue())
         self.assertNotIn('SECRET_EXCEPTION_SENTINEL', output.getvalue() + errors.getvalue())
 
@@ -327,6 +388,22 @@ class FeedTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.publish()
         self.assertEqual(self.updates, [])
+
+    def test_appcast_mismatch_or_signature_failure_prevents_all_publication(self):
+        mutations = [
+            lambda xml: xml.replace('sparkle:version="260900"', 'sparkle:version="260901"'),
+            lambda xml: xml.replace('13.3', '12.0'),
+            lambda xml: xml.replace('https://github.com/', 'https://evil.invalid/'),
+            lambda xml: xml.replace(f'length="{len(self.package)}"', 'length="1"'),
+            lambda xml: xml.replace(base64.b64encode(self.key.sign(self.package)).decode(),
+                                    base64.b64encode(bytes(64)).decode()),
+        ]
+        for mutation in mutations:
+            self.appcast_mutation = mutation
+            with self.subTest(mutation=mutations.index(mutation)), self.assertRaises(ValueError):
+                self.publish()
+            self.assertEqual(self.stored, {})
+            self.assertIsNone(self.created_tree)
 
     def test_invalid_old_signature_channel_or_product_never_publishes(self):
         candidates = [b'bad json', self.signed(self.payload(), Ed25519PrivateKey.generate()),
@@ -356,6 +433,7 @@ class FeedTests(unittest.TestCase):
 
     def test_stable_notes_can_be_edited_when_renewing_same_package(self):
         self.stored = {'stable.json': self.signed(self.payload(notes={language: 'Old notes' for language in ('en', 'zh_CN', 'zh_TW')}))}
+        self.seed_stable_appcasts()
         try:
             self.publish()
         except ValueError:
@@ -364,9 +442,31 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(current['notes']['en'], 'Changes\n\nFixed logs.')
         self.assertEqual(current['artifacts'], [{'sha256': hashlib.sha256(self.package).hexdigest()}])
 
+    def test_same_version_stable_dmg_replacement_never_changes_any_feed(self):
+        self.publish()
+        published = self.stored.copy()
+        self.now_ms += 1000
+        self.updates.clear()
+        self.created_tree = None
+        for arch in ('x64', 'arm64'):
+            name = f'ZzLogg-{self.label}-macos-{arch}.dmg'
+            replacement = b'resigned stable DMG with different bytes'
+            self.package_overrides[name] = replacement
+            asset = next(asset for asset in self.info['assets'] if asset['name'] == name)
+            asset.update(size=len(replacement), sha256=hashlib.sha256(replacement).hexdigest())
+            with self.subTest(arch=arch), self.assertRaises(ValueError):
+                self.publish()
+            self.assertEqual(self.stored, published)
+            self.assertEqual(self.updates, [])
+            self.assertIsNone(self.created_tree)
+            self.package_overrides.pop(name)
+            asset.update(size=len(self.package), sha256=hashlib.sha256(self.package).hexdigest())
+
     def test_preview_same_version_package_can_change(self):
         self.label = 'continuous-20260920-123-1-aaaaaaaaaaaa'
-        self.info.update(artifact_label=self.label, tag='continuous-build')
+        self.info.update(artifact_label=self.label, tag='continuous-build', release_sequence='1234567890')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
         self.info['assets'][0]['name'] = f'ZzLogg-{self.label}-windows-x64-setup.exe'
         self.release.update(tag_name='continuous-build', prerelease=True)
         self.stored = {'preview.json': self.signed(self.payload(channel='preview', artifacts=[{'sha256': '0' * 64}]))}
@@ -375,11 +475,13 @@ class FeedTests(unittest.TestCase):
 
     def test_concurrent_newer_feed_during_signing_cannot_be_overwritten(self):
         self.stored = {'stable.json': self.signed(self.payload())}
+        self.seed_stable_appcasts()
         self.race = True
         with self.assertRaises(RuntimeError):
             self.publish()
         self.assertNotEqual(self.stored['stable.json'], self.signed_bytes)
-        self.assertEqual(self.updates[0]['sha'], 'old-sha')
+        self.assertEqual(self.created_commit['parents'], ['b' * 40])
+        self.assertEqual(self.created_tree['base_tree'], 'a' * 40)
         self.assertEqual(len(self.updates), 1)
 
     def test_download_enforces_actual_byte_limit_and_redirect_origin(self):

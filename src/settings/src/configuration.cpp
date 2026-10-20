@@ -84,6 +84,9 @@ UiThemeMode uiThemeModeFromStorageValue( QStringView value, bool* valid )
 
 Configuration::Configuration()
 {
+#if defined(ZZLOGG_SETTINGS_OFFICIAL_RELEASE) && ZZLOGG_SETTINGS_OFFICIAL_RELEASE
+    setUpdateChannel(QString::fromLatin1(ZZLOGG_SETTINGS_RELEASE_CHANNEL));
+#endif
     splitterSizes_ << 400 << 100;
 }
 
@@ -233,7 +236,7 @@ void Configuration::retrieveFromStorage( QSettings& settings )
     enableVersionChecking_
         = settings.value( "versionchecker.enabled", DefaultConfiguration.enableVersionChecking_ )
               .toBool();
-    setUpdateChannel(settings.value("updates.channel", "stable").toString());
+    setUpdateChannel(settings.value("updates.channel", DefaultConfiguration.updateChannel_).toString());
 
     extractArchives_
         = settings.value( "archives.extract", DefaultConfiguration.extractArchives_ ).toBool();

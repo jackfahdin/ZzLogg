@@ -12,6 +12,8 @@ private slots:
         // 清单的 minOsVersion 是 10.0.19041，补丁位必须是真实构建号而不是 0。
         QVERIFY(version.major >= 10);
         QVERIFY(version.patch >= 10240);
+#elif defined(Q_OS_LINUX)
+        QVERIFY(version.major > 0);
 #else
         QCOMPARE(version.major, 0u);
         QCOMPARE(version.minor, 0u);

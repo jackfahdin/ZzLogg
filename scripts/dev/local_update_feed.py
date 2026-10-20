@@ -24,8 +24,7 @@ import http.server
 import json
 import os
 import socketserver
-import subprocess
-import sys
+import re
 import time
 from pathlib import Path
 
@@ -62,6 +61,10 @@ def main():
     parser.add_argument('--no-serve', action='store_true', help='Sign only, do not start the http server')
     args = parser.parse_args()
 
+    if not re.fullmatch(r'[0-9]{2}\.(?:0[1-9]|1[0-2])\.[0-9]{2}', args.version):
+        parser.error('version must be YY.MM.PP')
+    if not 1 <= args.port <= 65535:
+        parser.error('port must be between 1 and 65535')
     installer = Path(args.installer).resolve()
     if not installer.is_file():
         parser.error(f'installer not found: {installer}')
@@ -76,7 +79,8 @@ def main():
 
     release_info = WORKSPACE / f'release-info-{args.version}.json'
     release_info.write_text(json.dumps({
-        'schema': 1, 'version': args.version, 'artifact_label': args.version,
+        'schema': 1, 'version': args.version, 'release_sequence': str(int(args.version.replace('.', ''))),
+        'artifact_label': args.version,
         'source_commit': '0' * 40, 'tag': f'v{args.version}', 'workflow_run': 'local',
         'assets': [{'name': staged_installer.name, 'size': size, 'sha256': digest}],
     }, indent=2), encoding='utf-8')
@@ -85,20 +89,28 @@ def main():
     notes.write_text(json.dumps({'en': 'Local test update', 'zh_CN': '本地测试更新',
                                  'zh_TW': '本機測試更新'}, ensure_ascii=False), encoding='utf-8')
 
-    sequence = args.version.replace('.', '')
-    metadata_sequence = str(int(time.time() * 1000))
-    signed = subprocess.run(
-        [sys.executable, str(REPO_ROOT / 'scripts' / 'ci' / 'sign_update_manifest.py'),
-         '--release-info', str(release_info), '--repository', 'local/feed',
-         '--channel', 'stable', '--metadata-sequence', metadata_sequence,
-         '--release-sequence', sequence, '--issued-at', str(int(time.time())),
-         '--ttl-seconds', str(7 * 86400), '--min-data-schema', '0', '--max-data-schema', '0',
-         '--min-os-version', '10.0.19041', '--notes-file', str(notes),
-         '--key-id', KEY_ID, '--private-key-file', str(KEY_FILE),
-         '--artifact-base-url', f'http://127.0.0.1:{args.port}',
-         '--output-dir', str(WORKSPACE)],
-        cwd=REPO_ROOT / 'scripts' / 'ci', check=True, capture_output=True, text=True)
-    print(signed.stdout.strip())
+    # This is an isolated Test-environment fixture, not a production release.
+    # Sign only the supplied installer; never fabricate other platform assets
+    # merely to satisfy the production publisher's complete-release contract.
+    from cryptography.hazmat.primitives import serialization
+    key = serialization.load_pem_private_key(KEY_FILE.read_bytes(), password=None)
+    now = int(time.time())
+    payload = {'schema': 1, 'product': 'com.gitcode.jackfahdinqt.zzlogg',
+               'metadataSequence': str(time.time_ns() // 1_000_000),
+               'releaseSequence': str(int(args.version.replace('.', ''))),
+               'issuedAt': now, 'expiresAt': now + 7 * 86400,
+               'channel': 'stable', 'version': args.version,
+               'minUpdaterProtocol': 1, 'minDataSchema': 0, 'maxDataSchema': 0,
+               'notes': json.loads(notes.read_text(encoding='utf-8')),
+               'artifacts': [{'os': 'windows', 'arch': 'x64', 'distribution': 'installer',
+                              'format': 'nsis-exe', 'minOsVersion': '10.0.19041',
+                              'url': f'http://127.0.0.1:{args.port}/{staged_installer.name}',
+                              'size': str(size), 'sha256': digest}]}
+    raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    envelope = {'schema': 1, 'keyId': KEY_ID, 'payload': base64.b64encode(raw).decode(),
+                'signature': base64.b64encode(key.sign(
+                    b'ZzLogg update manifest v1\n' + KEY_ID.encode() + b'\n' + raw)).decode()}
+    (WORKSPACE / 'update-stable.json').write_text(json.dumps(envelope), encoding='utf-8')
 
     signed_feed = WORKSPACE / 'update-stable.json'
     feed = WORKSPACE / 'stable.json'

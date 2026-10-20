@@ -1,4 +1,7 @@
 #include "updatecheckdialog.h"
+#include <QDesktopServices>
+#include <QFileInfo>
+#include <QUrl>
 #include "configuration.h"
 #include "klogg_version.h"
 #include <QEvent>
@@ -80,8 +83,16 @@ UpdateCheckDialog::UpdateCheckDialog(QWidget* parent):QDialog(parent)
     outer->addWidget(progress_);
 
     handoffStatus_=label(this,"updateHandoffStatus");
+    openLog_=new QPushButton(this);
+    openLog_->setObjectName("updateOpenLog");
+    openLog_->setAutoDefault(false);
+    connect(openLog_, &QPushButton::clicked, this, [this] {
+        if (!installationLogPath_.isEmpty())
+            QDesktopServices::openUrl(QUrl::fromLocalFile(installationLogPath_));
+    });
     setMuted(handoffStatus_,true);
     outer->addWidget(handoffStatus_);
+    outer->addWidget(openLog_);
 
     auto* footer=new QHBoxLayout;
     footer->setSpacing(12);
@@ -161,12 +172,20 @@ void UpdateCheckDialog::setHandoffState(UpdateHandoffState state, UpdateHandoffE
 }
 bool UpdateCheckDialog::installAvailable() const
 {
+    if (handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting
+        || handoffState_==UpdateHandoffState::Installing || handoffState_==UpdateHandoffState::ExitCommitted) return false;
     const bool downloadable=snapshot_.status==CheckStatus::Available && snapshot_.release
         && snapshot_.decision
         && snapshot_.decision->status==zzlogg::update::DecisionStatus::Available
         && snapshot_.decision->artifact;
     return updateExecutionAvailable_ && downloadable
         && downloadSnapshot_.status==DownloadStatus::Verified;
+}
+void UpdateCheckDialog::setInstallationDetail(const QString& detail, const QString& logPath)
+{
+    installationDetail_ = detail;
+    installationLogPath_ = logPath;
+    refresh();
 }
 void UpdateCheckDialog::refresh()
 {
@@ -296,7 +315,7 @@ void UpdateCheckDialog::refresh()
     downloadStatus_->setVisible(!downloadText.isEmpty());
 
     const bool handoffBusy=handoffState_==UpdateHandoffState::Preparing
-        || handoffState_==UpdateHandoffState::Waiting;
+        || handoffState_==UpdateHandoffState::Waiting || handoffState_==UpdateHandoffState::Installing;
     install_->setText(tr("Quit and install update"));
     install_->setVisible(installAvailable() || handoffBusy);
     install_->setEnabled(installAvailable() && !handoffBusy);
@@ -308,11 +327,13 @@ void UpdateCheckDialog::refresh()
         later_->setEnabled(false);
         cancel_->setText(tr("Cancel update"));
         cancel_->setVisible(true);
-        cancel_->setEnabled(true);
+        cancel_->setEnabled(handoffState_!=UpdateHandoffState::Installing);
     }
 
     QString handoffText;
     switch(handoffState_) {
+    case UpdateHandoffState::Installing:
+        handoffText=tr("Installing the update. Complete any system authorization prompt and wait for the package manager to finish."); break;
     case UpdateHandoffState::Idle: break;
     case UpdateHandoffState::Preparing:
         handoffText=tr("Preparing the update. Waiting for the installer to be ready..."); break;
@@ -343,8 +364,12 @@ void UpdateCheckDialog::refresh()
         }
         break;
     }
+    if (!installationDetail_.isEmpty()) handoffText=installationDetail_;
     handoffStatus_->setText(handoffText);
     handoffStatus_->setVisible(!handoffText.isEmpty());
+    openLog_->setText(tr("Open installation log"));
+    openLog_->setVisible(!installationLogPath_.isEmpty());
+    openLog_->setEnabled(QFileInfo::exists(installationLogPath_));
 }
 void UpdateCheckDialog::changeEvent(QEvent* event)
 {
@@ -358,6 +383,7 @@ void UpdateCheckDialog::showEvent(QShowEvent* event)
 }
 void UpdateCheckDialog::reject()
 {
+    if(handoffState_==UpdateHandoffState::Installing) return;
     if(handoffState_==UpdateHandoffState::Preparing || handoffState_==UpdateHandoffState::Waiting) {
         Q_EMIT installCancelRequested();
         return;

@@ -35,11 +35,18 @@ class UpdateManifestTests(unittest.TestCase):
         self.name = 'ZzLogg-26.09.00-windows-x64-setup.exe'
         self.package = self.release / self.name
         self.package.write_bytes(b'local assembled installer bytes')
-        self.info = {'schema': 1, 'version': '26.09.00', 'artifact_label': '26.09.00',
+        self.info = {'schema': 1, 'version': '26.09.00', 'release_sequence': '260900', 'artifact_label': '26.09.00',
                      'source_commit': 'a' * 40, 'tag': 'v26.09.00',
                      'workflow_run': 'https://github.com/example/ZzLogg/actions/runs/1',
                      'assets': [self.asset(self.name, self.package.read_bytes()),
                                 self.asset('ZzLogg-26.09.00-windows-x64-portable.zip', b'zip')]}
+        for suffix in ['windows-x64-portable.zip', 'linux-x64.deb', 'linux-x64.rpm',
+                       'macos-x64.dmg', 'macos-arm64.dmg']:
+            name = f'ZzLogg-26.09.00-{suffix}'
+            data = ('test package ' + suffix).encode()
+            (self.release / name).write_bytes(data)
+            self.info['assets'] = [a for a in self.info['assets'] if a['name'] != name]
+            self.info['assets'].append(self.asset(name, data))
         self.info_path = self.release / 'release-info-26.09.00.json'
         self.output = self.root / 'manifests'
 
@@ -51,7 +58,7 @@ class UpdateManifestTests(unittest.TestCase):
         if write_info:
             self.info_path.write_text(json.dumps(self.info), encoding='utf-8')
         options = {'--release-info': str(self.info_path), '--repository': 'example/ZzLogg',
-                   '--channel': 'stable', '--metadata-sequence': '42', '--release-sequence': '17',
+                   '--channel': 'stable', '--metadata-sequence': '42', '--release-sequence': self.info['release_sequence'],
                    '--issued-at': '1800000000', '--ttl-seconds': '2592000',
                    '--min-data-schema': '0', '--max-data-schema': '3',
                    '--min-os-version': '10.0.19041', '--key-id': 'release-2026',
@@ -70,7 +77,7 @@ class UpdateManifestTests(unittest.TestCase):
         self.assertNotIn(self.pem.decode(), result.stdout + result.stderr)
         self.assertNotIn(self.pem.decode().splitlines()[1], result.stdout + result.stderr)
 
-    def test_signed_bytes_match_protocol_and_only_installer_is_advertised(self):
+    def test_signed_bytes_match_protocol_and_all_json_platforms_are_advertised(self):
         result = self.run_signer()
         self.assertEqual(result.returncode, 0, result.stderr)
         envelope = json.loads((self.output / 'update-stable.json').read_text())
@@ -83,9 +90,14 @@ class UpdateManifestTests(unittest.TestCase):
         self.key.public_key().verify(signature, message)
         with self.assertRaises(InvalidSignature):
             self.key.public_key().verify(signature, message + b' ')
-        self.assertEqual(json.loads(raw), {
+        payload = json.loads(raw)
+        self.assertEqual([(a['os'], a['distribution'], a['format']) for a in payload['artifacts']],
+                         [('windows', 'installer', 'nsis-exe'), ('windows', 'portable', 'zip'),
+                          ('linux', 'installer', 'deb'), ('linux', 'installer', 'rpm')])
+        payload['artifacts'] = payload['artifacts'][:1]
+        self.assertEqual(payload, {
             'schema': 1, 'product': 'com.gitcode.jackfahdinqt.zzlogg',
-            'metadataSequence': '42', 'releaseSequence': '17', 'issuedAt': 1800000000,
+            'metadataSequence': '42', 'releaseSequence': '260900', 'issuedAt': 1800000000,
             'expiresAt': 1802592000, 'channel': 'stable', 'version': '26.09.00',
             'minUpdaterProtocol': 1, 'minDataSchema': 0, 'maxDataSchema': 3,
             'notes': {'en': '', 'zh_CN': '', 'zh_TW': ''},
@@ -99,10 +111,12 @@ class UpdateManifestTests(unittest.TestCase):
 
     def test_fixed_preview_name_is_signed_and_retains_source_identity(self):
         label = 'Continuous-Build'
-        self.info.update(tag='continuous-build', artifact_label=label)
+        self.info.update(tag='continuous-build', artifact_label=label, release_sequence='1234567890')
         name = f'ZzLogg-{label}-windows-x64-setup.exe'
-        self.package.rename(self.release / name)
-        self.info['assets'][0]['name'] = name
+        for asset in self.info['assets']:
+            renamed = asset['name'].replace('26.09.00', label)
+            (self.release / asset['name']).rename(self.release / renamed)
+            asset['name'] = renamed
         self.info_path = self.release / f'release-info-{label}.json'
         result = self.run_signer(changes={'--channel': 'preview'})
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -110,12 +124,17 @@ class UpdateManifestTests(unittest.TestCase):
         raw = base64.b64decode(envelope['payload'])
         self.key.public_key().verify(base64.b64decode(envelope['signature']),
                                     b'ZzLogg update manifest v1\nrelease-2026\n' + raw)
+        self.assertEqual(json.loads(raw)['releaseSequence'], '1234567890')
+        import xml.etree.ElementTree as ET
+        appcast = ET.parse(self.output / 'macos-arm64-preview.xml')
+        self.assertEqual(appcast.find('./channel/item/enclosure').get(
+            '{http://www.andymatuschak.org/xml-namespaces/sparkle}version'), '1234567890')
         self.assertEqual(json.loads(raw)['artifacts'][0]['url'],
                          f'https://github.com/example/ZzLogg/releases/download/continuous-build/{name}')
 
     def test_preview_label_lookalikes_are_rejected(self):
         for label in ['continuous-build', 'Continuous-build', 'Continuous-Build-extra']:
-            self.info.update(tag='continuous-build', artifact_label=label)
+            self.info.update(tag='continuous-build', artifact_label=label, release_sequence='1234567890')
             name = f'ZzLogg-{label}-windows-x64-setup.exe'
             data = b'preview installer'
             (self.release / name).write_bytes(data)
@@ -129,10 +148,12 @@ class UpdateManifestTests(unittest.TestCase):
         self.assertEqual(stable.returncode, 0, stable.stderr)
         stable_bytes = (self.output / 'update-stable.json').read_bytes()
         label = 'continuous-20260920-123-1-aaaaaaaaaaaa'
-        self.info.update(tag='continuous-build', artifact_label=label)
+        self.info.update(tag='continuous-build', artifact_label=label, release_sequence='1234567890')
         name = f'ZzLogg-{label}-windows-x64-setup.exe'
-        self.package.rename(self.release / name)
-        self.info['assets'][0]['name'] = name
+        for asset in self.info['assets']:
+            renamed = asset['name'].replace('26.09.00', label)
+            (self.release / asset['name']).rename(self.release / renamed)
+            asset['name'] = renamed
         self.info_path = self.release / f'release-info-{label}.json'
         result = self.run_signer(changes={'--channel': 'preview', '--private-key-env': 'TEST_SIGNING_PEM'},
                                  remove=['--private-key-file'], env={'TEST_SIGNING_PEM': self.pem.decode()})
@@ -144,6 +165,35 @@ class UpdateManifestTests(unittest.TestCase):
                          f'https://github.com/example/ZzLogg/releases/download/continuous-build/{name}')
         self.assertEqual((self.output / 'update-stable.json').read_bytes(), stable_bytes)
 
+    def test_appcasts_sign_actual_dmg_bytes_and_bind_architecture(self):
+        result = self.run_signer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        import xml.etree.ElementTree as ET
+        ns = '{http://www.andymatuschak.org/xml-namespaces/sparkle}'
+        for arch, minimum in [('x64', '13.3'), ('arm64', '14.0')]:
+            root = ET.parse(self.output / f'macos-{arch}-stable.xml')
+            item = root.find('./channel/item')
+            enclosure = item.find('enclosure')
+            self.assertEqual(enclosure.get(ns + 'version'), '260900')
+            self.assertEqual(enclosure.get(ns + 'shortVersionString'), '26.09.00')
+            self.assertEqual(item.find(ns + 'minimumSystemVersion').text, minimum)
+            dmg = (self.release / f'ZzLogg-26.09.00-macos-{arch}.dmg').read_bytes()
+            self.assertEqual(enclosure.get('length'), str(len(dmg)))
+            self.key.public_key().verify(base64.b64decode(enclosure.get(ns + 'edSignature')), dmg)
+            with self.assertRaises(InvalidSignature):
+                self.key.public_key().verify(base64.b64decode(enclosure.get(ns + 'edSignature')), dmg + b'x')
+
+    def test_missing_or_tampered_non_windows_asset_is_rejected(self):
+        for asset in self.info['assets'][1:]:
+            path = self.release / asset['name']
+            original = path.read_bytes()
+            path.write_bytes(original + b'tamper')
+            with self.subTest(asset=asset['name']):
+                self.assert_rejected(self.run_signer())
+            path.write_bytes(original)
+        self.info['assets'].pop()
+        self.assert_rejected(self.run_signer())
+
     def test_tampered_installer_or_hash_or_size_is_rejected(self):
         for field, value in [('sha256', '0' * 64), ('size', 32), ('size', True),
                              ('size', 0), ('size', 536870913), ('sha256', 'A' * 64)]:
@@ -153,6 +203,11 @@ class UpdateManifestTests(unittest.TestCase):
                 self.assert_rejected(self.run_signer())
             self.info['assets'][0][field] = original
         self.package.write_bytes(b'tampered installer bytes')
+        self.assert_rejected(self.run_signer())
+
+    def test_signing_sequence_cannot_disagree_with_built_packages(self):
+        self.assert_rejected(self.run_signer(changes={'--release-sequence': '260901'}))
+        self.info['release_sequence'] = '260901'
         self.assert_rejected(self.run_signer())
 
     def test_invalid_numeric_arguments_are_rejected(self):

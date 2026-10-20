@@ -35,11 +35,33 @@ runs:
       run: |
         python3 $KLOGG_BUILD_ROOT/macdeployqtfix.py $KLOGG_BUILD_ROOT/output/ZzLogg.app/Contents/MacOS/ZzLogg $QT_ROOT_DIR
     
+    - name: Validate Sparkle deployment
+      shell: bash
+      run: |
+        python3 scripts/ci/sign_macos_bundle.py --app "$KLOGG_BUILD_ROOT/output/ZzLogg.app" --verify-layout
+
+    - name: Select signing identity
+      if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}
+      shell: bash
+      env:
+        ZZLOGG_SIGNING_TEAM: ${{ inputs.notarization-team }}
+      run: |
+        python3 - <<'PYTHON'
+        import os, re, subprocess
+        identities = subprocess.check_output(['security', 'find-identity', '-v', '-p', 'codesigning'], text=True)
+        team = os.environ['ZZLOGG_SIGNING_TEAM']
+        candidates = [(fingerprint, name) for fingerprint, name in
+                      re.findall(r'([0-9A-F]{40}) "(Developer ID Application: [^"]+)"', identities)
+                      if not team or name.endswith('(' + team + ')')]
+        if len(candidates) != 1:
+            raise SystemExit('Expected exactly one Developer ID Application identity for the notarization team')
+        with open(os.environ['GITHUB_ENV'], 'a') as output:
+            output.write('KLOGG_CODESIGN=' + candidates[0][0] + '\n')
+        PYTHON
+
     - name: Set packaging env
       shell: sh
       run: |
-        echo "KLOGG_CODESIGN=Developer ID Application: Anton Filimonov (GAW773U324)" >> $GITHUB_ENV
-        echo "KLOGG_INSTALLERSIGN=Developer ID Installer: Anton Filimonov (GAW773U324)" >> $GITHUB_ENV
         echo "ZZLOGG_DMG=ZzLogg-${{ env.KLOGG_VERSION }}-mac-${{ env.KLOGG_ARCH }}.dmg" >> $GITHUB_ENV
         echo "ZZLOGG_PKG=ZzLogg-${{ env.KLOGG_VERSION }}-mac-${{ env.KLOGG_ARCH }}.pkg" >> $GITHUB_ENV
 
@@ -47,8 +69,7 @@ runs:
       if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}
       shell: sh
       run: |
-        cd $KLOGG_BUILD_ROOT
-        codesign -v -f -o runtime --deep --timestamp -s "${{ env.KLOGG_CODESIGN }}" ./output/ZzLogg.app;
+        python3 scripts/ci/sign_macos_bundle.py --app "$KLOGG_BUILD_ROOT/output/ZzLogg.app" --identity "$KLOGG_CODESIGN"
     
     - name: Mac pack dmg
       shell: sh
@@ -69,14 +90,25 @@ runs:
         cd $KLOGG_BUILD_ROOT
         codesign -v -f -o runtime --timestamp -s "${{ env.KLOGG_CODESIGN }}" ./packages/${{ env.ZZLOGG_DMG }}
     
-    - name: Mac notarize DMG 
+    - name: Mac notarize DMG
       if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}
-      shell: sh
+      shell: bash
+      env:
+        NOTARY_APPLE_ID: ${{ inputs.notarization-username }}
+        NOTARY_TEAM_ID: ${{ inputs.notarization-team }}
+        NOTARY_PASSWORD: ${{ inputs.notarization-password }}
       run: |
-        xcrun notarytool submit --wait --apple-id "${{ inputs.notarization-username }}" --team-id "${{ inputs.notarization-team }}" --password "${{ inputs.notarization-password }}" "${{ env.KLOGG_BUILD_ROOT }}/packages/${{ env.ZZLOGG_DMG }}" | tee dmg_notary.log
-        dmg_notary_id=$(awk '$1=="id:"{id=$2} END{print id}' dmg_notary.log)
-        xcrun notarytool log --apple-id "${{ inputs.notarization-username }}" --team-id "${{ inputs.notarization-team }}" --password "${{ inputs.notarization-password }}" "$dmg_notary_id" "dmg_notary.log.json"
-        cat "dmg_notary.log.json"
+        set -euo pipefail
+        xcrun notarytool submit --wait --output-format json --apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD" "$KLOGG_BUILD_ROOT/packages/$ZZLOGG_DMG" > dmg_notary.json
+        python3 - <<'PYTHON'
+        import json, os, subprocess
+        result = json.load(open('dmg_notary.json'))
+        subprocess.run(['xcrun', 'notarytool', 'log', '--apple-id', os.environ['NOTARY_APPLE_ID'],
+                        '--team-id', os.environ['NOTARY_TEAM_ID'], '--password', os.environ['NOTARY_PASSWORD'],
+                        result['id'], 'dmg_notary.log.json'], check=True)
+        if result.get('status') != 'Accepted':
+            raise SystemExit('DMG notarization was not accepted: ' + result.get('status', 'unknown'))
+        PYTHON
 
     - name: Mac staple DMG 
       if: ${{ github.event_name != 'pull_request' && inputs.p12-file-base64 != '' }}

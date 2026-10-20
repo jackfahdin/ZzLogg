@@ -79,26 +79,28 @@ int wmain(int argc,wchar_t** argv) {
     const auto ready=channel.receive(deadline);
     if(!ready || ready->kind!=MessageKind::Ready || ready->transaction!=message.transaction
         || ready->token!=message.token || !coordinator.alive()) return BootstrapRejected;
+    // Preparation, the exit gate and file replacement can outlive the initial
+    // handshake budget. Each later status write gets its own bounded deadline.
     TxEngine engine({arguments.install,arguments.staging,arguments.txroot,txid,arguments.version},productionOptions());
     const auto prepared=engine.prepare();
     if(prepared.outcome!=TxOutcome::Prepared) {
-        message.kind=MessageKind::Failed; channel.send(message,deadline);
+        message.kind=MessageKind::Failed; channel.send(message,after(3000));
         return exitForOutcome(prepared.outcome);
     }
     message.kind=MessageKind::AwaitingAppExit;
-    if(!channel.send(message,deadline)) return ProtocolViolation;
+    if(!channel.send(message,after(3000))) return ProtocolViolation;
     // Gate: CommitExit must arrive first, then Proceed. Nothing else opens the
     // transaction, and execute() performs the first modification.
     const auto commit=channel.receive(after(60000));
     if(!commit || commit->kind!=MessageKind::CommitExit) {
-        message.kind=MessageKind::Failed; channel.send(message,deadline); return ProtocolViolation;
+        message.kind=MessageKind::Failed; channel.send(message,after(3000)); return ProtocolViolation;
     }
     const auto proceed=channel.receive(after(60000));
     if(!proceed || proceed->kind!=MessageKind::Proceed) {
-        message.kind=MessageKind::Failed; channel.send(message,deadline); return ProtocolViolation;
+        message.kind=MessageKind::Failed; channel.send(message,after(3000)); return ProtocolViolation;
     }
     const auto done=engine.execute();
     message.kind=done.outcome==TxOutcome::Applied?MessageKind::Complete:MessageKind::Failed;
-    channel.send(message,deadline);
+    channel.send(message,after(3000));
     return exitForOutcome(done.outcome);
 }

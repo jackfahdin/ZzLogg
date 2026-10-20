@@ -113,6 +113,9 @@ add_executable(zzlogg_runtime_contract_test app/runtimecontracttest.cpp
   "${PROJECT_SOURCE_DIR}/src/app/applicationupdatesession.cpp"
   "${PROJECT_SOURCE_DIR}/src/app/messagereceiver.h")
 add_dependencies(zzlogg_runtime_contract_test zzlogg_runtime_contract_moc)
+foreach(update_app_test zzlogg_restart_contract_test zzlogg_update_integration_test zzlogg_runtime_contract_test)
+  target_link_libraries(${update_app_test} PRIVATE zzlogg_portableupdater)
+endforeach()
 target_link_libraries(zzlogg_runtime_contract_test PRIVATE
   zzlogg_ui_runtime klogg_ui klogg_logdata
   klogg_support roaring kdsingleapp Qt6::Test Qt6::Widgets)

@@ -12,8 +12,9 @@ bool eligibleInstalledRelease(const InstalledRelease& current)
     return !current.developmentBuild && current.releaseSequence!=0
         && validVersion(current.version)
         && (current.channel=="stable" || current.channel=="preview")
-        && current.os=="windows" && current.arch=="x64"
-        && current.distribution==Distribution::Installer
+        && current.arch=="x64"
+        && (current.os=="windows" || (current.os=="linux"
+            && current.distribution==Distribution::Installer))
         && current.osVersion.major!=0;
 }
 
@@ -38,12 +39,7 @@ std::optional<UpdateSelection> makeUpdateSelection(
 {
     if(!eligibleInstalledRelease(current)) return std::nullopt;
     const auto decision=selectUpdate(verified,current);
-    // "nsis-exe" is the historical protocol enum for installer packages (now
-    // built with Inno Setup); the name is kept for released-client compatibility.
-    if(decision.status!=DecisionStatus::Available || !decision.artifact
-        || decision.artifact->os!="windows" || decision.artifact->arch!="x64"
-        || decision.artifact->distribution!=Distribution::Installer
-        || decision.artifact->format!="nsis-exe") return std::nullopt;
+    if(decision.status!=DecisionStatus::Available || !decision.artifact) return std::nullopt;
     return UpdateSelection{verified.signedEnvelope(),verified.acceptedMetadata(),
         verified.manifest().releaseSequence,*decision.artifact};
 }

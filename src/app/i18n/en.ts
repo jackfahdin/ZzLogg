@@ -534,6 +534,22 @@
         <source>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</source>
         <translation>&lt;p&gt;Important changes:&lt;/p&gt;&lt;ul&gt;</translation>
     </message>
+    <message>
+        <source>Update cancelled.</source>
+        <translation>Update cancelled.</translation>
+    </message>
+    <message>
+        <source>The update is no longer valid. Check for updates and download again.</source>
+        <translation>The update is no longer valid. Check for updates and download again.</translation>
+    </message>
+    <message>
+        <source>The update was installed. Please close and reopen ZzLogg.</source>
+        <translation>The update was installed. Please close and reopen ZzLogg.</translation>
+    </message>
+    <message>
+        <source>Automatic installation is unavailable for this installation.</source>
+        <translation>Automatic installation is unavailable for this installation.</translation>
+    </message>
 </context>
 <context>
     <name>MainWindow</name>
@@ -1524,6 +1540,62 @@
         <location filename="../applicationrunner.cpp" line="676"/>
         <source>ZzLogg UI</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Update postponed</source>
+        <translation>Update postponed</translation>
+    </message>
+    <message>
+        <source>The session could not be saved. The application will stay open. Resolve the save problem, then check for updates again.</source>
+        <translation>The session could not be saved. The application will stay open. Resolve the save problem, then check for updates again.</translation>
+    </message>
+    <message>
+        <source>The downloaded package path contains a symbolic link.</source>
+        <translation>The downloaded package path contains a symbolic link.</translation>
+    </message>
+    <message>
+        <source>Cannot open the downloaded package safely.</source>
+        <translation>Cannot open the downloaded package safely.</translation>
+    </message>
+    <message>
+        <source>The downloaded package is not a regular file of the expected size.</source>
+        <translation>The downloaded package is not a regular file of the expected size.</translation>
+    </message>
+    <message>
+        <source>Cannot read the downloaded package.</source>
+        <translation>Cannot read the downloaded package.</translation>
+    </message>
+    <message>
+        <source>System package installation is only supported on Linux.</source>
+        <translation>System package installation is only supported on Linux.</translation>
+    </message>
+    <message>
+        <source>Cannot create a private installation directory.</source>
+        <translation>Cannot create a private installation directory.</translation>
+    </message>
+    <message>
+        <source>Cannot create the private installation package.</source>
+        <translation>Cannot create the private installation package.</translation>
+    </message>
+    <message>
+        <source>Reading the downloaded package failed.</source>
+        <translation>Reading the downloaded package failed.</translation>
+    </message>
+    <message>
+        <source>The downloaded package size changed during verification.</source>
+        <translation>The downloaded package size changed during verification.</translation>
+    </message>
+    <message>
+        <source>Writing the private installation package failed.</source>
+        <translation>Writing the private installation package failed.</translation>
+    </message>
+    <message>
+        <source>The downloaded package failed size or SHA-256 verification. Download it again.</source>
+        <translation>The downloaded package failed size or SHA-256 verification. Download it again.</translation>
+    </message>
+    <message>
+        <source>Saving the verified installation package failed.</source>
+        <translation>Saving the verified installation package failed.</translation>
     </message>
 </context>
 <context>
@@ -2799,6 +2871,14 @@ Channel: %2</translation>
         <source>Updates are not available for this installation.</source>
         <translation>Updates are not available for this installation.</translation>
     </message>
+    <message>
+        <source>Installing the update. Complete any system authorization prompt and wait for the package manager to finish.</source>
+        <translation>Installing the update. Complete any system authorization prompt and wait for the package manager to finish.</translation>
+    </message>
+    <message>
+        <source>Open installation log</source>
+        <translation>Open installation log</translation>
+    </message>
 </context>
 <context>
     <name>UpdateSettingsPage</name>
@@ -2843,6 +2923,96 @@ Channel: %2</translation>
     <message>
         <source>Check for updates</source>
         <translation>Check for updates</translation>
+    </message>
+</context>
+<context>
+    <name>PortableUpdateInstaller</name>
+    <message>
+        <source>
+Update log: %1</source>
+        <translation>
+Update log: %1</translation>
+    </message>
+    <message>
+        <source>Portable update cancelled.</source>
+        <translation>Portable update cancelled.</translation>
+    </message>
+    <message>
+        <source>Cannot save the portable update plan.</source>
+        <translation>Cannot save the portable update plan.</translation>
+    </message>
+    <message>
+        <source>Cannot copy the portable update helper. Extract a complete portable release first.</source>
+        <translation>Cannot copy the portable update helper. Extract a complete portable release first.</translation>
+    </message>
+    <message>
+        <source>The portable update helper could not start.</source>
+        <translation>The portable update helper could not start.</translation>
+    </message>
+    <message>
+        <source>Cannot monitor the portable update helper.</source>
+        <translation>Cannot monitor the portable update helper.</translation>
+    </message>
+    <message>
+        <source>Portable ZIP installation is only supported on Windows.</source>
+        <translation>Portable ZIP installation is only supported on Windows.</translation>
+    </message>
+    <message>
+        <source>The portable update helper exited or did not become ready in time.
+Update log: %1</source>
+        <translation>The portable update helper exited or did not become ready in time.
+Update log: %1</translation>
+    </message>
+    <message>
+        <source>A portable update is already being prepared.</source>
+        <translation>A portable update is already being prepared.</translation>
+    </message>
+    <message>
+        <source>Cannot create portable update staging directory.</source>
+        <translation>Cannot create portable update staging directory.</translation>
+    </message>
+</context>
+<context>
+    <name>zzlogg::updateqt::SystemPackageInstaller</name>
+    <message>
+        <source>This is not a supported Linux x64 DEB or RPM installation package.</source>
+        <translation>This is not a supported Linux x64 DEB or RPM installation package.</translation>
+    </message>
+    <message>
+        <source>System package installation is only supported on Linux.</source>
+        <translation>System package installation is only supported on Linux.</translation>
+    </message>
+    <message>
+        <source>The required system package manager or pkexec authorization tool is unavailable.</source>
+        <translation>The required system package manager or pkexec authorization tool is unavailable.</translation>
+    </message>
+    <message>
+        <source>Cannot create the installation log directory.</source>
+        <translation>Cannot create the installation log directory.</translation>
+    </message>
+    <message>
+        <source>Cannot create the installation log.</source>
+        <translation>Cannot create the installation log.</translation>
+    </message>
+    <message>
+        <source>Installing verified package using %1</source>
+        <translation>Installing verified package using %1</translation>
+    </message>
+    <message>
+        <source>Cannot start the system package installer: %1</source>
+        <translation>Cannot start the system package installer: %1</translation>
+    </message>
+    <message>
+        <source>The system package manager installed the update successfully.</source>
+        <translation>The system package manager installed the update successfully.</translation>
+    </message>
+    <message>
+        <source>The system package installer crashed (exit code %1). See the installation log.</source>
+        <translation>The system package installer crashed (exit code %1). See the installation log.</translation>
+    </message>
+    <message>
+        <source>The system package installer failed (exit code %1). See the installation log.</source>
+        <translation>The system package installer failed (exit code %1). See the installation log.</translation>
     </message>
 </context>
 </TS>

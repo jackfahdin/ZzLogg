@@ -1,6 +1,7 @@
 #include "zzlogg/updateqt/osversion.h"
 
 #include <QOperatingSystemVersion>
+#include <QSysInfo>
 
 namespace zzlogg::updateqt {
 
@@ -17,6 +18,11 @@ update::OsVersion currentOsVersion()
 #ifdef Q_OS_WIN
     const auto current = QOperatingSystemVersion::current();
     return makeOsVersion(current.majorVersion(), current.minorVersion(), current.microVersion());
+#elif defined(Q_OS_LINUX)
+    // Linux package compatibility is enforced by its package manager. This
+    // report identifies a running kernel; feeds use a zero minimum here.
+    const auto parts = QSysInfo::kernelVersion().section('-', 0, 0).split('.');
+    return {parts.value(0).toUInt(), parts.value(1).toUInt(), parts.value(2).toUInt()};
 #else
     return {};
 #endif

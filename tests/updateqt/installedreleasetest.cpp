@@ -53,6 +53,24 @@ class InstalledReleaseTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void recognizesOfficialPortableAndSystemPackages()
+    {
+        auto release = validRelease();
+        const auto portable = makeInstalledRelease(release,
+            {InstallationKind::Portable, QStringLiteral("C:/Tools/ZzLogg"), QStringLiteral("zip")},
+            validOsVersion());
+        QVERIFY(portable);
+        QCOMPARE(portable->distribution, Distribution::Portable);
+        release.os = "linux";
+        const auto deb = makeInstalledRelease(release,
+            {InstallationKind::SystemPackage, QStringLiteral("/opt/ZzLogg"), QStringLiteral("deb")},
+            {6, 8, 0});
+        QVERIFY(deb);
+        QCOMPARE(deb->distribution, Distribution::Installer);
+        QVERIFY(!makeInstalledRelease(release,
+            {InstallationKind::SystemPackage, QStringLiteral("/opt/ZzLogg"), QStringLiteral("exe")},
+            {6, 8, 0}));
+    }
     void copiesCompleteInstallerIdentity()
     {
         const auto result = makeInstalledRelease(validRelease(), registeredInstallation(), validOsVersion());

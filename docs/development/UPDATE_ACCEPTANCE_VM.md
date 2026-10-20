@@ -1,5 +1,7 @@
 # 阶段 4 VM 真实环境验收手册（Windows 安装版在线更新）
 
+本手册保留 Windows 注册安装的专项验收。新增便携 ZIP、macOS Sparkle 和 Linux 系统包路径见[桌面更新验收与恢复](DESKTOP_UPDATE_ACCEPTANCE.md)；新增实现的 Windows/macOS 原生结果仍需对应 CI 与实机证据，不沿用历史验收结论。
+
 本手册覆盖 CI 无法自动化的真实环境验收条目。验收脚本包
 `tests/acceptance/`（运行器 `Invoke-UpdateAcceptance.ps1`）中用例 01–07
 及 13（旧安装登记迁移夹具）已由 CI 冒烟流水线（`.github/workflows/update-smoke.yml`）自动化；用例

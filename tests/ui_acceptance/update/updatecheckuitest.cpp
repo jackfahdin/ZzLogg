@@ -412,6 +412,18 @@ private Q_SLOTS:
         dialog.close();
         QVERIFY(!dialog.isVisible());
     }
+
+    void systemInstallationCannotBeInterruptedByClosingDialog() {
+        UpdateCheckDialog dialog;
+        dialog.setHandoffState(UpdateCheckDialog::UpdateHandoffState::Installing);
+        dialog.show();
+        QVERIFY(!dialog.findChild<QPushButton*>("updateCancel")->isEnabled());
+        QVERIFY(!dialog.findChild<QPushButton*>("updateInstall")->isEnabled());
+        QSignalSpy closing(&dialog, &UpdateCheckDialog::closing);
+        QTest::keyClick(&dialog, Qt::Key_Escape);
+        QCOMPARE(closing.count(), 0);
+        QVERIFY(dialog.isVisible());
+    }
     // Failure texts are the controller-to-UI error mapping, never raw detail.
     void handoffFailureStatesShowMappedTexts() {
         using E=UpdateCheckDialog::UpdateHandoffError;

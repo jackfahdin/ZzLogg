@@ -13,8 +13,11 @@ elseif(NOT "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}" STREQUAL "")
 endif()
 string(TOLOWER "${native_architecture}" native_architecture)
 set(native_official_supported FALSE)
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_SIZEOF_VOID_P EQUAL 8
-    AND native_architecture MATCHES "^(x64|amd64|x86_64)$")
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND
+    (((CMAKE_SYSTEM_NAME STREQUAL "Windows" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+      AND native_architecture MATCHES "^(x64|amd64|x86_64)$")
+     OR (CMAKE_SYSTEM_NAME STREQUAL "Darwin"
+         AND native_architecture MATCHES "^(x64|amd64|x86_64|arm64|aarch64)$")))
   set(native_official_supported TRUE)
 endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/native-target.cmake"
@@ -66,7 +69,15 @@ target_compile_features(release_identity_consumer PRIVATE cxx_std_17)
 target_include_directories(release_identity_consumer PRIVATE
   "${SOURCE_ROOT}/src/update/include"
   "${CMAKE_CURRENT_BINARY_DIR}/generated")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(expected_os macos)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(expected_os linux)
+else()
+  set(expected_os windows)
+endif()
 target_compile_definitions(release_identity_consumer PRIVATE
+  TEST_EXPECT_OS="${expected_os}"
   TEST_EXPECT_AVAILABLE=$<BOOL:${TEST_EXPECT_AVAILABLE}>
   TEST_EXPECT_SEQUENCE=${TEST_EXPECT_SEQUENCE}ULL
   TEST_EXPECT_PATCH=${TEST_EXPECT_PATCH}U

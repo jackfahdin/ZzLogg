@@ -1,10 +1,14 @@
 #include "installationprobe_p.h"
+#include <QFutureWatcher>
+#include <QtConcurrentRun>
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QSet>
+#include <QProcess>
+#include "zzlogg/updateqt/systempackageinstaller.h"
 #include <QStringDecoder>
 #include <cstring>
 #include <vector>
@@ -266,12 +270,24 @@ InstallationIdentity probeInstallation(const QString& executablePath,
     evidence.registrationPresent = registration.present;
     evidence.readFailed = registration.readFailed;
     evidence.identitySchema = registration.schema;
-    if (evidence.readFailed) return evaluateInstallation(evidence);
     if (!supportedAbsolutePath(executablePath)) return {};
     const QFileInfo executable(executablePath);
     const QString currentRoot = executable.absolutePath();
     if (executable.fileName().compare(QStringLiteral("ZzLogg.exe"), Qt::CaseInsensitive) != 0
         || !safeDirectoryChain(currentRoot) || inspectPath(executablePath) != PathState::File) return {};
+    const QString portableMarker = QDir(currentRoot).filePath(QStringLiteral(".zzlogg-portable"));
+    if (inspectPath(portableMarker) == PathState::File) {
+        // Portable identity is explicit. A copied registered installation must
+        // never fall back to this path merely because its registry entry differs.
+        if (inspectPath(QDir(currentRoot).filePath(QStringLiteral(".zzlogg-install-root"))) != PathState::Missing)
+            return {};
+        QFile marker(portableMarker);
+        if (!marker.open(QIODevice::ReadOnly) || marker.read(64) != "ZzLogg portable\n") return {};
+        const auto inventory = QDir(currentRoot).filePath(QStringLiteral(".zzlogg-portable-files.json"));
+        if (inspectPath(inventory) != PathState::File) return {};
+        return {InstallationKind::Portable, currentRoot, QStringLiteral("zip")};
+    }
+    if (evidence.readFailed) return evaluateInstallation(evidence);
     const QString markerPath = QDir(currentRoot).filePath(QStringLiteral(".zzlogg-install-root"));
     const auto markerState = inspectPath(markerPath);
     if (markerState == PathState::Unsafe || markerState == PathState::Directory) return {};
@@ -325,8 +341,50 @@ InstallationIdentity probeCurrentInstallation()
 {
 #if defined(Q_OS_WIN) && (defined(_M_X64) || defined(__x86_64__))
     return probeInstallation(QCoreApplication::applicationFilePath(), WindowsRegistryReader{});
+#elif defined(Q_OS_LINUX)
+    const QFileInfo executable(QCoreApplication::applicationFilePath());
+    const QString path = executable.canonicalFilePath();
+    if (path.isEmpty() || executable.fileName() != QStringLiteral("ZzLogg")) return {};
+    const auto query = [](const QString& program, const QStringList& args) {
+        QProcess process;
+        process.start(program, args);
+        if (!process.waitForFinished(1500) || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+            process.kill(); process.waitForFinished(1000);
+            return QByteArray{};
+        }
+        return process.readAllStandardOutput();
+    };
+    QByteArray deb;
+    if (QFileInfo(QStringLiteral("/usr/bin/dpkg-query")).isExecutable()) {
+        const auto owner = query(QStringLiteral("/usr/bin/dpkg-query"), {"--search", path});
+        const auto separator = owner.indexOf(": ");
+        if (separator > 0 && owner.mid(separator + 2).trimmed() == path.toUtf8()) {
+            const auto name = owner.left(separator);
+            if (name == "zzlogg" || name == "zzlogg:amd64")
+                deb = query(QStringLiteral("/usr/bin/dpkg-query"),
+                    {"--show", "--showformat=${db:Status-Status}\\n${Package}\\n${Architecture}\\n", QString::fromUtf8(name)});
+        }
+    }
+    auto format = systemPackageFormat(deb, {});
+    if (format.isEmpty() && QFileInfo(QStringLiteral("/usr/bin/rpm")).isExecutable())
+        format = systemPackageFormat({}, query(QStringLiteral("/usr/bin/rpm"),
+            {"--query", "--file", path, "--queryformat", "%{NAME}\\n%{ARCH}\\n"}));
+    return format.isEmpty() ? InstallationIdentity{InstallationKind::Unregistered, {}}
+        : InstallationIdentity{InstallationKind::SystemPackage, executable.absolutePath(), format};
 #else
     return {InstallationKind::Unsupported, {}};
 #endif
+}
+void probeCurrentInstallationAsync(QObject* context,
+    std::function<void(InstallationIdentity)> callback)
+{
+    auto* watcher = new QFutureWatcher<InstallationIdentity>(context);
+    QObject::connect(watcher, &QFutureWatcher<InstallationIdentity>::finished, context,
+        [watcher, callback = std::move(callback)] {
+            const auto result = watcher->result();
+            watcher->deleteLater();
+            callback(result);
+        });
+    watcher->setFuture(QtConcurrent::run([] { return probeCurrentInstallation(); }));
 }
 } // namespace zzlogg::updateqt

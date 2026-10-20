@@ -129,6 +129,7 @@ target_link_libraries(klogg_grep PUBLIC ${MAIN_LIBS})
 # compile boundary through the guard's stub path.
 target_include_directories(klogg PRIVATE "${CMAKE_SOURCE_DIR}/src/updater")
 target_include_directories(klogg_grep PRIVATE "${CMAKE_SOURCE_DIR}/src/updater")
+target_link_libraries(klogg PRIVATE zzlogg_portableupdater)
 if(TARGET zzlogg_update_handoff)
   target_compile_definitions(klogg PRIVATE ZZLOGG_HAS_INSTALLATION_ACTIVITY)
   target_link_libraries(klogg PUBLIC zzlogg_update_handoff)
@@ -140,6 +141,9 @@ endif()
 # always produced together; the helper keeps its own static-CRT closure.
 if(TARGET ZzLoggUpdate)
   add_dependencies(klogg ZzLoggUpdate)
+endif()
+if(TARGET ZzLoggPortableUpdate)
+  add_dependencies(klogg ZzLoggPortableUpdate)
 endif()
 
 if(WIN32)
@@ -174,14 +178,25 @@ elseif(APPLE)
   set(MACOSX_BUNDLE_COPYRIGHT ${COPYRIGHT})
   set(MACOSX_BUNDLE_GUI_IDENTIFIER "${ZZLOGG_IDENTIFIER}")
   set(MACOSX_BUNDLE_ICON_FILE "ZzLogg.icns")
+  include(ZzSparkle)
+  zzlogg_sparkle_bundle_metadata()
+  set_target_properties(klogg PROPERTIES MACOSX_BUNDLE_INFO_PLIST
+    "${CMAKE_SOURCE_DIR}/cmake/MacOSXBundleInfo.plist.in")
+  zzlogg_configure_sparkle(klogg)
 
 endif()
 
+if(APPLE)
+  # Packaging runs after deployment and signing. Copy the signed bundle without
+  # CMake rewriting its Mach-O RPATH during installation.
+  install(DIRECTORY "$<TARGET_BUNDLE_DIR:klogg>" DESTINATION . USE_SOURCE_PERMISSIONS)
+else()
 install(
   TARGETS klogg
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   BUNDLE DESTINATION .
 )
+endif()
 
 set(KLOGG_ZZ_RUNTIME_TARGETS
   ZzCore
@@ -274,6 +289,13 @@ if(WIN32 AND TARGET Qt6::qmake)
            COMMAND ${CMAKE_COMMAND} -E copy_if_different
                    $<TARGET_FILE:ZzLoggUpdate> "${KLOGG_RUNTIME_DIR}"
       )
+    endif()
+
+    if(TARGET ZzLoggPortableUpdate)
+      list(APPEND KLOGG_RUNTIME_DEPENDENCIES ZzLoggPortableUpdate)
+      list(APPEND KLOGG_RUNTIME_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          $<TARGET_FILE:ZzLoggPortableUpdate> "${KLOGG_RUNTIME_DIR}")
     endif()
 
     foreach(runtime_target tbb tbbmalloc tbbmalloc_proxy)

@@ -11,7 +11,7 @@ class QFrame;
 class UpdateCheckDialog : public QDialog {
     Q_OBJECT
 public:
-    enum class UpdateHandoffState { Idle, Preparing, Waiting, ExitCommitted, Cancelled, Failed };
+    enum class UpdateHandoffState { Idle, Preparing, Waiting, ExitCommitted, Cancelled, Failed, Installing };
     enum class UpdateHandoffError { None, Preparation, Blocked, Abandoned, Unavailable, Helper, Commit,
         ApprovalDeclined, Closed };
     explicit UpdateCheckDialog(QWidget* parent=nullptr);
@@ -21,6 +21,7 @@ public:
     void setUpdateExecutionAvailable(bool available);
     void setHandoffState(UpdateHandoffState state,
                          UpdateHandoffError error=UpdateHandoffError::None);
+    void setInstallationDetail(const QString& detail, const QString& logPath = {});
 Q_SIGNALS:
     void checkRequested();
     void cancelRequested();
@@ -42,6 +43,8 @@ private:
     bool updateExecutionAvailable_=false;
     UpdateHandoffState handoffState_=UpdateHandoffState::Idle;
     UpdateHandoffError handoffError_=UpdateHandoffError::None;
+    QString installationDetail_;
+    QString installationLogPath_;
     zzlogg::updateqt::CheckSnapshot snapshot_;
     zzlogg::updateqt::DownloadSnapshot downloadSnapshot_;
     QDateTime checkedAt_;
@@ -49,5 +52,5 @@ private:
     QProgressBar* progress_;
     QPlainTextEdit* notes_;
     QFrame* notesFrame_;
-    QPushButton *cancel_, *later_, *skip_, *download_, *install_;
+    QPushButton *cancel_, *later_, *skip_, *download_, *install_, *openLog_;
 };

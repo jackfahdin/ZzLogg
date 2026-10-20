@@ -14,6 +14,8 @@ target_sources(zzlogg_update_qt PRIVATE src/updatedownloadservice.cpp src/update
   include/zzlogg/updateqt/updatedownloadservice.h include/zzlogg/updateqt/updatecachepaths.h)
 target_link_libraries(zzlogg_update_qt PRIVATE zzlogg_brand)
 target_sources(zzlogg_update_qt PRIVATE src/installationprobe.cpp src/installationprobe_p.h)
+target_sources(zzlogg_update_qt PRIVATE src/systempackageinstaller.cpp include/zzlogg/updateqt/systempackageinstaller.h)
+target_link_libraries(zzlogg_update_qt PRIVATE Qt6::Concurrent)
 if(WIN32)
   target_link_libraries(zzlogg_update_qt PRIVATE Advapi32)
 endif()

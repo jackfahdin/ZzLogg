@@ -9,6 +9,7 @@ struct InstalledRelease {
     Distribution distribution=Distribution::Portable;
     OsVersion osVersion{};
     std::uint32_t dataSchema=0, updaterProtocol=1;
+    std::string packageFormat;
 };
 enum class DecisionStatus {
     Available, ChannelMismatch, DevelopmentBuild, ProtocolUnsupported, DataIncompatible,

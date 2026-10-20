@@ -26,3 +26,12 @@ target_link_libraries(
 if(KLOGG_USE_LTO)
   set_property(TARGET klogg_settings PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
+
+# Settings are configured before the update library. Share its build options
+# without making persistent settings depend on the updater runtime.
+include(ZzReleaseIdentity)
+if(ZZLOGG_OFFICIAL_RELEASE)
+  target_compile_definitions(klogg_settings PRIVATE
+    ZZLOGG_SETTINGS_OFFICIAL_RELEASE=1
+    ZZLOGG_SETTINGS_RELEASE_CHANNEL="${ZZLOGG_RELEASE_CHANNEL}")
+endif()
