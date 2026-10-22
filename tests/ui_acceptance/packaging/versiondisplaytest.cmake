@@ -51,16 +51,23 @@ file(WRITE "${fixture}/version.cpp"
 file(WRITE "${fixture}/main.cpp"
   "#include <cstdio>\nconst char* displayVersion();\nint main() { std::printf(\"version=%s!\\n\", displayVersion()); }\n")
 foreach(version IN ITEMS 26.10.09 26.10.10)
+  # Release disables MSVC's incremental linker cache. Keep the Ninja build
+  # incremental so this checks regeneration and recompilation of the header.
   execute_process(COMMAND "${CMAKE_COMMAND}" -S "${fixture}" -B "${build}"
-    -G Ninja "-DBUILD_VERSION=${version}" RESULT_VARIABLE configure_result
+    -G Ninja -DCMAKE_BUILD_TYPE=Release "-DBUILD_VERSION=${version}" RESULT_VARIABLE configure_result
     OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error)
   if(NOT configure_result EQUAL 0)
     message(FATAL_ERROR "Version fixture configure failed:\n${configure_output}\n${configure_error}")
   endif()
-  execute_process(COMMAND "${CMAKE_COMMAND}" --build "${build}"
+  execute_process(COMMAND "${CMAKE_COMMAND}" --build "${build}" --verbose
     RESULT_VARIABLE build_result OUTPUT_VARIABLE build_output ERROR_VARIABLE build_error)
   if(NOT build_result EQUAL 0)
     message(FATAL_ERROR "Version fixture build failed:\n${build_output}\n${build_error}")
+  endif()
+  file(READ "${build}/generated/version.h" compiled_header)
+  string(FIND "${compiled_header}" "#define KLOGG_VERSION \"${version}\"" compiled_version)
+  if(compiled_version EQUAL -1)
+    message(FATAL_ERROR "Generated display version is stale after building ${version}:\n${compiled_header}\n${build_output}\n${build_error}")
   endif()
   execute_process(COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${build}" --output-on-failure
     RESULT_VARIABLE test_result OUTPUT_VARIABLE test_output ERROR_VARIABLE test_error)

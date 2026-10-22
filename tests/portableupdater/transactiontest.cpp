@@ -3,6 +3,14 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <future>
+#include <thread>
+#endif
 using namespace zzlogg::portable;
 static void check(bool ok, const char* what) { if (!ok) throw std::runtime_error(what); }
 static void put(const fs::path& p, const std::string& data) {
@@ -41,6 +49,57 @@ int main() {
         check(get(root/"data/config/ZzLogg.ini")=="settings", "settings changed");
         check(get(root/"notes.txt")=="notes", "unknown file changed");
         check(get(base/"backup/ZzLogg.exe")=="old", "backup not retained");
+#ifdef _WIN32
+        // A scanner can open a freshly copied executable after verification.
+        // Reproduce that sharing violation until the scanner releases its handle.
+        const auto scannedRoot=base/"scanned-app";
+        put(scannedRoot/"ZzLogg.exe","old");
+        std::future<void> scanner;
+        bool scanned=false;
+        const Hasher scanning=[&](const fs::path& path) {
+            auto bytes=get(path);
+            if(!scanned && path.filename()==".zzlogg-update-new") {
+                const auto handle=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
+                    nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+                check(handle!=INVALID_HANDLE_VALUE,"Cannot open scanner fixture handle");
+                scanned=true;
+                scanner=std::async(std::launch::async,[handle] {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+                    CloseHandle(handle);
+                });
+            }
+            return bytes;
+        };
+        replaceFiles(scannedRoot,payload,base/"scanned-backup",{"ZzLogg.exe"},
+                     {{"ZzLogg.exe",3,"new"}},scanning);
+        scanner.get();
+        check(scanned && get(scannedRoot/"ZzLogg.exe")=="new","Transient scanner lock prevented replacement");
+        check(get(base/"scanned-backup/ZzLogg.exe")=="old","Scanner retry lost original backup");
+        HANDLE locked=INVALID_HANDLE_VALUE;
+        const Hasher persistentLock=[&](const fs::path& path) {
+            auto bytes=get(path);
+            if(path.filename()==".zzlogg-update-new") {
+                locked=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
+                    nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+                check(locked!=INVALID_HANDLE_VALUE,"Cannot open persistent lock fixture handle");
+            }
+            return bytes;
+        };
+        put(scannedRoot/"ZzLogg.exe","old");
+        bool rejected=false;
+        const auto started=GetTickCount64();
+        try {
+            replaceFiles(scannedRoot,payload,base/"locked-backup",{"ZzLogg.exe"},
+                         {{"ZzLogg.exe",3,"new"}},persistentLock);
+        } catch(const fs::filesystem_error& error) {
+            rejected=error.code().value()==ERROR_SHARING_VIOLATION || error.code().value()==ERROR_LOCK_VIOLATION;
+        }
+        if(locked!=INVALID_HANDLE_VALUE) CloseHandle(locked);
+        check(rejected,"Persistent scanner lock was ignored");
+        check(GetTickCount64()-started<10000,"Persistent scanner lock did not stop promptly");
+        check(get(scannedRoot/"ZzLogg.exe")=="old","Persistent lock did not restore original executable");
+        check(get(base/"locked-backup/ZzLogg.exe")=="old","Persistent lock lost original backup");
+#endif
         put(root/"ZzLogg.exe", "old");
         auto corrupt=files; corrupt[0].sha256="incorrect";
         rejects([&]{replaceFiles(root,payload,base/"badbackup",old,corrupt,hash);}, "bad hash accepted");

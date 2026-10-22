@@ -325,9 +325,11 @@ int runRelayTest(int argc,wchar_t** argv) {
         awaitRestartedGui(chain/L"record.txt");
 
         const auto failedRoot=root/L"failed-chain";
-        fs::create_directories(failedRoot/L"chain");
-        good.installRoot=(failedRoot/L"chain/install").wstring();
-        good.dataDirectory=(failedRoot/L"chain/data with spaces").wstring();
+        const auto failedChain=failedRoot/L"chain";
+        fs::create_directories(failedChain);
+        // Join individual components so the Windows lease sees native separators.
+        good.installRoot=(failedChain/L"install").wstring();
+        good.dataDirectory=(failedChain/L"data with spaces").wstring();
         makeInstallRoot(good.installRoot,installer);
         fs::create_directories(good.dataDirectory);
         SetEnvironmentVariableW(L"ZZLOGG_RELAY_TEST_FAIL",L"1");
@@ -335,7 +337,7 @@ int runRelayTest(int argc,wchar_t** argv) {
         check(runRelayChain(relay,failedRoot,good,failedObserved)==RelayFailed,
             "failed transaction returns relay failure after application exit");
         SetEnvironmentVariableW(L"ZZLOGG_RELAY_TEST_FAIL",nullptr);
-        const auto failedRecord=failedRoot/L"chain/record.txt";
+        const auto failedRecord=failedChain/L"record.txt";
         for(int tries=0;tries<600 && !hasGuiDataDirectory(readLines(failedRecord),good.dataDirectory);++tries)
             Sleep(ObservationPollMs);
         awaitRestartedGui(failedRecord);

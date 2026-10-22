@@ -361,9 +361,11 @@ class ApplicationTranslationTest final : public QObject {
         QCOMPARE(filtered->getNbLine().get(), 2);
         if (markedTail)
             filtered->addMark(1_lnum);
+        QSignalSpy reloaded(crawler, &CrawlerWidget::loadingFinished);
         QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Append));
         QCOMPARE(file.write(" extra"), qint64(6));
         file.close();
+        QTRY_VERIFY_WITH_TIMEOUT(!reloaded.isEmpty(), 10000);
         QTRY_COMPARE_WITH_TIMEOUT(panel->searchInfoLine()->text(), QString("1 match found"), 10000);
         QCOMPARE(filtered->getNbMatches().get(), 1);
         filtered->setVisibility(LogFilteredData::VisibilityFlags::Matches);
@@ -374,9 +376,11 @@ class ApplicationTranslationTest final : public QObject {
         QCOMPARE(filtered->getNbLine().get(), markedTail ? 2 : 1);
         QCOMPARE(filtered->getNbMarks().get(), markedTail ? 1 : 0);
         // A later matching line must be added normally after the stale tail is removed.
+        reloaded.clear();
         QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Append));
         QCOMPARE(file.write("\nERROR\n"), qint64(7));
         file.close();
+        QTRY_VERIFY_WITH_TIMEOUT(!reloaded.isEmpty(), 10000);
         QTRY_COMPARE_WITH_TIMEOUT(panel->searchInfoLine()->text(), QString("2 matches found"), 10000);
         QCOMPARE(filtered->getNbMatches().get(), 2);
         QCOMPARE(filtered->getNbLine().get(), markedTail ? 3 : 2);
@@ -2046,7 +2050,15 @@ int main( int argc, char* argv[] )
         qCritical().noquote() << storageError;
         return 1;
     }
-    Configuration::getSynced();
+    auto& config = Configuration::getSynced();
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+    // Match tests/ui/qtests_main.cpp: native events can miss rapid fixture writes.
+    // Keep the real file watcher and exercise its polling fallback as well.
+    config.setPollingEnabled(true);
+    config.setPollIntervalMs(1000);
+#else
+    Q_UNUSED(config);
+#endif
     SavedSearches::getSynced();
     RecentFiles::getSynced();
 

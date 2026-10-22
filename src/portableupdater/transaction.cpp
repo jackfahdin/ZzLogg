@@ -17,6 +17,24 @@ std::string folded(std::string value) {
 }
 void require(bool value, const std::string& error) { if(!value) throw std::runtime_error(error); }
 bool pathExists(const fs::path& path) { return fs::symlink_status(path).type()!=fs::file_type::not_found; }
+void placeFile(const fs::path& source,const fs::path& destination) {
+#ifdef _WIN32
+    // Image teardown and scanners can briefly hold a verified executable.
+    // Retry placement only; persistent locks still take the rollback path.
+    const auto deadline=GetTickCount64()+5000;
+    for(;;) {
+        if(MoveFileExW(source.c_str(),destination.c_str(),MOVEFILE_REPLACE_EXISTING)) return;
+        const auto error=GetLastError();
+        if((error!=ERROR_SHARING_VIOLATION && error!=ERROR_LOCK_VIOLATION)
+            || GetTickCount64()>=deadline)
+            throw fs::filesystem_error("Cannot place updated file",source,destination,
+                std::error_code(static_cast<int>(error),std::system_category()));
+        Sleep(50);
+    }
+#else
+    fs::rename(source,destination);
+#endif
+}
 void noLink(const fs::path& path) {
     require(!fs::is_symlink(fs::symlink_status(path)),"Symbolic link in update path: " + path.u8string());
 #ifdef _WIN32
@@ -128,7 +146,7 @@ void replaceFiles(const fs::path& root, const fs::path& payload, const fs::path&
             require(fs::file_size(temporary)==file.size && hash(temporary)==file.sha256,"Copied file verification failed: " + file.path);
             changed.push_back(file.path);
             fs::remove(destination);
-            fs::rename(temporary,destination);
+            placeFile(temporary,destination);
             temporary.clear(); newNames.insert(folded(file.path));
         }
         for(const auto& name:oldFiles) if(!newNames.count(folded(name))) {

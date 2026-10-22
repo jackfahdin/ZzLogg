@@ -94,7 +94,8 @@ int wmain(int argc,wchar_t** argv) {
             check(GetExitCodeProcess(parent.get(),&code),"Cannot read parent fixture exit code");
             check(code==0,"Parent fixture failed (exit "+std::to_string(code)+"): "+read(stage/L"parent-failed")+read(stage/L"failed"));
             if(std::wstring(mode)==L"success") {
-                check(awaitFile(stage/L"complete"),"Helper did not complete: "+read(stage/L"failed"));
+                const bool completed=awaitFile(stage/L"complete");
+                check(completed,"Helper did not complete: "+read(stage/L"failed")+read(stage/L"portable-update.log"));
                 check(awaitFile(root/L"restarted"),"New application did not restart");
                 check(read(root/L"restarted")==fs::path(dataDirectory).u8string(),
                     "Restart did not receive the original data directory as one argument");
