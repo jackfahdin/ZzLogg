@@ -1823,7 +1823,8 @@ void ApplicationTranslationTest::searchesThroughExtractedPanel()
     QFETCH(int, matches);
     QFETCH(bool, tailMatches);
     QCOMPARE(MainWindow::installLanguage(QStringLiteral("en")), 0);
-    QTemporaryDir logs;
+    // FSEvents reports canonical paths, including macOS /private/var.
+    CanonicalTemporaryDir logs;
     QVERIFY(logs.isValid());
     QFile file(logs.filePath("search.log"));
     QVERIFY(file.open(QIODevice::WriteOnly));
