@@ -42,7 +42,10 @@ void checkSet(const std::vector<std::string>& paths) {
 }
 bool safePath(const std::string& path) {
     if(path.empty() || path.size()>220 || path.front()=='/' || path.back()=='/') return false;
-    for(unsigned char c:path) if(c<32 || c>=127 || c=='\\' || c==':' || c=='<' || c=='>' || c=='"' || c=='|' || c=='?' || c=='*' || c=='~') return false;
+    for(char value:path) {
+        const auto c=static_cast<unsigned char>(value);
+        if(c<32 || c>=127 || c=='\\' || c==':' || c=='<' || c=='>' || c=='"' || c=='|' || c=='?' || c=='*' || c=='~') return false;
+    }
     const auto lower=folded(path);
     const auto first=lower.substr(0,lower.find('/'));
     static const std::set<std::string> reserved={"data","config","settings","session","sessions","logs",

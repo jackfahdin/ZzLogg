@@ -72,8 +72,8 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         fail(tr("Portable ZIP installation is only supported on Windows."));
 #endif
     });
-    connect(&impl_->timer,&QTimer::timeout,this,[this] {
 #ifdef Q_OS_WIN
+    connect(&impl_->timer,&QTimer::timeout,this,[this] {
         QFile failure(impl_->stage+"/failed");
         if(failure.open(QIODevice::ReadOnly)) {
             impl_->timer.stop();impl_->busy=false;
@@ -88,8 +88,8 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         if(ready.open(QIODevice::ReadOnly) && ready.readAll()=="READY\n") {
             impl_->timer.stop();impl_->handedOff=true;Q_EMIT readyToExit();
         }
-#endif
     });
+#endif
 }
 PortableUpdateInstaller::~PortableUpdateInstaller() {
     if(!impl_->handedOff) cancel();
