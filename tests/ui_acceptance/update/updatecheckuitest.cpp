@@ -4,6 +4,7 @@
 #include <QComboBox>
 #include <QAction>
 #include <QTemporaryDir>
+#include "../../testsupport/canonicaltemporarydir.h"
 #include <QCheckBox>
 #include <QPlainTextEdit>
 #include <QTranslator>
@@ -147,7 +148,7 @@ private Q_SLOTS:
         FeedConfiguration config{"https://updates.example.invalid/stable","https://updates.example.invalid/preview",
             context.keys,context.allowedHosts,context.buildTime,context.environment};
         for(bool destroyParent:{false,true}) {
-            QTemporaryDir cache; auto* network=new ScriptedNetworkManager;
+            CanonicalTemporaryDir cache; auto* network=new ScriptedNetworkManager;
             NetworkScript hanging; hanging.hang=true; network->scripts.push_back(hanging);
             UpdateDownloadService service(config,installedRelease(),cache.path(),[]{return 1800000000;},nullptr,[&]{return network;});
             auto* parent=new QWidget;
@@ -178,7 +179,7 @@ private Q_SLOTS:
         payload["artifacts"][0]["sha256"]=QCryptographicHash::hash("package",QCryptographicHash::Sha256).toHex().toStdString();
         const auto saved=availableRelease(payload);
         for(bool expire:{false,true}) {
-            QTemporaryDir cache; qint64 now=1800000000;
+            CanonicalTemporaryDir cache; qint64 now=1800000000;
             auto* network=new ScriptedNetworkManager;
             NetworkScript fail; fail.status=503;
             NetworkScript good; good.body="package"; network->scripts={fail,good};
