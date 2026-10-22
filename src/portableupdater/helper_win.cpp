@@ -3,6 +3,7 @@
 #include "sha256_win.h"
 #include "installlock_win.h"
 #include "installlock_win_p.h"
+#include "bootstrap_win_p.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -27,6 +28,19 @@ std::string line(std::istream& input) {
 std::size_t count(std::istream& input) {
     auto value=line(input); require(!value.empty() && value.find_first_not_of("0123456789")==std::string::npos,"Invalid plan count");
     const auto number=std::stoull(value);require(number>0 && number<=20000,"Invalid plan file count");return static_cast<std::size_t>(number);
+}
+std::wstring quoteWindowsArgument(const std::wstring& value) {
+    std::wstring quoted=L"\"";
+    std::size_t backslashes=0;
+    for(const auto character:value) {
+        if(character==L'\\') {++backslashes;continue;}
+        quoted.append(backslashes*(character==L'"'?2:1),L'\\');
+        backslashes=0;
+        if(character==L'"')quoted+=L'\\';
+        quoted+=character;
+    }
+    quoted.append(backslashes*2,L'\\');
+    return quoted+L'"';
 }
 void parsePlan(const fs::path& path,std::vector<std::string>& oldFiles,std::vector<File>& files) {
     require(fs::file_size(path)<=8*1024*1024,"Transaction plan too large");
@@ -57,12 +71,16 @@ void availableTargets(const fs::path& root,const std::vector<std::string>& oldFi
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=6) return 2;
+    if(argc!=7) return 2;
     const fs::path root(argv[1]),stage(argv[2]);
+    const std::wstring dataDirectory=argv[6];
     std::ofstream log;
     Handle mutex; bool mutexOwned=false,parentExited=false,safeStage=false;
     try {
         require(root.is_absolute() && stage.is_absolute(),"Absolute update paths required");
+        require(!dataDirectory.empty() && dataDirectory.size()<16384 && zzlogg::updater::detail::absolutePathPlausible(
+            dataDirectory.data(),dataDirectory.size()) && dataDirectory.find(L'"')==std::wstring::npos,
+            "Invalid restart data directory");
         const auto rootText=root.wstring();
         require(zzlogg::updater::detail::standardInstallationPath(rootText) &&
             GetDriveTypeW(rootText.substr(0,3).c_str())==DRIVE_FIXED,"Portable automatic updates require a local fixed drive");
@@ -129,7 +147,7 @@ int wmain(int argc,wchar_t** argv) {
         log<<"Replacement complete; backup retained at "<<(stage/L"backup").u8string()<<"\n";log.flush();
         ReleaseMutex(mutex.get());mutexOwned=false;mutex.reset(); directories.clear();staged.clear();
         STARTUPINFOW startup{}; startup.cb=sizeof(startup); PROCESS_INFORMATION process{};
-        std::wstring command=L"\""+expectedImage+L"\"";
+        std::wstring command=quoteWindowsArgument(expectedImage)+L" --data-dir "+quoteWindowsArgument(dataDirectory);
         require(CreateProcessW(expectedImage.c_str(),command.data(),nullptr,nullptr,FALSE,0,nullptr,root.c_str(),&startup,&process),
             "Update installed successfully, but restarting ZzLogg failed; start it manually");
         CloseHandle(process.hThread);CloseHandle(process.hProcess);

@@ -1,5 +1,6 @@
 #include "portableupdateinstaller.h"
 #include "package.h"
+#include "storagecontext.h"
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
@@ -32,7 +33,7 @@ struct PortableUpdateInstaller::Impl {
     QTimer timer;
     QElapsedTimer handshake;
     std::shared_ptr<std::atomic_bool> cancelled;
-    QString stage,root;
+    QString stage,root,dataDirectory;
     bool busy=false,handedOff=false;
 #ifdef Q_OS_WIN
     HANDLE child=nullptr;
@@ -61,7 +62,7 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         qint64 childPid=0;
         if(!QProcess::startDetached(helper,{QDir::toNativeSeparators(impl_->root),QDir::toNativeSeparators(impl_->stage),
             QString::number(QCoreApplication::applicationPid()),QString::fromLatin1(QCryptographicHash::hash(plan,QCryptographicHash::Sha256).toHex()),
-            QString::fromLatin1(result.package.oldManifestSha256)},impl_->stage,&childPid)) {
+            QString::fromLatin1(result.package.oldManifestSha256),QDir::toNativeSeparators(impl_->dataDirectory)},impl_->stage,&childPid)) {
             fail(tr("The portable update helper could not start."));return;
         }
         impl_->child=OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE,FALSE,static_cast<DWORD>(childPid));
@@ -99,6 +100,11 @@ QString PortableUpdateInstaller::logPath() const {return impl_->stage+"/portable
 void PortableUpdateInstaller::start(const QString& packagePath,const QByteArray& sha256Hex,qint64 expectedSize,const QString& root) {
     if(impl_->busy) {Q_EMIT failed(tr("A portable update is already being prepared."));return;}
     impl_->root=QDir(root).absolutePath();impl_->handedOff=false;
+    if(!StorageContext::isInstalled()) {Q_EMIT failed(tr("The active data directory is unavailable."));return;}
+    impl_->dataDirectory=StorageContext::current().dataRoot();
+    if(impl_->dataDirectory.isEmpty() || !QDir(impl_->dataDirectory).isAbsolute()) {
+        Q_EMIT failed(tr("The active data directory is invalid."));return;
+    }
 #ifdef Q_OS_WIN
     if(impl_->child) {CloseHandle(impl_->child);impl_->child=nullptr;}
 #endif

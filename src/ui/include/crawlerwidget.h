@@ -284,7 +284,6 @@ private Q_SLOTS:
 
     void changeFilteredView( int tabIndex );
     void closeFilteredView( int tabIndex );
-    void filteredViewDestroyed( QObject* view );
 
 private:
     CodeSyntax* codeSyntax_ = nullptr;
@@ -434,6 +433,7 @@ private:
     // should consider we are loading something.
     bool loadingInProgress_ = true;
     int loadingProgress_ = 0;
+    LoadingStatus lastLoadingStatus_ = LoadingStatus::Successful;
     bool firstLoadDone_ = false;
 
     klogg::vector<LineNumber> savedMarkedLines_;

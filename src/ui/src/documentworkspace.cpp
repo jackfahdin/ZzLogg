@@ -4,6 +4,7 @@
 #include "quickfindmux.h"
 #include "session.h"
 #include "signalmux.h"
+#include <QPointer>
 
 DocumentWorkspace::DocumentWorkspace( WindowSession& session, SignalMux& mux,
                                       QuickFindMux& quickFind )
@@ -38,10 +39,13 @@ CrawlerWidget* DocumentWorkspace::currentDocument() const
 
 void DocumentWorkspace::activateCurrentDocument()
 {
-    auto* document = currentDocument();
-    mux_.setCurrentDocument( document );
-    quickFind_.registerSelector( document );
-    Q_EMIT currentDocumentChanged( document );
+    QPointer<CrawlerWidget> document = currentDocument();
+    const bool hadDocument = !document.isNull();
+    mux_.setCurrentDocument( document.data() );
+    if ( document.data() != currentDocument() || ( hadDocument && document.isNull() ) )
+        return;
+    quickFind_.registerSelector( document.data() );
+    Q_EMIT currentDocumentChanged( document.data() );
 }
 
 void DocumentWorkspace::refreshQuickFindSelector()

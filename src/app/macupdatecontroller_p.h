@@ -11,8 +11,12 @@
 @public
     std::function<bool()> prepareExit;
     std::function<void()> cancelExit;
+    std::function<void()> onCycleFinished;
     bool exitPrepared;
 }
+- (BOOL)setUpdateChannel:(NSString*)channel;
+- (void)setActiveUpdater:(SPUUpdater*)updater;
+- (BOOL)hasStaleUpdateSession;
 @end
 
 #endif

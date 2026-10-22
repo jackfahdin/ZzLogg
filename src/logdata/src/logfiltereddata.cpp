@@ -323,6 +323,7 @@ void LogFilteredData::updateMaxLengthMarks( OptionalLineNumber added_line,
 void LogFilteredData::clearMarks()
 {
     marks_ = {};
+    marks_and_matches_ = matching_lines_;
     maxLengthMarks_ = 0_length;
 }
 

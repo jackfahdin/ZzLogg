@@ -467,6 +467,7 @@ class KloggApp : public QApplication {
             ensureUpdateService();
 #ifdef ZZLOGG_HAS_SPARKLE
             if (macUpdater_ && macUpdater_->available()) {
+                macUpdater_->setChannel(Configuration::get().updateChannel());
                 if (singleApplication_.isPrimaryInstance() && Configuration::get().versionCheckingEnabled())
                     macUpdater_->checkForUpdates(false);
                 return;
@@ -565,7 +566,7 @@ class KloggApp : public QApplication {
         using namespace zzlogg::updateqt;
 #ifdef ZZLOGG_HAS_SPARKLE
         if (!macUpdater_) {
-            macUpdater_=std::make_unique<MacUpdateController>(
+            macUpdater_=std::make_unique<MacUpdateController>(Configuration::get().updateChannel(),
                 [this] { macUpdateExitPrepared_ = prepareApplicationExit(); return macUpdateExitPrepared_; },
                 [this] { macUpdateExitPrepared_ = false; cancelApplicationExitPreparation(); }, this);
             if (singleApplication_.isPrimaryInstance() && Configuration::get().versionCheckingEnabled())

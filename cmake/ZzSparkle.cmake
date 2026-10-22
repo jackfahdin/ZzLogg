@@ -4,6 +4,7 @@ include_guard(GLOBAL)
 # metadata independent of downloading/linking makes the release contract testable.
 macro(zzlogg_sparkle_bundle_metadata)
   set(ZZLOGG_SPARKLE_PLIST "")
+  set(ZZLOGG_SPARKLE_FEED_PREFIX "")
   if(ZZLOGG_OFFICIAL_RELEASE)
     if(NOT ZZLOGG_RELEASE_CHANNEL MATCHES "^(stable|preview)$")
       message(FATAL_ERROR "Sparkle requires a stable or preview release channel")
@@ -31,9 +32,11 @@ macro(zzlogg_sparkle_bundle_metadata)
     # The app owns startup scheduling, so Sparkle's periodic checks and
     # automatic downloads are disabled. Interactive installation is unchanged.
     if(ZZLOGG_ENABLE_GITHUB_FEED)
+    set(ZZLOGG_SPARKLE_FEED_PREFIX
+      "https://raw.githubusercontent.com/jackfahdin/ZzLogg/update-feed/macos-${_sparkle_arch}-")
     set(ZZLOGG_SPARKLE_PLIST "
     <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/jackfahdin/ZzLogg/update-feed/macos-${_sparkle_arch}-${ZZLOGG_RELEASE_CHANNEL}.xml</string>
+    <string>${ZZLOGG_SPARKLE_FEED_PREFIX}${ZZLOGG_RELEASE_CHANNEL}.xml</string>
     <key>SUPublicEDKey</key>
     <string>2FZCwpkTTEV6LI2D3KjrcWFMm4aNWE8zVYmSvIZFRE8=</string>
     <key>SUEnableAutomaticChecks</key>
@@ -67,6 +70,10 @@ function(zzlogg_configure_sparkle target)
   target_link_libraries(${target} PRIVATE zzlogg_sparkle_framework "-framework Cocoa")
   target_sources(${target} PRIVATE
     "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/app/macupdatecontroller.mm")
+  target_compile_definitions(${target} PRIVATE
+    ZZLOGG_SPARKLE_FEED_PREFIX="${ZZLOGG_SPARKLE_FEED_PREFIX}")
+  set_property(TARGET ${target} PROPERTY ZZLOGG_SPARKLE_FEED_PREFIX
+    "${ZZLOGG_SPARKLE_FEED_PREFIX}")
   set_source_files_properties(
     "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/app/macupdatecontroller.mm"
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc" SKIP_PRECOMPILE_HEADERS ON)

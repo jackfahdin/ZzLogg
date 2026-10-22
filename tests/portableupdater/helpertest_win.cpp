@@ -11,9 +11,22 @@ void check(bool value,const std::string& message) {if(!value) throw std::runtime
 std::wstring widen(const std::string& text) {return {text.begin(),text.end()};}
 std::string read(const fs::path& path) {std::ifstream file(path,std::ios::binary);return {std::istreambuf_iterator<char>(file),{}};}
 void put(const fs::path& path,const std::string& text) {fs::create_directories(path.parent_path());std::ofstream(path,std::ios::binary)<<text;}
+std::wstring quote(const std::wstring& value) {
+    std::wstring result=L"\"";
+    std::size_t backslashes=0;
+    for(const auto character:value) {
+        if(character==L'\\') {++backslashes;continue;}
+        result.append(backslashes*(character==L'"'?2:1),L'\\');
+        backslashes=0;
+        if(character==L'"')result+=L'\\';
+        result+=character;
+    }
+    result.append(backslashes*2,L'\\');
+    return result+L'"';
+}
 Handle launch(const fs::path& exe,const std::vector<std::wstring>& args,const fs::path& cwd) {
-    std::wstring command=L"\""+exe.wstring()+L"\"";
-    for(const auto& arg:args) command+=L" \""+arg+L"\"";
+    std::wstring command=quote(exe.wstring());
+    for(const auto& arg:args) command+=L" "+quote(arg);
     STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION info{};
     check(CreateProcessW(exe.c_str(),command.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,cwd.c_str(),&startup,&info),"CreateProcess failed");
     CloseHandle(info.hThread);return Handle(info.hProcess);
@@ -23,11 +36,12 @@ bool awaitFile(const fs::path& file,DWORD timeout=15000) {
     do {if(fs::exists(file)) return true;Sleep(50);} while(GetTickCount64()<deadline);
     return false;
 }
-int parentMode(const fs::path& root,const fs::path& stage,const fs::path& helper,const std::wstring& mode) {
+int parentMode(const fs::path& root,const fs::path& stage,const fs::path& helper,
+    const std::wstring& mode,const std::wstring& dataDirectory) {
     zzlogg::updater::InstallLock lock;
     check(lock.acquire(root.wstring())==zzlogg::updater::InstallLockError::None,"Cannot reserve fixture installation");
     auto child=launch(helper,{root.wstring(),stage.wstring(),std::to_wstring(GetCurrentProcessId()),
-        widen(hashFile(stage/L"plan.txt")),widen(hashFile(root/L".zzlogg-portable-files.json"))},stage);
+        widen(hashFile(stage/L"plan.txt")),widen(hashFile(root/L".zzlogg-portable-files.json")),dataDirectory},stage);
     if(mode==L"corrupt") {
         check(awaitFile(stage/L"failed"),"Corrupt stage did not fail promptly");
         check(!fs::exists(stage/L"ready"),"Corrupt stage was declared ready");
@@ -47,7 +61,8 @@ int parentMode(const fs::path& root,const fs::path& stage,const fs::path& helper
 }
 int wmain(int argc,wchar_t** argv) {
     try {
-        if(argc==6 && std::wstring(argv[1])==L"--parent") return parentMode(argv[2],argv[3],argv[4],argv[5]);
+        if(argc==7 && std::wstring(argv[1])==L"--parent")
+            return parentMode(argv[2],argv[3],argv[4],argv[5],argv[6]);
         check(argc==3,"Expected helper and restart-fixture paths");
         wchar_t ownBuffer[32768]{};GetModuleFileNameW(nullptr,ownBuffer,32768);
         const fs::path own(ownBuffer),helper(argv[1]),restart(argv[2]);
@@ -55,7 +70,9 @@ int wmain(int argc,wchar_t** argv) {
         fs::remove_all(base);
         for(const auto& mode:{L"success",L"cancel",L"corrupt"}) {
             const auto root=base/mode/L"app",stage=base/mode/L"stage";
+            const auto dataDirectory=(base/mode/L"custom data root").wstring()+L"\\";
             fs::create_directories(root);fs::create_directories(stage/L"payload");
+            fs::create_directories(dataDirectory);
             fs::copy_file(own,root/L"ZzLogg.exe");fs::copy_file(helper,stage/L"helper.exe");
             put(root/L"obsolete.dll","old library");put(root/L".zzlogg-portable-files.json","old manifest");
             put(root/L"data/config/ZzLogg.ini","user settings");put(root/L"notes.txt","user notes");
@@ -67,12 +84,15 @@ int wmain(int argc,wchar_t** argv) {
             }
             put(stage/L"plan.txt",plan);
             if(std::wstring(mode)==L"corrupt") put(stage/L"payload/.zzlogg-portable-files.json","bad manifest");
-            auto parent=launch(root/L"ZzLogg.exe",{L"--parent",root.wstring(),stage.wstring(),(stage/L"helper.exe").wstring(),mode},root);
+            auto parent=launch(root/L"ZzLogg.exe",{L"--parent",root.wstring(),stage.wstring(),
+                (stage/L"helper.exe").wstring(),mode,dataDirectory},root);
             check(WaitForSingleObject(parent.get(),25000)==WAIT_OBJECT_0,"Parent fixture timed out");
             DWORD code=0;GetExitCodeProcess(parent.get(),&code);check(code==0,"Parent fixture failed: "+read(stage/L"failed"));
             if(std::wstring(mode)==L"success") {
                 check(awaitFile(stage/L"complete"),"Helper did not complete: "+read(stage/L"failed"));
                 check(awaitFile(root/L"restarted"),"New application did not restart");
+                check(read(root/L"restarted")==fs::path(dataDirectory).u8string(),
+                    "Restart did not receive the original data directory as one argument");
                 check(!fs::exists(root/L"obsolete.dll"),"Obsolete library survived update");
                 check(read(stage/L"backup/obsolete.dll")=="old library","Backup missing");
             } else check(read(root/L"obsolete.dll")=="old library","Rejected update changed installation");

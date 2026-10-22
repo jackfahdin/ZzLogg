@@ -244,7 +244,7 @@ void CrawlerWidget::doSendAllStateSignals()
     if ( loadingInProgress_ )
         Q_EMIT loadingProgressed( loadingProgress_ );
     else
-        Q_EMIT loadingFinished( LoadingStatus::Successful );
+        Q_EMIT loadingFinished( lastLoadingStatus_ );
 }
 
 void CrawlerWidget::changeEvent( QEvent* event )
@@ -795,6 +795,7 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
 
     loadingInProgress_ = false;
     loadingProgress_ = 0;
+    lastLoadingStatus_ = status;
     Q_EMIT loadingFinished( status );
 }
 
@@ -1200,14 +1201,12 @@ void CrawlerWidget::changeFilteredView( int tabIndex )
 
 void CrawlerWidget::closeFilteredView( int tabIndex )
 {
-    auto* tabFilteredView = tabbedFilteredView_->widget( tabIndex );
-    connect( tabFilteredView, &QObject::destroyed, this, &CrawlerWidget::filteredViewDestroyed );
+    auto* tabFilteredView
+        = qobject_cast<FilteredView*>( tabbedFilteredView_->widget( tabIndex ) );
+    if ( !tabFilteredView ) return;
+    connect( tabFilteredView, &QObject::destroyed, this,
+             [ this, tabFilteredView ] { filteredViewsData_.erase( tabFilteredView ); } );
     tabFilteredView->deleteLater();
-}
-
-void CrawlerWidget::filteredViewDestroyed( QObject* view )
-{
-    filteredViewsData_.erase( qobject_cast<FilteredView*>( view ) );
 }
 
 void CrawlerWidget::saveSplitterSizes() const

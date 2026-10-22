@@ -132,6 +132,23 @@ class UpdateManifestTests(unittest.TestCase):
         self.assertEqual(json.loads(raw)['artifacts'][0]['url'],
                          f'https://github.com/example/ZzLogg/releases/download/continuous-build/{name}')
 
+    def test_stable_run_sequence_is_used_by_manifest_and_appcast(self):
+        self.info['release_sequence'] = '1234567890'
+        self.info['workflow_run'] = 'https://github.com/example/ZzLogg/actions/runs/1234567890'
+        result = self.run_signer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        envelope = json.loads((self.output / 'update-stable.json').read_text())
+        payload = json.loads(base64.b64decode(envelope['payload']))
+        self.assertEqual(payload['releaseSequence'], '1234567890')
+        import xml.etree.ElementTree as ET
+        appcast = ET.parse(self.output / 'macos-arm64-stable.xml')
+        self.assertEqual(appcast.find('./channel/item/enclosure').get(
+            '{http://www.andymatuschak.org/xml-namespaces/sparkle}version'), '1234567890')
+
+    def test_stable_run_sequence_requires_matching_release_run(self):
+        self.info['release_sequence'] = '1234567890'
+        self.assert_rejected(self.run_signer())
+
     def test_preview_label_lookalikes_are_rejected(self):
         for label in ['continuous-build', 'Continuous-build', 'Continuous-Build-extra']:
             self.info.update(tag='continuous-build', artifact_label=label, release_sequence='1234567890')

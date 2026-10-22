@@ -123,12 +123,14 @@ def verify_remote_assets(github, release_id, files):
 def refresh_nightly_release_listing(github, release, tag, sha, notes, files):
     # GitHub orders releases by release created_at. Rolling previews reuse one tag,
     # so recreate the release object after each publish to stay above stable tags.
+    # Keep the replacement hidden until its assets have been verified.
     github.api(f'releases/{release["id"]}', method='DELETE')
     release = github.api('releases', method='POST', data={
-        'tag_name': tag, 'target_commitish': sha, 'draft': False,
+        'tag_name': tag, 'target_commitish': sha, 'draft': True,
         'prerelease': True, 'name': 'Continuous Build', 'body': notes, 'make_latest': 'false'})
     github.upload(tag, files, clobber=True)
     verify_remote_assets(github, release['id'], files)
+    github.api(f'releases/{release["id"]}', method='PATCH', data={'draft': False})
     return release
 
 

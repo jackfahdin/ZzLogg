@@ -20,6 +20,8 @@
 #include <catch2/catch.hpp>
 
 #include <QSignalSpy>
+#include <QPointer>
+#include <QTabWidget>
 #include <QTemporaryFile>
 #include <QTest>
 #include <QTimer>
@@ -84,6 +86,11 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
     LinesCount getLogFilteredNbLines()
     {
         return crawler->logFilteredData_->getNbLine();
+    }
+
+    std::size_t filteredResultDataCount() const
+    {
+        return crawler->filteredViewsData_.size();
     }
 
     void selectAllInMainView()
@@ -265,4 +272,36 @@ SCENARIO( "Crawler widget search", "[ui]" )
             }
         }
     }
+}
+
+SCENARIO( "Closing a kept search result releases its data", "[ui]" )
+{
+    QTemporaryFile file{ "crawler_results_test_XXXXXX" };
+    REQUIRE( generateDataFiles( file ) );
+    Session session;
+    CrawlerWidgetVisitor visitor;
+    visitor.crawler.reset( static_cast<CrawlerWidget*>(
+        session.open( file.fileName(), []() { return new CrawlerWidget(); } ) ) );
+    REQUIRE( visitor.crawler );
+    REQUIRE( waitUiState( [&] { return visitor.getLogNbLines().get() == SL_NB_LINES; } ) );
+    REQUIRE( waitUiState( [&] { return visitor.isLoadingFinished(); } ) );
+    visitor.render();
+
+    auto* keep = visitor.crawler->findChild<QToolButton*>( "keepSearchResultsButton" );
+    auto* tabs = visitor.crawler->findChild<QTabWidget*>( "filteredResultsTabs" );
+    REQUIRE( keep );
+    REQUIRE( tabs );
+    visitor.setSearchPattern( "line" );
+    visitor.runSearch();
+    keep->setChecked( true );
+    visitor.setSearchPattern( "10" );
+    visitor.runSearch();
+    REQUIRE( tabs->count() == 2 );
+    REQUIRE( visitor.filteredResultDataCount() == 2 );
+
+    QPointer<QWidget> closedView = tabs->widget( 0 );
+    Q_EMIT tabs->tabCloseRequested( 0 );
+    QCoreApplication::sendPostedEvents( nullptr, QEvent::DeferredDelete );
+    REQUIRE( closedView.isNull() );
+    REQUIRE( visitor.filteredResultDataCount() == 1 );
 }

@@ -48,7 +48,7 @@ class FakeGitHub:
                 page = int(path.split('page=')[-1])
                 return self.assets[(page-1)*100:page*100]
         if method == 'POST' and path == 'releases':
-            if self.fail_recreate and data.get('draft') is False and data.get('prerelease'):
+            if self.fail_recreate and data.get('prerelease'):
                 raise RuntimeError('Simulated nightly listing refresh failure')
             self.release = dict(data, id=7 if self.release is None else self.release.get('id', 7) + 1)
             if self.tag_created_with_draft:
@@ -126,7 +126,8 @@ class ReleaseTests(unittest.TestCase):
     def bundle(self, nightly=False):
         return assemble(self.artifacts, self.output, VERSION,
                         'Continuous-Build' if nightly else VERSION,
-                        SHA, 'continuous-build' if nightly else 'v' + VERSION, 'https://example.com/run/123')
+                        SHA, 'continuous-build' if nightly else 'v' + VERSION,
+                        'https://github.com/example/ZzLogg/actions/runs/1234567890')
 
     def test_missing_portable_update_helper_prevents_release(self):
         next(self.artifacts.rglob('ZzLoggPortableUpdate.exe')).unlink()
@@ -139,12 +140,28 @@ class ReleaseTests(unittest.TestCase):
         saved = json.loads((self.output / 'release-info-Continuous-Build.json').read_bytes())
         self.assertEqual(saved['release_sequence'], '1234567890')
 
+    def test_stable_sequence_is_preserved_from_the_platform_build_run(self):
+        info = self.bundle()
+        self.assertEqual(info['release_sequence'], '1234567890')
+        saved = json.loads((self.output / f'release-info-{VERSION}.json').read_bytes())
+        self.assertEqual(saved['release_sequence'], '1234567890')
+
     def test_preview_without_valid_build_sequence_is_rejected(self):
         sequence = self.artifacts / 'klogg_version/klogg_release_sequence.txt'
         for invalid in ['', '0', '01', '-1', '1.5', '18446744073709551616']:
             sequence.write_text(invalid)
             with self.subTest(sequence=invalid), self.assertRaises(ValueError):
                 self.bundle(True)
+
+    def test_stable_without_build_sequence_is_rejected(self):
+        (self.artifacts / 'klogg_version/klogg_release_sequence.txt').unlink()
+        with self.assertRaises(ValueError):
+            self.bundle()
+
+    def test_stable_build_sequence_must_match_release_run(self):
+        (self.artifacts / 'klogg_version/klogg_release_sequence.txt').write_text('1234567891')
+        with self.assertRaises(ValueError):
+            self.bundle()
 
     def test_version_uses_cmake_export(self):
         (self.root / 'CMakeLists.txt').write_text('project(\n  Test\n  VERSION 26.9.0\n)\n')
@@ -282,11 +299,12 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(github.sha, SHA)
         self.assertEqual(github.release['make_latest'], 'false')
         self.assertEqual(github.release['name'], 'Continuous Build')
-        self.assertEqual(github.upload_draft_states, [True, False])
+        self.assertEqual(github.upload_draft_states, [True, True])
         self.assertIn('Future improvement', github.release['body'])
         self.assertIn('New feature', github.release['body'])
         promote = next(i for i, e in enumerate(github.events)
-                        if e[0:2] == ('POST', 'releases') and e[2].get('draft') is False and e[2].get('prerelease'))
+                        if e[0] == 'PATCH' and e[1].startswith('releases/')
+                        and e[2].get('draft') is False)
         prune = next(i for i, e in enumerate(github.events) if e[0] == 'DELETE')
         self.assertLess(prune, promote)
         self.assertTrue(github.upload_draft_states[0])
@@ -313,7 +331,7 @@ class ReleaseTests(unittest.TestCase):
         name = info['assets'][0]['name']
         github.assets = [{'id': 1, 'name': name, 'size': 1, 'digest': 'wrong'}]
         publish(github, self.output, info, 'nightly')
-        self.assertEqual(github.upload_draft_states, [True, False])
+        self.assertEqual(github.upload_draft_states, [True, True])
         self.assertEqual(sum(a['name'] == name for a in github.assets), 1)
         self.assertEqual(len(github.assets), 8)
         self.assertFalse(github.release['draft'])
@@ -355,6 +373,32 @@ class ReleaseTests(unittest.TestCase):
         github.fail_recreate = False
         publish(github, self.output, info, 'nightly')
         self.assertFalse(github.release['draft'])
+
+    def test_final_preview_upload_failure_remains_hidden_and_retry_recovers(self):
+        github = FakeGitHub({'id': 7, 'draft': False, 'prerelease': True,
+                             'tag_name': 'continuous-build'}, 'b' * 40)
+        info = self.bundle(True)
+        original_upload = github.upload
+        upload_count = 0
+
+        def fail_second_upload(tag, files, *, clobber):
+            nonlocal upload_count
+            upload_count += 1
+            if upload_count == 2:
+                github.fail_upload_after = 1
+            return original_upload(tag, files, clobber=clobber)
+
+        github.upload = fail_second_upload
+        with self.assertRaisesRegex(RuntimeError, 'Simulated partial upload'):
+            publish(github, self.output, info, 'nightly')
+        self.assertTrue(github.release['draft'])
+        self.assertFalse(snapshot_unchanged(github, SHA))
+        github.fail_upload_after = None
+        github.upload = original_upload
+        publish(github, self.output, info, 'nightly')
+        self.assertFalse(github.release['draft'])
+        self.assertEqual(len(github.assets), 8)
+        self.assertTrue(snapshot_unchanged(github, SHA))
 
     def test_missing_remote_digest_prevents_publication(self):
         github = FakeGitHub()

@@ -101,7 +101,10 @@ def packages_from_release(path, channel):
         require(is_preview_label(label), 'Invalid preview artifact label')
     sequence = decimal(info['release_sequence'], UINT64_MAX, 'release sequence', 1)
     if channel == 'stable':
-        require(sequence == int(version.replace('.', '')), 'Stable sequence must match display version')
+        run_id = re.search(r'/actions/runs/([1-9][0-9]*)$', info['workflow_run'])
+        require(sequence == int(version.replace('.', ''))
+                or (run_id is not None and sequence == int(run_id.group(1))),
+                'Stable sequence must match the legacy version or publishing workflow run')
     assets = info['assets']
     require(isinstance(assets, list) and 1 <= len(assets) <= 64, 'Invalid release assets')
     expected = {target[0] for target in release_targets(label)}

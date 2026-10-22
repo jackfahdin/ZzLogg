@@ -205,10 +205,12 @@ SCENARIO( "marks in filtered log data", "[logdata]" )
 
             AND_WHEN( "Clear marks" )
             {
+                REQUIRE( filtered_data->getNbLine() == 2_lcount );
                 filtered_data->clearMarks();
                 THEN( "All marks are removed" )
                 {
                     REQUIRE( filtered_data->getNbMarks() == 0_lcount );
+                    REQUIRE( filtered_data->getNbLine() == 0_lcount );
                 }
             }
         }

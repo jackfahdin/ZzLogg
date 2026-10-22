@@ -14,14 +14,15 @@ endif()
 if(WIN32)
   add_executable(zzlogg_portable_installer_test installertest_win.cpp)
   target_link_libraries(zzlogg_portable_installer_test PRIVATE
-    zzlogg_portableupdater zzlogg_update_handoff klogg_karchive)
+    zzlogg_portableupdater zzlogg_update_handoff klogg_karchive klogg_storage)
   zzlogg_update_runtime(zzlogg_portable_installer_test FALSE)
   add_dependencies(zzlogg_portable_installer_test ZzLoggPortableUpdate)
   add_test(NAME zzlogg_portable.installer COMMAND zzlogg_portable_installer_test
-    "$<TARGET_FILE:ZzLoggPortableUpdate>")
-  set_tests_properties(zzlogg_portable.installer PROPERTIES TIMEOUT 70
+    "$<TARGET_FILE:ZzLoggPortableUpdate>" "$<TARGET_FILE:zzlogg_portable_restart_fixture>")
+  set_tests_properties(zzlogg_portable.installer PROPERTIES TIMEOUT 120
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
   add_executable(zzlogg_portable_restart_fixture restartfixture_win.cpp)
+  add_dependencies(zzlogg_portable_installer_test zzlogg_portable_restart_fixture)
   add_executable(zzlogg_portable_helper_test helpertest_win.cpp)
   target_include_directories(zzlogg_portable_helper_test PRIVATE ../../src/portableupdater)
   target_link_libraries(zzlogg_portable_helper_test PRIVATE zzlogg_updater_handoff bcrypt)

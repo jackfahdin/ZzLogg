@@ -37,10 +37,24 @@ int fail(LocalChannel& channel,Message message,int code) {
 // A rolled-back transaction leaves the installation intact but the
 // application already exited for the update; bring it back instead of
 // leaving the user with a silently vanished program.
-void relaunchAfterFailedTransaction(const std::wstring& installRoot) {
+std::wstring quoteWindowsArgument(const std::wstring& value) {
+    std::wstring quoted=L"\"";
+    std::size_t backslashes=0;
+    for(const auto character:value) {
+        if(character==L'\\') {++backslashes;continue;}
+        quoted.append(backslashes*(character==L'"'?2:1),L'\\');
+        backslashes=0;
+        if(character==L'"')quoted+=L'\\';
+        quoted+=character;
+    }
+    quoted.append(backslashes*2,L'\\');
+    return quoted+L'"';
+}
+void relaunchAfterFailedTransaction(const std::wstring& installRoot,const std::wstring& dataDirectory) {
     if(installRoot.empty())return;
     const std::wstring image=installRoot+L"\\ZzLogg.exe";
-    std::wstring command=L"\""+image+L"\"";
+    std::wstring command=quoteWindowsArgument(image);
+    if(!dataDirectory.empty())command+=L" --data-dir "+quoteWindowsArgument(dataDirectory);
     STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION launched{};
     if(CreateProcessW(image.c_str(),command.data(),nullptr,nullptr,FALSE,0,nullptr,
         installRoot.c_str(),&startup,&launched)) {
@@ -85,8 +99,12 @@ int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options)
     if(proceeded!=CoordinationResult::ProceedSent)return fail(channel,message,RelayFailed);
     const auto finished=coordinator.finish(after(FinishBudgetMs));
     if(finished!=CoordinationResult::Complete) {
-        if(finished!=CoordinationResult::ManualRestartRequired)
-            relaunchAfterFailedTransaction(std::wstring(data.installRoot));
+        if(finished!=CoordinationResult::ManualRestartRequired && coordinator.process().handle()
+            && WaitForSingleObject(coordinator.process().handle(),ShortBudgetMs)==WAIT_OBJECT_0) {
+            coordinator.releaseDirectoryObserver();
+            bootstrap.releaseDirectoryObserver();
+            relaunchAfterFailedTransaction(data.installRoot,data.dataDirectory);
+        }
         return finished==CoordinationResult::ManualRestartRequired?RestartPending:RelayFailed;
     }
     // This bootstrap owns a second observer independently of Coordinator.

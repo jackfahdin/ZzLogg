@@ -84,6 +84,7 @@ public:
     // endpoint present. Confirmation failure reports RestartFailed and keeps
     // the transaction backup for authorized recovery.
     CoordinationResult restart(Deadline);
+    void releaseDirectoryObserver();
     void cancel(Deadline);
     const ProcessIdentity& process() const;
     const std::wstring& runtimePath() const;

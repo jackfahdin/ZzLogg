@@ -14,6 +14,16 @@
 #include "signalmux.h"
 #include "storagecontext.h"
 
+struct WorkspaceCrawlerAccess {};
+
+template <>
+struct CrawlerWidget::access_by<WorkspaceCrawlerAccess> {
+    static bool loadingFinished( const CrawlerWidget* crawler )
+    {
+        return !crawler->loadingInProgress_;
+    }
+};
+
 class DocumentWorkspaceTest final : public QObject {
     Q_OBJECT
 Q_SIGNALS:
@@ -141,6 +151,45 @@ private Q_SLOTS:
         Q_EMIT followRequested( true );
         QCOMPARE( firstFollow.count(), 1 );
         QCOMPARE( secondFollow.count(), 1 );
+    }
+
+    void restoresInactiveDocumentFailureStatus()
+    {
+        QTemporaryDir files;
+        auto session = std::make_shared<Session>();
+        WindowSession window( session, "loading-status-workspace", 0 );
+        SignalMux mux;
+        QuickFindMux quickFind( window.getQuickFindPattern() );
+        DocumentWorkspace workspace( window, mux, quickFind );
+        auto* first = workspace.openDocument( makeLog( files, "first.log" ) );
+        auto* second = workspace.openDocument( makeLog( files, "second.log" ) );
+        QVERIFY( first );
+        QVERIFY( second );
+        QTRY_VERIFY( CrawlerWidget::access_by<WorkspaceCrawlerAccess>::loadingFinished( first ) );
+        QTRY_VERIFY( CrawlerWidget::access_by<WorkspaceCrawlerAccess>::loadingFinished( second ) );
+
+        QList<LoadingStatus> reported;
+        connect( first, &CrawlerWidget::loadingFinished, this,
+                 [ & ]( LoadingStatus status ) { reported.append( status ); } );
+        QVERIFY( QMetaObject::invokeMethod( first, "loadingFinishedHandler", Qt::DirectConnection,
+                                            Q_ARG( LoadingStatus, LoadingStatus::Interrupted ) ) );
+        QCOMPARE( reported.last(), LoadingStatus::Interrupted );
+        reported.clear();
+
+        QList<CrawlerWidget*> activated;
+        connect( &workspace, &DocumentWorkspace::currentDocumentChanged, this,
+                 [ & ]( CrawlerWidget* document ) { activated.append( document ); } );
+        connect( first, &CrawlerWidget::loadingFinished, this,
+                 [ & ]( LoadingStatus status ) {
+                     if ( status == LoadingStatus::Interrupted )
+                         workspace.closeDocument( workspace.indexOf( first ) );
+                 } );
+        workspace.setCurrentIndex( 0 );
+        QCOMPARE( reported.size(), 1 );
+        QCOMPARE( reported.first(), LoadingStatus::Interrupted );
+        QCOMPARE( workspace.currentDocument(), second );
+        QCOMPARE( activated.size(), 1 );
+        QCOMPARE( activated.first(), second );
     }
 
     void notifiesHostAfterActionRouting()

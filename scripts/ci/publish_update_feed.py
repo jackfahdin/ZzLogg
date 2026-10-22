@@ -141,8 +141,9 @@ def verified_payload(content, channel, key_id, public_key):
         raise ValueError('Manifest product/channel/version is invalid')
     decimal(payload.get('metadataSequence'), 2**64 - 1, 'metadataSequence', 1)
     sequence = decimal(payload.get('releaseSequence'), 2**64 - 1, 'releaseSequence', 1)
-    if channel == 'stable' and sequence != int(payload['version'].replace('.', '')):
-        raise ValueError('Manifest release sequence does not match version')
+    # Historical stable feeds used YYMMDD; new feeds use the publishing run ID.
+    if channel == 'stable' and sequence < int(payload['version'].replace('.', '')):
+        raise ValueError('Manifest release sequence precedes version')
     return payload
 
 

@@ -278,6 +278,7 @@ CoordinationResult Coordinator::restart(Deadline deadline){
     }
     return fail();
 }
+void Coordinator::releaseDirectoryObserver(){impl_->directoryObserver.reset();}
 void Coordinator::cancel(Deadline deadline){
     if(impl_->session && !impl_->failed){impl_->channel.send(impl_->message(MessageKind::Cancel),deadline);impl_->session->accept(impl_->message(MessageKind::Cancel));}
     impl_->abort();

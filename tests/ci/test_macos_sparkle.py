@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SparkleMetadataTests(unittest.TestCase):
-    def configure(self, official=True, arch='x86_64', channel='stable', sequence='261001', feed=True):
+    def configure(self, official=True, arch='x86_64', channel='stable', sequence='261001', feed=True,
+                  include_prefix=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             script = root / 'configure.cmake'
@@ -26,12 +27,25 @@ set(ZZLOGG_DISPLAY_VERSION "26.10.01")
 set(ZZLOGG_RELEASE_SEQUENCE "{sequence}")
 set(MACOSX_BUNDLE_EXECUTABLE_NAME ZzLogg)
 zzlogg_sparkle_bundle_metadata()
+file(WRITE "{root}/FeedPrefix.txt" "${{ZZLOGG_SPARKLE_FEED_PREFIX}}")
 configure_file("{ROOT}/cmake/MacOSXBundleInfo.plist.in" "{root}/Info.plist")
 ''')
             result = subprocess.run(['cmake', '-P', str(script)], capture_output=True, text=True)
             if result.returncode:
                 return result, None
-            return result, plistlib.loads((root / 'Info.plist').read_bytes())
+            plist = plistlib.loads((root / 'Info.plist').read_bytes())
+            if include_prefix:
+                return result, plist, (root / 'FeedPrefix.txt').read_text()
+            return result, plist
+
+    def test_runtime_feed_prefix_keeps_architecture_independent_of_build_channel(self):
+        for arch, feed_arch in [('x86_64', 'x64'), ('arm64', 'arm64')]:
+            for channel in ['stable', 'preview']:
+                with self.subTest(arch=arch, channel=channel):
+                    result, _, prefix = self.configure(arch=arch, channel=channel, include_prefix=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(prefix,
+                        f'https://raw.githubusercontent.com/jackfahdin/ZzLogg/update-feed/macos-{feed_arch}-')
 
     def test_official_feed_matches_architecture_and_channel(self):
         for arch, feed_arch in [('x86_64', 'x64'), ('arm64', 'arm64')]:

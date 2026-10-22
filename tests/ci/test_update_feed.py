@@ -442,6 +442,24 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(current['notes']['en'], 'Changes\n\nFixed logs.')
         self.assertEqual(current['artifacts'], [{'sha256': hashlib.sha256(self.package).hexdigest()}])
 
+    def test_stable_run_sequence_can_be_renewed_after_publication(self):
+        self.info['release_sequence'] = '1234567890'
+        self.info['workflow_run'] = 'https://github.com/example/ZzLogg/actions/runs/1234567890'
+        self.publish()
+        self.now_ms += 1000
+        self.publish()
+        current = json.loads(base64.b64decode(json.loads(self.stored['stable.json'])['payload']))
+        self.assertEqual(current['releaseSequence'], '1234567890')
+
+    def test_new_stable_run_sequence_follows_legacy_stable_feed(self):
+        self.stored['stable.json'] = self.signed(self.payload(
+            version='26.08.00', releaseSequence='260800'))
+        self.info['release_sequence'] = '1234567890'
+        self.info['workflow_run'] = 'https://github.com/example/ZzLogg/actions/runs/1234567890'
+        self.publish()
+        current = json.loads(base64.b64decode(json.loads(self.stored['stable.json'])['payload']))
+        self.assertEqual(current['releaseSequence'], '1234567890')
+
     def test_same_version_stable_dmg_replacement_never_changes_any_feed(self):
         self.publish()
         published = self.stored.copy()

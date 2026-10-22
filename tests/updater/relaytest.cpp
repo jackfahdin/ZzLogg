@@ -40,6 +40,11 @@ std::vector<std::wstring> readLines(const fs::path& path) {
 bool hasLine(const std::vector<std::wstring>& lines,const wchar_t* text) {
     return std::find(lines.begin(),lines.end(),std::wstring(text))!=lines.end();
 }
+bool hasGuiDataDirectory(const std::vector<std::wstring>& lines,const std::wstring& directory) {
+    return std::any_of(lines.begin(),lines.end(),[&](const std::wstring& line) {
+        return line.rfind(L"gui pid=",0)==0 && line.find(L" datadir="+directory)!=std::wstring::npos;
+    });
+}
 // Readers poll these while the writer is still running, so every file is
 // published by rename, never observed half written.
 void publish(const fs::path& path,const std::vector<std::wstring>& lines) {
@@ -160,7 +165,8 @@ int runGuiParent(wchar_t** arguments) {
     for(std::size_t i=0;i<32;++i)
         request.packageSha256[i]=static_cast<uint8_t>(std::wcstoul(digest.substr(i*2,2).c_str(),nullptr,16));
     SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_RECORD",record.c_str());
-    SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_ENGINE",L"light");
+    SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_ENGINE",
+        GetEnvironmentVariableW(L"ZZLOGG_RELAY_TEST_FAIL",nullptr,0)?L"fail-after-proceed":L"light");
     SetEnvironmentVariableW(L"ZZLOGG_FIXTURE_GUI",L"ok");
     SetEnvironmentVariableW(L"ZZLOGG_HANDOFF_FIXTURE",nullptr);
     InstallationActivity activity;
@@ -317,6 +323,29 @@ int runRelayTest(int argc,wchar_t** argv) {
         check(observed.proceedAfterApplicationExit,
             "Proceed was released only after the application process really exited");
         awaitRestartedGui(chain/L"record.txt");
+
+        const auto failedRoot=root/L"failed-chain";
+        fs::create_directories(failedRoot/L"chain");
+        good.installRoot=(failedRoot/L"chain/install").wstring();
+        good.dataDirectory=(failedRoot/L"chain/data with spaces").wstring();
+        makeInstallRoot(good.installRoot,installer);
+        fs::create_directories(good.dataDirectory);
+        SetEnvironmentVariableW(L"ZZLOGG_RELAY_TEST_FAIL",L"1");
+        RelayObservation failedObserved;
+        check(runRelayChain(relay,failedRoot,good,failedObserved)==RelayFailed,
+            "failed transaction returns relay failure after application exit");
+        SetEnvironmentVariableW(L"ZZLOGG_RELAY_TEST_FAIL",nullptr);
+        const auto failedRecord=failedRoot/L"chain/record.txt";
+        for(int tries=0;tries<600 && !hasGuiDataDirectory(readLines(failedRecord),good.dataDirectory);++tries)
+            Sleep(ObservationPollMs);
+        awaitRestartedGui(failedRecord);
+        const auto lines=readLines(failedRecord);
+        check(failedObserved.proceedAfterApplicationExit,
+            "failed transaction begins only after the application exits");
+        check(hasLine(lines,L"gui entered=1"),
+            "recovered application enters after both mutex observers close");
+        check(hasGuiDataDirectory(lines,good.dataDirectory),
+            "recovered application receives the original data directory");
     }
     std::error_code ec;fs::remove_all(root,ec);
     std::cout<<(failures?"relay FAILED":"relay ok")<<std::endl;

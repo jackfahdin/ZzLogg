@@ -31,7 +31,7 @@ std::wstring envVar(const wchar_t* name) {
 class FileRegistry:public TxRegistry {
 public:
     explicit FileRegistry(std::wstring path):path_(std::move(path)) {
-        std::wifstream in(path_); std::wstring line;
+        std::wifstream in{fs::path(path_)}; std::wstring line;
         while(std::getline(in,line)) {
             const auto first=line.find(L'\t'); if(first==std::wstring::npos) continue;
             const auto second=line.find(L'\t',first+1); if(second==std::wstring::npos) continue;
@@ -51,7 +51,7 @@ public:
     bool writeString(const std::wstring& key,const std::wstring& name,const std::wstring& value) override {
         if(!allowedRegistryKey(key)) return false;
         strings_[name]=value;
-        std::wofstream out(path_,std::ios::trunc);
+        std::wofstream out(fs::path(path_),std::ios::trunc);
         for(const auto& [n,v]:strings_) out<<n<<L"\tS\t"<<v<<L'\n';
         for(const auto& [n,v]:dwords_) out<<n<<L"\tD\t"<<v<<L'\n';
         out.flush();
@@ -160,6 +160,11 @@ int runCredentialEngine(int argc,wchar_t** argv) {
     const auto proceed=channel.receive(after(15000));
     if(proceed) recordKind(*proceed);
     if(!proceed || proceed->kind!=MessageKind::Proceed) return 56;
+    if(behavior==L"fail-after-proceed") {
+        message.kind=MessageKind::Failed;
+        channel.send(message,after(1000));
+        return 42;
+    }
     message.kind=MessageKind::Complete;
     channel.send(message,after(1000));
     return 0;
@@ -207,6 +212,7 @@ int runGuiFixture(int argc,wchar_t** argv) {
     // make a restart look successful while an update observer still blocks entry.
     InstallationActivity activity;
     if(activity.enter(image.parent_path().wstring())!=ActivityError::None) return 9;
+    record(L"gui entered=1");
     DirectoryIdentity identity{};
     if(!InstallationActivity::probeIdentity(image.parent_path().wstring(),identity)) return 8;
     const auto name=singleInstancePipeName(identity,image.filename().wstring());

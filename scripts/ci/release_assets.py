@@ -45,16 +45,16 @@ def assemble(artifacts, output, version, label, sha, tag, run_url):
     version_file = artifacts / 'klogg_version' / 'klogg_version.txt'
     if version_file.read_text().strip() != version:
         raise ValueError('Build artifact version does not match release version')
-    if tag == 'continuous-build':
-        sequence_path = artifacts / 'klogg_version' / 'klogg_release_sequence.txt'
-        if not sequence_path.is_file():
-            raise ValueError('Preview build sequence artifact is required')
-        release_sequence = sequence_path.read_text().strip()
-        if (not re.fullmatch(r'[1-9][0-9]{0,19}', release_sequence)
-                or int(release_sequence) > 2**64 - 1):
-            raise ValueError('Preview build sequence must be canonical positive uint64')
-    else:
-        release_sequence = str(int(version.replace('.', '')))
+    sequence_path = artifacts / 'klogg_version' / 'klogg_release_sequence.txt'
+    if not sequence_path.is_file():
+        raise ValueError('Official build sequence artifact is required')
+    release_sequence = sequence_path.read_text().strip()
+    if (not re.fullmatch(r'[1-9][0-9]{0,19}', release_sequence)
+            or int(release_sequence) > 2**64 - 1):
+        raise ValueError('Build sequence must be canonical positive uint64')
+    run_id = re.search(r'/actions/runs/([1-9][0-9]*)$', run_url)
+    if run_id is None or release_sequence != run_id.group(1):
+        raise ValueError('Build sequence must match the publishing workflow run')
     sources = {
         f'ZzLogg-{label}-linux-x64.deb': artifacts / 'packages-linux' / f'ZzLogg-{version}-Linux.deb',
         f'ZzLogg-{label}-linux-x64.rpm': artifacts / 'packages-linux' / f'ZzLogg-{version}-Linux.rpm',

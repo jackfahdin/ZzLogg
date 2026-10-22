@@ -34,7 +34,7 @@ permissions:
 env:
   ZZLOGG_OFFICIAL_RELEASE: ${{ (inputs.release_mode == 'stable' || inputs.release_mode == 'nightly') && 'ON' || 'OFF' }}
   ZZLOGG_RELEASE_CHANNEL: ${{ inputs.release_mode == 'nightly' && 'preview' || 'stable' }}
-  ZZLOGG_RELEASE_SEQUENCE: ${{ inputs.release_mode == 'nightly' && github.run_id || '' }}
+  ZZLOGG_RELEASE_SEQUENCE: ${{ (inputs.release_mode == 'stable' || inputs.release_mode == 'nightly') && github.run_id || '' }}
   ZZLOGG_ENABLE_GITHUB_FEED: ${{ vars.ZZLOGG_UPDATE_FEED_ENABLED == 'true' && 'ON' || 'OFF' }}
 
 jobs:
