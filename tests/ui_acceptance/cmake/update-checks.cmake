@@ -11,7 +11,7 @@ endif()
 set_target_properties(zzlogg_update_session_factory_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.update_session_factory
   COMMAND zzlogg_update_session_factory_test
-    -o "${CMAKE_CURRENT_BINARY_DIR}/update-session-factory-$<CONFIG>.txt,txt")
+    -o "${CMAKE_CURRENT_BINARY_DIR}/update-session-factory-$<CONFIG>.txt,txt" -o "-,txt")
 
 add_executable(zzlogg_update_check_ui_test update/updatecheckuitest.cpp)
 target_link_libraries(zzlogg_update_check_ui_test PRIVATE klogg_ui Qt6::Test)
@@ -20,7 +20,7 @@ target_link_libraries(zzlogg_update_check_ui_test PRIVATE zzlogg_update_json zzl
 target_compile_definitions(zzlogg_update_check_ui_test PRIVATE ZZLOGG_UI_QM_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 set_target_properties(zzlogg_update_check_ui_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.update_check COMMAND zzlogg_update_check_ui_test -platform offscreen
-  -o "${CMAKE_CURRENT_BINARY_DIR}/update-check-$<CONFIG>.txt,txt")
+  -o "${CMAKE_CURRENT_BINARY_DIR}/update-check-$<CONFIG>.txt,txt" -o "-,txt")
 set_property(TEST zzlogg_ui.update_check PROPERTY ENVIRONMENT
   "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
 if(WIN32)

@@ -10,7 +10,7 @@
 #include <QFile>
 #include <QProcess>
 #include <QSettings>
-#include <QTemporaryDir>
+#include "../../testsupport/canonicaltemporarydir.h"
 #include <QUuid>
 
 namespace {
@@ -683,7 +683,7 @@ bool executeScenarioProcessAtRoot( const QString& name, const QString& root,
 
 bool executeScenarioProcess( const QString& name, const QStringList& extraArguments = {} )
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     if ( !temporaryDirectory.isValid() ) {
         qCritical().noquote() << name << ": failed to create temporary directory";
         return false;
@@ -726,7 +726,7 @@ int main( int argc, char* argv[] )
                                   { QStringLiteral( "--preexisting-manifest" ) } ) ) {
         return EXIT_FAILURE;
     }
-    QTemporaryDir legacyRetryRoot;
+    CanonicalTemporaryDir legacyRetryRoot;
     if ( !legacyRetryRoot.isValid()
          || !executeScenarioProcessAtRoot( QStringLiteral( "legacy-failure-stage" ),
                                            legacyRetryRoot.path() )
@@ -734,7 +734,7 @@ int main( int argc, char* argv[] )
                                            legacyRetryRoot.path() ) ) {
         return EXIT_FAILURE;
     }
-    QTemporaryDir partialRetryRoot;
+    CanonicalTemporaryDir partialRetryRoot;
     if ( !partialRetryRoot.isValid()
          || !executeScenarioProcessAtRoot( QStringLiteral( "pending-partial-stage" ),
                                            partialRetryRoot.path() )
@@ -742,7 +742,7 @@ int main( int argc, char* argv[] )
                                            partialRetryRoot.path() ) ) {
         return EXIT_FAILURE;
     }
-    QTemporaryDir oldPendingRetryRoot;
+    CanonicalTemporaryDir oldPendingRetryRoot;
     if ( !oldPendingRetryRoot.isValid()
          || !executeScenarioProcessAtRoot( QStringLiteral( "old-legacy-pending-stage" ),
                                            oldPendingRetryRoot.path() )

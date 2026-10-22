@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QTemporaryDir>
+#include "../../testsupport/canonicaltemporarydir.h"
 #include <QtTest>
 
 namespace {
@@ -61,7 +61,7 @@ private Q_SLOTS:
     void resolvesBareExecutableFromPath()
     {
         ProcessEnvironmentGuard guard;
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         QVERIFY( root.isValid() );
         const QString pathDirectory = root.filePath( QStringLiteral( "path-bin" ) );
         const QString executable = QDir{ pathDirectory }.filePath( executableName() );
@@ -80,7 +80,7 @@ private Q_SLOTS:
     void resolvesExecutableWithRelativeDirectoryFromCurrentDirectory()
     {
         ProcessEnvironmentGuard guard;
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         QVERIFY( root.isValid() );
         const QString workingDirectory = root.filePath( QStringLiteral( "working" ) );
         const QString relativePath

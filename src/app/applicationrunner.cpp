@@ -44,6 +44,7 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QMessageBox>
+#include <QMenuBar>
 #include <QObject>
 #include <QPointer>
 #include <QStandardPaths>
@@ -126,9 +127,10 @@ struct UiSmokeState {
     QPointer<QComboBox> searchEdit;
     QPointer<QToolButton> searchButton;
     QPointer<QTabWidget> filteredResultsTabs;
-    QPointer<QWidget> firstTitleBar;
-    QPointer<QWidget> secondTitleBar;
+    QPointer<QWidget> firstChromeWidget;
+    QPointer<QWidget> secondChromeWidget;
     QElapsedTimer elapsed;
+    QColor initialWindowColor;
     QString mode;
     QString waitingFor = QStringLiteral( "the first window" );
     int deadlineMs = 0;
@@ -150,19 +152,38 @@ void finishUiSmoke( UiSmokeState& state, int exitCode, const QString& message = 
     state.app->exit( exitCode );
 }
 
-QWidget* validateFluentWindow( MainWindow* window, QString* error )
+bool expectsNativeSmokeChrome()
+{
+#if defined(Q_OS_MACOS) && !defined(ZZLOGG_WINDOWKIT_FORCE_QT_CONTEXT)
+    // The Cocoa backend deliberately rejects offscreen/minimal QPA windows.
+    return QGuiApplication::platformName() != QStringLiteral( "cocoa" );
+#else
+    return false;
+#endif
+}
+
+QWidget* validateWindowChrome( MainWindow* window, QString* error )
 {
     if ( window == nullptr ) {
         *error = QStringLiteral( "main window is missing" );
         return nullptr;
     }
-    if ( !window->windowChrome() || window->windowChrome()->usesNativeFallback() ) {
-        *error = QStringLiteral( "Fluent window chrome was not constructed" );
+    if ( !window->windowChrome()
+         || window->windowChrome()->usesNativeFallback() != expectsNativeSmokeChrome() ) {
+        *error = QStringLiteral( "expected window chrome was not constructed" );
         return nullptr;
     }
     if ( window->centralWidget() == nullptr ) {
         *error = QStringLiteral( "main window central widget is missing" );
         return nullptr;
+    }
+    if ( expectsNativeSmokeChrome() ) {
+        auto* const menuBar = &window->windowChrome()->commandMenuBar();
+        if ( window->menuWidget() != menuBar || menuBar->actions().isEmpty() ) {
+            *error = QStringLiteral( "native window command menu is missing" );
+            return nullptr;
+        }
+        return menuBar;
     }
     auto* const titleBar = window->findChild<QWidget*>( QStringLiteral( "zzloggFluentTitleBar" ) );
     if ( titleBar == nullptr ) {
@@ -175,7 +196,9 @@ QWidget* validateFluentWindow( MainWindow* window, QString* error )
 bool hasExpectedDocumentTitle( const MainWindow& window, const QString& fileName )
 {
     return window.windowTitle().contains( fileName )
-           && window.windowTitle().endsWith( QStringLiteral( " \u2014 ZzLogg" ) );
+           && window.windowTitle().endsWith( expectsNativeSmokeChrome()
+                                                 ? QStringLiteral( " - ZzLogg" )
+                                                 : QStringLiteral( " \u2014 ZzLogg" ) );
 }
 
 void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
@@ -200,8 +223,8 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
 
         state->firstWindow = windows.front();
         QString error;
-        state->firstTitleBar = validateFluentWindow( state->firstWindow, &error );
-        if ( state->firstTitleBar == nullptr ) {
+        state->firstChromeWidget = validateWindowChrome( state->firstWindow, &error );
+        if ( state->firstChromeWidget == nullptr ) {
             finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "first window: %1" ).arg( error ) );
             return;
@@ -213,7 +236,7 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
                 return;
             }
             for ( MainWindow* window : windows ) {
-                if ( validateFluentWindow( window, &error ) == nullptr ) {
+                if ( validateWindowChrome( window, &error ) == nullptr ) {
                     finishUiSmoke( *state, EXIT_FAILURE,
                                     QStringLiteral( "restored window: %1" ).arg( error ) );
                     return;
@@ -224,8 +247,8 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
         }
 
         state->secondWindow = state->app->newWindow();
-        state->secondTitleBar = validateFluentWindow( state->secondWindow, &error );
-        if ( state->secondTitleBar == nullptr ) {
+        state->secondChromeWidget = validateWindowChrome( state->secondWindow, &error );
+        if ( state->secondChromeWidget == nullptr ) {
             finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "new window before first show: %1" ).arg( error ) );
             return;
@@ -334,16 +357,16 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
         return;
     }
     case UiSmokeStage::WaitForSearch: {
-        if ( state->firstTitleBar == nullptr ) {
+        if ( state->firstChromeWidget == nullptr ) {
             finishUiSmoke(
                 *state, EXIT_FAILURE,
-                QStringLiteral( "first title bar disappeared while waiting for search" ) );
+                QStringLiteral( "first window chrome disappeared while waiting for search" ) );
             return;
         }
-        if ( state->secondTitleBar == nullptr ) {
+        if ( state->secondChromeWidget == nullptr ) {
             finishUiSmoke(
                 *state, EXIT_FAILURE,
-                QStringLiteral( "second title bar disappeared while waiting for search" ) );
+                QStringLiteral( "second window chrome disappeared while waiting for search" ) );
             return;
         }
         if ( state->searchEdit == nullptr ) {
@@ -373,16 +396,31 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
                             QStringLiteral( "search result contract was not preserved" ) );
             return;
         }
-        auto* const themeButton = state->firstTitleBar->findChild<QToolButton*>(
+        if ( expectsNativeSmokeChrome() ) {
+            if ( Configuration::get().uiThemeMode() != UiThemeMode::Light ) {
+                finishUiSmoke( *state, EXIT_FAILURE,
+                                QStringLiteral( "theme did not begin in Light mode" ) );
+                return;
+            }
+            state->initialWindowColor = state->firstWindow->palette().color( QPalette::Window );
+            // There is no Fluent titlebar button on this QPA. Exercise the same
+            // application theme request and verify both windows receive the palette.
+            Q_EMIT state->firstWindow->windowChrome()->themeModeRequested(
+                ZzFluentUI::ZzThemeMode::Dark );
+            state->waitingFor = QStringLiteral( "the Dark theme to synchronize" );
+            state->stage = UiSmokeStage::WaitForTheme;
+            return;
+        }
+        auto* const themeButton = state->firstChromeWidget->findChild<QToolButton*>(
             QStringLiteral( "zzTitleBarThemeButton" ) );
         if ( themeButton == nullptr ) {
             finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "theme toggle button is missing" ) );
             return;
         }
-        if ( state->firstTitleBar->property( "themeMode" ).toInt()
+        if ( state->firstChromeWidget->property( "themeMode" ).toInt()
                  != static_cast<int>( UiThemeMode::Light )
-             || state->secondTitleBar->property( "themeMode" ).toInt()
+             || state->secondChromeWidget->property( "themeMode" ).toInt()
                     != static_cast<int>( UiThemeMode::Light ) ) {
             finishUiSmoke( *state, EXIT_FAILURE,
                             QStringLiteral( "theme did not begin in Light mode" ) );
@@ -394,16 +432,28 @@ void pollUiSmoke( const std::shared_ptr<UiSmokeState>& state )
         return;
     }
     case UiSmokeStage::WaitForTheme: {
-        if ( state->firstTitleBar == nullptr || state->secondTitleBar == nullptr ) {
+        if ( state->firstChromeWidget == nullptr || state->secondChromeWidget == nullptr ) {
             finishUiSmoke( *state, EXIT_FAILURE,
-                            QStringLiteral( "title bar disappeared while waiting for theme" ) );
+                            QStringLiteral( "window chrome disappeared while waiting for theme" ) );
             return;
         }
-        const QVariant firstTheme = state->firstTitleBar->property( "themeMode" );
-        const QVariant secondTheme = state->secondTitleBar->property( "themeMode" );
-        if ( Configuration::get().uiThemeMode() != UiThemeMode::Dark || firstTheme != secondTheme
-             || firstTheme.toInt() != static_cast<int>( UiThemeMode::Dark ) ) {
+        if ( Configuration::get().uiThemeMode() != UiThemeMode::Dark ) {
             return;
+        }
+        if ( expectsNativeSmokeChrome() ) {
+            const QColor firstColor = state->firstWindow->palette().color( QPalette::Window );
+            const QColor secondColor = state->secondWindow->palette().color( QPalette::Window );
+            if ( firstColor == state->initialWindowColor || firstColor != secondColor ) {
+                return;
+            }
+        }
+        else {
+            const QVariant firstTheme = state->firstChromeWidget->property( "themeMode" );
+            const QVariant secondTheme = state->secondChromeWidget->property( "themeMode" );
+            if ( firstTheme != secondTheme
+                 || firstTheme.toInt() != static_cast<int>( UiThemeMode::Dark ) ) {
+                return;
+            }
         }
         auto& settings = PersistentInfo::getSettings( app_settings{} );
         settings.sync();

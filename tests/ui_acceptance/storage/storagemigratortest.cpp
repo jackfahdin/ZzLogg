@@ -11,7 +11,7 @@
 #include <QProcess>
 #include <QSaveFile>
 #include <QSettings>
-#include <QTemporaryDir>
+#include "../../testsupport/canonicaltemporarydir.h"
 #include <QtTest/QtTest>
 
 #include <atomic>
@@ -131,7 +131,7 @@ bool isDirectoryLink( const QString& path )
 }
 
 struct MigrationFixture {
-    explicit MigrationFixture( QTemporaryDir& temporaryDirectory )
+    explicit MigrationFixture( CanonicalTemporaryDir& temporaryDirectory )
         : applicationDirectory( temporaryDirectory.filePath( QStringLiteral( "app" ) ) )
         , appConfigDirectory( temporaryDirectory.filePath( QStringLiteral( "app-config" ) ) )
         , legacyDirectory( temporaryDirectory.filePath( QStringLiteral( "legacy" ) ) )
@@ -273,7 +273,7 @@ void StorageMigratorTest::migratesDetectedLegacySessionFallback()
     QFETCH( QString, expectedSessionName );
     QFETCH( QByteArray, expectedSessionContents );
 
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     const QString applicationDirectory
         = temporaryDirectory.filePath( QStringLiteral( "application" ) );
@@ -357,7 +357,7 @@ void StorageMigratorTest::migratesDetectedLegacySessionFallback()
 
 void StorageMigratorTest::recoversPendingWithDetectedSessionFallback()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     const QString applicationDirectory
         = temporaryDirectory.filePath( QStringLiteral( "application" ) );
@@ -413,7 +413,7 @@ void StorageMigratorTest::recoversPendingWithDetectedSessionFallback()
 
 void StorageMigratorTest::migratesIniLogTreeManifestAndLocatorWithoutChangingSource()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -462,7 +462,7 @@ void StorageMigratorTest::migratesIniLogTreeManifestAndLocatorWithoutChangingSou
 
 void StorageMigratorTest::migratesStoredLogsTransactionally()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -486,7 +486,7 @@ void StorageMigratorTest::migratesStoredLogsTransactionally()
 
 void StorageMigratorTest::logCopyFailureRollsBackAndCleansTransactionFiles()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -527,7 +527,7 @@ void StorageMigratorTest::logCopyFailureRollsBackAndCleansTransactionFiles()
 
 void StorageMigratorTest::sameRootModeChangeOnlySwitchesLocator()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.target.dataRoot = fixture.source.dataRoot;
@@ -566,7 +566,7 @@ void StorageMigratorTest::sameRootModeChangeOnlySwitchesLocator()
 
 void StorageMigratorTest::sameRootModeChangeRejectsDirectorySymlink()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.target.dataRoot = fixture.source.dataRoot;
@@ -608,7 +608,7 @@ void StorageMigratorTest::missingLegacyIniCreatesReadableEmptyTarget_data()
 void StorageMigratorTest::missingLegacyIniCreatesReadableEmptyTarget()
 {
     QFETCH( bool, configExists );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -644,7 +644,7 @@ void StorageMigratorTest::missingLegacyIniCreatesReadableEmptyTarget()
 
 void StorageMigratorTest::emptyIniCreationFailureNamesSourceAndTarget()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -666,7 +666,7 @@ void StorageMigratorTest::emptyIniCreationFailureNamesSourceAndTarget()
 
 void StorageMigratorTest::sessionCopyFailureRollsBackAndPreservesPreexistingTargetContent()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -710,7 +710,7 @@ void StorageMigratorTest::sessionCopyFailureRollsBackAndPreservesPreexistingTarg
 
 void StorageMigratorTest::recursiveLogTreeCopyUsesInjectedOperation()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -742,7 +742,7 @@ void StorageMigratorTest::recursiveLogTreeCopyUsesInjectedOperation()
 
 void StorageMigratorTest::lockConflictFailsBeforeWritingPendingState()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -767,7 +767,7 @@ void StorageMigratorTest::lockConflictFailsBeforeWritingPendingState()
 
 void StorageMigratorTest::staleMalformedMigrationLockIsRecovered()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -788,7 +788,7 @@ void StorageMigratorTest::staleMalformedMigrationLockIsRecovered()
 
 void StorageMigratorTest::commitFailureCleansManifestAndTransactionFiles()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -843,7 +843,7 @@ void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
 #ifndef Q_OS_WIN
     QSKIP( "the deterministic delete/restore double-fault fixture uses Windows share modes" );
 #else
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -983,7 +983,7 @@ void StorageMigratorTest::commitFailureWithCommittedTargetRequiresRecovery()
 
 void StorageMigratorTest::preexistingCompatibleManifestStillCleansCreatedDirectories()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1004,7 +1004,7 @@ void StorageMigratorTest::preexistingCompatibleManifestStillCleansCreatedDirecto
 
 void StorageMigratorTest::cleanupFailureMakesRollbackIncomplete()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1036,7 +1036,7 @@ void StorageMigratorTest::cleanupFailureMakesRollbackIncomplete()
 
 void StorageMigratorTest::normalizedPendingDrivesLockTargetAndRecovery()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1063,7 +1063,7 @@ void StorageMigratorTest::normalizedPendingDrivesLockTargetAndRecovery()
 
 void StorageMigratorTest::equivalentLegacyPathsRecoverPending()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1087,7 +1087,7 @@ void StorageMigratorTest::equivalentLegacyPathsRecoverPending()
 
 void StorageMigratorTest::casingOnlyPathsRecoverPendingAccordingToPlatform()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1120,7 +1120,7 @@ void StorageMigratorTest::casingOnlyPathsRecoverPendingAccordingToPlatform()
 
 void StorageMigratorTest::rejectsRelativeLegacyPathBeforeCreatingLockDirectory()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.request.source.locatorPath.clear();
@@ -1137,7 +1137,7 @@ void StorageMigratorTest::rejectsRelativeLegacyPathBeforeCreatingLockDirectory()
 
 void StorageMigratorTest::createsLockParentForValidMigration()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.request.source.locatorPath.clear();
@@ -1153,7 +1153,7 @@ void StorageMigratorTest::createsLockParentForValidMigration()
 
 void StorageMigratorTest::reportsLockParentCreationFailureSpecifically()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.request.source.locatorPath.clear();
@@ -1182,7 +1182,7 @@ void StorageMigratorTest::preexistingDestinationIsNeverOverwritten_data()
 void StorageMigratorTest::preexistingDestinationIsNeverOverwritten()
 {
     QFETCH( QString, destinationKind );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1239,7 +1239,7 @@ void StorageMigratorTest::rejectsPreexistingDestinationSymlink_data()
 void StorageMigratorTest::rejectsPreexistingDestinationSymlink()
 {
     QFETCH( QString, destinationKind );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1291,7 +1291,7 @@ void StorageMigratorTest::rejectsTargetDirectorySymlink_data()
 void StorageMigratorTest::rejectsTargetDirectorySymlink()
 {
     QFETCH( QString, linkKind );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     const QString outside = temporaryDirectory.filePath( QStringLiteral( "outside" ) );
@@ -1350,7 +1350,7 @@ void StorageMigratorTest::rejectsTargetInsideSourceLogTreeBeforePending_data()
 void StorageMigratorTest::rejectsTargetInsideSourceLogTreeBeforePending()
 {
     QFETCH( bool, useChild );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1391,7 +1391,7 @@ void StorageMigratorTest::rejectsLegacyIniAliasingTargetOutput_data()
 void StorageMigratorTest::rejectsLegacyIniAliasingTargetOutput()
 {
     QFETCH( bool, configAliases );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1421,7 +1421,7 @@ void StorageMigratorTest::rejectsLegacyIniAliasingTargetOutput()
 
 void StorageMigratorTest::rejectsLogTreeSymlinkWhenPlatformSupportsIt()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1448,7 +1448,7 @@ void StorageMigratorTest::rejectsLogTreeSymlinkWhenPlatformSupportsIt()
 
 void StorageMigratorTest::rollbackFailureReportsBothErrors()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1480,7 +1480,7 @@ void StorageMigratorTest::rollbackFailureReportsBothErrors()
 
 void StorageMigratorTest::recoverUsesMigrationLock()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1504,7 +1504,7 @@ void StorageMigratorTest::recoverUsesMigrationLock()
 
 void StorageMigratorTest::recoverReadsSourcePendingDespiteProgramLocatorPriority()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1525,7 +1525,7 @@ void StorageMigratorTest::recoverReadsSourcePendingDespiteProgramLocatorPriority
 
 void StorageMigratorTest::recoverRejectsMismatchedPendingBeforeMutation()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1554,7 +1554,7 @@ void StorageMigratorTest::recoverRejectsMismatchedPendingBeforeMutation()
 
 void StorageMigratorTest::recoverRejectsPendingTogetherWithLastMigration()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1591,7 +1591,7 @@ void StorageMigratorTest::recoverDoesNotInferOutcomeFromSameActiveLocation_data(
 void StorageMigratorTest::recoverDoesNotInferOutcomeFromSameActiveLocation()
 {
     QFETCH( bool, commitOutcome );
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1621,7 +1621,7 @@ void StorageMigratorTest::recoverDoesNotInferOutcomeFromSameActiveLocation()
 
 void StorageMigratorTest::recoverSameRootPendingRejectsDirectoryLink()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     fixture.target.dataRoot = fixture.source.dataRoot;
@@ -1663,7 +1663,7 @@ void StorageMigratorTest::recoverSameRootPendingRejectsDirectoryLink()
 
 void StorageMigratorTest::recoverCompleteCrossRootPendingRejectsDirectoryLink()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1698,7 +1698,7 @@ void StorageMigratorTest::recoverCompleteCrossRootPendingRejectsDirectoryLink()
 
 void StorageMigratorTest::recoverCompletePendingCommitsIdempotently()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );
@@ -1726,7 +1726,7 @@ void StorageMigratorTest::recoverCompletePendingCommitsIdempotently()
 
 void StorageMigratorTest::recoverIncompletePendingRollsBackIdempotently()
 {
-    QTemporaryDir temporaryDirectory;
+    CanonicalTemporaryDir temporaryDirectory;
     QVERIFY( temporaryDirectory.isValid() );
     MigrationFixture fixture{ temporaryDirectory };
     QVERIFY( fixture.initializeLocator() );

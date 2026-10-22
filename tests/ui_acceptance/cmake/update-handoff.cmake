@@ -26,7 +26,7 @@ if(WIN32 AND TARGET zzlogg_update_handoff)
   set_target_properties(zzlogg_update_handoff_test PROPERTIES AUTOMOC ON)
   add_test(NAME zzlogg_ui.update_handoff
            COMMAND zzlogg_update_handoff_test -platform offscreen
-             -o "${CMAKE_CURRENT_BINARY_DIR}/update-handoff-$<CONFIG>.txt,txt")
+             -o "${CMAKE_CURRENT_BINARY_DIR}/update-handoff-$<CONFIG>.txt,txt" -o "-,txt")
   set_property(TEST zzlogg_ui.update_handoff PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/.."
     "ZZLOGG_HANDOFF_FIXTURE_EXE=$<TARGET_FILE:zzlogg_updater_handofffixture_test>")

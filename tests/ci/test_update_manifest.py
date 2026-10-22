@@ -58,7 +58,7 @@ class UpdateManifestTests(unittest.TestCase):
         if write_info:
             self.info_path.write_text(json.dumps(self.info), encoding='utf-8')
         options = {'--release-info': str(self.info_path), '--repository': 'example/ZzLogg',
-                   '--channel': 'stable', '--metadata-sequence': '42', '--release-sequence': self.info['release_sequence'],
+                   '--channel': 'stable', '--metadata-sequence': '42', '--release-sequence': self.info.get('release_sequence', '260900'),
                    '--issued-at': '1800000000', '--ttl-seconds': '2592000',
                    '--min-data-schema': '0', '--max-data-schema': '3',
                    '--min-os-version': '10.0.19041', '--key-id': 'release-2026',
@@ -108,6 +108,44 @@ class UpdateManifestTests(unittest.TestCase):
         public = self.key.public_key().public_bytes_raw().hex()
         self.assertIn(public, result.stdout)
         self.assertNotIn(self.pem.decode().splitlines()[1], result.stdout + result.stderr)
+
+    def test_legacy_record_renews_only_original_windows_installer(self):
+        del self.info['release_sequence']
+        # Older records list all packages, but only the installer was advertised.
+        for package in self.release.iterdir():
+            if package != self.package:
+                package.unlink()
+        result = self.run_signer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        envelope = json.loads((self.output / 'update-stable.json').read_text())
+        raw = base64.b64decode(envelope['payload'])
+        self.key.public_key().verify(base64.b64decode(envelope['signature']),
+                                    b'ZzLogg update manifest v1\nrelease-2026\n' + raw)
+        payload = json.loads(raw)
+        self.assertEqual(payload['releaseSequence'], '260900')
+        self.assertEqual(len(payload['artifacts']), 1)
+        self.assertEqual(payload['artifacts'][0]['url'].rsplit('/', 1)[1], self.name)
+        self.assertEqual([p.name for p in self.output.iterdir()], ['update-stable.json'])
+
+    def test_legacy_preview_sequence_comes_from_publishing_run(self):
+        del self.info['release_sequence']
+        self.info.update(tag='continuous-build', artifact_label='Continuous-Build')
+        for asset in self.info['assets']:
+            old = self.release / asset['name']
+            asset['name'] = asset['name'].replace('26.09.00', 'Continuous-Build')
+            old.rename(self.release / asset['name'])
+        self.info_path = self.release / 'release-info-Continuous-Build.json'
+        result = self.run_signer(changes={'--channel': 'preview', '--release-sequence': '1'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(base64.b64decode(json.loads(
+            (self.output / 'update-preview.json').read_text())['payload']))
+        self.assertEqual(payload['releaseSequence'], '1')
+        self.assertEqual(len(payload['artifacts']), 1)
+
+    def test_legacy_record_still_rejects_altered_installer(self):
+        del self.info['release_sequence']
+        self.package.write_bytes(b'changed')
+        self.assert_rejected(self.run_signer())
 
     def test_fixed_preview_name_is_signed_and_retains_source_identity(self):
         label = 'Continuous-Build'

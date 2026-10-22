@@ -37,6 +37,8 @@ set(ZZLOGG_PRODUCT_NAME ZzLogg)
 include(prepare_version)
 add_library(display_version STATIC version.cpp)
 add_dependencies(display_version generate_version)
+set_property(SOURCE version.cpp APPEND
+  PROPERTY OBJECT_DEPENDS "${CMAKE_BINARY_DIR}/generated/version.h")
 add_executable(probe main.cpp)
 target_link_libraries(probe PRIVATE display_version)
 enable_testing()
@@ -63,7 +65,7 @@ foreach(version IN ITEMS 26.10.09 26.10.10)
   execute_process(COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${build}" --output-on-failure
     RESULT_VARIABLE test_result OUTPUT_VARIABLE test_output ERROR_VARIABLE test_error)
   if(NOT test_result EQUAL 0)
-    message(FATAL_ERROR "Compiled display version is stale after building ${version}:\n${test_output}\n${test_error}")
+    message(FATAL_ERROR "Compiled display version is stale after building ${version}:\n${configure_output}\n${configure_error}\n${build_output}\n${build_error}\n${test_output}\n${test_error}")
   endif()
 endforeach()
 

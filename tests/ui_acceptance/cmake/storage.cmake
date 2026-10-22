@@ -32,7 +32,7 @@ target_link_libraries(zzlogg_storage_migrator_test PRIVATE
 set_target_properties(zzlogg_storage_migrator_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.storage_migrator
          COMMAND zzlogg_storage_migrator_test
-           -o "${CMAKE_CURRENT_BINARY_DIR}/storage-migrator-$<CONFIG>.txt,txt")
+           -o "${CMAKE_CURRENT_BINARY_DIR}/storage-migrator-$<CONFIG>.txt,txt" -o "-,txt")
 
 add_executable(zzlogg_storage_bootstrap_test
   storage/storagebootstraptest.cpp

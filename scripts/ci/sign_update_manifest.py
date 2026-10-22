@@ -79,10 +79,32 @@ def release_targets(label):
     ]
 
 
+def record_targets(info):
+    targets = release_targets(info['artifact_label'])
+    # Records predating desktop updates advertised only the Windows installer.
+    # They cannot establish a Sparkle bundle version or new install protocols.
+    return targets if 'release_sequence' in info else targets[:1]
+
+
+def record_sequence(info, channel):
+    if 'release_sequence' in info:
+        sequence = info['release_sequence']
+    elif channel == 'stable':
+        sequence = info['version'].replace('.', '')
+    else:
+        run = re.fullmatch(r'https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/actions/runs/([1-9][0-9]*)',
+                           info['workflow_run'])
+        require(run is not None, 'Legacy preview requires a publishing workflow run')
+        sequence = run.group(1)
+    decimal(sequence, UINT64_MAX, 'release sequence', 1)
+    return sequence
+
+
 def packages_from_release(path, channel):
     info = read_json(path, 1024 * 1024)
-    fields(info, ['schema', 'version', 'release_sequence', 'artifact_label', 'source_commit', 'tag',
-                  'workflow_run', 'assets'], 'release information')
+    fields(info, ['schema', 'version', 'artifact_label', 'source_commit', 'tag',
+                  'workflow_run', 'assets'] + (['release_sequence'] if 'release_sequence' in info else []),
+           'release information')
     require(type(info['schema']) is int and info['schema'] == 1, 'Unsupported release schema')
     version, label, tag = info['version'], info['artifact_label'], info['tag']
     require(isinstance(version, str)
@@ -99,7 +121,7 @@ def packages_from_release(path, channel):
     else:
         require(tag == 'continuous-build', 'Preview tag must be continuous-build')
         require(is_preview_label(label), 'Invalid preview artifact label')
-    sequence = decimal(info['release_sequence'], UINT64_MAX, 'release sequence', 1)
+    sequence = int(record_sequence(info, channel))
     if channel == 'stable':
         run_id = re.search(r'/actions/runs/([1-9][0-9]*)$', info['workflow_run'])
         require(sequence == int(version.replace('.', ''))
@@ -107,7 +129,7 @@ def packages_from_release(path, channel):
                 'Stable sequence must match the legacy version or publishing workflow run')
     assets = info['assets']
     require(isinstance(assets, list) and 1 <= len(assets) <= 64, 'Invalid release assets')
-    expected = {target[0] for target in release_targets(label)}
+    expected = {target[0] for target in record_targets(info)}
     packages = {}
     seen = set()
     for asset in assets:
@@ -122,7 +144,7 @@ def packages_from_release(path, channel):
         if name in expected:
             require(size <= MAX_PACKAGE_SIZE, 'Package exceeds 512 MiB')
             packages[name] = asset
-    require(set(packages) == expected, 'Release must contain all six desktop package assets')
+    require(set(packages) == expected, 'Release must contain all required package assets')
     for asset in packages.values():
         package = path.parent / asset['name']
         regular_file(package)
@@ -206,7 +228,7 @@ def sign_manifest(args):
     for part in parts:
         decimal(part, UINT32_MAX, 'minimum OS version')
     info, packages = packages_from_release(Path(args.release_info).absolute(), args.channel)
-    require(args.release_sequence == info['release_sequence'], 'Release sequence must match build record')
+    require(args.release_sequence == record_sequence(info, args.channel), 'Release sequence must match build record')
     if args.artifact_base_url:
         require(re.fullmatch(r'[a-z][a-z0-9+.-]*://[0-9a-z.\-]+(:[0-9]{1,5})?', args.artifact_base_url,
                              re.IGNORECASE), 'Invalid artifact base URL')
@@ -232,7 +254,7 @@ def sign_manifest(args):
                     'url': artifact_url(args, info, name),
                     'size': str(packages[name]['size']), 'sha256': packages[name]['sha256']}
                    for name, os_name, arch, distribution, package_format
-                   in release_targets(info['artifact_label']) if os_name != 'macos']}
+                   in record_targets(info) if os_name != 'macos']}
 
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     require(len(raw) <= 128 * 1024, 'Payload exceeds protocol size limit')
@@ -245,7 +267,7 @@ def sign_manifest(args):
     require(len(encoded) <= 256 * 1024, 'Envelope exceeds protocol size limit')
     output = Path(args.output_dir) / f'update-{args.channel}.json'
     outputs = {output: encoded}
-    for name, os_name, arch, _, _ in release_targets(info['artifact_label']):
+    for name, os_name, arch, _, _ in record_targets(info):
         if os_name == 'macos':
             outputs[output.parent / f'macos-{arch}-{args.channel}.xml'] = sparkle_appcast(
                 args, info, packages[name], arch, key)

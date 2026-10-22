@@ -12,7 +12,14 @@ using namespace zzlogg::updateqt;
 class UpdateIntegrationTest : public QObject {
     Q_OBJECT
 private Q_SLOTS:
+    void menusShareOneApplicationServiceAndDialog_data() {
+        QTest::addColumn<QString>("initialChannel");
+        QTest::newRow("stable-default") << QStringLiteral("stable");
+        QTest::newRow("preview-default") << QStringLiteral("preview");
+    }
     void menusShareOneApplicationServiceAndDialog() {
+        QFETCH(QString, initialChannel);
+        Configuration::get().setUpdateChannel(initialChannel);
         auto& app=*qobject_cast<KloggApp*>(qApp);
         // This executable links an offline configuration fixture; the real
         // application's production feed is verified by separate tests.
@@ -47,9 +54,13 @@ private Q_SLOTS:
         QCOMPARE(dialogs().size(),1); QCOMPARE(dialogs()[0],dialog);
         QCOMPARE(downloadService->snapshot().status,DownloadStatus::Idle);
         QVERIFY(QMetaObject::invokeMethod(dialog,"downloadRequested"));
-        Configuration::get().setUpdateChannel("preview");
+        // Reapplying the current channel must retain its download state.
         QVERIFY(QMetaObject::invokeMethod(second,"updatePreferencesChanged"));
-        QCOMPARE(service->snapshot().channel,Channel::Preview);
+        QCOMPARE(downloadService->snapshot().status,DownloadStatus::Unavailable);
+        const auto nextChannel = initialChannel == "stable" ? QStringLiteral("preview") : QStringLiteral("stable");
+        Configuration::get().setUpdateChannel(nextChannel);
+        QVERIFY(QMetaObject::invokeMethod(second,"updatePreferencesChanged"));
+        QCOMPARE(service->snapshot().channel,nextChannel == "preview" ? Channel::Preview : Channel::Stable);
         QCOMPARE(downloadService->snapshot().status,DownloadStatus::Idle);
         action->trigger();
         QCOMPARE(service->snapshot().status,CheckStatus::NotConfigured);

@@ -1,6 +1,7 @@
 #include "transaction.h"
 #include "sha256_win.h"
 #include "installlock_win.h"
+#include "../updater/updatertesthelpers.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -66,7 +67,9 @@ int wmain(int argc,wchar_t** argv) {
         check(argc==3,"Expected helper and restart-fixture paths");
         wchar_t ownBuffer[32768]{};GetModuleFileNameW(nullptr,ownBuffer,32768);
         const fs::path own(ownBuffer),helper(argv[1]),restart(argv[2]);
-        const auto base=fs::temp_directory_path()/(L"zzlogg-portable-native-"+std::to_wstring(GetCurrentProcessId()));
+        const auto temporaryDirectory=zzlogg::updater::detail::testTempDirectory();
+        check(!temporaryDirectory.empty(),"Cannot resolve temporary directory");
+        const auto base=fs::path(temporaryDirectory)/(L"zzlogg-portable-native-"+std::to_wstring(GetCurrentProcessId()));
         fs::remove_all(base);
         for(const auto& mode:{L"success",L"cancel",L"corrupt"}) {
             const auto root=base/mode/L"app",stage=base/mode/L"stage";
@@ -87,7 +90,9 @@ int wmain(int argc,wchar_t** argv) {
             auto parent=launch(root/L"ZzLogg.exe",{L"--parent",root.wstring(),stage.wstring(),
                 (stage/L"helper.exe").wstring(),mode,dataDirectory},root);
             check(WaitForSingleObject(parent.get(),25000)==WAIT_OBJECT_0,"Parent fixture timed out");
-            DWORD code=0;GetExitCodeProcess(parent.get(),&code);check(code==0,"Parent fixture failed: "+read(stage/L"failed"));
+            DWORD code=0;
+            check(GetExitCodeProcess(parent.get(),&code),"Cannot read parent fixture exit code");
+            check(code==0,"Parent fixture failed (exit "+std::to_string(code)+"): "+read(stage/L"parent-failed")+read(stage/L"failed"));
             if(std::wstring(mode)==L"success") {
                 check(awaitFile(stage/L"complete"),"Helper did not complete: "+read(stage/L"failed"));
                 check(awaitFile(root/L"restarted"),"New application did not restart");
@@ -104,5 +109,9 @@ int wmain(int argc,wchar_t** argv) {
             fs::remove_all(base,cleanup);if(!cleanup) break;Sleep(100);
         }
         check(!cleanup,"Native fixture cleanup failed");std::cout<<"Native portable helper lifecycle tests passed\n";return 0;
-    } catch(const std::exception& error) {std::cerr<<error.what()<<'\n';return 1;}
+    } catch(const std::exception& error) {
+        if(argc==7 && std::wstring(argv[1])==L"--parent")
+            std::ofstream(fs::path(argv[3])/L"parent-failed")<<error.what();
+        std::cerr<<error.what()<<'\n';return 1;
+    }
 }

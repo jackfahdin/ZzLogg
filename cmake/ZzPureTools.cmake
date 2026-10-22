@@ -33,6 +33,9 @@ function(klogg_add_zzpuretools)
   add_subdirectory("${zz_source_dir}"
                    "${zz_binary_dir}"
                    EXCLUDE_FROM_ALL)
+  if(ZZ_WINDOWKIT_FORCE_QT_CONTEXT)
+    target_compile_definitions(ZzWindowKit INTERFACE ZZLOGG_WINDOWKIT_FORCE_QT_CONTEXT=1)
+  endif()
 
   # Expose the compiler-resolved runtime to the application's install closure.
   if(zz_bundle_gnu_runtime)

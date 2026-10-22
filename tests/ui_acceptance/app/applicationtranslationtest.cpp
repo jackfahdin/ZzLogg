@@ -1,4 +1,5 @@
 #include "applicationlanguage.h"
+#include "../../testsupport/canonicaltemporarydir.h"
 #include "configuration.h"
 #include "crawlerwidget.h"
 #include "documentworkspace.h"
@@ -81,6 +82,15 @@ QMenuBar* commandMenuBar(MainWindow& window)
 {
     auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
     return title ? title->menuBar() : window.menuBar();
+}
+
+bool expectsNativeChrome()
+{
+#if defined(Q_OS_MACOS) && !defined(ZZLOGG_WINDOWKIT_FORCE_QT_CONTEXT)
+    return QGuiApplication::platformName() != QStringLiteral("cocoa");
+#else
+    return false;
+#endif
 }
 
 template <typename T>
@@ -320,7 +330,8 @@ class ApplicationTranslationTest final : public QObject {
     {
         QFETCH(bool, markedTail);
         QCOMPARE(MainWindow::installLanguage("en"), 0);
-        QTemporaryDir logs;
+        // FSEvents reports canonical paths, including macOS /private/var.
+        CanonicalTemporaryDir logs;
         QVERIFY(logs.isValid());
         QFile file(logs.filePath("tail.log"));
         QVERIFY(file.open(QIODevice::WriteOnly));
@@ -1589,7 +1600,9 @@ void ApplicationTranslationTest::opensEncodingMenuFromMenuBar()
     auto* const encodingAutoAction
         = child<QAction>( *encodingMenu, "encodingAutoAction" );
     QMenuBar* const mainMenuBar = commandMenuBar(window);
-    QVERIFY(qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget()));
+    QCOMPARE(window.windowChrome()->usesNativeFallback(), expectsNativeChrome());
+    // Exercise the widget popup even when Cocoa normally exports the menu to the OS.
+    mainMenuBar->setNativeMenuBar(false);
     QAction* const encodingMenuAction = encodingMenu->menuAction();
 
     QVERIFY( mainMenuBar->actions().contains( encodingMenuAction ) );
@@ -1630,7 +1643,8 @@ void ApplicationTranslationTest::closesLastDocumentAndReopensThroughWorkspace()
     Q_EMIT workspace->tabCloseRequested(0);
     QCOMPARE(workspace->count(), 0);
     QVERIFY(!session->getViewIfOpen(path));
-    QCOMPARE(window.windowTitle(), QStringLiteral("ZzLogg"));
+    QCOMPARE(window.windowTitle(), expectsNativeChrome() ? QStringLiteral("Untitled - ZzLogg")
+                                                        : QStringLiteral("ZzLogg"));
     auto* edit = commandMenuBar(window)->actions().at(1)->menu();
     QVERIFY(edit);
     QVERIFY(!edit->isEnabled());
@@ -1722,10 +1736,16 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
                 window.resize(width, 780);
                 QTest::qWait(50);
                 auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
-                QVERIFY(title);
-                QVERIFY(title->isVisible());
+                QCOMPARE(window.windowChrome()->usesNativeFallback(), expectsNativeChrome());
+                QCOMPARE(title == nullptr, expectsNativeChrome());
+                if (title) {
+                    QVERIFY(title->isVisible());
+                    QCOMPARE(title->title(), window.windowTitle());
+                } else {
+                    QCOMPARE(window.menuWidget(), commandMenuBar(window));
+                    QVERIFY(window.windowTitle().contains(QStringLiteral("example.log")));
+                }
                 QVERIFY(window.centralWidget()->isVisible());
-                QCOMPARE(title->title(), window.windowTitle());
                 const QString name = QString("%1-%2-%3.png")
                     .arg(mode == ZzFluentUI::ZzThemeMode::Dark ? "dark" : "light", language)
                     .arg(width);

@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from publish_release import GitHub, list_assets
 from release_assets import is_preview_label
-from sign_update_manifest import decimal, no_duplicate_keys, packages_from_release, release_targets
+from sign_update_manifest import decimal, no_duplicate_keys, packages_from_release, record_sequence, record_targets
 
 TRUST_KEY_PATH = Path(__file__).resolve().parents[2] / 'packaging/update/github-public-key.json'
 PRODUCT = 'com.gitcode.jackfahdinqt.zzlogg'
@@ -279,7 +279,7 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
                 raise ValueError('Stable version/tag/label mismatch')
         elif not is_preview_label(label):
             raise ValueError('Invalid preview artifact label')
-        for name, _, _, _, _ in release_targets(label):
+        for name, _, _, _, _ in record_targets(info):
             asset = checked_asset(assets, name, github.repository, tag, MAX_PACKAGE_BYTES)
             packages = [item for item in info.get('assets', []) if item.get('name') == name]
             if len(packages) != 1 or type(packages[0].get('size')) is not int or packages[0]['size'] != asset['size']:
@@ -293,7 +293,7 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
         sequence = now_ms if now_ms is not None else time.time_ns() // 1_000_000
         options = {'--release-info': str(info_path), '--repository': github.repository,
                    '--channel': channel, '--metadata-sequence': str(sequence),
-                   '--release-sequence': info['release_sequence'],
+                   '--release-sequence': record_sequence(info, channel),
                    '--issued-at': str(sequence // 1000), '--ttl-seconds': str(14 * 24 * 60 * 60),
                    '--min-data-schema': '0', '--max-data-schema': '0',
                    '--min-os-version': '10.0.19041', '--key-id': key_id,
@@ -309,7 +309,7 @@ def publish_channel(github, channel, key_id=None, *, now_ms=None):
         current = verified_payload(content, channel, key_id, public_key)
         check_progress(previous, current, channel)
         contents = {f'{channel}.json': content}
-        for name, os_name, arch, _, _ in release_targets(label):
+        for name, os_name, arch, _, _ in record_targets(info):
             if os_name == 'macos':
                 appcast_name = f'macos-{arch}-{channel}.xml'
                 appcast = directory / 'signed' / appcast_name

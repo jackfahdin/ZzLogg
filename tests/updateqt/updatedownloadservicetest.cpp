@@ -1,5 +1,5 @@
 #include <QtTest>
-#include <QTemporaryDir>
+#include "../testsupport/canonicaltemporarydir.h"
 #include <QStandardPaths>
 #include <QCryptographicHash>
 #include "zzlogg/updateqt/updatedownloadservice.h"
@@ -54,7 +54,7 @@ private slots:
     }
     void rejectedInputs() {
         QFETCH(int,scenario);
-        QTemporaryDir root; const auto path=root.filePath("not-created/cache");
+        CanonicalTemporaryDir root; const auto path=root.filePath("not-created/cache");
         auto c=configuration(); std::optional<InstalledRelease> installed=installedRelease();
         auto check=available(); qint64 now=1800000000;
         if(scenario==0) c=productionFeedConfiguration();
@@ -87,7 +87,7 @@ private slots:
     }
     // Re-selecting the signed artifact must defeat an attacker-controlled public decision.
     void signedChainIgnoresForgedDecision() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager; network->scripts={response()};
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager; network->scripts={response()};
         auto check=available(); auto fake=check.release->manifest().artifacts[0];
         fake.url="https://evil.invalid/payload"; fake.sha256=std::string(64,'0'); fake.size=42;
         check.decision=Decision{DecisionStatus::NoUpdate,fake};
@@ -152,7 +152,7 @@ private slots:
         }
     }
     void duplicateAndDifferentReleaseRequireConfirmation() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         auto first=response(); first.hang=true; network->scripts={first,response("next")};
         UpdateDownloadService service(configuration(),installedRelease(),root.path(),[]{return 1800000000;},nullptr,[&]{return network;});
         const auto original=available(), next=available("next",3);
@@ -170,7 +170,7 @@ private slots:
     }
 
     void updateServiceEnvelopeSurvivesIntoDownloadSelectionByValue() {
-        QTemporaryDir stateRoot;
+        CanonicalTemporaryDir stateRoot;
         auto store=std::make_shared<UpdateStateStore>(stateRoot.filePath("state.json"));
         auto payload=update_fixture::payload();
         payload["artifacts"][0]["distribution"]="installer";
@@ -195,7 +195,7 @@ private slots:
         QVERIFY(checked.release);
         QCOMPARE(checked.release->signedEnvelope(),exact.toStdString());
 
-        QTemporaryDir cacheRoot;
+        CanonicalTemporaryDir cacheRoot;
         auto* network=new ScriptedNetworkManager; network->scripts={response()};
         UpdateDownloadService download(configuration(),installedRelease(),cacheRoot.path(),
             []{return 1800000000;},nullptr,[&]{return network;});
@@ -210,7 +210,7 @@ private slots:
     }
     void expiryDuringDownloadAndChannelChange() {
         for(bool channelChange:{false,true}) {
-            QTemporaryDir root; qint64 now=1800000000;
+            CanonicalTemporaryDir root; qint64 now=1800000000;
             auto* network=new ScriptedNetworkManager; network->scripts={response()};
             UpdateDownloadService service(configuration(),installedRelease(),root.path(),[&]{return now;},nullptr,[&]{return network;});
             bool changed=false;
@@ -227,7 +227,7 @@ private slots:
     // Removing the pre-start recheck or checking duplicate identity before time must fail.
     void expiryBeforeRequestAndDuplicate() {
         for(bool duplicate:{false,true}) {
-            QTemporaryDir root; const auto cache=root.filePath("cache"); qint64 now=1800000000;
+            CanonicalTemporaryDir root; const auto cache=root.filePath("cache"); qint64 now=1800000000;
             auto* network=new ScriptedNetworkManager; auto hanging=response(); hanging.hang=true;
             network->scripts={hanging};
             UpdateDownloadService service(configuration(),installedRelease(),cache,[&]{return now;},nullptr,[&]{return network;});
@@ -242,7 +242,7 @@ private slots:
         }
     }
     void hashFailureNeverPublishesVerified() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         network->scripts={response("corrupt"),response()};
         UpdateDownloadService service(configuration(),installedRelease(),root.path(),[]{return 1800000000;},nullptr,[&]{return network;});
         service.requestDownload(available());
@@ -257,7 +257,7 @@ private slots:
         QTest::addColumn<bool>("busy"); QTest::newRow("http") << false; QTest::newRow("lock-busy") << true;
     }
     void failuresAndRetry() {
-        QFETCH(bool,busy); QTemporaryDir root;
+        QFETCH(bool,busy); CanonicalTemporaryDir root;
         auto check=available(); PackageCache held(root.path(),check.release->manifest().artifacts[0]);
         auto* network=new ScriptedNetworkManager;
         if(busy) QCOMPARE(held.begin(),CacheError::None);
@@ -279,7 +279,7 @@ private slots:
             QTest::newRow(qPrintable(QString("%1-%2").arg(phase).arg(action))) << phase << action;
     }
     void reentry() {
-        QFETCH(int,phase); QFETCH(int,action); QTemporaryDir root;
+        QFETCH(int,phase); QFETCH(int,action); CanonicalTemporaryDir root;
         auto* network=new ScriptedNetworkManager; auto script=response(); if(phase==3) script.status=404;
         network->scripts={script,response()}; QPointer<ScriptedNetworkManager> transport(network);
         QPointer<UpdateDownloadService> service=new UpdateDownloadService(configuration(),installedRelease(),root.path(),[]{return 1800000000;},nullptr,[&]{return network;});
@@ -303,7 +303,7 @@ private slots:
     }
     void cancellationAndDestructionReleaseCache() {
         for(bool destroy:{false,true}) {
-            QTemporaryDir root; auto check=available(); auto* network=new ScriptedNetworkManager;
+            CanonicalTemporaryDir root; auto check=available(); auto* network=new ScriptedNetworkManager;
             auto hanging=response(); hanging.hang=true; network->scripts={hanging};
             auto* service=new UpdateDownloadService(configuration(),installedRelease(),root.path(),[]{return 1800000000;},nullptr,[&]{return network;});
             int notifications=0; connect(service,&UpdateDownloadService::snapshotChanged,this,[&]{++notifications;});

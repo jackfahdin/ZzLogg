@@ -17,7 +17,8 @@ template<class F> static void rejects(F f, const char* what) {
     check(caught, what);
 }
 int main() {
-    const auto base=fs::temp_directory_path()/ ("zzlogg-portable-test-" +
+    // Resolve system aliases such as macOS /var before testing unsafe payload links.
+    const auto base=fs::canonical(fs::temp_directory_path())/ ("zzlogg-portable-test-" +
         std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     try {
         // These catch traversal/Windows aliases and attempts to claim user storage.

@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QProcess>
 #include <QSaveFile>
-#include <QTemporaryDir>
+#include "../testsupport/canonicaltemporarydir.h"
 #include <limits>
 #include "zzlogg/updateqt/packagecache.h"
 
@@ -73,7 +73,7 @@ class PackageCacheTest : public QObject {
 private slots:
     void windowsInstallerRetainsNameAndSeparatesDifferentContents()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QString name=QStringLiteral("ZzLogg-26.10.09-x64-Qt6-setup.exe");
         QStringList paths;
         for (const QByteArray bytes : {QByteArray("first build"),QByteArray("second build")}) {
@@ -111,7 +111,7 @@ private slots:
 
     void windowsInstallerRejectsLinkedHashDirectory()
     {
-        QTemporaryDir root,target;
+        CanonicalTemporaryDir root,target;
         auto artifact=artifactFor("x");
         artifact.os="windows";
         artifact.distribution=zzlogg::update::Distribution::Installer;
@@ -167,7 +167,7 @@ private slots:
     {
         QFETCH(qulonglong,size);
         QFETCH(QByteArray,hash);
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         zzlogg::update::Artifact artifact;
         artifact.size=size;
         artifact.sha256=hash.toStdString();
@@ -178,7 +178,7 @@ private slots:
 
     void acceptsUpperSizeBoundary()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         auto artifact=artifactFor("x");
         artifact.size=maxPackageSize;
         auto storage=std::make_shared<TestStorage>();
@@ -198,7 +198,7 @@ private slots:
     void invalidRoots()
     {
         QFETCH(int,kind);
-        QTemporaryDir temporary;
+        CanonicalTemporaryDir temporary;
         QString root;
         if (kind==1) root=QStringLiteral("relative-cache");
         if (kind==2) {
@@ -212,7 +212,7 @@ private slots:
 
     void rejectsReparsePoint()
     {
-        QTemporaryDir temporary;
+        CanonicalTemporaryDir temporary;
         const QString target=temporary.filePath(QStringLiteral("target"));
         const QString link=temporary.filePath(QStringLiteral("link"));
         QVERIFY(QDir().mkpath(target));
@@ -228,7 +228,7 @@ private slots:
 
     void rejectsReparsePointAsCacheRoot()
     {
-        QTemporaryDir temporary;
+        CanonicalTemporaryDir temporary;
         const QString target=temporary.filePath(QStringLiteral("target"));
         const QString link=temporary.filePath(QStringLiteral("link"));
         QVERIFY(QDir().mkpath(target));
@@ -253,7 +253,7 @@ private slots:
     void rejectsTargetAndLockReparsePoints()
     {
         QFETCH(bool,lockPath);
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("x");
         QString path=packagePath(root.path(),artifact);
         if (lockPath) path+=QStringLiteral(".lock");
@@ -281,7 +281,7 @@ private slots:
     {
         QFETCH(bool,known);
         QFETCH(qulonglong,available);
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         auto storage=std::make_shared<TestStorage>();
         storage->available=known ? std::optional<quint64>(available) : std::nullopt;
         PackageCache cache(root.path(),artifactFor("x"),storage);
@@ -290,7 +290,7 @@ private slots:
 
     void locksUntilCancel()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("x");
         PackageCache first(root.path(),artifact),second(root.path(),artifact);
         QCOMPARE(first.begin(),CacheError::None);
@@ -303,7 +303,7 @@ private slots:
 
     void rejectsShortPackage()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QByteArray bytes("package");
         const auto artifact=artifactFor(bytes);
         PackageCache cache(root.path(),artifact);
@@ -316,7 +316,7 @@ private slots:
 
     void rejectsLongPackageImmediately()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         auto artifact=artifactFor("x");
         PackageCache cache(root.path(),artifact);
         QCOMPARE(cache.begin(),CacheError::None);
@@ -330,7 +330,7 @@ private slots:
 
     void rejectsWrongHash()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         auto artifact=artifactFor("expected");
         artifact.size=5;
         PackageCache cache(root.path(),artifact);
@@ -343,7 +343,7 @@ private slots:
 
     void terminatesOnWriteFailure()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("x");
         auto storage=std::make_shared<TestStorage>();
         storage->failWrites=true;
@@ -358,7 +358,7 @@ private slots:
 
     void terminatesOnPositivePartialWrite()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("xy");
         auto storage=std::make_shared<TestStorage>();
         storage->partialWrites=true;
@@ -374,7 +374,7 @@ private slots:
 
     void rejectsCommitFailure()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("x");
         const QString destination=packagePath(root.path(),artifact);
         PackageCache cache(root.path(),artifact);
@@ -388,7 +388,7 @@ private slots:
 
     void cancelIsIdempotent()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("package");
         PackageCache cache(root.path(),artifact);
         QCOMPARE(cache.begin(),CacheError::None);
@@ -401,7 +401,7 @@ private slots:
 
     void destructorCancelsIncompleteWrite()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("package");
         {
             PackageCache cache(root.path(),artifact);
@@ -416,7 +416,7 @@ private slots:
 
     void failurePreservesOldPackage()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QByteArray replacement("new");
         auto artifact=artifactFor("expected");
         artifact.size=replacement.size();
@@ -433,7 +433,7 @@ private slots:
 
     void streamsAndCommitsVerifiedPackage()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QByteArray bytes("verified package");
         zzlogg::update::Artifact artifact;
         artifact.size=bytes.size();
@@ -453,7 +453,7 @@ private slots:
 
     void successReplacesOldPackage()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QByteArray bytes("replacement");
         const auto artifact=artifactFor(bytes);
         const QString destination=packagePath(root.path(),artifact);
@@ -469,7 +469,7 @@ private slots:
 
     void errorsClearPreviouslyVerifiedPath()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const auto artifact=artifactFor("x");
         PackageCache cache(root.path(),artifact);
         QCOMPARE(cache.begin(),CacheError::None);
@@ -482,7 +482,7 @@ private slots:
 
     void preservesUnknownNeighbors()
     {
-        QTemporaryDir root;
+        CanonicalTemporaryDir root;
         const QString unknown=root.filePath(QStringLiteral("unknown.bin"));
         const QString directory=root.filePath(QStringLiteral("adjacent"));
         QFile file(unknown); QVERIFY(file.open(QIODevice::WriteOnly));

@@ -51,10 +51,10 @@ if(lifetime_result EQUAL 0)
   message(FATAL_ERROR "UI smoke accepted a closed second window during search")
 endif()
 string(FIND "${lifetime_stderr}"
-  "second title bar disappeared while waiting for search" diagnostic_index)
+  "second window chrome disappeared while waiting for search" diagnostic_index)
 if(diagnostic_index EQUAL -1)
   message(FATAL_ERROR
-    "UI smoke did not report the closed window title bar: ${lifetime_stderr}")
+    "UI smoke did not report the closed window chrome: ${lifetime_stderr}")
 endif()
 foreach(storage_entry storage-manifest.ini config/ZzLogg.ini
         session/ZzLogg_session.ini logs)

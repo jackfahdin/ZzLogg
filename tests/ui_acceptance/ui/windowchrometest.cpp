@@ -40,17 +40,24 @@ private Q_SLOTS:
         ZzFluentUI::ZzThemeController theme;
         QMainWindow window;
         WindowChrome chrome(window, {theme});
-        QVERIFY(!chrome.usesNativeFallback());
         auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
-        QVERIFY(title);
-        QCOMPARE(&chrome.commandMenuBar(), title->menuBar());
+#if defined(Q_OS_MACOS) && !defined(ZZLOGG_WINDOWKIT_FORCE_QT_CONTEXT)
+        const bool nativeFallback = QGuiApplication::platformName() != QStringLiteral("cocoa");
+#else
+        const bool nativeFallback = false;
+#endif
+        QCOMPARE(chrome.usesNativeFallback(), nativeFallback);
+        QCOMPARE(title == nullptr, nativeFallback);
+        QCOMPARE(&chrome.commandMenuBar(), title ? title->menuBar() : window.menuBar());
         QVERIFY(chrome.commandMenuBar().actions().isEmpty());
         auto* menu = chrome.commandMenuBar().addMenu("Encoding");
         menu->addAction("Auto")->setCheckable(true);
         QCOMPARE(menu->windowType(), Qt::Popup);
-        QVERIFY(title->menuBar()->actions().contains(menu->menuAction()));
+        QVERIFY(chrome.commandMenuBar().actions().contains(menu->menuAction()));
+        const auto nativeTitle = window.windowTitle();
         chrome.setDocumentName(QString::fromUtf8("服务器-🚀.log"));
-        QCOMPARE(window.windowTitle(), QString::fromUtf8("服务器-🚀.log — ZzLogg"));
+        QCOMPARE(window.windowTitle(), nativeFallback ? nativeTitle
+                 : QString::fromUtf8("服务器-🚀.log — ZzLogg"));
     }
     void fallsBackAfterAttachOrConfigureFailure_data() {
         QTest::addColumn<bool>("attachFirst");
@@ -86,7 +93,11 @@ private Q_SLOTS:
         theme.setMode(ZzFluentUI::ZzThemeMode::Light);
         CloseProbe window;
         {
-            WindowChrome chrome(window, {theme});
+            // Signal routing is independent of the platform backend. Cocoa cannot attach
+            // to the offscreen QPA used by CI; the default backend is covered above.
+            WindowChrome chrome(window, {theme},
+                [](QMainWindow&, ZzFluentUI::ZzFluentTitleBar&,
+                   ZzWindowKit::ZzWindowAgent&) { return ZzCore::ZzResult<void>::success(); });
             auto* title = qobject_cast<ZzFluentUI::ZzFluentTitleBar*>(window.menuWidget());
             QVERIFY(title);
             QSignalSpy requested(&chrome, &WindowChrome::themeModeRequested);

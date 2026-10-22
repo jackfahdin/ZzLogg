@@ -1,5 +1,5 @@
 #include <QtTest>
-#include <QTemporaryDir>
+#include "../testsupport/canonicaltemporarydir.h"
 #include <QCryptographicHash>
 #include <QPointer>
 #include "zzlogg/updateqt/packagedownloader.h"
@@ -45,7 +45,7 @@ private slots:
     void responses() {
         QFETCH(int,scenario); QFETCH(int,expected);
         const QByteArray expectedBytes(140000,'p'); const auto artifact=signedArtifact(expectedBytes);
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         NetworkScript script; script.body=expectedBytes; script.length="140000"; script.chunkSize=70000;
         switch(scenario) {
         case 1: script.length.clear(); break;
@@ -115,7 +115,7 @@ private slots:
     }
     void redirects() {
         QFETCH(QByteArray,location); QFETCH(bool,valid);
-        QTemporaryDir root; const auto artifact=signedArtifact("package");
+        CanonicalTemporaryDir root; const auto artifact=signedArtifact("package");
         auto* network=new ScriptedNetworkManager;
         NetworkScript redirect; redirect.status=302; redirect.location=location; redirect.body=QByteArray(256*1024,'r'); redirect.chunkSize=256*1024;
         NetworkScript final; final.body="package";
@@ -129,7 +129,7 @@ private slots:
     }
     void redirectBudget() {
         for(int count:{3,4}) {
-            QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+            CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
             NetworkScript redirect; redirect.status=307; redirect.location="/next";
             for(int i=0;i<count;++i) network->scripts.push_back(redirect);
             NetworkScript final; final.body="package"; network->scripts.push_back(final);
@@ -143,7 +143,7 @@ private slots:
     }
     void deadlinesAndCancellation() {
         for(int scenario:{0,1,2}) {
-            QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+            CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
             NetworkScript script; script.body=QByteArray(100,'p'); script.hang=scenario!=1; script.chunkSize=1; script.intervalMs=10;
             network->scripts.push_back(script); PackageDownloader downloader(network,100,50);
             QSignalSpy success(&downloader,&PackageDownloader::succeeded), failure(&downloader,&PackageDownloader::failed);
@@ -156,7 +156,7 @@ private slots:
         }
     }
     void replacementIgnoresLateFinish() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         NetworkScript hanging; hanging.hang=true; NetworkScript next; next.body="package";
         network->scripts={hanging,next}; PackageDownloader downloader(network,2000,500);
         QSignalSpy success(&downloader,&PackageDownloader::succeeded), failure(&downloader,&PackageDownloader::failed);
@@ -171,7 +171,7 @@ private slots:
     }
     void signalReentry() {
         QFETCH(int,signal); QFETCH(bool,destroy);
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         NetworkScript first; first.body=QByteArray(150000,'p'); first.chunkSize=150000;
         if(signal==1) { first.encoding="gzip"; first.finishedOnly=true; }
         NetworkScript next; next.body=first.body; network->scripts={first,next};
@@ -194,7 +194,7 @@ private slots:
         QTest::qWait(30); QCOMPARE(failures,signal==1?1:0);
     }
     void largeFinishedBodyYieldsToEventLoop() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         NetworkScript script; script.body=QByteArray(3*1024*1024,'p'); script.chunkSize=script.body.size(); script.finishedOnly=true;
         network->scripts.push_back(script); PackageDownloader downloader(network,2000,500);
         qint64 received=0, observed=-1;
@@ -208,7 +208,7 @@ private slots:
         QVERIFY(script.metrics->maximumRequest<=64*1024);
     }
     void invalidStartNeverRequests() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager; PackageDownloader downloader(network,2000,500);
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager; PackageDownloader downloader(network,2000,500);
         QSignalSpy failure(&downloader,&PackageDownloader::failed);
         auto artifact=signedArtifact("package"); artifact.url="http://updates.example.invalid/x";
         downloader.start(artifact,context.allowedHosts,root.path());
@@ -216,7 +216,7 @@ private slots:
         QVERIFY(network->requests.isEmpty());
     }
     void cacheErrorsRemainDistinct() {
-        QTemporaryDir root; const auto artifact=signedArtifact("package");
+        CanonicalTemporaryDir root; const auto artifact=signedArtifact("package");
         PackageCache lock(root.path(),artifact); QCOMPARE(lock.begin(),CacheError::None);
         auto* network=new ScriptedNetworkManager; PackageDownloader downloader(network,2000,500);
         QSignalSpy failure(&downloader,&PackageDownloader::failed);
@@ -230,7 +230,7 @@ private slots:
         QVERIFY(network->requests.isEmpty());
     }
     void queuedConsumptionCanCancelAndRestart() {
-        QTemporaryDir root; auto* network=new ScriptedNetworkManager;
+        CanonicalTemporaryDir root; auto* network=new ScriptedNetworkManager;
         NetworkScript first; first.body=QByteArray(3*1024*1024,'p'); first.chunkSize=int(first.body.size()); first.finishedOnly=true;
         NetworkScript next; next.body="replacement"; network->scripts={first,next};
         PackageDownloader downloader(network,2000,500);
@@ -251,7 +251,7 @@ private slots:
         QTest::qWait(50); QCOMPARE(success.count(),1); QCOMPARE(failure.count(),1);
     }
     void destructionCancelsSilentlyAndReleasesCache() {
-        QTemporaryDir root; const auto artifact=signedArtifact("package");
+        CanonicalTemporaryDir root; const auto artifact=signedArtifact("package");
         auto* network=new ScriptedNetworkManager; NetworkScript hanging; hanging.hang=true; network->scripts.push_back(hanging);
         auto* downloader=new PackageDownloader(network,100,50); int callbacks=0;
         connect(downloader,&PackageDownloader::failed,this,[&]{++callbacks;});

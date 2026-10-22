@@ -16,7 +16,10 @@ struct NetworkScript {
     QByteArray location, encoding, length;
     QUrl finalUrl;
     int responseDelayMs = 0;
-    int chunkSize = 4096, intervalMs = 1;
+    // Queue ordinary chunks without a wall-clock delay. Platform timer
+    // granularity must not turn size/validation tests into timeout tests.
+    // Tests of deadlines explicitly set intervalMs or responseDelayMs.
+    int chunkSize = 4096, intervalMs = 0;
     bool tlsError = false, hang = false, finishedOnly = false;
     QNetworkReply::NetworkError error = QNetworkReply::NoError;
     std::shared_ptr<ReadMetrics> metrics=std::make_shared<ReadMetrics>();

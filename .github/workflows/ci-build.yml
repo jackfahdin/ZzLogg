@@ -12,6 +12,12 @@ on:
       - latest.json
       - .gitignore
   workflow_dispatch:
+    inputs:
+      release_mode:
+        description: Build release configuration for native tests without publishing a release
+        type: choice
+        default: ''
+        options: ['', stable, nightly]
   workflow_call:
     inputs:
       source_sha:

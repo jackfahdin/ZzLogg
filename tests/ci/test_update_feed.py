@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -13,6 +14,7 @@ import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
@@ -129,7 +131,7 @@ class FeedTests(unittest.TestCase):
                                                         version=self.info['version'], notes=json.loads(self.notes)),
                                             Ed25519PrivateKey.generate() if self.wrong_signing_key else None)
             (output / f'update-{opts["--channel"]}.json').write_bytes(self.signed_bytes)
-            for arch in ('x64', 'arm64'):
+            for arch in ('x64', 'arm64') if 'release_sequence' in self.info else ():
                 xml = self.appcast_xml(arch, opts['--channel'])
                 if self.appcast_mutation:
                     xml = self.appcast_mutation(xml)
@@ -226,6 +228,63 @@ class FeedTests(unittest.TestCase):
         self.assertIn('Fixed logs.', self.notes)
         self.assertNotIn('hidden', self.notes)
         self.assertNotIn('**', self.notes)
+
+    def test_legacy_stable_renews_without_adding_platforms_or_requiring_appcasts(self):
+        del self.info['release_sequence']
+        self.stored = {'stable.json': self.signed(self.payload())}
+        self.publish()
+        self.assertEqual(set(self.stored), {'stable.json'})
+        self.assertEqual(self.sign_options['--release-sequence'], '260900')
+        payload = feed.verified_payload(self.stored['stable.json'], 'stable',
+                                       'zzlogg-update-2026-09', self.key.public_key())
+        self.assertEqual(payload['artifacts'], self.payload()['artifacts'])
+
+    def test_legacy_renewal_real_signer_preserves_historical_payload(self):
+        del self.info['release_sequence']
+        name = self.info['assets'][0]['name']
+        original = self.payload(minUpdaterProtocol=1, minDataSchema=0, maxDataSchema=0,
+            artifacts=[{'os': 'windows', 'arch': 'x64', 'distribution': 'installer',
+                        'format': 'nsis-exe', 'minOsVersion': '10.0.19041',
+                        'url': f'https://github.com/example/ZzLogg/releases/download/v26.09.00/{name}',
+                        'size': str(len(self.package)), 'sha256': hashlib.sha256(self.package).hexdigest()}])
+        self.stored = {'stable.json': self.signed(original)}
+        real_run, fake_run = subprocess.run, self.run_process
+        pem = self.key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                     serialization.NoEncryption()).decode()
+        def boundary(command, **kwargs):
+            if command[0] == 'gh':
+                return fake_run(command, **kwargs)
+            return real_run(command, env=dict(os.environ, ZZLOGG_UPDATE_SIGNING_KEY=pem), **kwargs)
+        with patch.object(self, 'run_process', side_effect=boundary):
+            self.publish()
+        updated = feed.verified_payload(self.stored['stable.json'], 'stable',
+                                        'zzlogg-update-2026-09', self.key.public_key())
+        volatile = {'metadataSequence', 'issuedAt', 'expiresAt', 'notes'}
+        self.assertEqual({k: v for k, v in updated.items() if k not in volatile},
+                         {k: v for k, v in original.items() if k not in volatile})
+        self.assertEqual(set(self.stored), {'stable.json'})
+
+    def test_legacy_preview_uses_run_id_and_does_not_publish_appcasts(self):
+        del self.info['release_sequence']
+        self.label = 'Continuous-Build'
+        self.info.update(artifact_label=self.label, tag='continuous-build')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
+        self.release.update(tag_name='continuous-build', prerelease=True)
+        self.publish('preview')
+        self.assertEqual(set(self.stored), {'preview.json'})
+        self.assertEqual(self.sign_options['--release-sequence'], '123')
+
+    def test_legacy_preview_rejects_missing_or_invalid_run_id(self):
+        del self.info['release_sequence']
+        self.label = 'Continuous-Build'
+        self.info.update(artifact_label=self.label, tag='continuous-build', workflow_run='not-a-run')
+        for asset in self.info['assets']:
+            asset['name'] = asset['name'].replace('26.09.00', self.label)
+        self.release.update(tag_name='continuous-build', prerelease=True)
+        with self.assertRaises(ValueError):
+            self.publish('preview')
+        self.assertEqual(self.updates, [])
 
     def test_existing_file_sha_is_used_and_other_channel_survives(self):
         self.stored = {'stable.json': self.signed(self.payload()), 'preview.json': b'keep'}
