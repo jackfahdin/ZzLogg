@@ -98,14 +98,6 @@ set(XXHASH_BUILD_ENABLE_INLINE_API OFF CACHE BOOL "" FORCE)
 set(XXHASH_BUILD_XXHSUM OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/xxHash/cmake_unofficial ${CMAKE_BINARY_DIR}/xxhash)
 
-# whereami
-add_library(
-  whereami STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src/whereami.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src/whereami.c
-)
-target_include_directories(whereami PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/whereami/src)
-
 # exprtk
 add_library(exprtk INTERFACE)
 target_link_libraries(exprtk INTERFACE robin_hood)
@@ -173,7 +165,6 @@ set(klogg_cpm_targets
     roaring-headers-cpp
     libuchardet
     robin_hood
-    whereami
     simdutf
     efsw
     SingleApplication

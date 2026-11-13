@@ -31,11 +31,11 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir out/build/audit-fixes --output-on-fai
 
 **文件：** `3rdparty/CMakeLists.txt`、`src/utils/CMakeLists.txt`、`3rdparty/vendor/README.md`、`NOTICE`；删除 `3rdparty/vendor/whereami/`。
 
-- [ ] 用 `git grep` 检查 `whereami` 和 `wai_get`，区分库自身、历史说明和实际调用。
-- [ ] 删除 `add_library(whereami STATIC ...)`、其 include 目录、`klogg_cpm_targets` 中的 `whereami` 和 `klogg_utils` 的链接项。
-- [ ] 删除 vendor 目录、当前依赖表项和 NOTICE 中仅属于 whereami 的段落。
-- [ ] 在全新构建目录配置并构建 `ci_build`，运行全部 CTest。仅复用已下载的 KDE 源码，不复用构建对象。
-- [ ] 记录结果，提交 `chore(deps): remove unused whereami (P1)`。
+- [x] 用 `git grep` 检查 `whereami` 和 `wai_get`，区分库自身、历史说明和实际调用。
+- [x] 删除 `add_library(whereami STATIC ...)`、其 include 目录、`klogg_cpm_targets` 中的 `whereami` 和 `klogg_utils` 的链接项。
+- [x] 删除 vendor 目录、当前依赖表项和 NOTICE 中仅属于 whereami 的段落。
+- [x] 在全新构建目录配置并构建 `ci_build`，运行全部 CTest。仅复用已下载的 KDE 源码，不复用构建对象。
+- [x] 记录结果，提交 `chore(deps): remove unused whereami (P1)`。
 
 ```bash
 QT_ROOT=/home/zz/Qt/6.11.1/gcc_64 cmake --preset linux-gcc-release \
@@ -76,3 +76,7 @@ git diff --check
 ### P0 验证
 
 2026-11-13：`ci_build` 成功，原有 LTO 构建仍输出 `-Wodr` 警告；未在本批扩大处理。初次 CTest 为 91/92，依赖布局检查使用旧 pin，已在 `eaec438` 修正。复跑全部 CTest 为 92/92，通过耗时见本机 `/tmp/zzlogg-p0-ctest.log`。本批只建立构建与安装行为基线，搜索性能和 P3/P4 行为基线尚未开始。
+
+### P1 验证
+
+2026-11-13：全新 `out/build/dependency-cleanup` 配置和 `ci_build` 成功，CTest 92/92（13.36 秒）。新构建图无 whereami，启动、重启路径和 staged install 测试通过。配置与 P0 的关键选项一致；此结果不用于性能比较。Windows/macOS 原生验收未执行。

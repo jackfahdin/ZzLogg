@@ -21,7 +21,6 @@
 | `Catch2/` | Catch2 | 2.13.8 | C++ 测试框架 | [Catch2/README_Z.md](Catch2/README_Z.md) |
 | `KDSingleApplication/` | KDSingleApplication | 5b30db3 | 单实例应用支持 | [KDSingleApplication/README_Z.md](KDSingleApplication/README_Z.md) |
 | `xxHash/` | xxHash | 0.8.1 | 高速哈希算法 | [xxHash/README_Z.md](xxHash/README_Z.md) |
-| `whereami/` | whereami | dcb52a0 | 可执行文件路径获取 | [whereami/README_Z.md](whereami/README_Z.md) |
 | `klogg_exprtk/` | exprtk | 1f9f4cd | 数学表达式解析 | [klogg_exprtk/README_Z.md](klogg_exprtk/README_Z.md) |
 | `efsw/` | efsw | 1.4.1 | 文件系统监控 | [efsw/README_Z.md](efsw/README_Z.md) |
 | `KDToolBox/` | KDToolBox | 6468867d | Qt 工具箱（klogg 仅使用 KDSignalThrottler） | [KDToolBox/README_Z.md](KDToolBox/README_Z.md) |

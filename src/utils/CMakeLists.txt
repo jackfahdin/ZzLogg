@@ -28,7 +28,6 @@ target_link_libraries(
          Qt6::Widgets
          Qt6::Network
          Qt6::Concurrent
-         whereami
          type_safe
          klogg_mimalloc_wrapper
 )
