@@ -11,6 +11,12 @@
 | `architecture/` | [架构参考索引](architecture/README.md)、[UI 代码学习指南](architecture/UI_CODE_GUIDE.md)、[代码文本高亮](architecture/code-syntax-highlighting.md) |
 | `archive/` | [历史资料索引](archive/README.md)：设计与实现计划、性能实验、工具任务报告 |
 
+## 依赖与性能优化
+
+- [依赖精简与性能优化路线](superpowers/plans/2026-11-13-dependency-performance-roadmap.md)：按从轻到重的顺序安排清理、Qt 替换、搜索优化、性能库实验及架构评估，记录实施进度与验收标准。
+
+- [第一批依赖清理计划](superpowers/plans/2026-11-13-dependency-cleanup-batch1.md)：构建基线、whereami 移除和停用打包工具清理。
+
 ## 更新系统开发
 
 - [GitHub 更新源](development/GITHUB_UPDATES.md)：签名清单与发布流程。
