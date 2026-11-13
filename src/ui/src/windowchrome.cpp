@@ -4,14 +4,10 @@
 #include <exception>
 #include <utility>
 
-#include <QAction>
 #include <QEvent>
 #include <QIcon>
 #include <QMainWindow>
-#include <QMenu>
 #include <QMenuBar>
-#include <QScopeGuard>
-#include <QVariant>
 
 #include <ZzCore/ZzError.h>
 #include <ZzCore/ZzErrorCode.h>
@@ -53,7 +49,10 @@ ZzCore::ZzResult<void> configureDefaultChrome( QMainWindow& window,
     const ZzWindowKit::ZzWindowCapabilities capabilities = agent.capabilities();
     const bool nativeButtons
         = capabilities.testFlag( ZzWindowKit::ZzWindowCapability::NativeSystemButtons );
-    titleBar.setSystemButtonsVisible( !nativeButtons );
+    using Button = ZzFluentUI::ZzFluentTitleBar::Button;
+    titleBar.setButtonVisible( Button::Minimize, !nativeButtons );
+    titleBar.setButtonVisible( Button::Maximize, !nativeButtons );
+    titleBar.setButtonVisible( Button::Close, !nativeButtons );
     const ZzWindowKit::ZzWindowChromeConfiguration chrome
         = buildFluentChromeConfiguration( titleBar, capabilities );
     auto configured = agent.configureChrome( chrome );
@@ -80,12 +79,6 @@ WindowChrome::WindowChrome(QMainWindow& window, UiThemeContext context,
         auto title = std::make_unique<ZzFluentUI::ZzFluentTitleBar>(&window);
         title->setObjectName(QStringLiteral("zzloggFluentTitleBar"));
         title->setMenuDisplayMode(ZzFluentUI::ZzTitleBarMenuDisplayMode::Adaptive);
-        title->setThemeInteractionMode(ZzFluentUI::ZzTitleBarThemeInteractionMode::Toggle);
-        for (auto* action : title->themeMenu()->actions()) {
-            const auto mode = static_cast<ZzFluentUI::ZzThemeMode>(action->data().toInt());
-            action->setVisible(mode == ZzFluentUI::ZzThemeMode::Light
-                               || mode == ZzFluentUI::ZzThemeMode::Dark);
-        }
         auto agent = std::make_unique<ZzWindowKit::ZzWindowAgent>();
         const auto result = (configure ? configure : configureDefaultChrome)(window, *title, *agent);
         if (!result) {
@@ -110,8 +103,6 @@ WindowChrome::WindowChrome(QMainWindow& window, UiThemeContext context,
                 this, [&window] { window.close(); });
         connect(title.get(), &ZzFluentUI::ZzFluentTitleBar::alwaysOnTopRequested,
                 this, &WindowChrome::setAlwaysOnTop);
-        connect(title.get(), &ZzFluentUI::ZzFluentTitleBar::themeModeRequested,
-                this, &WindowChrome::themeModeRequested);
         connect(title.get(), &ZzFluentUI::ZzFluentTitleBar::themeToggleRequested,
                 this, &WindowChrome::requestThemeToggle);
         connect(&context.controller, &ZzFluentUI::ZzThemeController::snapshotChanged,
