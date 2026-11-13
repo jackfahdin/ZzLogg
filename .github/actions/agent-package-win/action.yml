@@ -1,34 +1,8 @@
 name: "Prepare windows packages"
 description: "Build Windows installer and portable packages"
-inputs:
-  # 签名链路当前整体注释（见下方被注释的 codesign 步骤），三个 s3 input
-  # 实际未被消费，仅作声明；改可选以便无签名机密的 workflow/fork 复用本 action。
-  s3-key-id:
-    required: false
-  s3-secret:
-    required: false
-  s3-bucket:
-    required: false
 runs:
   using: "composite"
   steps:
-    #- name: Setup codesing env
-    #  if: ${{ github.event_name != 'pull_request' }}
-    #  shell: sh
-    #  run: |
-    #    echo "CS_CLIENT_S3_KEY_ID=${{ inputs.s3-key-id }}" >> $GITHUB_ENV 
-    #    echo "CS_CLIENT_S3_SECRET=${{ inputs.s3-secret }}" >> $GITHUB_ENV 
-    #    echo "CS_CLIENT_S3_BUCKET=${{ inputs.s3-bucket }}" >> $GITHUB_ENV 
-    
-    #- name: Win codesign executables
-    #  if: ${{ github.event_name != 'pull_request' }}
-    #  shell: cmd
-    #  run: |
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\ZzLogg.exe
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbb12.dll
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbbmalloc.dll
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\output\tbbmalloc_proxy.dll
-    
     - name: Stage Windows package files
       shell: cmd
       run: |
@@ -67,9 +41,3 @@ runs:
         md %KLOGG_BUILD_ROOT%\packages
         xcopy /e /i /y "%KLOGG_BUILD_ROOT%\runtime\RelWithDebInfo\ZzLogg-runtime" "%KLOGG_BUILD_ROOT%\packages\ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-portable"
         xcopy "ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-setup.exe" "%KLOGG_BUILD_ROOT%\packages" /y
-
-    #- name: Win codesign installer
-    #  if: ${{ github.event_name != 'pull_request' }}
-    #  shell: cmd
-    #  run: |
-    #    packaging\windows\codesign_client.exe --debug %KLOGG_BUILD_ROOT%\packages\ZzLogg-%KLOGG_VERSION%-%KLOGG_ARCH%-Qt6-setup.exe
