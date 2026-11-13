@@ -205,7 +205,8 @@ LogDataWorker::~LogDataWorker() noexcept
 {
     try {
         interruptRequest_.set();
-        ScopedLock locker( operationsMutex_ );
+        // A dispatched runnable may still need operationsMutex_ before it
+        // can observe the interrupt. Never hold that mutex while joining it.
         operationsPool_.waitForDone();
         LOG_INFO << "LogDataWorker shutdown";
     } catch ( const std::exception& e ) {
@@ -222,8 +223,10 @@ void LogDataWorker::attachFile( const QString& fileName )
 
 void LogDataWorker::indexAll( QTextCodec* forcedEncoding )
 {
-    ScopedLock locker( operationsMutex_ );
+    // OperationQueue serializes dispatch; drain the previous runnable before
+    // taking the mutex that the runnable itself needs to finish.
     operationsPool_.waitForDone();
+    ScopedLock locker( operationsMutex_ );
     interruptRequest_.clear();
 
     LOG_INFO << "FullIndex requested, forced encoding: "
@@ -244,8 +247,8 @@ void LogDataWorker::indexAll( QTextCodec* forcedEncoding )
 
 void LogDataWorker::indexAdditionalLines()
 {
-    ScopedLock locker( operationsMutex_ );
     operationsPool_.waitForDone();
+    ScopedLock locker( operationsMutex_ );
     interruptRequest_.clear();
 
     LOG_INFO << "PartialIndex requested";
@@ -265,8 +268,8 @@ void LogDataWorker::indexAdditionalLines()
 
 void LogDataWorker::checkFileChanges()
 {
-    ScopedLock locker( operationsMutex_ );
     operationsPool_.waitForDone();
+    ScopedLock locker( operationsMutex_ );
     interruptRequest_.clear();
 
     LOG_INFO << "Check file changes requested";

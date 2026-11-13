@@ -107,8 +107,16 @@ int wmain(int argc,wchar_t** argv) {
         std::vector<Handle> directories;
         for(std::size_t end=rootText.find(L'\\',3);;end=rootText.find(L'\\',end+1)) {
             const auto path=rootText.substr(0,end);
-            auto directory=zzlogg::updater::detail::openLeasedDirectory(path);
-            require(bool(directory),"Cannot lease portable installation directory");
+            // As in the registered installer's transaction pin, allow writes
+            // beneath the directory while denying rename/deletion of the
+            // directory itself. A read-only share blocks MoveFileExW on NTFS.
+            Handle directory(CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES|FILE_LIST_DIRECTORY,
+                FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,
+                FILE_FLAG_OPEN_REPARSE_POINT|FILE_FLAG_BACKUP_SEMANTICS,nullptr));
+            zzlogg::updater::DirectoryIdentity pinnedIdentity{};
+            require(directory && zzlogg::updater::detail::directoryIdentity(directory.get(),pinnedIdentity)
+                && zzlogg::updater::detail::directoryMatchesPath(directory.get(),path),
+                "Cannot lease portable installation directory");
             directories.push_back(std::move(directory));
             if(end==std::wstring::npos) break;
         }

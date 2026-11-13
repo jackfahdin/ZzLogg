@@ -39,6 +39,14 @@ bool awaitFile(const fs::path& file,DWORD timeout=15000) {
 }
 int parentMode(const fs::path& root,const fs::path& stage,const fs::path& helper,
     const std::wstring& mode,const std::wstring& dataDirectory) {
+    // A Windows current-directory handle also denies deletion. Move it away
+    // and establish that DELETE access works before any installation pin.
+    check(SetCurrentDirectoryW(stage.c_str()),"Cannot move fixture working directory");
+    {
+        Handle removable(CreateFileW(root.c_str(),DELETE,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+            nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr));
+        check(bool(removable),"Fixture directory already denies DELETE access before helper pin");
+    }
     zzlogg::updater::InstallLock lock;
     check(lock.acquire(root.wstring())==zzlogg::updater::InstallLockError::None,"Cannot reserve fixture installation");
     auto child=launch(helper,{root.wstring(),stage.wstring(),std::to_wstring(GetCurrentProcessId()),
@@ -51,6 +59,24 @@ int parentMode(const fs::path& root,const fs::path& stage,const fs::path& helper
         check(read(root/L"obsolete.dll")=="old library","Helper modified installation before parent exit");
         check(!fs::exists(stage/L"backup"),"Backup began before parent exit");
         put(stage/L"parent-observed-ready","yes");
+        if(mode==L"success") {
+            // Leave only the helper's directory pins in place. NTFS needs
+            // FILE_ADD_FILE access to the parent when renaming a child into it.
+            lock=zzlogg::updater::InstallLock{};
+            Handle writer(CreateFileW(root.c_str(),FILE_ADD_FILE,FILE_SHARE_READ|FILE_SHARE_WRITE,
+                nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr));
+            const bool writable=bool(writer);
+            writer.reset();
+            if(!writable) {
+                put(stage/L"cancel","cancel");
+                WaitForSingleObject(child.get(),10000);
+            }
+            check(writable,"Helper directory pin blocks child-file replacement");
+            Handle removable(CreateFileW(root.c_str(),DELETE,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+                nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr));
+            check(!removable && GetLastError()==ERROR_SHARING_VIOLATION,
+                "Helper must keep the installation directory pinned against deletion/rename");
+        }
         if(mode==L"cancel") {
             put(stage/L"cancel","cancel");
             check(WaitForSingleObject(child.get(),10000)==WAIT_OBJECT_0,"Cancellation did not stop helper");

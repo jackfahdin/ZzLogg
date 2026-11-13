@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include "crawlerwidget.h"
 #include "documentworkspace.h"
+#include "logdataworker.h"
 #include "quickfindmux.h"
 #include "savedsearches.h"
 #include "session.h"
@@ -223,6 +224,39 @@ private Q_SLOTS:
         workspace.closeDocument( 0 );
         QCOMPARE( notifications, 3 );
         QCOMPARE( secondFollow.count(), 1 );
+    }
+
+    void workerShutdownAfterDispatch_data()
+    {
+        QTest::addColumn<int>( "operation" );
+        QTest::newRow( "full-index" ) << 0;
+        QTest::newRow( "partial-index" ) << 1;
+        QTest::newRow( "change-check" ) << 2;
+        QTest::newRow( "back-to-back" ) << 3;
+    }
+
+    void workerShutdownAfterDispatch()
+    {
+        QFETCH( int, operation );
+        QTemporaryDir files;
+        const auto path = makeLog( files, "shutdown.log" );
+        // No event-loop wait between dispatch and destruction: the runnable
+        // may still be waiting for its startup lock when shutdown begins.
+        for ( int attempt = 0; attempt < 100; ++attempt ) {
+            LogDataWorker worker( std::make_shared<IndexingData>() );
+            worker.attachFile( path );
+            switch ( operation ) {
+            case 0: worker.indexAll(); break;
+            case 1: worker.indexAdditionalLines(); break;
+            case 2: worker.checkFileChanges(); break;
+            case 3:
+                worker.indexAll();
+                worker.indexAdditionalLines();
+                worker.checkFileChanges();
+                worker.indexAll();
+                break;
+            }
+        }
     }
 
     void destroyingNonemptyWorkspaceUnregistersDocuments()
