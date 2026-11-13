@@ -49,7 +49,6 @@ target_link_libraries(
          tbb
          type_safe
          klogg_uchardet_wrapper
-         kdtoolbox
          robin_hood
          simdutf
          streamvbyte

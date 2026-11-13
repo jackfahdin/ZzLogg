@@ -42,7 +42,6 @@
 
 #include "log.h"
 
-#include <KDSignalThrottler.h>
 #include <QString>
 #include <QTimer>
 
@@ -82,9 +81,9 @@ LogFilteredData::LogFilteredData( const LogData* logData )
 
     searchProgressThrottler_.setTimeout( 100 );
     connect( this, &LogFilteredData::searchProgressedThrottled, &searchProgressThrottler_,
-             &KDToolBox::KDGenericSignalThrottler::throttle );
+             &SignalThrottler::throttle );
 
-    connect( &searchProgressThrottler_, &KDToolBox::KDGenericSignalThrottler::triggered, this,
+    connect( &searchProgressThrottler_, &SignalThrottler::triggered, this,
              &LogFilteredData::handleSearchProgressedThrottled );
 }
 

@@ -32,7 +32,7 @@
 | `out/` | 磁盘占用约 3.4 GB | 已忽略的本地构建和下载产物；清理不会减少代码依赖 |
 | `.git/` | 磁盘占用约 276 MB，其中 `.git/modules/` 约 222 MB | 包含子模块历史；删除工作树文件不会自动减少历史体积 |
 | ZzPureTools 的 FluentUI 测试目录 | 磁盘占用约 24 MB | 测试资源不能直接算作正式程序的运行时负担 |
-| 第一轮 5 项依赖 | Git 跟踪文件合计约 8.2 MiB | whereami、KDToolBox、maddy、ExprTk、robin-hood 的源码清理量，未扣除替代实现 |
+| 初始分析的 5 项候选依赖 | Git 跟踪文件合计约 8.2 MiB | whereami、KDToolBox、maddy、ExprTk、robin-hood 的原始源码量；maddy 已决定保留，不代表最终清理量 |
 
 这轮优先处理依赖和实现复杂度。清理本地缓存、重写 Git 历史、删除 UI 功能不属于默认执行范围。
 
@@ -44,7 +44,7 @@
 | 1 | P1 移除 whereami | 实施 | P0 的构建基线 | 删除一个无实际调用的依赖 |
 | 1 | P2 清理失效记录及无用打包工具 | 实施 | 逐项引用检查 | 依赖清单与实际构建一致 |
 | 2 | P3 手册渲染依赖 | 已关闭：不替换 | 用户已决定保留 | 继续使用 maddy，不再安排替换 |
-| 2 | P4 收回信号节流实现 | 实施 | P0 的通知行为记录 | 移除 KDToolBox 整库依赖 |
+| 2 | P4 收回信号节流实现 | 已完成 | P0 的通知行为记录 | 移除 KDToolBox 整库依赖 |
 | 3 | P5 消除搜索中的重复解码 | 实施 | 搜索基线 | 同一行只进行一次必要转换 |
 | 3 | P6 实现限定布尔语法 | 实施 | 旧求值器对照测试 | 移除 ExprTk 和 robin-hood |
 | 4 | P7 整理构建依赖传播与后端配置 | 实施 | 第一轮依赖变更完成 | 更明确的模块边界和构建矩阵 |
@@ -117,14 +117,14 @@
 
 ### P4 收回信号节流器
 
-入口：`src/filewatch/include/filewatcher.h`、`src/filewatch/src/filewatcher.cpp`、`src/logdata/include/logfiltereddata.h`、`src/logdata/src/logfiltereddata.cpp`、相关 CMake；新组件建议放在 `src/utils/`。
+入口：`src/filewatch/include/filewatcher.h`、`src/filewatch/src/filewatcher.cpp`、`src/logdata/include/logfiltereddata.h`、`src/logdata/src/logfiltereddata.cpp`、相关 CMake；新组件位于 `src/utils/`。
 
-- [ ] 为当前实际使用的 trailing throttle 建立行为测试：单次通知、短时突发、持续事件、最终进度、销毁时仍有待发通知。
-- [ ] 基于 QTimer 实现仅满足这些调用需求的组件，明确销毁时发出还是丢弃待发通知，并与调用方生命周期协调。
-- [ ] 定时器活跃期间累计待发状态；不能在每次事件到达时不断重启定时器，把节流错误地实现成防抖。
-- [ ] 替换两个调用模块，移除 KDToolBox 目标和 vendor 目录。
+- [x] 为当前实际使用的 trailing throttle 建立行为测试：单次通知、短时突发、持续事件、最终进度、销毁时仍有待发通知。
+- [x] 基于 QTimer 实现仅满足这些调用需求的组件，保留销毁时同步发送待发通知的原有语义，并与调用方生命周期协调。
+- [x] 定时器活跃期间累计待发状态；不能在每次事件到达时不断重启定时器，把节流错误地实现成防抖。
+- [x] 替换两个调用模块，移除 KDToolBox 目标和 vendor 目录。
 
-验收：持续追加日志时仍定期刷新；搜索结束状态能及时显示；对象销毁后无回调访问。若自有实现反而复杂，退回只保留上游 KDSignalThrottler 组件，不复制整个工具箱。
+验收：持续追加日志时仍定期刷新；搜索结束状态能及时显示；对象销毁后无回调访问。已采用仅包含尾沿节流的 Qt 组件；详见 [P4 实施与验证记录](2026-11-13-signal-throttler.md)。
 
 ## 7. 阶段 3：搜索局部优化和布尔语法收缩
 
@@ -312,7 +312,7 @@ git diff --check
 - [x] P1：移除 whereami，干净构建和 92 项 CTest 通过。
 - [ ] P2：失效记录和停用工具已清理；全量依赖元数据审计仍未完成。
 - [x] P3：已关闭；用户决定保留 maddy，不再考虑替换。
-- [ ] P4：节流器等价替换，先建立行为回归测试。
+- [x] P4：已完成尾沿节流替换，移除 KDToolBox；同组行为测试及干净构建 93 项 CTest 通过。
 - [ ] P5–P6：搜索局部优化和布尔语法收缩。
 - [ ] P7–P10：模块边界及跨平台能力评估。
 - [ ] P11–P14：性能库对照实验。
@@ -329,7 +329,7 @@ git diff --check
 
 两项删除合计约 12.46 MiB 的受跟踪文件，不含其他文本变化；未测量安装包或性能收益，也未缩减 Git 历史。Windows/macOS 原生验证未执行。
 
-**下一项：** P4 信号节流器：先覆盖突发通知、持续写入、最终进度和销毁行为，再评估小型 Qt 实现。P3 已关闭并保留 maddy；P2 剩余的全量依赖来源、许可证和本地补丁审计继续保留为待办。
+**下一项：** P5 同一行只解码一次：先建立搜索结果与性能基线，再消除多个模式之间的重复 UTF-8 解码。P3 已关闭并保留 maddy；P2 剩余的全量依赖来源、许可证和本地补丁审计继续保留为待办。
 
 
 ### KDE 依赖升级与源码纳入仓库（2026-11-13）
@@ -359,3 +359,11 @@ Windows/macOS 原生构建尚未运行；这两项依赖离线不代表 Qt SDK�
 对照截图、导出的文档 HTML、探针源码和原始输出保存在本机忽略目录 `out/benchmarks/p3-probe/`；应用现状截图在 `out/benchmarks/p3-baseline/`。这不是 Windows/macOS 原生验证，也没有完成替代渲染器的实现。
 
 最终决定：用户明确要求不再考虑替换 P3，因此保留 maddy，关闭此项，不改变应用或打包行为。后续直接推进 P4；上面的兼容性分析不构成待执行的替换计划。
+
+### P4 信号节流依赖精简（2026-11-13）
+
+采用基于 QTimer 的 `SignalThrottler`，迁移文件监控和搜索进度两个调用点。保留 250 ms／100 ms、默认 CoarseTimer、持续事件定期通知、回调重入以及析构时同步发送待发通知的原有行为；未引入未使用的 leading/debounce 或 QML 接口。P3 已由 `5fcff8c` 关闭，maddy 保留。
+
+同一组行为测试先在 KDSignalThrottler 上通过；空的新实现按预期无法通过通知和析构用例，补齐后通过。删除 KDToolBox 的 286 个受跟踪文件，共 895,680 字节（约 0.85 MiB），移除其构建目标与链接，保留改编代码及 KDSingleApplication 的 MIT 归属声明。新增组件的头文件与实现共 73 行；这表示维护范围收缩，未测量安装包或运行性能收益。
+
+Linux x86_64、GCC 15.2.0、Qt 6.11.1、CMake 4.3.3，Release、LTO OFF、WARNINGS_AS_ERRORS ON、单元/集成/UI 测试 ON、Hyperscan/VectorScan OFF。全新 `out/build/p4-throttler` 的 `ci_build` 通过；CTest 93/93，Python CI 124 项、3 项跳过；独立代码审查未发现阻碍合入的问题。Windows/macOS 原生验证待 CI。执行步骤与命令见 [P4 记录](2026-11-13-signal-throttler.md)。

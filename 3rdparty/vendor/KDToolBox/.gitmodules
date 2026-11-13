@@ -1,3 +1,0 @@
-[submodule "qt/qt-fmt/fmt"]
-	path = qt/qt_fmt/fmt
-	url = https://github.com/fmtlib/fmt

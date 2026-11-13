@@ -114,16 +114,6 @@ target_compile_definitions(
             -Dexprtk_disable_string_capabilities
 )
 
-# KDToolBox (KDSignalThrottler only)
-add_library(
-  kdtoolbox STATIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src/KDSignalThrottler.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src/KDSignalThrottler.h
-)
-target_include_directories(kdtoolbox PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/KDToolBox/qt/KDSignalThrottler/src)
-target_link_libraries(kdtoolbox Qt6::Core)
-set_target_properties(kdtoolbox PROPERTIES AUTOMOC ON)
-
 # efsw
 set(BUILD_TEST_APP OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/efsw)

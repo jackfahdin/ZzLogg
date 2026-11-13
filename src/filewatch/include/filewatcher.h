@@ -46,9 +46,7 @@
 class EfswFileWatcher;
 class QTimer;
 
-namespace KDToolBox {
-class KDGenericSignalThrottler;
-}
+class SignalThrottler;
 
 struct EfswFileWatcherDeleter {
     void operator()( EfswFileWatcher* p ) const;
@@ -94,7 +92,7 @@ class FileWatcher : public QObject {
     ~FileWatcher() override; // for complete EfswFileWatcher
 
     QTimer* checkTimer_;
-    KDToolBox::KDGenericSignalThrottler* throttler_;
+    SignalThrottler* throttler_;
     std::vector<QString> changes_;
 
     std::unique_ptr<EfswFileWatcher, EfswFileWatcherDeleter> efswWatcher_;

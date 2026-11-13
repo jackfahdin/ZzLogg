@@ -552,7 +552,8 @@ Glyphs imported from Arev fonts are (c) Tavmjong Bah (see below)
 
 ===
 This product includes software developed by KDAB
-KDToolBox (https://github.com/KDAB/KDToolBox)
+SignalThrottler (src/utils), a trailing-only adaptation of KDToolBox KDSignalThrottler
+(https://github.com/KDAB/KDToolBox, revision 6468867d)
 KDSingleApplication (https://github.com/KDAB/KDSingleApplication/)
 licensed under the terms of MIT license
 

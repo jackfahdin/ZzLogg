@@ -4,6 +4,15 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Gui Svg)
 
+add_executable(zzlogg_signal_throttler_test utils/signalthrottlertest.cpp)
+target_link_libraries(zzlogg_signal_throttler_test PRIVATE klogg_utils Qt6::Test)
+set_target_properties(zzlogg_signal_throttler_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_utils.signal_throttler COMMAND zzlogg_signal_throttler_test)
+if(WIN32)
+  set_property(TEST zzlogg_utils.signal_throttler APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()
+
 # Include in this directory scope to preserve test output paths and target discovery.
 # Update checks precede translations; runtime MOC generation precedes handoff tests.
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/update-checks.cmake")

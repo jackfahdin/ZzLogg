@@ -10,7 +10,6 @@ target_link_libraries(
   klogg_filewatch
   PUBLIC klogg_settings
          klogg_utils
-         kdtoolbox
          efsw
 )
 

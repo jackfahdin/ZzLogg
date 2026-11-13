@@ -22,7 +22,6 @@
 | `xxHash/` | xxHash | 0.8.1 | 高速哈希算法 | [xxHash/README_Z.md](xxHash/README_Z.md) |
 | `klogg_exprtk/` | exprtk | 1f9f4cd | 数学表达式解析 | [klogg_exprtk/README_Z.md](klogg_exprtk/README_Z.md) |
 | `efsw/` | efsw | 1.4.1 | 文件系统监控 | [efsw/README_Z.md](efsw/README_Z.md) |
-| `KDToolBox/` | KDToolBox | 6468867d | Qt 工具箱（klogg 仅使用 KDSignalThrottler） | [KDToolBox/README_Z.md](KDToolBox/README_Z.md) |
 | `oneTBB/` | oneTBB | c9be1ac2 | Intel oneAPI Threading Building Blocks | [oneTBB/README_Z.md](oneTBB/README_Z.md) |
 | `mimalloc/` | mimalloc | 2.1.7 | 微软高性能内存分配器 | [mimalloc/README_Z.md](mimalloc/README_Z.md) |
 | `monocypher/` | Monocypher | 4.0.3 | 无 Qt 更新核心的 Ed25519 签名验证 | [来源与校验摘要](monocypher/README.zzlogg.md) |

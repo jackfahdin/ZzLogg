@@ -22,9 +22,9 @@
 #include "configuration.h"
 #include "dispatch_to.h"
 #include "log.h"
+#include "signalthrottler.h"
 #include "synchronization.h"
 
-#include <KDSignalThrottler.h>
 #include <efsw/efsw.hpp>
 
 #include <vector>
@@ -328,15 +328,15 @@ void EfswFileWatcherDeleter::operator()( EfswFileWatcher* watcher ) const
 
 FileWatcher::FileWatcher()
     : checkTimer_{ new QTimer( this ) }
-    , throttler_{ new KDToolBox::KDSignalThrottler( this ) }
+    , throttler_{ new SignalThrottler( this ) }
     , efswWatcher_{ new EfswFileWatcher( this ) }
 {
     connect( checkTimer_, &QTimer::timeout, this, &FileWatcher::checkWatches );
 
     throttler_->setTimeout( 250 );
     connect( this, &FileWatcher::notifyFileChangedOnDisk, throttler_,
-             &KDToolBox::KDGenericSignalThrottler::throttle );
-    connect( throttler_, &KDToolBox::KDGenericSignalThrottler::triggered, this,
+             &SignalThrottler::throttle );
+    connect( throttler_, &SignalThrottler::triggered, this,
              &FileWatcher::sendChangesNotifications );
 }
 

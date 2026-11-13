@@ -12,7 +12,9 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/crc32.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/cpu_info.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/runnable_lambda.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/signalthrottler.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/cpu_info.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/signalthrottler.cpp
 )
 
 set_target_properties(klogg_utils PROPERTIES AUTOMOC ON)

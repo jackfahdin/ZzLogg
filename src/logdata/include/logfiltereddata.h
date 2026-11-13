@@ -51,10 +51,9 @@
 #include <QObject>
 #include <QStringList>
 
-#include <KDSignalThrottler.h>
-
 #include "abstractlogdata.h"
 #include "hsregularexpression.h"
+#include "signalthrottler.h"
 #include "linetypes.h"
 #include "logfiltereddataworker.h"
 #include "synchronization.h"
@@ -201,7 +200,7 @@ class LogFilteredData : public AbstractLogData {
     Mutex searchProgressMutex_;
     std::tuple<LinesCount, int, LineNumber> searchProgress_;
 
-    KDToolBox::KDSignalThrottler searchProgressThrottler_;
+    SignalThrottler searchProgressThrottler_;
 
   private:
     struct CachedSearchResult {
