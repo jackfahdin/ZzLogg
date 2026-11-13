@@ -53,12 +53,12 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir out/build/dependency-cleanup --output
 
 **文件：** `3rdparty/vendor/README.md`、`.github/actions/agent-package-win/action.yml`、`.github/workflows/ci-build.yml`；删除 `packaging/windows/codesign_client.exe`。
 
-- [ ] 删除不存在的 backward-cpp、sentry-native 表项；补充 Monocypher、nlohmann-json、ZzPureTools，以及 KDE 下载依赖的入口和固定版本。
-- [ ] 检查打包脚本、测试、现行文档与工作流对签名客户端的引用。
-- [ ] 删除停用的客户端和被注释的三个签名步骤；同时删除该 action 的三个未使用 S3 inputs 及调用方的对应 `with` 参数。
-- [ ] 保留 `StageRuntimeLicenses.cmake` 的有效许可证清单和现行签名脚本。
-- [ ] 运行打包/安装契约测试、Python CI 测试，检查本地 Markdown 链接及 diff。
-- [ ] 记录结果，提交 `chore(packaging): remove obsolete signing client (P2)`。
+- [x] 删除不存在的 backward-cpp、sentry-native 表项；补充 Monocypher、nlohmann-json、ZzPureTools，以及 KDE 下载依赖的入口和固定版本。
+- [x] 检查打包脚本、测试、现行文档与工作流对签名客户端的引用。
+- [x] 删除停用的客户端和被注释的三个签名步骤；同时删除该 action 的三个未使用 S3 inputs 及调用方的对应 `with` 参数。
+- [x] 保留 `StageRuntimeLicenses.cmake` 的有效许可证清单和现行签名脚本。
+- [x] 运行打包/安装契约测试、Python CI 测试，检查本地 Markdown 链接及 diff。
+- [x] 记录结果，提交 `chore(packaging): remove obsolete signing client (P2)`。
 
 ```bash
 QT_QPA_PLATFORM=offscreen ctest --test-dir out/build/dependency-cleanup \
@@ -80,3 +80,9 @@ git diff --check
 ### P1 验证
 
 2026-11-13：全新 `out/build/dependency-cleanup` 配置和 `ci_build` 成功，CTest 92/92（13.36 秒）。新构建图无 whereami，启动、重启路径和 staged install 测试通过。配置与 P0 的关键选项一致；此结果不用于性能比较。Windows/macOS 原生验收未执行。
+
+### P2 验证与提交
+
+2026-11-13：清理提交 `75fdec6`；P1 提交 `ca5d20d`。19 项打包、安装、运行时、发布和依赖相关 CTest 全部通过，Python CI 运行 124 项、跳过 3 项，其余通过。使用 YAML 解析比较清理前后的 Windows 打包 action，三个有效步骤完全一致，调用方不再提供已删除的 S3 inputs。依赖表与 22 个实际 vendor 目录一致，本地文档链接均有效，同时修正了 CRoaring 的历史失效链接。
+
+本批未修改现行签名脚本、有效许可证收集清单或 Git 历史。Windows/macOS 原生构建与打包未执行；提交尚未推送。P2 的全量来源、许可及本地补丁审计仍待后续完成；建议下一批先记录三语手册的行为，再开展 P3 的 Qt Markdown 迁移。
