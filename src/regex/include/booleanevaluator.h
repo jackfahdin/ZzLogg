@@ -17,16 +17,25 @@
  * along with klogg.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <exprtk.hpp>
+#include <limits>
+#include <string>
 #include <string_view>
 
 #include "containers.h"
-
 #include "regularexpressionpattern.h"
 
+// Each PatternMatcher owns an evaluator; the reusable execution stack is not shared.
 class BooleanExpressionEvaluator {
-  public:
+public:
+    static constexpr size_t MaxExpressionLength = 65536;
+    static constexpr size_t MaxPatterns = 4096;
+    static constexpr size_t MaxNestingDepth = 256;
+
     BooleanExpressionEvaluator( const std::string& expression,
                                 const klogg::vector<RegularExpressionPattern>& patterns );
 
@@ -34,25 +43,37 @@ class BooleanExpressionEvaluator {
     {
         return isValid_;
     }
-
     std::string errorString() const
     {
         return errorString_;
     }
-
     bool evaluate( std::string_view variables );
 
-  private:
-    bool isValid_ = true;
+private:
+    enum class Operation : uint8_t {
+        Variable,
+        Not,
+        And,
+        Nand,
+        Or,
+        Nor,
+        Xor,
+        Xnor,
+        JumpIfFalse,
+        JumpIfTrue
+    };
+    static constexpr uint32_t StackOperand = std::numeric_limits<uint32_t>::max();
+    struct Instruction {
+        Operation operation;
+        uint32_t operand = 0;
+    };
+    class Compiler;
+    bool execute( std::string_view variables );
+
+    bool isValid_ = false;
     std::string errorString_;
-
-    
-
-    exprtk::symbol_table<double> symbols_;
-    exprtk::expression<double> expression_;
-    exprtk::parser<double> parser_;
-
-    klogg::vector<double*> variables_;
-
-    double precomputedResults_[16];
+    size_t variableCount_ = 0;
+    klogg::vector<Instruction> program_;
+    klogg::vector<uint8_t> stack_;
+    std::array<bool, 16> precomputedResults_{};
 };

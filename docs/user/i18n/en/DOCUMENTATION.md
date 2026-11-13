@@ -79,6 +79,14 @@ Enable logical search with the button beside the search input. Enclose every pat
 | `&` | AND with left-to-right short-circuit evaluation. | `"x" & "y"` |
 | <code>&#124;</code> | OR with left-to-right short-circuit evaluation. | <code>"x" &#124; "y"</code> |
 | `not` | Negates the expression in parentheses. | `not("x")` |
+| `nand` | The two patterns must not both match. | `"x" nand "y"` |
+| `nor` | Neither pattern matches. | `"x" nor "y"` |
+| `xor` | Exactly one pattern matches. | `"x" xor "y"` |
+| `xnor` | Both patterns have the same match result. | `"x" xnor "y"` |
+
+`not(...)` and parentheses take precedence. `and`, `nand`, and `&` bind more tightly than `or`, `nor`, `xor`, `xnor`, and `|`. Binary operators at the same level evaluate from left to right; use parentheses to make grouping explicit. For compatibility, adjacent patterns or parentheses without an operator imply AND at a higher precedence; explicit operators are recommended. Negation requires `not(...)`; `!`, `&&`, and `||` are unsupported.
+
+Logical queries allow at most 4096 patterns, 256 levels of parentheses, and 65536 UTF-16 code units of input (most common characters use one unit; some use two). The logical expression after replacing patterns with internal identifiers also has a 65536-byte limit. Exceeding a limit displays an error and prevents the search.
 
 Search history supplies autocomplete suggestions. Edit or clear it from the search input's context menu, and set its maximum size in General settings. Autocomplete respects the search's case-sensitivity option.
 

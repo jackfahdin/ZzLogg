@@ -17,8 +17,6 @@ target_link_libraries(
          klogg_settings
          klogg_utils
          Qt6::Core
-         robin_hood
-         exprtk
 )
 
 if(KLOGG_USE_HYPERSCAN)

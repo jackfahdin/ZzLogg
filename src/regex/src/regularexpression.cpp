@@ -37,12 +37,15 @@ namespace {
 klogg::vector<RegularExpressionPattern>
 parseBooleanExpressions( QString& pattern, bool isCaseSensitive, bool isPlainText )
 {
+    if ( pattern.size() > static_cast<qsizetype>( BooleanExpressionEvaluator::MaxExpressionLength ) ) {
+        throw std::runtime_error( "Boolean query length limit is 65536 UTF-16 code units at 65536" );
+    }
     if ( !pattern.contains( '"' ) ) {
         throw std::runtime_error( "Patterns must be enclosed in quotes" );
     }
 
     klogg::vector<RegularExpressionPattern> subPatterns;
-    subPatterns.reserve( static_cast<size_t>( pattern.size() ) );
+    subPatterns.reserve( std::min( static_cast<size_t>( pattern.size() ), BooleanExpressionEvaluator::MaxPatterns ) );
 
     int currentIndex = 0;
     int leftQuote = -1;
@@ -84,6 +87,9 @@ parseBooleanExpressions( QString& pattern, bool isCaseSensitive, bool isPlainTex
         auto subPattern = pattern.mid( leftQuote + 1, subPatternLength );
         subPattern.replace( "\\\"", "\"" );
 
+        if ( subPatterns.size() == BooleanExpressionEvaluator::MaxPatterns ) {
+            throw std::runtime_error( "Sub-pattern limit is 4096 at " + std::to_string( leftQuote ) );
+        }
         subPatterns.emplace_back( subPattern, isCaseSensitive, false, false, isPlainText );
 
         pattern.replace( leftQuote, subPatternLength + 2,

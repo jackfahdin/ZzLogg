@@ -42,7 +42,6 @@
 #include <qsemaphore.h>
 #include <utility>
 
-#include <robin_hood.h>
 #include <tbb/flow_graph.h>
 #include <vector>
 

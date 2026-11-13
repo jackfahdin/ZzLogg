@@ -16,11 +16,9 @@
 | `vectorscan/` | vectorscan | d29730e | Hyperscan 多架构移植版 | [vectorscan/README_Z.md](vectorscan/README_Z.md) |
 | `uchardet/` | uchardet | 0.0.8 | 字符编码自动检测 | [uchardet/README_Z.md](uchardet/README_Z.md) |
 | `klogg_karchive/` | klogg_karchive | f546bf6 | KF5Archive Qt5/Qt6 兼容 fork | [klogg_karchive/README_Z.md](klogg_karchive/README_Z.md) |
-| `robin-hood-hashing/` | robin_hood | 3.11.5 | 快速哈希表/集合 | [robin-hood-hashing/README_Z.md](robin-hood-hashing/README_Z.md) |
 | `Catch2/` | Catch2 | 2.13.8 | C++ 测试框架 | [Catch2/README_Z.md](Catch2/README_Z.md) |
 | `KDSingleApplication/` | KDSingleApplication | 5b30db3 | 单实例应用支持 | [KDSingleApplication/README_Z.md](KDSingleApplication/README_Z.md) |
 | `xxHash/` | xxHash | 0.8.1 | 高速哈希算法 | [xxHash/README_Z.md](xxHash/README_Z.md) |
-| `klogg_exprtk/` | exprtk | 1f9f4cd | 数学表达式解析 | [klogg_exprtk/README_Z.md](klogg_exprtk/README_Z.md) |
 | `efsw/` | efsw | 1.4.1 | 文件系统监控 | [efsw/README_Z.md](efsw/README_Z.md) |
 | `oneTBB/` | oneTBB | c9be1ac2 | Intel oneAPI Threading Building Blocks | [oneTBB/README_Z.md](oneTBB/README_Z.md) |
 | `mimalloc/` | mimalloc | 2.1.7 | 微软高性能内存分配器 | [mimalloc/README_Z.md](mimalloc/README_Z.md) |

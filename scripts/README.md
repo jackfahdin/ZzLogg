@@ -15,4 +15,6 @@ python scripts/quality/run-clang-tidy.py -p <build-directory>
 
 `dev/benchmark_regex_decode.py` 为 Linux/glibc 下的 Qt 匹配器解码对照入口，支持历史头文件、同源码控制、固定 CPU 和独立分配统计，参数与限制见 [探针说明](../tools/benchmarks/regex_decode/README.md)。
 
+`dev/benchmark_boolean_evaluator.py` 对比两个已构建的布尔求值器探针，采用固定 CPU、交替进程顺序和独立分配统计；复现步骤见 [布尔探针说明](../tools/benchmarks/boolean_evaluator/README.md)。
+
 编译型辅助工具放在 [`tools/`](../tools/README.md)，Windows 安装与更新验收脚本放在 [`tests/acceptance/`](../tests/acceptance/)。新增脚本按使用场景放入对应子目录。

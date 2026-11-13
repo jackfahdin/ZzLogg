@@ -159,7 +159,8 @@ SCENARIO( "Pattern matcher in boolean mode", "[patternmatcher]" )
     WHEN( "Using complex pattern with ()" )
     {
         RegularExpression expression( RegularExpressionPattern(
-            "(\"not_match\" | \"match\") & !(\"pattern\")", false, false, true, false ) );
+            "(\"not_match\" | \"match\") & not(\"pattern\")", false, false, true, false ) );
+        REQUIRE( expression.isValid() );
         const auto matcher = expression.createMatcher();
         REQUIRE_FALSE( matcher->hasMatch( matchLine ) );
     }

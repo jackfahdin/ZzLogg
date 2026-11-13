@@ -71,9 +71,6 @@ add_subdirectory(vendor/klogg_karchive)
 message("Resetting CPM_USE_LOCAL_PACKAGES to ${_TMP_CPM_USE_LOCAL_PACKAGES}")
 set(CPM_USE_LOCAL_PACKAGES ${_TMP_CPM_USE_LOCAL_PACKAGES})
 
-# robin_hood
-add_subdirectory(vendor/robin-hood-hashing)
-
 if(KLOGG_BUILD_TESTS)
   # Catch2
   set(CATCH_BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -97,22 +94,6 @@ set_target_properties(kdsingleapp PROPERTIES AUTOMOC ON)
 set(XXHASH_BUILD_ENABLE_INLINE_API OFF CACHE BOOL "" FORCE)
 set(XXHASH_BUILD_XXHSUM OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/xxHash/cmake_unofficial ${CMAKE_BINARY_DIR}/xxhash)
-
-# exprtk
-add_library(exprtk INTERFACE)
-target_link_libraries(exprtk INTERFACE robin_hood)
-target_include_directories(exprtk SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/klogg_exprtk)
-target_compile_definitions(
-  exprtk
-  INTERFACE -Dexprtk_disable_caseinsensitivity
-            -Dexprtk_disable_comments
-            -Dexprtk_disable_break_continue
-            -Dexprtk_disable_return_statement
-            -Dexprtk_disable_superscalar_unroll
-            -Dexprtk_disable_rtl_io_file
-            -Dexprtk_disable_rtl_vecops
-            -Dexprtk_disable_string_capabilities
-)
 
 # efsw
 set(BUILD_TEST_APP OFF CACHE BOOL "" FORCE)
@@ -154,13 +135,11 @@ set(klogg_cpm_targets
     roaring
     roaring-headers-cpp
     libuchardet
-    robin_hood
     simdutf
     efsw
     SingleApplication
     hs
     tbb
-    exprtk
     type_safe
     mimalloc-static
     streamvbyte
