@@ -24,13 +24,15 @@ JSON 值类型。语法仅提供前景色，背景沿用现有主题；深浅主
 
 ## 构建
 
-需要原有 Qt 6.8+ 环境及 Perl。CMake 首次配置下载经过 SHA256 校验的
-KSyntaxHighlighting 6.22.0 和 Extra CMake Modules 6.22.0。
-该版本的上游最低 Qt 版本为 6.8，并包含 Qt 6.10+ 字面量冲突修复。
+需要 Qt 6.10+、CMake 3.30+ 及 Perl。KSyntaxHighlighting 6.31.0 和
+Extra CMake Modules 6.31.0 的完整官方发布源码分别存放在
+`3rdparty/vendor/syntax-highlighting/` 和 `3rdparty/vendor/extra-cmake-modules/`，
+由 Git 直接跟踪，上游文件保持原样。
 语法库静态链接，语法和主题资源内嵌，运行时不需要 KDE 桌面或网络。
 
-离线构建可传入 `FETCHCONTENT_SOURCE_DIR_ZZLOGG_SYNTAX` 和
-`FETCHCONTENT_SOURCE_DIR_ZZLOGG_ECM`，指向相应版本的完整源码目录。
+`cmake/ZzSyntaxHighlighting.cmake` 直接使用这两个本地目录，不进行网络下载或
+缺失源码时的在线回退；不再需要 `FETCHCONTENT_SOURCE_DIR_ZZLOGG_SYNTAX` 和
+`FETCHCONTENT_SOURCE_DIR_ZZLOGG_ECM`。已有本地预设中的这两个参数可以删除。
 来源、校验值和许可证位于 `3rdparty/licenses/KSyntaxHighlighting/`；
 Windows 便携包、macOS 应用包和 Linux 安装包包含这些声明。
 

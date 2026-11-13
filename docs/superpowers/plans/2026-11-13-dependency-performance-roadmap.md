@@ -333,3 +333,14 @@ git diff --check
 两项删除合计约 12.46 MiB 的受跟踪文件，不含其他文本变化；未测量安装包或性能收益，也未缩减 Git 历史。Windows/macOS 原生验证未执行。
 
 **下一项：** 为 P3 保存三语手册行为，制定资源加载及链接兼容的具体迁移步骤，再使用 Qt Markdown 替换 maddy。P2 剩余的全量依赖来源、许可证和本地补丁审计继续保留为待办。
+
+
+### KDE 依赖升级与源码纳入仓库（2026-11-13）
+
+按用户指定，将 KSyntaxHighlighting 和 Extra CMake Modules 从 6.22.0 升级到 `v6.31.0`，完整官方发布源码分别纳入 `3rdparty/vendor/syntax-highlighting/` 与 `3rdparty/vendor/extra-cmake-modules/`，不再使用 FetchContent 下载。两份源码包已对照官方 SHA-256 校验；3,044 个上游文件与原包逐字节一致，额外添加两份来源说明。源码约 47.7 MiB，这是本次选择离线源码分发的体积成本。
+
+宿主要求同步为 CMake 3.30+、Qt 6.10+，保留静态链接与内嵌语法/主题。CI 增加共享 CMake 版本检查，构建文档、依赖清单和发布版权说明同步更新。旧的 `FETCHCONTENT_SOURCE_DIR_ZZLOGG_*` 覆盖参数不再生效。
+
+验证环境：Linux x86_64、GCC 15.2.0、Qt 6.11.1、CMake 4.3.3，Release、LTO OFF、WARNINGS_AS_ERRORS ON，标准 Qt 正则后端，单元/集成/UI 测试 ON。全新 `out/build/kde631-vendor` 在 `FETCHCONTENT_FULLY_DISCONNECTED=ON` 且 HTTP/HTTPS/ALL_PROXY 指向不可用本地端口的情况下配置成功；`ci_build` 通过，CTest 92/92，Python CI 124 项、3 项跳过。旧的 6.22.0 构建目录也已重新配置，构建图改用 vendor 中的 6.31.0 源码。缺失 vendor 源码时立即给出本地路径错误，不回退联网下载。
+
+Windows/macOS 原生构建尚未运行；这两项依赖离线不代表 Qt SDK、子模块初始化及其他 CI 工具安装均无需网络。

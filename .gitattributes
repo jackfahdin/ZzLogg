@@ -1,3 +1,5 @@
 # Preserve upstream byte-level provenance across Windows checkouts.
 3rdparty/vendor/monocypher/** -text
 3rdparty/vendor/nlohmann-json/** -text
+3rdparty/vendor/syntax-highlighting/** -text
+3rdparty/vendor/extra-cmake-modules/** -text

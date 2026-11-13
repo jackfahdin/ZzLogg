@@ -3,8 +3,8 @@ foreach(workflow IN ITEMS
     "${SOURCE_ROOT}/.github/workflows/codeql-analysis.yml"
     "${SOURCE_ROOT}/.github/workflows/update-smoke.yml")
   file(READ "${workflow}" content)
-  if(content MATCHES "qt_version:[ \t]*['\"]?6\\.[0-7](\\.|['\"\n])")
-    message(FATAL_ERROR "${workflow} still selects Qt older than 6.8")
+  if(content MATCHES "qt_version:[ \t]*['\"]?6\\.[0-9](\\.|['\"\n])")
+    message(FATAL_ERROR "${workflow} still selects Qt older than 6.10")
   endif()
   string(FIND "${content}" "6.11.2" qt_6112)
   if(qt_6112 EQUAL -1)

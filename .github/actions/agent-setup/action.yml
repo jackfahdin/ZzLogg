@@ -3,6 +3,12 @@ description: "Install the Qt SDK and build dependencies"
 runs:
   using: "composite"
   steps:
+    - name: Verify CMake
+      shell: sh
+      run: |
+        cmake --version
+        cmake -P tests/ui_acceptance/packaging/cmakeversioncontracttest.cmake
+
     - name: Verify Ninja
       shell: sh
       run: ninja --version

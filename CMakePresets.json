@@ -2,7 +2,7 @@
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 25,
+    "minor": 30,
     "patch": 0
   },
   "configurePresets": [
@@ -21,8 +21,7 @@
         "KLOGG_BUILD_UI_TESTS": true,
         "KLOGG_USE_LTO": false,
         "KLOGG_USE_HYPERSCAN": false,
-        "KLOGG_USE_VECTORSCAN": false,
-        "FETCHCONTENT_QUIET": false
+        "KLOGG_USE_VECTORSCAN": false
       }
     },
     {

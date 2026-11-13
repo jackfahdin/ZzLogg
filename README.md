@@ -43,7 +43,7 @@ cd ZzLogg
 
 ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子模块。
 
-构建需要支持 C++20 的编译器、CMake 3.23 或更高版本、Perl，以及 Qt 6.8 或更高版本。使用仓库内的预设需要 CMake 3.25 或更高版本；Linux/GCC 的 Ninja 构建示例如下：
+构建需要支持 C++20 的编译器、CMake 3.30 或更高版本、Perl，以及 Qt 6.10 或更高版本。KSyntaxHighlighting 和 Extra CMake Modules 6.31.0 已纳入 `3rdparty/vendor`，配置时无需下载这两项源码。Linux/GCC 的 Ninja 构建示例如下：
 
 ```bash
 export QT_ROOT="$HOME/Qt/6.12.0/gcc_64" # 替换为本机 Qt kit 路径

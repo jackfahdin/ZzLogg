@@ -198,7 +198,7 @@ require_entry_literal(
 require_entry_literal(
   ".github/workflows/ci-build.yml" "Windows workflow does not publish the OpenSSL source directory" [=[echo "SSL_DIR=${{ github.workspace }}\openssl-1.1\${{ matrix.config.arch }}\bin" >> $GITHUB_ENV]=])
 require_entry_literal(
-  "docs/development/BUILD.md" "formal Qt 6.8+ dependency list omits required modules" "Qt 6.8 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、")
+  "docs/development/BUILD.md" "formal Qt 6.10+ dependency list omits required modules" "Qt 6.10 或更高版本，包含 Core、Core5Compat、Gui、Widgets、Svg、Concurrent、")
 require_entry_literal(
   "docs/development/BUILD.md" "formal Qt dependency list omits Core" "包含 Core、")
 require_entry_literal(

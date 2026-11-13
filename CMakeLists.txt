@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.30)
 
 if(POLICY CMP0091)
   cmake_policy(SET CMP0091 NEW)
@@ -190,7 +190,7 @@ if(APPLE)
 endif()
 
 find_package(
-  Qt6 6.8
+  Qt6 6.10
   COMPONENTS Core
              Core5Compat
              Widgets
@@ -333,7 +333,7 @@ if(${KLOGG_BUILD_TESTS})
 endif()
 
 if(KLOGG_BUILD_UI_TESTS)
-  find_package(Qt6 6.8 REQUIRED COMPONENTS Test)  # Updater fixtures must exist before ui_acceptance: the handoff acceptance
+  find_package(Qt6 6.10 REQUIRED COMPONENTS Test)  # Updater fixtures must exist before ui_acceptance: the handoff acceptance
   # test spawns the real handoff fixture child process.
   if(TARGET zzlogg_updater_handoff)
     add_subdirectory(tests/updater)

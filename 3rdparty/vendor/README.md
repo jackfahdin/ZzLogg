@@ -1,6 +1,6 @@
 # 本地依赖包目录
 
-本目录（`3rdparty/vendor/`）存放直接跟踪的第三方依赖副本，以及由 Git 子模块固定版本的 ZzPureTools。KDE 下载依赖的入口另列于下方；本目录存在不代表整个项目可离线配置。
+本目录（`3rdparty/vendor/`）存放直接跟踪的第三方依赖副本，以及由 Git 子模块固定版本的 ZzPureTools。KDE 依赖也以完整源码存放于本目录；本目录存在不代表整个项目可离线配置。
 
 ## 本地化的依赖
 
@@ -28,6 +28,8 @@
 | `monocypher/` | Monocypher | 4.0.3 | 无 Qt 更新核心的 Ed25519 签名验证 | [来源与校验摘要](monocypher/README.zzlogg.md) |
 | `nlohmann-json/` | nlohmann/json | 3.12.0 | 更新协议的严格 JSON 解析 | [来源与校验摘要](nlohmann-json/README.zzlogg.md) |
 | `ZzPureTools/` | ZzPureTools | d8afb260 | Qt UI 框架，按组件静态集成 | [框架说明](ZzPureTools/README.md) |
+| `syntax-highlighting/` | KSyntaxHighlighting | 6.31.0 | 代码语法高亮，静态链接并内嵌语法和主题 | [来源与本地集成](syntax-highlighting/README.zzlogg.md) |
+| `extra-cmake-modules/` | Extra CMake Modules | 6.31.0 | KSyntaxHighlighting 的构建模块 | [来源与本地集成](extra-cmake-modules/README.zzlogg.md) |
 
 ## 构建入口与启用条件
 
@@ -36,14 +38,11 @@
 - Monocypher 和 nlohmann/json 属于[独立更新核心](../../src/update/CMakeLists.txt)；其来源文件未修改，许可证分别采用 [BSD-2-Clause 选项](monocypher/LICENCE.md)和 [MIT](nlohmann-json/LICENSE.MIT)。
 - ZzPureTools 来自 [jackfahdin/ZzPureTools](https://github.com/jackfahdin/ZzPureTools)，由 [Git 子模块声明](../../.gitmodules)及 gitlink 固定；初始化使用 `git submodule update --init --recursive`，包含嵌套的 ZzLog。宿主在 [cmake/ZzPureTools.cmake](../../cmake/ZzPureTools.cmake) 中配置组件并关闭其测试、示例和 Quick 构建。框架使用 [MIT](ZzPureTools/LICENSE)，内部依赖适用[各自的许可与补丁记录](ZzPureTools/docs/third-party/THIRD_PARTY_NOTICES.md)。宿主侧适配不修改子模块源码。
 
-## 下载依赖
+## KDE 本地源码
 
-| 名称 | 固定版本 | 用途与来源 | 许可证及本地集成 |
-| --- | --- | --- | --- |
-| KSyntaxHighlighting | 6.22.0 | 代码语法高亮；[KDE 源码包](https://download.kde.org/stable/frameworks/6.22/syntax-highlighting-6.22.0.tar.xz) | 库使用 MIT，语法与主题资源各有许可；静态链接并内嵌资源 |
-| Extra CMake Modules | 6.22.0 | KSyntaxHighlighting 构建模块；[KDE 源码包](https://download.kde.org/stable/frameworks/6.22/extra-cmake-modules-6.22.0.tar.xz) | BSD-3-Clause，仅构建期使用 |
+KSyntaxHighlighting 与 Extra CMake Modules 固定为 `v6.31.0`，完整官方发布包在导入前已对照官方 SHA-256 校验。上游文件不修改，来源、标签提交及摘要保存在各自的 `README.zzlogg.md` 中。
 
-两项均由 [cmake/ZzSyntaxHighlighting.cmake](../../cmake/ZzSyntaxHighlighting.cmake) 下载并校验 SHA-256，集成选项保留在宿主 CMake 中。摘要和许可证见 [KSyntaxHighlighting 记录](../licenses/KSyntaxHighlighting/README.txt)，发布时由 [StageRuntimeLicenses.cmake](../../cmake/StageRuntimeLicenses.cmake) 收集。
+[cmake/ZzSyntaxHighlighting.cmake](../../cmake/ZzSyntaxHighlighting.cmake) 直接使用本目录中的源码，要求 CMake 3.30+、Qt 6.10+，无需配置时下载。ECM 只在构建期使用；语法库采用 MIT，语法与主题资源各有许可，见 [KSyntaxHighlighting 发布记录](../licenses/KSyntaxHighlighting/README.txt)。发布时仍由 [StageRuntimeLicenses.cmake](../../cmake/StageRuntimeLicenses.cmake) 收集声明。
 
 ## 注意事项
 - 更新依赖时，需同步更新对应子目录的 `README.md` 和本总览文件中的版本号或者commit hash。
