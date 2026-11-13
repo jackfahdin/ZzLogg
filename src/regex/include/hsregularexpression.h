@@ -56,13 +56,14 @@ class DefaultRegularExpressionMatcher {
     MatchedPatterns match( const std::string_view& utf8Data ) const
     {
         MatchedPatterns matchedPatterns( regexp_.size(), 0 );
+        if ( regexp_.empty() ) {
+            return matchedPatterns;
+        }
+
+        const auto decoded = QString::fromUtf8( utf8Data.data(), klogg::isize( utf8Data ) );
         std::transform( regexp_.cbegin(), regexp_.cend(), matchedPatterns.begin(),
-                        [ utf8Data ]( const auto& regexp ) {
-                            return regexp
-                                .match(
-                                    QString::fromUtf8( utf8Data.data(), klogg::isize( utf8Data ) ) )
-                                .hasMatch();
-                            ;
+                        [ &decoded ]( const auto& regexp ) {
+                            return regexp.match( decoded ).hasMatch();
                         } );
 
         return matchedPatterns;
