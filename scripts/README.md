@@ -17,4 +17,6 @@ python scripts/quality/run-clang-tidy.py -p <build-directory>
 
 `dev/benchmark_boolean_evaluator.py` 对比两个已构建的布尔求值器探针，采用固定 CPU、交替进程顺序和独立分配统计；复现步骤见 [布尔探针说明](../tools/benchmarks/boolean_evaluator/README.md)。
 
+`dev/benchmark_filewatch.py` 以 ABBA 顺序运行显式文件监控探针，记录空闲进程 CPU、持续追加通知和最终刷新延迟；使用方法与限制见 [文件监控探针](../tools/benchmarks/filewatch/README.md)。
+
 编译型辅助工具放在 [`tools/`](../tools/README.md)，Windows 安装与更新验收脚本放在 [`tests/acceptance/`](../tests/acceptance/)。新增脚本按使用场景放入对应子目录。

@@ -13,6 +13,21 @@ if(WIN32)
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
 
+add_executable(zzlogg_filewatch_test filewatch/filewatchertest.cpp)
+target_link_libraries(zzlogg_filewatch_test PRIVATE klogg_filewatch klogg_logdata klogg_settings Qt6::Test)
+set_target_properties(zzlogg_filewatch_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_filewatch.lifecycle COMMAND zzlogg_filewatch_test -platform offscreen)
+set_tests_properties(zzlogg_filewatch.lifecycle PROPERTIES TIMEOUT 90)
+if(WIN32)
+  set_property(TEST zzlogg_filewatch.lifecycle PROPERTY ENVIRONMENT
+    "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")
+  set_property(TEST zzlogg_filewatch.lifecycle APPEND PROPERTY
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+      "PATH=path_list_prepend:$<TARGET_FILE_DIR:tbb>")
+endif()
+add_subdirectory(${PROJECT_SOURCE_DIR}/tools/benchmarks/filewatch
+                 ${CMAKE_CURRENT_BINARY_DIR}/filewatch_probe EXCLUDE_FROM_ALL)
+
 # Include in this directory scope to preserve test output paths and target discovery.
 # Update checks precede translations; runtime MOC generation precedes handoff tests.
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/update-checks.cmake")
