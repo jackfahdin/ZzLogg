@@ -1,6 +1,7 @@
 # Add test cpp file
 add_executable(klogg_tests
     linepositionarray_test.cpp
+    linetypes_test.cpp
     patternmatcher_test.cpp
     booleanevaluator_test.cpp
     tests_main.cpp
