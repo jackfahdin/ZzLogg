@@ -98,7 +98,7 @@ By default, the filtered view includes both matches and marks. Switch its mode t
 
 #### Regular-expression engines
 
-ZzLogg uses Hyperscan for fast regular-expression searches. Some constructs, including lookahead, are unsupported by that engine. When Hyperscan cannot compile a pattern, ZzLogg falls back to Qt's PCRE-based regular-expression engine; those searches can be substantially slower. For detailed syntax limits, see the optional online [Hyperscan pattern reference](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support).
+Standard ZzLogg builds use the Qt regular-expression engine. Builds with Hyperscan or Vectorscan enabled also offer accelerated searches. Constructs unsupported by the accelerated engine, such as lookahead, use Qt fallback or exact Qt verification after prefiltering; these searches may be slower. For detailed syntax limits, see the optional online [Hyperscan pattern reference](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support).
 
 <a name="opening-files"></a>
 

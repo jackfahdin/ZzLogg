@@ -50,7 +50,7 @@ export QT_ROOT="$HOME/Qt/6.12.0/gcc_64" # 替换为本机 Qt kit 路径
 cmake --workflow --preset linux-gcc-release
 ```
 
-Windows/MSVC 和 macOS/Clang 使用各自的平台预设；Qt 路径也可统一写在本地用户预设中。预设默认启用验收测试、关闭 LTO 和 Hyperscan/Vectorscan，使用 Qt 正则表达式后端。详细的平台要求、预设用法、安装命令和 Windows 运行目录目标见[构建指南](docs/development/BUILD.md)。
+Windows/MSVC 和 macOS/Clang 使用各自的平台预设；Qt 路径也可统一写在本地用户预设中。预设默认启用验收测试、关闭 LTO 和 Hyperscan/Vectorscan，使用 Qt 正则表达式后端。加速构建另有明确命名的 Hyperscan／Vectorscan Release 预设。详细的平台要求、预设用法、安装命令和 Windows 运行目录目标见[构建指南](docs/development/BUILD.md)。
 
 默认构建只生成一个图形界面程序 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的命令行目标 `klogg_grep` 需要显式构建，不属于默认构建内容。
 

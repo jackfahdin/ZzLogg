@@ -8,6 +8,7 @@
 - [构建要求](#构建要求)
 - [使用预设构建](#使用预设构建)
 - [不使用预设（可选）](#不使用预设可选)
+- [搜索后端配置](#搜索后端配置)
 - [CI 构建参数](#ci-构建参数)
 - [框架链接方式](#框架链接方式)
 - [数据目录与迁移](#数据目录与迁移)
@@ -43,9 +44,11 @@ ZzPureTools 是固定版本的必需构建依赖，也是仓库唯一的 Git 子
 - 固定版本的 ZzPureTools 子模块，以及仓库内随附的其他第三方依赖。
 - Perl，用于生成高亮语法资源。KSyntaxHighlighting 6.31.0 和 Extra CMake Modules 6.31.0 的完整源码由 Git 直接跟踪于 `3rdparty/vendor`；本地集成方式见[代码文本高亮](../architecture/code-syntax-highlighting.md)。
 
+核心目标的 CMake 默认语言标准为 C++17，`project_options` 同样声明 `cxx_std_17`；ZzPureTools 与 KSyntaxHighlighting 在自身作用域内使用 C++20，UI 消费者通过目标依赖获得 C++20 要求。这是分层编译要求，整个应用仍需上表的 C++20 工具链，不应将顶层 C++17 理解为支持旧编译器。
+
 预设默认启用 UI 专项测试，因此还需要 Qt Test。macOS 预设将部署目标设为 13.3；其他 macOS 配置也必须满足这一最低要求，可显式传入 `-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3`。
 
-Hyperscan 搜索需要 SSSE3 指令集、Boost 头文件和 Ragel。依赖不可用时，传入 `-DKLOGG_USE_HYPERSCAN=OFF`，改用 Qt 正则表达式后端。其余第三方依赖由仓库提供或在 CMake 配置过程中解析。
+标准配置使用 Qt 正则表达式，无需 Boost／Ragel。Hyperscan／Vectorscan 加速配置另外需要 Boost 头文件、Ragel 和目标架构支持；x86 加速路径要求 SSSE3。关闭加速时必须同时关闭两个后端开关，详见下方配置表。其余第三方依赖由仓库提供或在 CMake 配置过程中解析。
 
 所有仓库预设都使用 Ninja 生成器：需要安装 Ninja。Windows 上还必须在 MSVC 开发者环境中运行（"x64 Native Tools Command Prompt for VS 2026"，或先执行 `VC\Auxiliary\Build\vcvars64.bat`），否则 CMake 找不到 `cl.exe`。Ninja 整图并行调度，编译速度优于 MSBuild，也不需要额外设置 `/MP`；代价是没有多配置生成器，每个构建类型使用独立构建目录。
 
@@ -63,7 +66,7 @@ Hyperscan 搜索需要 SSSE3 指令集、Boost 头文件和 Ragel。依赖不可
 
 每个名称都有同名的配置、构建、测试和工作流预设。平台条件限制配置预设只能在对应主机上运行。所有构建目录统一为 `out/build/<配置预设名>`。
 
-公共 `base` 管理 Ninja、Qt 路径、测试和性能开关；三个平台基类管理编译器及平台专用设置；Debug/Release 只选择构建类型。所有预设默认启用 `KLOGG_BUILD_UI_TESTS`，关闭旧的 `KLOGG_BUILD_TESTS`、LTO、Hyperscan 和 Vectorscan，便于本地增量构建且无需额外安装 Boost/Ragel。需要 LTO 或其他搜索后端时，在配置命令或本地预设中覆盖相应开关。
+公共 `base` 管理 Ninja、Qt 路径、测试和性能开关；三个平台基类管理编译器及平台专用设置；Debug/Release 只选择构建类型。六个基础 Debug／Release 预设默认启用 `KLOGG_BUILD_UI_TESTS`，关闭旧的 `KLOGG_BUILD_TESTS`、LTO、Hyperscan 和 Vectorscan，便于本地增量构建且无需额外安装 Boost/Ragel。需要 LTO 或其他搜索后端时，在配置命令或本地预设中覆盖相应开关。
 
 构建预设使用 `ci_build`，确保主程序、已注册测试和打包辅助程序一起构建。测试预设运行全部已注册测试、失败时打印输出，没有测试时报告错误。KDE 两项依赖直接从仓库构建；Qt SDK、Git 子模块初始化及 CI 中的其他工具安装仍需提前准备。
 
@@ -126,21 +129,44 @@ cmake --list-presets=all
 ```bash
 cmake -S . -B out/build/ZzLogg -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
-  -DKLOGG_USE_HYPERSCAN=OFF
+  -DKLOGG_USE_HYPERSCAN=OFF -DKLOGG_USE_VECTORSCAN=OFF
 cmake --build out/build/ZzLogg
 ctest --test-dir out/build/ZzLogg --output-on-failure
 ```
 
+## 搜索后端配置
+
+裸 CMake 与基础预设都默认使用 Qt。两个加速开关互斥，同时启用会在配置时明确报错；已有构建目录的显式缓存选择会保留。切换旧目录时请同时指定两个开关，或使用新的独立目录。配置日志输出 `ZzLogg search backend: ...`。
+
+| 配置 | `KLOGG_USE_HYPERSCAN` | `KLOGG_USE_VECTORSCAN` | Release 预设 |
+| --- | --- | --- | --- |
+| 标准 Qt | OFF | OFF | 三个平台原有的 `*-release` |
+| Linux Vectorscan | OFF | ON | `linux-gcc-vectorscan-release` |
+| Windows Hyperscan | ON | OFF | `windows-msvc-hyperscan-release` |
+| macOS Vectorscan | OFF | ON | `macos-clang-vectorscan-release` |
+
+每个加速名称均包含 configure／build／test／workflow 预设，使用独立输出目录，同时开启 `KLOGG_BUILD_TESTS` 和 `KLOGG_BUILD_UI_TESTS`。安装 Boost 和 Ragel 后，例如：
+
+```bash
+cmake --workflow --preset linux-gcc-vectorscan-release
+```
+
+如果依赖不在系统路径中，分步配置并传入 `-DBOOST_ROOT=/path/to/boost`、`-DRAGEL=/path/to/ragel`。仅检查后端时，可显式构建 `zzlogg_search_backend_test`，然后运行 `ctest --test-dir <构建目录> -R '^zzlogg_build.search_backend$' --output-on-failure`。该测试要求加速构建实际产生加速 matcher；不把因 CPU 不支持等原因静默回退到 Qt 当作加速覆盖成功。
+
+编译启用加速后，应用保留运行时引擎选项及精确 Qt 回退／预过滤校验。后端配置控制可用能力，不保证任意表达式都由加速库执行，也不保证所有输入更快。
+
 ## CI 构建参数
 
-CI 与开发者预设使用同一个生成器（Ninja）；差异在构建类型、CPU 目标与开关上，参数集中在 `.github/actions/prepare-workspace-env` 中的 `KLOGG_CMAKE_OPTS`，各 workflow 只追加平台差异：
+CI 与开发者预设使用同一个生成器（Ninja）；差异在构建类型、CPU 目标与开关上，参数集中在 `.github/actions/prepare-workspace-env` 中的 `KLOGG_CMAKE_OPTS`，各 workflow 显式选择后端和平台差异；下面的 CI 后端选择保留现有发布能力，与本地标准预设的区别是有意声明的：
 
 | 通道 | 生成器 / 构建类型 | 与本地预设的差异 | 原因 |
 | --- | --- | --- | --- |
-| Windows（CI Build、Update Smoke） | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，`KLOGG_BUILD_UI_TESTS=ON`（Update Smoke 除外），构建类型为 RelWithDebInfo | runner CPU 不保证 AVX 等特性；更新链路的测试目标仅 Windows 存在；保留符号便于排错 |
+| Windows（CI Build、Update Smoke） | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，Hyperscan ON／Vectorscan OFF，`KLOGG_BUILD_UI_TESTS=ON`（Update Smoke 除外） | runner CPU 不保证 AVX 等特性；更新链路的测试目标仅 Windows 存在；保留符号便于排错 |
 | Linux（CI Build） | Ninja / Release | `KLOGG_BUILD_UI_TESTS=ON`，关闭 Vectorscan、Hyperscan、malloc 覆盖 | 覆盖 UI 验收与自包含运行库打包 |
-| macOS（CI Build，arm64 与 x64） | Ninja / RelWithDebInfo | 追加 `KLOGG_OSX_DEPLOYMENT_TARGET` | 两个架构的最低系统版本不同 |
-| CodeQL | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，关闭 Vectorscan | 只做静态分析，仅构建 `klogg` 目标 |
+| macOS（CI Build，arm64 与 x64） | Ninja / RelWithDebInfo | Hyperscan OFF／Vectorscan ON，显式开启核心与 UI 测试，追加 `KLOGG_OSX_DEPLOYMENT_TARGET` | 两个架构的最低系统版本不同 |
+| CodeQL | Ninja / RelWithDebInfo | `KLOGG_GENERIC_CPU=ON`，关闭 Hyperscan／Vectorscan | 只做静态分析，仅构建 `klogg` 目标 |
+
+Windows／macOS 的 CI Build 通过 `KLOGG_BUILD_TESTS=ON` 构建并运行真实加速后端测试；Linux 主任务覆盖标准 Qt。
 
 CI 的构建目标是 `ci_build`（主程序、测试与打包所需的全部目标），打包与发布由 `publish.yml`、`update-feed.yml` 处理，二者不编译 C++。
 
@@ -214,7 +240,8 @@ Windows 打包会将同一目录树复制到安装程序和独立归档包的暂
 | 选项或目标 | 用途 |
 | --- | --- |
 | `KLOGG_BUILD_UI_TESTS=ON` | 启用 UI 专项测试 |
-| `KLOGG_USE_HYPERSCAN=OFF` | 使用 Qt 正则表达式后端 |
+| `KLOGG_USE_HYPERSCAN=OFF`、`KLOGG_USE_VECTORSCAN=OFF` | 使用 Qt 正则表达式后端 |
+| `KLOGG_BUILD_TESTS=ON` | 核心测试及 `zzlogg_search_backend_test` |
 | `zzlogg_runtime_folder` | 生成 Windows 独立运行目录 |
 
 唯一的图形界面程序为 `ZzLogg`（Windows 下为 `ZzLogg.exe`）。实验性的 `klogg_grep` 目标不参与默认构建；开发该命令行前端时可显式构建：
@@ -247,7 +274,7 @@ Release 测试预设运行所有已注册的测试，包括 `klogg_smoke`。运�
 
 应用 UI 实现在 `src/ui`。UI 验收测试位于 `tests/ui_acceptance`，CTest 名称统一为 `zzlogg_ui.*`；已有核心集成测试位于 `tests/ui`。
 
-六个公共预设均通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 验收，并运行全部已注册测试。临时只运行 UI 专项测试时，可使用 `ctest --preset <预设名> -R "^zzlogg_ui\."`。
+六个基础预设和三个加速预设均通过 `KLOGG_BUILD_UI_TESTS=ON` 启用 UI 验收，并运行全部已注册测试。临时只运行 UI 专项测试时，可使用 `ctest --preset <预设名> -R "^zzlogg_ui\."`。
 
 早期 UI2 选项和预设别名已移除，本地脚本应使用上述入口。应用使用同一个 Qt Widgets 图形界面目标。
 

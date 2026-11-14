@@ -8,9 +8,8 @@ set_target_properties(klogg_filewatch PROPERTIES AUTOMOC ON)
 target_include_directories(klogg_filewatch PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(
   klogg_filewatch
-  PUBLIC klogg_settings
-         klogg_utils
-         efsw
+  PUBLIC klogg_utils
+  PRIVATE klogg_settings efsw
 )
 
 if(KLOGG_USE_LTO)

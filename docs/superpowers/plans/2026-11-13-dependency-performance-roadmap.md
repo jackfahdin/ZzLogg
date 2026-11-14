@@ -47,7 +47,7 @@
 | 2 | P4 收回信号节流实现 | 已完成 | P0 的通知行为记录 | 移除 KDToolBox 整库依赖 |
 | 3 | P5 消除搜索中的重复解码 | 已完成 | 搜索基线 | 同一行只进行一次必要转换 |
 | 3 | P6 实现限定布尔语法 | 已完成 | 旧求值器对照测试 | 移除 ExprTk 和 robin-hood |
-| 4 | P7 整理构建依赖传播与后端配置 | 实施 | 第一轮依赖变更完成 | 更明确的模块边界和构建矩阵 |
+| 4 | P7 整理构建依赖传播与后端配置 | 已完成 | 第一轮依赖变更完成 | 更明确的模块边界和构建矩阵 |
 | 4 | P8 评估小型强类型实现 | 条件实施 | C++ 标准要求已梳理 | 保留类型安全，评估移除 type_safe |
 | 4 | P9 用 Qt 文件监控替代 efsw | 条件实施 | 三平台文件变化用例 | Qt 监控与轮询兜底统一 |
 | 4 | P10 审计 Windows TLS 运行依赖 | 条件实施 | 原生 Windows 环境 | 确认并清理多余 TLS 打包依赖 |
@@ -164,10 +164,12 @@
 
 入口：各 `src/*/CMakeLists.txt`、`CMakeLists.txt`、`CMakePresets.json`、`cmake/CompilerFlags.cmake`、`.github/workflows/ci-build.yml`。
 
-- [ ] 根据公共头文件实际暴露的类型，逐项判断依赖应为 PUBLIC 还是 PRIVATE，优先检查 `klogg_utils` 传播的 Qt 模块。
-- [ ] 梳理顶层 C++17、目标级要求和 ZzPureTools／KSyntaxHighlighting 的 C++20 要求，使文档与实际编译配置一致。
-- [ ] 明确标准搜索配置和加速搜索配置，记录默认值；本地 presets 与各平台 CI 不再隐式采用不同后端。
-- [ ] 保留至少一条加速后端构建／行为检查路径，或明确退出该后端的支持，不只删除验证覆盖。
+- [x] 根据公共头文件实际暴露的类型，逐项判断依赖应为 PUBLIC 还是 PRIVATE，优先检查 `klogg_utils` 传播的 Qt 模块。
+- [x] 梳理顶层 C++17、目标级要求和 ZzPureTools／KSyntaxHighlighting 的 C++20 要求，使文档与实际编译配置一致。
+- [x] 明确标准搜索配置和加速搜索配置，记录默认值；本地 presets 与各平台 CI 不再隐式采用不同后端。
+- [x] 保留至少一条加速后端构建／行为检查路径，或明确退出该后端的支持，不只删除验证覆盖。
+
+已完成首轮公共头文件依赖审计与收紧；保留 Widgets／Core5Compat 等真实公开依赖。语言标准分层和显式后端矩阵见 [P7 实施记录](2026-11-14-build-dependencies.md)。
 
 ### P8 type_safe
 
@@ -319,7 +321,8 @@ git diff --check
 - [x] P4：已完成尾沿节流替换，移除 KDToolBox；同组行为测试及干净构建 93 项 CTest 通过。
 - [x] P5：默认 Qt 后端每行解码一次，语义对照及 93 项 CTest 通过；性能限制见实施记录。
 - [x] P6：限定布尔求值器，旧有效语法真值表回归通过；移除 ExprTk、robin-hood，约 7.22 MiB vendor 源码。
-- [ ] P7–P10：模块边界及跨平台能力评估。
+- [x] P7：收紧构建依赖传播，明确 C++17／20 分层和标准／加速配置；96 项 CTest 及 Vectorscan 独立验证通过。
+- [ ] P8–P10：强类型及跨平台能力评估。
 - [ ] P11–P14：性能库对照实验。
 - [ ] P15–P16：仅在证据支持时开展架构级实验。
 
@@ -334,7 +337,7 @@ git diff --check
 
 两项删除合计约 12.46 MiB 的受跟踪文件，不含其他文本变化；未测量安装包或性能收益，也未缩减 Git 历史。Windows/macOS 原生验证未执行。
 
-**下一项：** P7 构建依赖传播及配置统一：先核对公共头文件暴露的 Qt 类型和 PUBLIC／PRIVATE 依赖，再整理 C++ 标准与搜索后端配置。P3 已关闭并保留 maddy；P2 剩余的全量依赖来源、许可证和本地补丁审计继续保留为待办。
+**下一项：** P8 type_safe 评估：先核对强类型的构造、运算、窄化和编译期保护，只有行为与维护收益都成立时才考虑替换。P3 已关闭并保留 maddy；P2 剩余的全量依赖来源、许可证和本地补丁审计继续保留为待办。
 
 
 ### KDE 依赖升级与源码纳入仓库（2026-11-13）
@@ -384,3 +387,9 @@ Linux／Qt 6.11.1 下 `ci_build`、93 项 CTest、Python CI 124 项（3 项跳�
 保留旧实现已接受的公开语法、优先级、结合性、真值表和反选，修复旧 ExprTk 对部分复合 `nand/nor/xor/xnor` 查询的拒绝。新增明确长度、模式数和嵌套上限，诊断不再使用 ExprTk 内部错误码。删除 ExprTk、robin-hood 的目标、源码、失效模块及许可证清单项，清理 vendor 源码约 7.22 MiB。
 
 全新 Linux 构建、93 项 CTest、Python CI 124 项（3 项跳过）通过，独立复审无阻塞问题。布尔组件创建成本明显下降，64 变量链的热求值有收益，部分小表达式基本持平；不承诺所有查询或整应用提速。Windows／macOS 待 CI。语法差异、边界、测量及复现方法见 [P6 记录](2026-11-13-boolean-evaluator.md)。
+
+### P7 构建依赖与后端配置（2026-11-14）
+
+工具库停止传播无用的 Network／Concurrent；regex、logdata、filewatch、support 的实现依赖收为 PRIVATE，UI 补齐真实使用依赖。核心继续 C++17，框架／UI 保留 C++20，修正过时的 C++14 声明。裸 CMake 与基础预设默认 Qt；新增显式加速预设，CI 保留 Windows Hyperscan／macOS Vectorscan，冲突开关报错。
+
+标准 Linux `ci_build`、96 项 CTest、Python CI 124 项（3 项跳过）通过；全新 Vectorscan 构建通过真实单／多模式 matcher 及回退测试。Windows／macOS 原生验证待 CI。不将依赖边界整理解释为运行性能提升。完整审计、验证范围与复现方法见 [P7 记录](2026-11-14-build-dependencies.md)。

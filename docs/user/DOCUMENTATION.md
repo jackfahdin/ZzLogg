@@ -98,7 +98,7 @@ Entering (Open|Close)Connection|Created a .* connection
 
 #### 正则表达式引擎
 
-ZzLogg 使用 Hyperscan 加速正则表达式搜索。该引擎不支持部分语法，例如前瞻断言。Hyperscan 无法编译某个模式时，ZzLogg 会回退到基于 PCRE 的 Qt 正则表达式引擎，此时搜索可能明显变慢。详细限制可选阅在线 [Hyperscan 模式参考](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support)。
+ZzLogg 的标准构建使用 Qt 正则表达式引擎。启用 Hyperscan／Vectorscan 的构建还可使用加速搜索；加速引擎不支持的部分语法（例如前瞻断言）会通过 Qt 回退或预过滤后的 Qt 校验保证匹配结果，此时速度可能较慢。详细限制可选阅在线 [Hyperscan 模式参考](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support)。
 
 <a name="opening-files"></a>
 

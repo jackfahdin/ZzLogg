@@ -23,7 +23,7 @@
 #include <QApplication>
 #include <QMetaType>
 #include <QTemporaryDir>
-#include <QtConcurrent>
+#include <QThreadPool>
 
 #include <configuration.h>
 #include <linetypes.h>

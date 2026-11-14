@@ -1,0 +1,15 @@
+# Use the same standard backend with or without a preset. Existing cache values
+# and explicit -D selections are preserved by option().
+option(KLOGG_USE_HYPERSCAN "Build the Hyperscan search backend" OFF)
+option(KLOGG_USE_VECTORSCAN "Build the Vectorscan search backend" OFF)
+if(KLOGG_USE_HYPERSCAN AND KLOGG_USE_VECTORSCAN)
+  message(FATAL_ERROR "Select only one accelerated search backend: Hyperscan or Vectorscan")
+endif()
+if(KLOGG_USE_HYPERSCAN)
+  set(ZZLOGG_SEARCH_BACKEND Hyperscan)
+elseif(KLOGG_USE_VECTORSCAN)
+  set(ZZLOGG_SEARCH_BACKEND Vectorscan)
+else()
+  set(ZZLOGG_SEARCH_BACKEND Qt)
+endif()
+message(STATUS "ZzLogg search backend: ${ZZLOGG_SEARCH_BACKEND} (Qt fallback retained)")

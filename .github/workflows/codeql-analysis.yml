@@ -62,7 +62,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DKLOGG_GENERIC_CPU=ON -DKLOGG_USE_VECTORSCAN=OFF ..
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DKLOGG_GENERIC_CPU=ON -DKLOGG_USE_VECTORSCAN=OFF -DKLOGG_USE_HYPERSCAN=OFF ..
 
     - name: build
       run: |

@@ -46,18 +46,7 @@ else()
   set(KLOGG_ARCH 64)
 endif()
 
-if(WIN32)
-  if(KLOGG_ARCH EQUAL 64)
-    option(KLOGG_USE_HYPERSCAN "Use Hyperscan" ON)
-    option(KLOGG_USE_VECTORSCAN "Use Vectorscan" OFF)
-  else()
-    option(KLOGG_USE_HYPERSCAN "Use Hyperscan" OFF)
-    option(KLOGG_USE_VECTORSCAN "Use Vectorscan" OFF)
-  endif()
-else()
-    option(KLOGG_USE_HYPERSCAN "Use Hyperscan" OFF)
-    option(KLOGG_USE_VECTORSCAN "Use Vectorscan" ON)
-endif()
+include(cmake/ZzSearchBackend.cmake)
 
 set(BUILD_VERSION
     $ENV{KLOGG_VERSION}
@@ -101,6 +90,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${out_dir}")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+# Core targets use C++17. UI consumers inherit C++20 from ZzPureTools;
+# KDE and framework standards remain local to their integration scopes.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_EXTENSIONS OFF)
@@ -327,6 +318,10 @@ function(zzlogg_relax_test_warnings_in_current_dir)
     endforeach()
   endif()
 endfunction()
+
+if(KLOGG_BUILD_TESTS OR KLOGG_BUILD_UI_TESTS)
+  add_subdirectory(tests/cmake)
+endif()
 
 if(${KLOGG_BUILD_TESTS})
   add_subdirectory(tests)

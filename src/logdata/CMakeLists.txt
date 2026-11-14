@@ -25,7 +25,6 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/fileholder.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/filedigest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/readablesize.cpp
-  src/filedigest.cpp
 )
 
 set_target_properties(klogg_logdata PROPERTIES AUTOMOC ON)
@@ -37,8 +36,6 @@ target_link_libraries(
   klogg_logdata
   PUBLIC project_options
          project_warnings
-         klogg_support
-         klogg_settings
          klogg_utils
          klogg_regex
          klogg_filewatch
@@ -48,13 +45,11 @@ target_link_libraries(
          roaring-headers
          tbb
          type_safe
-         klogg_uchardet_wrapper
-         simdutf
-         streamvbyte
          klogg_mimalloc_wrapper
 )
 
-target_link_libraries(klogg_logdata PRIVATE xxhash)
+target_link_libraries(klogg_logdata PRIVATE
+  klogg_support klogg_settings klogg_uchardet_wrapper simdutf streamvbyte xxhash)
 
 # QTextCodec/QTextDecoder provide the legacy encodings used by log files.
 # Core5Compat is a Qt 6 module; this does not enable Qt 5 builds.

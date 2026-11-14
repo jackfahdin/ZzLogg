@@ -98,7 +98,7 @@ Entering (Open|Close)Connection|Created a .* connection
 
 #### 正規表示式引擎
 
-ZzLogg 使用 Hyperscan 加速正規表示式搜尋。該引擎不支援部分語法，例如前瞻判斷。Hyperscan 無法編譯某個模式時，ZzLogg 會改用以 PCRE 為基礎的 Qt 正規表示式引擎，此時搜尋可能明顯變慢。詳細限制可選閱線上 [Hyperscan 模式參考](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support)。
+ZzLogg 的標準建置使用 Qt 正規表示式引擎。啟用 Hyperscan／Vectorscan 的建置亦可使用加速搜尋；加速引擎不支援的部分語法（例如前瞻判斷）會透過 Qt 回退或預先篩選後的 Qt 驗證確保符合結果，此時速度可能較慢。詳細限制可選閱線上 [Hyperscan 模式參考](https://intel.github.io/hyperscan/dev-reference/compilation.html#pattern-support)。
 
 <a name="opening-files"></a>
 

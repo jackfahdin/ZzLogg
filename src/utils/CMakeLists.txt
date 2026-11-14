@@ -28,8 +28,6 @@ target_link_libraries(
          klogg_logging
          Qt6::Gui
          Qt6::Widgets
-         Qt6::Network
-         Qt6::Concurrent
          type_safe
          klogg_mimalloc_wrapper
 )

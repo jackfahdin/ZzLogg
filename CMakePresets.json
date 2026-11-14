@@ -114,6 +114,36 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "linux-gcc-vectorscan-release",
+      "displayName": "linux-gcc / vectorscan / Release",
+      "inherits": "linux-gcc-release",
+      "cacheVariables": {
+        "KLOGG_BUILD_TESTS": true,
+        "KLOGG_USE_HYPERSCAN": false,
+        "KLOGG_USE_VECTORSCAN": true
+      }
+    },
+    {
+      "name": "windows-msvc-hyperscan-release",
+      "displayName": "windows-msvc / hyperscan / Release",
+      "inherits": "windows-msvc-release",
+      "cacheVariables": {
+        "KLOGG_BUILD_TESTS": true,
+        "KLOGG_USE_HYPERSCAN": true,
+        "KLOGG_USE_VECTORSCAN": false
+      }
+    },
+    {
+      "name": "macos-clang-vectorscan-release",
+      "displayName": "macos-clang / vectorscan / Release",
+      "inherits": "macos-clang-release",
+      "cacheVariables": {
+        "KLOGG_BUILD_TESTS": true,
+        "KLOGG_USE_HYPERSCAN": false,
+        "KLOGG_USE_VECTORSCAN": true
+      }
     }
   ],
   "buildPresets": [
@@ -153,6 +183,21 @@
       "name": "macos-clang-release",
       "inherits": "build-base",
       "configurePreset": "macos-clang-release"
+    },
+    {
+      "name": "linux-gcc-vectorscan-release",
+      "inherits": "build-base",
+      "configurePreset": "linux-gcc-vectorscan-release"
+    },
+    {
+      "name": "windows-msvc-hyperscan-release",
+      "inherits": "build-base",
+      "configurePreset": "windows-msvc-hyperscan-release"
+    },
+    {
+      "name": "macos-clang-vectorscan-release",
+      "inherits": "build-base",
+      "configurePreset": "macos-clang-vectorscan-release"
     }
   ],
   "testPresets": [
@@ -195,6 +240,21 @@
       "name": "macos-clang-release",
       "inherits": "test-base",
       "configurePreset": "macos-clang-release"
+    },
+    {
+      "name": "linux-gcc-vectorscan-release",
+      "inherits": "test-base",
+      "configurePreset": "linux-gcc-vectorscan-release"
+    },
+    {
+      "name": "windows-msvc-hyperscan-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc-hyperscan-release"
+    },
+    {
+      "name": "macos-clang-vectorscan-release",
+      "inherits": "test-base",
+      "configurePreset": "macos-clang-vectorscan-release"
     }
   ],
   "workflowPresets": [
@@ -297,6 +357,57 @@
         {
           "type": "test",
           "name": "macos-clang-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-gcc-vectorscan-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-gcc-vectorscan-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-gcc-vectorscan-release"
+        },
+        {
+          "type": "test",
+          "name": "linux-gcc-vectorscan-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-msvc-hyperscan-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-msvc-hyperscan-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-msvc-hyperscan-release"
+        },
+        {
+          "type": "test",
+          "name": "windows-msvc-hyperscan-release"
+        }
+      ]
+    },
+    {
+      "name": "macos-clang-vectorscan-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "macos-clang-vectorscan-release"
+        },
+        {
+          "type": "build",
+          "name": "macos-clang-vectorscan-release"
+        },
+        {
+          "type": "test",
+          "name": "macos-clang-vectorscan-release"
         }
       ]
     }

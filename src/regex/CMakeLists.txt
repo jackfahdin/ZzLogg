@@ -13,10 +13,9 @@ target_link_libraries(
   klogg_regex
   PUBLIC project_options
          project_warnings
-         klogg_logging
-         klogg_settings
          klogg_utils
          Qt6::Core
+  PRIVATE klogg_logging klogg_settings
 )
 
 if(KLOGG_USE_HYPERSCAN)

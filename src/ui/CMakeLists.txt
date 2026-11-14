@@ -145,10 +145,13 @@ target_link_libraries(
   PUBLIC project_options
          project_warnings
          klogg_logdata
+         klogg_settings
          klogg_karchive
          klogg_storage
          Qt6::Widgets
          Qt6::Xml
+         Qt6::Network
+  PRIVATE Qt6::Concurrent klogg_support simdutf
 )
 
 if(WIN32)
