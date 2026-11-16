@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 3.30)
+project(literal_search_benchmark LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+option(LITERAL_ENABLE_RUST "Build pinned experimental Rust backends (not application dependencies)" OFF)
+get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+if(NOT EXISTS "${MIMALLOC_LIBRARY}")
+  message(FATAL_ERROR "Set MIMALLOC_LIBRARY to the project's built static mimalloc library")
+endif()
+find_package(Qt6 6.10 REQUIRED COMPONENTS Core)
+add_executable(literal_search_benchmark main.cpp matcher.cpp contract.cpp)
+if(MSVC)
+  target_compile_options(literal_search_benchmark PRIVATE /utf-8)
+endif()
+target_include_directories(literal_search_benchmark PRIVATE
+  "${REPO_ROOT}/src/regex/include" "${REPO_ROOT}/src/utils/include"
+  "${REPO_ROOT}/3rdparty/vendor/mimalloc/include"
+  "${REPO_ROOT}/3rdparty/vendor/type_safe/include"
+  "${REPO_ROOT}/3rdparty/vendor/type_safe/external/debug_assert")
+target_compile_definitions(literal_search_benchmark PRIVATE TYPE_SAFE_ENABLE_ASSERTIONS=0)
+target_link_libraries(literal_search_benchmark PRIVATE Qt6::Core "${MIMALLOC_LIBRARY}")
+if(LITERAL_ENABLE_RUST)
+  find_program(CARGO_EXECUTABLE cargo REQUIRED)
+  find_package(Threads REQUIRED)
+  if(WIN32)
+    set(rust_library "${CMAKE_CURRENT_BINARY_DIR}/cargo/release/zzlogg_literal_probe.lib")
+  else()
+    set(rust_library "${CMAKE_CURRENT_BINARY_DIR}/cargo/release/libzzlogg_literal_probe.a")
+  endif()
+  add_custom_command(OUTPUT "${rust_library}"
+    COMMAND "${CARGO_EXECUTABLE}" build --release --locked --offline
+      --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml"
+      --target-dir "${CMAKE_CURRENT_BINARY_DIR}/cargo"
+    DEPENDS rust/Cargo.toml rust/Cargo.lock rust/src/lib.rs VERBATIM)
+  add_custom_target(literal_rust_build DEPENDS "${rust_library}")
+  add_library(literal_rust STATIC IMPORTED)
+  set_target_properties(literal_rust PROPERTIES IMPORTED_LOCATION "${rust_library}")
+  add_dependencies(literal_rust literal_rust_build)
+  target_compile_definitions(literal_search_benchmark PRIVATE LITERAL_ENABLE_RUST)
+  target_link_libraries(literal_search_benchmark PRIVATE literal_rust Threads::Threads ${CMAKE_DL_LIBS})
+  if(WIN32)
+    target_link_libraries(literal_search_benchmark PRIVATE ws2_32 userenv bcrypt ntdll)
+  elseif(UNIX)
+    target_link_libraries(literal_search_benchmark PRIVATE m)
+  endif()
+endif()

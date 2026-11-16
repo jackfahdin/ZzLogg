@@ -4,6 +4,7 @@
 - `icon_generator/`：图标生成程序及其 CMake 检查。
 - `update/`：本地更新协议测试用的 `testfeed` 程序。
 - [`diagnostics/tls/`](diagnostics/tls/README.md)：P10 的实际 TLS 后端、证书与 HTTPS 内容诊断，以及 Windows 产物隔离对照步骤，不进入应用。
+- [`benchmarks/literal_search/`](benchmarks/literal_search/README.md)：P11 的 Qt／标准库／可选 Rust 纯文本和多关键词对照，独立构建，不进入应用。
 - [`benchmarks/filewatch/`](benchmarks/filewatch/README.md)：现有文件监控与 Qt 候选的通知、恢复和进程 CPU 对照，候选不进入应用。
 - [`benchmarks/strong_types/`](benchmarks/strong_types/README.md)：P8 强类型布局、生成代码和窄化前置条件检查，独立构建。
 - [`benchmarks/boolean_evaluator/`](benchmarks/boolean_evaluator/README.md)：P6 布尔求值器语法、真值表、创建及热求值对照，需显式构建。

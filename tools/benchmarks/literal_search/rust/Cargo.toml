@@ -1,0 +1,15 @@
+[package]
+name = "zzlogg-literal-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+memchr = "=2.8.3"
+aho-corasick = "=1.1.5"
+
+[profile.release]
+panic = "abort"
