@@ -19,6 +19,6 @@ python scripts/quality/run-clang-tidy.py -p <build-directory>
 
 `dev/benchmark_filewatch.py` 以 ABBA 顺序运行显式文件监控探针，记录空闲进程 CPU、持续追加通知和最终刷新延迟；使用方法与限制见 [文件监控探针](../tools/benchmarks/filewatch/README.md)。
 
-`dev/benchmark_literal_search.py` 固定 CPU 并交替运行纯文本候选与 Qt 对照，校验完整结果摘要，保存构造／首次／热扫描数据；使用方法与限制见 [纯文本搜索实验](../tools/benchmarks/literal_search/README.md)。
+`dev/benchmark_literal_search.py` 固定 CPU 并交替运行纯文本候选与所选参考（默认 Qt）对照，校验完整结果摘要，保存构造／首次／热扫描数据；使用方法与限制见 [纯文本搜索实验](../tools/benchmarks/literal_search/README.md)。
 
 编译型辅助工具放在 [`tools/`](../tools/README.md)，Windows 安装与更新验收脚本放在 [`tests/acceptance/`](../tests/acceptance/)。新增脚本按使用场景放入对应子目录。

@@ -89,7 +89,7 @@ QString digest(std::string_view data)
         QByteArrayView(data.data(), static_cast<qsizetype>(data.size())),
         QCryptographicHash::Sha256).toHex());
 }
-void measure(const Scenario& scenario, const std::string& candidate, bool reverse)
+void measure(const Scenario& scenario, const std::string& candidate, const std::string& reference, bool reverse)
 {
     const auto corpus = makeCorpus(scenario);
     const auto lines = corpus.lines();
@@ -107,7 +107,7 @@ void measure(const Scenario& scenario, const std::string& candidate, bool revers
         minNeedle = std::min(minNeedle, p.pattern.toUtf8().size());
         maxNeedle = std::max(maxNeedle, p.pattern.toUtf8().size());
     }
-    const std::array<std::string, 2> names{"qt", candidate};
+    const std::array<std::string, 2> names{reference, candidate};
     std::array<std::unique_ptr<LiteralMatcher>, 2> matchers;
     std::array<qint64, 2> constructNs{}, firstNs{};
     std::array<std::string, 2> results;
@@ -124,6 +124,8 @@ void measure(const Scenario& scenario, const std::string& candidate, bool revers
         firstNs[i] = timer.nsecsElapsed();
     }
     if (results[0] != results[1]) throw std::runtime_error("Bitmap mismatch: " + scenario.name());
+    if (reference != "qt" && results[0] != makeMatcher("qt", corpus.patterns)->scan(lines))
+        throw std::runtime_error("Qt oracle mismatch: " + scenario.name());
     int matchedLines = 0;
     for (size_t row = 0; row < lines.size(); ++row) {
         const auto offset = row * corpus.patterns.size();
@@ -157,7 +159,9 @@ void measure(const Scenario& scenario, const std::string& candidate, bool revers
             {"actual_matched_cells", double(std::count(results[0].begin(), results[0].end(), char(1)))},
             {"needle_utf8_min_bytes", double(minNeedle)}, {"needle_utf8_max_bytes", double(maxNeedle)},
             {"candidate", QString::fromStdString(candidate)}, {"role", i == 0 ? "reference" : "candidate"},
+            {"reference", QString::fromStdString(reference)},
             {"backend", QString::fromStdString(names[i])}, {"sample", sample++},
+            {"implementation", matchers[i]->implementation()},
             {"input_sha256", QString::fromLatin1(inputHash.result().toHex())},
             {"result_sha256", digest(results[i])}, {"qt", qVersion()},
             {"construct_ns", double(constructNs[i])},
@@ -177,14 +181,17 @@ int main(int argc, char** argv)
     QCommandLineParser parser;
     parser.addHelpOption();
     parser.addOptions({{"verify", "Only run deterministic compatibility checks."},
-                       {"candidate", "Candidate backend; qt runs an identical-code control.", "name", "std"},
+                       {"candidate", "Candidate backend; match reference for an identical-code control.", "name", "std"},
+                       {"reference", "Paired reference backend; Qt remains the semantic oracle.", "name", "qt"},
                        {"reverse", "Reverse construction and ABBA order."},
                        {"case", "Only this exact scenario name.", "name"}});
     parser.process(app);
     try {
         if (parser.isSet("verify")) { verifyContracts(); return 0; }
         const auto candidate = parser.value("candidate").toStdString();
+        const auto reference = parser.value("reference").toStdString();
         makeMatcher(candidate, {}); // Reject unavailable candidates even for an empty selection.
+        makeMatcher(reference, {});
         std::vector<Scenario> scenarios;
         for (const auto* encoding : {"ascii", "utf8", "invalid"})
             for (const int length : {128, 4096})
@@ -198,7 +205,7 @@ int main(int argc, char** argv)
         bool measured = false;
         for (const auto& scenario : scenarios) {
             if (parser.isSet("case") && parser.value("case").toStdString() != scenario.name()) continue;
-            measure(scenario, candidate, parser.isSet("reverse"));
+            measure(scenario, candidate, reference, parser.isSet("reverse"));
             measured = true;
         }
         if (!measured) throw std::runtime_error("No scenario selected");

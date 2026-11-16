@@ -17,7 +17,9 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('out/benchmarks/p11-literal/results'))
     parser.add_argument('--rounds', type=int, default=4)
     parser.add_argument('--candidates', nargs='+', default=['std', 'qstring', 'qt'],
-                        choices=['std', 'qstring', 'memchr', 'aho', 'qt'])
+                        choices=['std', 'qstring', 'memchr', 'aho', 'qt', 'stringzilla', 'stringzilla-serial'])
+    parser.add_argument('--reference', default='qt',
+                        choices=['std', 'qstring', 'memchr', 'aho', 'qt', 'stringzilla', 'stringzilla-serial'])
     parser.add_argument('--cpu', type=int)
     parser.add_argument('--case')
     args = parser.parse_args()
@@ -43,7 +45,7 @@ def main():
     for round_number in range(args.rounds):
         order = args.candidates if round_number % 2 == 0 else list(reversed(args.candidates))
         for candidate in order:
-            command = [str(binary), '--candidate', candidate]
+            command = [str(binary), '--candidate', candidate, '--reference', args.reference]
             if round_number % 2:
                 command.append('--reverse')
             if args.case:
@@ -56,7 +58,8 @@ def main():
             rows = [json.loads(line) for line in process.stdout.splitlines()]
             groups = defaultdict(list)
             for row in rows:
-                if row['candidate'] != candidate or row['ns_per_line'] <= 0:
+                if (row['candidate'] != candidate or row['reference'] != args.reference
+                        or row['ns_per_line'] <= 0):
                     raise RuntimeError('Invalid measurement')
                 groups[(row['scenario'], row['role'])].append(row)
                 signature = (row['input_sha256'], row['result_sha256'])
@@ -80,7 +83,7 @@ def main():
             current = [r for r in selected if r['role'] == 'candidate']
             baseline = statistics.median(r['ns_per_line'] for r in reference)
             actual = statistics.median(r['ns_per_line'] for r in current)
-            summaries.append(dict(candidate=candidate, scenario=scenario,
+            summaries.append(dict(candidate=candidate, reference_backend=args.reference, scenario=scenario,
                 reference_ns=baseline, candidate_ns=actual, speedup=baseline / actual,
                 hot_samples=len(current),
                 construct_ns=statistics.median(r['construct_ns'] for r in current),
@@ -97,6 +100,7 @@ def main():
                              capture_output=True, check=True).stdout.strip()
     build_cache = binary.parent / 'CMakeCache.txt'
     metadata = dict(platform=platform.platform(), processor=platform.processor(), cpu=cpu,
+        reference_backend=args.reference,
         baseline_commit=version, binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
         source_sha256={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
         cmake_cache=build_cache.read_text() if build_cache.exists() else None)
@@ -115,7 +119,7 @@ def main():
         valid = [r['speedup'] for r in summaries if r['candidate'] == candidate
                  and r['scenario'].startswith(('ascii-', 'utf8-'))]
         if valid:
-            print(candidate, 'valid-case speedup min/median/max:',
+            print(candidate, 'vs', args.reference, 'valid-case speedup min/median/max:',
                   *(round(x, 3) for x in (min(valid), statistics.median(valid), max(valid))))
 
 

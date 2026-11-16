@@ -5,6 +5,11 @@
 #include <random>
 #include <stdexcept>
 #include <iostream>
+#include <cstring>
+#ifdef __linux__
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 
 namespace {
 class ExpectedInvalidRegexMessages {
@@ -34,6 +39,75 @@ void compare(const Patterns& patterns, const Lines& lines)
             throw std::runtime_error("Literal semantics mismatch: " + name);
     }
 }
+void verifyBoundaries()
+{
+    for (const size_t length : {1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65,
+                               255, 256, 257, 511, 512, 513}) {
+        std::string needle(length, 'a');
+        needle.back() = 'z';
+        const Patterns patterns{literal(QString::fromStdString(needle))};
+        for (size_t offset = 0; offset < 64; ++offset) {
+            const std::string storage = std::string(offset, 'x') + needle + std::string(64, 'x');
+            const auto view = std::string_view(storage).substr(offset);
+            compare(patterns, {view.substr(0, length), view.substr(0, length - 1),
+                               view, view.substr(length), std::string_view(storage).substr(0, offset)});
+        }
+    }
+}
+#ifdef __linux__
+class GuardedTail {
+public:
+    GuardedTail()
+    {
+        const auto size = sysconf(_SC_PAGESIZE);
+        if (size <= 0) throw std::runtime_error("Cannot determine page size");
+        page_ = static_cast<size_t>(size);
+        data_ = static_cast<char*>(mmap(nullptr, page_ * 2, PROT_READ | PROT_WRITE,
+                                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
+        if (data_ == MAP_FAILED) throw std::runtime_error("Cannot allocate guarded fixture");
+        if (mprotect(data_ + page_, page_, PROT_NONE) != 0) {
+            munmap(data_, page_ * 2);
+            throw std::runtime_error("Cannot protect fixture tail");
+        }
+    }
+    ~GuardedTail() { munmap(data_, page_ * 2); }
+    std::string_view line(size_t length, const std::string& needle, bool hit,
+                          size_t tailGap = 0, size_t mismatch = std::string::npos)
+    {
+        if (length > page_) throw std::runtime_error("Guarded fixture too long");
+        auto* start = data_ + page_ - length;
+        if (length) std::memset(start, 'a', length);
+        if (hit && length >= needle.size() + tailGap) {
+            auto* match = data_ + page_ - tailGap - needle.size();
+            std::memcpy(match, needle.data(), needle.size());
+            if (mismatch < needle.size()) match[mismatch] = 'b';
+        }
+        return {start, length};
+    }
+private:
+    char* data_;
+    size_t page_;
+};
+void verifyGuardedTails()
+{
+    GuardedTail buffer;
+    for (const size_t needleLength : {1, 2, 3, 4, 8, 9, 16, 24, 32, 33, 64, 65, 256, 257, 513}) {
+        std::string needle(needleLength, 'a');
+        needle.back() = 'z';
+        const Patterns patterns{literal(QString::fromStdString(needle))};
+        for (const size_t lineLength : {0, 1, 15, 16, 17, 31, 32, 33, 63, 64, 65, 128, 512, 1024}) {
+            compare(patterns, {buffer.line(lineLength, needle, false)});
+            for (size_t gap = 0; gap <= 32 && needleLength + gap <= lineLength; ++gap) {
+                compare(patterns, {buffer.line(lineLength, needle, true, gap)});
+                // Four distinct interior mutations include positions outside a three-byte SIMD filter.
+                if (needleLength >= 9)
+                    for (size_t mismatch = 1; mismatch <= 4; ++mismatch)
+                        compare(patterns, {buffer.line(lineLength, needle, true, gap, mismatch)});
+            }
+        }
+    }
+}
+#endif
 }
 
 void verifyContracts()
@@ -98,5 +172,14 @@ void verifyContracts()
     lines.clear();
     for (const auto& input : fuzz) lines.push_back(input);
     compare(basic, lines);
-    std::cout << "Verified " << backends().size() << " backends: edge cases and 1024 seeded lines\n";
+    verifyBoundaries();
+#ifdef __linux__
+    verifyGuardedTails();
+#endif
+    std::cout << "Verified " << backends().size()
+              << " backends: edge cases, SIMD boundaries and 1024 seeded lines"
+#ifdef __linux__
+              << ", including protected page tails"
+#endif
+              << '\n';
 }

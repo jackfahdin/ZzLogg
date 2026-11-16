@@ -1,0 +1,30 @@
+# Pinned experiment only. Never fetch sources or change the application's dependency graph.
+set(_sz_root "${LITERAL_STRINGZILLA_SOURCE_DIR}")
+if(NOT EXISTS "${_sz_root}/include/stringzilla/find.h" OR NOT EXISTS "${_sz_root}/LICENSE")
+  message(FATAL_ERROR "LITERAL_STRINGZILLA_SOURCE_DIR must contain the pinned StringZilla sources")
+endif()
+file(GLOB_RECURSE _sz_headers CONFIGURE_DEPENDS RELATIVE "${_sz_root}"
+  "${_sz_root}/include/stringzilla/*.h")
+list(APPEND _sz_headers LICENSE)
+list(SORT _sz_headers)
+set(_sz_manifest "")
+foreach(_sz_file IN LISTS _sz_headers)
+  file(SHA256 "${_sz_root}/${_sz_file}" _sz_hash)
+  string(APPEND _sz_manifest "${_sz_hash}  ${_sz_file}\n")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_sz_root}/${_sz_file}")
+endforeach()
+string(SHA256 _sz_fingerprint "${_sz_manifest}")
+if(NOT _sz_fingerprint STREQUAL "c8e647acc14b7ca8c9a3d1c52d8057ce2b94905cd21df8234b8cfd6a7253b9d6")
+  message(FATAL_ERROR "StringZilla headers/license differ from pinned v5.3.2 (1c78fe5d): ${_sz_fingerprint}")
+endif()
+set(LITERAL_STRINGZILLA_FINGERPRINT "${_sz_fingerprint}" CACHE INTERNAL "Verified StringZilla source fingerprint" FORCE)
+set(LITERAL_STRINGZILLA_COMMIT "1c78fe5d288e3abb3bd1583f291c4f3d292133d4" CACHE INTERNAL "StringZilla commit" FORCE)
+target_sources(literal_search_benchmark PRIVATE stringzilla.cpp)
+target_include_directories(literal_search_benchmark PRIVATE "${_sz_root}/include")
+target_compile_definitions(literal_search_benchmark PRIVATE LITERAL_ENABLE_STRINGZILLA)
+# Only enable this optional compiled kernel where its target pragmas and CPU builtins are supported.
+# Do not add -mavx2/-march=native to the benchmark: its dispatcher must stay on the baseline ISA.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$" AND
+   CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+  set_property(SOURCE stringzilla.cpp APPEND PROPERTY COMPILE_DEFINITIONS LITERAL_STRINGZILLA_HASWELL=1)
+endif()

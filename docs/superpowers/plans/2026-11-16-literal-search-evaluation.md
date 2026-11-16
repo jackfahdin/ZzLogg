@@ -79,9 +79,11 @@ memchr 在这批合格输入（常规有效 UTF-8＋压力场景）中的倍率�
 
 最终原始数据在 `out/benchmarks/p11-literal/final/`，不提交构建产物；二进制 SHA-256 为 `3bff482a50d8f2b4c60739901bc4ce52f2b3c6d1994a2b1a9fec66e00671dbaa`。原始 JSONL、源码摘要、CMakeCache、CPU 和 Rust 版本均由 runner 保存。复现步骤、完整测量边界见 [实验 README](../../../tools/benchmarks/literal_search/README.md)。
 
-## P11 尚未完成的准入
+## 后续进度与 P11 尚未完成的准入
 
-- [ ] 在同一基准中比较 StringZilla 等 C/C++ 候选，确认是否值得新增依赖；不要求所有候选都进入生产。
+StringZilla 已完成独立对照，见 [补充记录](2026-11-16-stringzilla-evaluation.md)；以上保留首轮历史数据。补充实验暂不采用 StringZilla，下一步验证真实搜索管线与集成成本。
+
+- [x] 在同一基准中比较 StringZilla：本轮暂不引入生产依赖，具体范围与证据见补充记录。
 - [ ] 真实用户日志、更多模式规模／分布、完整分配成本与峰值内存测量。
 - [ ] 与实际 PatternMatcher／布尔求值／高亮、编码转换及取消响应的集成回归，明确逐行与批量接口取舍。
 - [ ] 对照现有 Hyperscan／Vectorscan 配置，并完成 Windows／macOS／ARM 原生构建与性能验证。

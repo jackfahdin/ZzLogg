@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
+#ifdef LITERAL_ENABLE_STRINGZILLA
+#include "stringzilla.h"
+#endif
 
 namespace {
 struct ByteView {
@@ -57,6 +60,10 @@ public:
             text_.push_back(p.pattern);
             bytes_.push_back(p.pattern.toUtf8().toStdString());
         }
+#ifdef LITERAL_ENABLE_STRINGZILLA
+        if (fast_ && (backend_ == "stringzilla" || backend_ == "stringzilla-serial"))
+            stringzilla_ = selectStringZilla(backend_ == "stringzilla-serial");
+#endif
 #ifdef LITERAL_ENABLE_RUST
         if (fast_ && (backend_ == "memchr" || backend_ == "aho")) {
             std::vector<ByteView> views;
@@ -78,6 +85,14 @@ public:
         return rust_ ? literal_memory(rust_) : 0;
 #else
         return 0;
+#endif
+    }
+    const char* implementation() const override
+    {
+#ifdef LITERAL_ENABLE_STRINGZILLA
+        return stringzilla_.name;
+#else
+        return "";
 #endif
     }
     std::string scan(const Lines& lines) const override
@@ -108,7 +123,15 @@ public:
             if (backend_ == "qstring") {
                 const auto decoded = QString::fromUtf8(line.data(), static_cast<qsizetype>(line.size()));
                 for (size_t i = 0; i < count; ++i) out[i] = decoded.contains(text_[i]);
-            } else {
+            }
+#ifdef LITERAL_ENABLE_STRINGZILLA
+            else if (stringzilla_.find) {
+                for (size_t i = 0; i < count; ++i)
+                    out[i] = line.size() >= bytes_[i].size()
+                        && stringzilla_.find(line.data(), line.size(), bytes_[i].data(), bytes_[i].size()) != nullptr;
+            }
+#endif
+            else {
                 for (size_t i = 0; i < count; ++i) out[i] = line.find(bytes_[i]) != line.npos;
             }
         }
@@ -124,6 +147,9 @@ private:
     bool fast_;
     std::vector<QString> text_;
     std::vector<std::string> bytes_;
+#ifdef LITERAL_ENABLE_STRINGZILLA
+    StringZillaKernel stringzilla_;
+#endif
 #ifdef LITERAL_ENABLE_RUST
     void* rust_ = nullptr;
 #endif
@@ -133,6 +159,9 @@ private:
 std::vector<std::string> backends()
 {
     std::vector<std::string> names{"qt", "qstring", "std"};
+#ifdef LITERAL_ENABLE_STRINGZILLA
+    names.insert(names.end(), {"stringzilla", "stringzilla-serial"});
+#endif
 #ifdef LITERAL_ENABLE_RUST
     names.insert(names.end(), {"memchr", "aho"});
 #endif
