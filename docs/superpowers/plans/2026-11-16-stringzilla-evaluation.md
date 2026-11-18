@@ -93,3 +93,5 @@ Qt 控制在全部场景中的范围为 0.466～1.517，存在明显布局／JIT
 完整性能数据分别在 `out/benchmarks/p11-stringzilla/final-qt/` 与 `out/benchmarks/p11-stringzilla/final-memchr/`，包括原始 JSONL、构建缓存、CPU、源码摘要及核验日志；不提交实验源码和构建产物。测量二进制 SHA-256 为 `8d049c907e4e12da5f7515f292a30d8f06d090aea0bbe785d7b74efed4c29b1d`。计时结束后仅补了契约的 32 字节偏移和命令帮助文字，未改测量路径／匹配实现；最终重建及契约／runner 冒烟二进制为 `5760813412a24bf1b205ede4b0989d06a2b46a106d531be92952042a816ec4e7`。两阶段摘要分别保留，避免把测量记录误称为最终重建产物。
 
 构建与运行命令见 [实验 README](../../../tools/benchmarks/literal_search/README.md)。P11 的真实日志、内存、实际搜索管线、现有 Hyperscan／Vectorscan 及跨平台准入仍未完成，生产搜索与依赖保持现状。
+
+后续进度：2026-11-18 已完成 [生产组件对照](2026-11-18-search-pipeline-evaluation.md)，包含真实转码／布尔求值／结果收集；完整后台任务与平台准入仍待完成。

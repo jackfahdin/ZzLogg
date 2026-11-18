@@ -492,3 +492,9 @@ add_custom_target(
 )
 
 add_custom_target(klogg_stuff SOURCES .clang-format .clang-tidy .cmake-format)
+
+# Optional P11 experiment: no Rust discovery in normal application/CI builds.
+option(ZZLOGG_BUILD_SEARCH_PIPELINE_PROBE "Build explicit experimental search pipeline probe" OFF)
+if(ZZLOGG_BUILD_SEARCH_PIPELINE_PROBE)
+  add_subdirectory(tools/benchmarks/search_pipeline EXCLUDE_FROM_ALL)
+endif()

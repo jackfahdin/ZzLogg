@@ -22,3 +22,5 @@ python scripts/quality/run-clang-tidy.py -p <build-directory>
 `dev/benchmark_literal_search.py` 固定 CPU 并交替运行纯文本候选与所选参考（默认 Qt）对照，校验完整结果摘要，保存构造／首次／热扫描数据；使用方法与限制见 [纯文本搜索实验](../tools/benchmarks/literal_search/README.md)。
 
 编译型辅助工具放在 [`tools/`](../tools/README.md)，Windows 安装与更新验收脚本放在 [`tests/acceptance/`](../tests/acceptance/)。新增脚本按使用场景放入对应子目录。
+
+`dev/benchmark_search_pipeline.py` 对照生产搜索组件与 memchr 逐行／分批适配，保存 ABBA 结果及独立进程诊断；见 [搜索组件探针](../tools/benchmarks/search_pipeline/README.md)。
