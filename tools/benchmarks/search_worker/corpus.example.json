@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "errors",
+      "file": "application.log",
+      "encoding": "UTF-8",
+      "pattern": "ERROR",
+      "kind": "literal",
+      "threads": 1,
+      "chunk_lines": 1024
+    },
+    {
+      "id": "errors-or-warnings",
+      "file": "application.log",
+      "encoding": "UTF-8",
+      "pattern": "\"ERROR\" or \"WARN\"",
+      "kind": "boolean-literal",
+      "threads": 2
+    },
+    {
+      "id": "error-regex",
+      "file": "application.log",
+      "encoding": "UTF-8",
+      "pattern": "error|warn",
+      "kind": "regex",
+      "case_sensitive": false
+    }
+  ]
+}

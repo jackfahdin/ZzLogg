@@ -8,7 +8,10 @@ import os
 from pathlib import Path
 import platform
 import statistics
+import math
+from search_corpus import prepare_corpus, validate_output_path, atomic_write_text
 import subprocess
+import tempfile
 
 
 def main():
@@ -16,31 +19,56 @@ def main():
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=Path('out/benchmarks/p11-worker/results'))
     parser.add_argument('--rounds', type=int, default=4)
-    parser.add_argument('--case')
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument('--case')
+    source.add_argument('--corpus', type=Path)
+    parser.add_argument('--timeout', type=float, default=600, help='Hard timeout per probe process in seconds')
     parser.add_argument('--cpus', type=int, nargs='+')
     args = parser.parse_args()
     if args.rounds < 1:
         parser.error('Use positive rounds')
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error('Use a positive finite process timeout')
+    validate_output_path(args.corpus, args.output)
+    args.output.mkdir(parents=True, exist_ok=True)
+    (args.output / 'results.json').unlink(missing_ok=True)
+    with prepare_corpus(args.corpus) as corpus:
+        benchmark(args, corpus)
+
+
+def benchmark(args, corpus):
     cpus = None
     if hasattr(os, 'sched_getaffinity'):
         allowed = os.sched_getaffinity(0)
         cpus = args.cpus or sorted(allowed)[:2]
         if not set(cpus) <= allowed:
-            parser.error('CPUs outside allowed set')
+            raise ValueError('CPUs outside allowed set')
         os.sched_setaffinity(0, set(cpus))
     elif args.cpus:
-        parser.error('CPU affinity unsupported')
+        raise ValueError('CPU affinity unsupported')
     binary = args.binary.resolve()
-    args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / 'results.json').unlink(missing_ok=True)
     def run(command, label):
-        result = subprocess.run([str(binary), *command], text=True, capture_output=True, timeout=600)
-        (args.output / (label + '.jsonl')).write_text(result.stdout)
-        (args.output / (label + '.stderr.log')).write_text(result.stderr)
+        try:
+            # Qt's temporary files must also be reclaimed after a hard process kill.
+            with tempfile.TemporaryDirectory(prefix='zzlogg-probe-') as temporary:
+                env = dict(os.environ, TMPDIR=temporary, TMP=temporary, TEMP=temporary)
+                result = subprocess.run([str(binary), *command], env=env, text=True,
+                                        capture_output=True, timeout=args.timeout)
+        except subprocess.TimeoutExpired as error:
+            atomic_write_text(args.output / (label + '.stderr.log'), str(error))
+            raise
+        atomic_write_text(args.output / (label + '.jsonl'), result.stdout)
+        atomic_write_text(args.output / (label + '.stderr.log'), result.stderr)
         result.check_returncode()
         return result.stdout
     run(['--verify'], 'contracts')
     records, profiles, signatures = [], [], {}
+    expected_files = corpus['metadata']['case_files'] if corpus else None
+    def check_file(row):
+        if expected_files is not None:
+            expected = expected_files.get(row['scenario'])
+            if expected is None or row['file_sha256'] != expected['sha256'] or row['input_bytes'] != expected['bytes']:
+                raise RuntimeError('Probe did not measure the expected snapshot')
     scenarios = None
     for repetition in range(args.rounds):
         for candidate in (['memchr', 'qt'] if repetition % 2 == 0 else ['qt', 'memchr']):
@@ -49,9 +77,12 @@ def main():
                 command += ['--reverse']
             if args.case:
                 command += ['--case', args.case]
+            if corpus:
+                command += ['--corpus', str(corpus['manifest'])]
             rows = [json.loads(line) for line in run(command, f'{repetition}-{candidate}').splitlines()]
             groups = defaultdict(list)
             for row in rows:
+                check_file(row)
                 if row['candidate'] != candidate or row['role'] not in ('reference', 'candidate') or row['elapsed_ns'] <= 0:
                     raise RuntimeError('Invalid measurement')
                 groups[row['scenario'], row['role']].append(row)
@@ -62,6 +93,11 @@ def main():
             measured = {name for name, _ in groups}
             if not measured or (scenarios is not None and measured != scenarios):
                 raise RuntimeError('Scenario coverage differs')
+            if expected_files is not None and measured != set(expected_files):
+                raise RuntimeError('Corpus scenario omitted')
+            order = ['candidate', 'reference', 'reference', 'candidate'] if repetition % 2 else ['reference', 'candidate', 'candidate', 'reference']
+            if any([r['role'] for r in rows if r['scenario'] == name] != order for name in measured):
+                raise RuntimeError('Incorrect paired order')
             scenarios = measured
             if any(len(groups[name, role]) != 2 for name in measured for role in ('reference', 'candidate')):
                 raise RuntimeError('Incomplete ABBA pairs')
@@ -71,10 +107,13 @@ def main():
             command = ['--candidate', candidate, '--profile']
             if args.case:
                 command += ['--case', args.case]
+            if corpus:
+                command += ['--corpus', str(corpus['manifest'])]
             rows = [json.loads(line) for line in run(command, f'profile-{repetition}-{candidate}').splitlines()]
             if len(rows) != len(scenarios) or {row['scenario'] for row in rows} != scenarios:
                 raise RuntimeError('Incomplete profile coverage')
             for row in rows:
+                check_file(row)
                 if row['candidate'] != candidate or (row['input_sha256'], row['result_sha256']) != signatures[row['scenario']]:
                     raise RuntimeError('Profile differs from measured inputs/results')
                 if row['live_blocks'] != 0 or row['max_batch_rows'] > 128 or row['max_batch_bytes'] > 262144:
@@ -89,7 +128,7 @@ def main():
             summary.append(dict(candidate=candidate, scenario=scenario, reference_ns=reference,
                                 candidate_ns=current, speedup=reference/current))
     root = Path(__file__).resolve().parents[2]
-    files = [Path(__file__).resolve(), root / 'CMakeLists.txt']
+    files = [Path(__file__).resolve(), Path(__file__).with_name('search_corpus.py').resolve(), root / 'CMakeLists.txt']
     for directory in ['tools/benchmarks/search_worker', 'tools/benchmarks/literal_search',
                       'src/regex', 'src/logdata', 'src/utils', 'src/settings', 'src/ui']:
         files += [p for p in (root / directory).rglob('*') if p.is_file()]
@@ -100,10 +139,12 @@ def main():
         source_sha256={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
         cmake_cache=cache.read_text() if cache.exists() else None,
         rustc=subprocess.check_output(['rustc', '--version'], text=True).strip())
+    if corpus:
+        metadata['corpus'] = corpus['metadata']
     if Path('/proc/cpuinfo').exists():
         metadata['cpu_model'] = next(line.partition(':')[2].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()
                                      if line.startswith('model name'))
-    (args.output / 'results.json').write_text(json.dumps(dict(metadata=metadata, samples=records,
+    atomic_write_text(args.output / 'results.json', json.dumps(dict(metadata=metadata, samples=records,
                                                            profiles=profiles, summary=summary), indent=2) + '\n')
     for candidate in ('memchr', 'qt'):
         values = [r['speedup'] for r in summary if r['candidate'] == candidate]

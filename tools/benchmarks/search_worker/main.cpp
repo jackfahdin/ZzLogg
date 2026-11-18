@@ -1,4 +1,5 @@
 #include "harness.h"
+#include "corpus.h"
 #include "configuration.h"
 #include "storagecontext.h"
 #include <QCommandLineParser>
@@ -11,14 +12,6 @@
 #include <iostream>
 
 namespace {
-struct Scenario {
-    std::string name;
-    QByteArray bytes;
-    RegularExpressionPattern query;
-    const char* codec = "UTF-8";
-    QString prefilter;
-    unsigned threads = 1;
-};
 std::vector<std::string> names()
 {
     std::vector<std::string> result;
@@ -68,37 +61,35 @@ Scenario makeScenario(const std::string& name)
     }
     return result;
 }
-QString inputHash(const Scenario& s)
-{
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    hash.addData(s.bytes);
-    hash.addData(s.query.pattern.toUtf8());
-    hash.addData(s.codec);
-    hash.addData(s.prefilter.toUtf8());
-    hash.addData(QByteArray::number(s.query.isCaseSensitive));
-    hash.addData(QByteArray::number(s.query.isPlainText));
-    return QString::fromLatin1(hash.result().toHex());
-}
 void output(const QJsonObject& row) { std::cout << QJsonDocument(row).toJson(QJsonDocument::Compact).constData() << '\n'; }
 void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
 {
-    workerprobe::Fixture fixture(s.bytes, s.codec);
+    auto owned = s.path.isEmpty()
+        ? std::make_unique<workerprobe::Fixture>(s.bytes, s.codec.constData())
+        : std::make_unique<workerprobe::Fixture>(workerprobe::FileSource{s.path}, s.codec.constData(), s.timeoutMs);
+    auto& fixture = *owned;
+    const auto signature = inputHash(s, fixture.fileHash);
+    const auto run = [&](bool backend, bool cancel = false) {
+        return workerprobe::search(fixture, s.query, backend, s.threads, s.chunk, cancel,
+                                   0, std::numeric_limits<uint64_t>::max(), s.timeoutMs);
+    };
     fixture.log.setPrefilter(s.prefilter);
     experimental::resetDiagnostics(false);
-    const auto qt = workerprobe::search(fixture, s.query, false, s.threads, 1024);
+    const auto qt = run(false);
     const auto digest = qt.digest();
     const auto check = [&](const auto& result) {
         workerprobe::require(result.digest() == digest, "Worker result differs from Qt oracle");
     };
     if (profile) {
         experimental::resetDiagnostics(true);
-        const auto full = workerprobe::search(fixture, s.query, candidate, s.threads, 1024);
+        const auto full = run(candidate);
         check(full);
         const auto stats = full.diagnostics;
         experimental::resetDiagnostics(false);
-        const auto cancelled = workerprobe::search(fixture, s.query, candidate, s.threads, 1024, true);
+        const auto cancelled = run(candidate, true);
         output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? "memchr" : "qt"},
-                {"input_sha256", inputHash(s)}, {"result_sha256", QString::fromStdString(digest)},
+                {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
+                {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
                 {"matchers", double(stats.matchers)}, {"batches", double(stats.batches)},
                 {"batched_rows", double(stats.rows)}, {"oversized_qt_lines", double(stats.oversized)},
                 {"max_batch_rows", double(stats.maxRows)}, {"max_batch_bytes", double(stats.maxBytes)},
@@ -109,17 +100,18 @@ void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
         return;
     }
     // Explicit warm search on both backends; each measured run still constructs a fresh worker/matchers.
-    check(workerprobe::search(fixture, s.query, candidate, s.threads, 1024));
+    check(run(candidate));
     const std::array<bool, 4> order = reverse ? std::array<bool, 4>{true, false, false, true}
                                             : std::array<bool, 4>{false, true, true, false};
     for (const bool current : order) {
-        const auto result = workerprobe::search(fixture, s.query, current && candidate, s.threads, 1024);
+        const auto result = run(current && candidate);
         check(result);
         output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? "memchr" : "qt"},
                 {"role", current ? "candidate" : "reference"}, {"threads", int(s.threads)},
-                {"input_sha256", inputHash(s)}, {"result_sha256", QString::fromStdString(digest)},
+                {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
+                {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
                 {"elapsed_ns", double(result.elapsedNs)}, {"rows", double(result.result.processedLines.get())},
-                {"matched", double(result.result.newMatches.cardinality())}, {"chunk_rows", 1024}});
+                {"matched", double(result.result.newMatches.cardinality())}, {"chunk_rows", int(s.chunk)}});
     }
 }
 }
@@ -132,6 +124,7 @@ int main(int argc, char** argv)
         {"require-accelerated", "Fail integration verification unless an accelerated library executes."},
         {"verify", "Run worker integration and lifecycle contracts."},
         {"candidate", "memchr or identical Qt control", "backend", "qt"},
+        {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
         {"profile", "Run untimed routing/cancellation diagnostics."}});
     parser.process(app);
@@ -143,6 +136,9 @@ int main(int argc, char** argv)
     qRegisterMetaType<LineNumber>();
     Configuration::getSynced().setRegexpEnging(RegexpEngine::QRegularExpression);
     try {
+        workerprobe::require(!parser.isSet("corpus")
+            || (!parser.isSet("verify") && !parser.isSet("verify-integration") && !parser.isSet("case")),
+            "Use --corpus separately from generated cases and verification modes");
         if (parser.isSet("verify-integration")) {
             workerprobe::verifyIntegration(parser.isSet("require-accelerated")); return 0;
         }
@@ -150,6 +146,12 @@ int main(int argc, char** argv)
         if (parser.isSet("verify")) { workerprobe::verify(); return 0; }
         const auto candidate = parser.value("candidate");
         workerprobe::require(candidate == "qt" || candidate == "memchr", "Unknown backend");
+        if (parser.isSet("corpus")) {
+            workerprobe::require(!parser.isSet("case"), "Use either --corpus or --case");
+            for (const auto& scenario : loadCorpus(parser.value("corpus")))
+                measure(scenario, candidate == "memchr", parser.isSet("reverse"), parser.isSet("profile"));
+            return 0;
+        }
         bool measured = false;
         for (const auto& name : names()) {
             if (parser.isSet("case") && parser.value("case").toStdString() != name) continue;

@@ -3,6 +3,7 @@
 #include <QCryptographicHash>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFileInfo>
 #include <QSignalSpy>
 #include <QTest>
 #include <QTimer>
@@ -10,11 +11,11 @@
 namespace workerprobe {
 void require(bool good, const char* message) { if (!good) throw std::runtime_error(message); }
 namespace {
-void loaded(QSignalSpy& spy)
+void loaded(QSignalSpy& spy, int timeoutMs)
 {
     QElapsedTimer timer;
     timer.start();
-    while (spy.isEmpty() && timer.elapsed() < 30000) QTest::qWait(1);
+    while (spy.isEmpty() && timer.elapsed() < timeoutMs) QTest::qWait(1);
     require(!spy.isEmpty(), "Indexing timeout");
     require(qvariant_cast<LoadingStatus>(spy.last().at(0)) == LoadingStatus::Successful, "Indexing failed");
 }
@@ -23,16 +24,48 @@ Fixture::Fixture(const QByteArray& bytes, const char* codec)
 {
     require(file.open(), "Cannot create file");
     require(file.write(bytes) == bytes.size() && file.flush(), "Cannot write fixture");
+    fileHash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
+    initialize(codec);
+}
+Fixture::Fixture(FileSource source, const char* codec, int timeoutMs) : timeoutMs_(timeoutMs)
+{
+    require(QTextCodec::codecForName(codec) != nullptr && timeoutMs > 0, "Invalid input codec or timeout");
+    const QFileInfo before(source.path);
+    require(before.isFile(), "Input must be a regular file");
+    const auto sourceSize = before.size();
+    const auto sourceModified = before.lastModified();
+    QFile input(source.path);
+    require(input.open(QIODevice::ReadOnly) && file.open(), "Cannot open input or temporary snapshot");
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    QByteArray block(1024 * 1024, Qt::Uninitialized);
+    qint64 total = 0;
+    for (;;) {
+        const auto size = input.read(block.data(), block.size());
+        require(size >= 0, "Input read failed");
+        if (size == 0) break;
+        require(file.write(block.constData(), size) == size, "Snapshot write failed");
+        hash.addData(QByteArrayView(block.constData(), size));
+        total += size;
+    }
+    const QFileInfo after(source.path);
+    require(total == sourceSize && sourceSize == after.size()
+                && sourceModified == after.lastModified(), "Input changed while copying");
+    require(file.flush(), "Snapshot flush failed");
+    fileHash = hash.result().toHex();
+    initialize(codec);
+}
+void Fixture::initialize(const char* codec)
+{
     QSignalSpy spy(&log, &LogData::loadingFinished);
     log.attachFile(file.fileName());
-    loaded(spy);
+    loaded(spy, timeoutMs_);
     reload(codec);
 }
 void Fixture::reload(const char* codec)
 {
     QSignalSpy spy(&log, &LogData::loadingFinished);
     log.reload(QTextCodec::codecForName(codec));
-    loaded(spy);
+    loaded(spy, timeoutMs_);
     log.setDisplayEncoding(codec);
 }
 std::string Outcome::digest() const
@@ -45,7 +78,7 @@ std::string Outcome::digest() const
     return hash.result().toHex().toStdString();
 }
 Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool memchr,
-               unsigned threads, unsigned chunk, bool cancel, uint64_t start, uint64_t end)
+               unsigned threads, unsigned chunk, bool cancel, uint64_t start, uint64_t end, int timeoutMs)
 {
     RegularExpression validation(pattern);
     require(validation.isValid(), "Probe query is not valid production syntax");
@@ -77,7 +110,7 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
         expired = true; worker->interrupt(); loop.quit();
     });
     timer.start();
-    timeout.start(30000);
+    timeout.start(timeoutMs);
     const auto last = std::min(end, fixture.log.getNbLine().get());
     worker->search(pattern, LineNumber{start}, LineNumber{last});
     if (!finished) loop.exec();

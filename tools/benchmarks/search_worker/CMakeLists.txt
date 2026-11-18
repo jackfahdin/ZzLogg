@@ -27,7 +27,7 @@ target_include_directories(zzlogg_probe_regex PRIVATE ../literal_search)
 target_compile_definitions(zzlogg_probe_regex PRIVATE LITERAL_ENABLE_RUST)
 target_link_libraries(zzlogg_probe_regex PRIVATE zzlogg_literal_probe_rust)
 worker_probe_copy(klogg_logdata zzlogg_probe_logdata)
-add_executable(zzlogg_search_worker_probe EXCLUDE_FROM_ALL main.cpp harness.cpp contract.cpp)
+add_executable(zzlogg_search_worker_probe EXCLUDE_FROM_ALL main.cpp harness.cpp contract.cpp corpus.cpp)
 target_link_libraries(zzlogg_search_worker_probe PRIVATE zzlogg_probe_logdata klogg_settings Qt6::Test)
 
 # Compile only the actual highlighting components with the probe ABI. Linking

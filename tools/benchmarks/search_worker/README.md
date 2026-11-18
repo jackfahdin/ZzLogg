@@ -56,3 +56,36 @@ out/build/linux-gcc-vectorscan-release/output/zzlogg_search_worker_probe \
 高亮仍由 Qt 对显示 QString 计算 UTF-16 坐标。探针只额外编译真实 Highlighter／QuickFindPattern 源文件，复用视图的 tab 坐标展开，未链接整个 klogg_ui；9 组实际文件检查覆盖编码、中文／emoji、NUL／坏字节／BOM、字面元字符、大小写回退和捕获组。加速路由的六种查询使用有效 UTF-8，不声称坏编码上的加速语义与 Qt 全部一致。没有截图／像素测试，也没有改动布尔／反选的主搜索高亮策略。
 
 增加高亮组件后探针会链接 Qt Widgets；这只影响显式工具。前轮性能结果对应当时的二进制，不将新工具体积／运行开销倒算进旧数据。本轮仅做正确性验证，详见 [高亮与路由记录](../../../docs/superpowers/plans/2026-11-18-search-highlight-routing.md)。
+
+## 外部日志语料
+
+复制 [清单示例](corpus.example.json)，将 `application.log` 改为要测试的已停止写入的本地日志，按真实查询填写模式。相对路径从清单所在目录解析，不受运行命令的目录影响。
+
+```bash
+python3 scripts/dev/benchmark_search_worker.py \
+  --binary out/build/p6-boolean/output/zzlogg_search_worker_probe \
+  --corpus /absolute/path/queries.json \
+  --output out/benchmarks/my-corpus --rounds 4 --timeout 600
+
+# 单独检查一个清单；直接 probe 每次执行也会生成临时输入副本
+out/build/p6-boolean/output/zzlogg_search_worker_probe \
+  --corpus /absolute/path/queries.json --candidate memchr
+
+# 显式工具验收，不是性能跑分
+python3 scripts/dev/verify_search_corpus.py \
+  --binary out/build/p6-boolean/output/zzlogg_search_worker_probe
+```
+
+顶层字段仅为 `version: 1` 和非空 `cases`。每条 case 的必填项为 `id`、`file`、`encoding`、`pattern`、`kind`。id 使用 1～64 个 ASCII 字母／数字／点／下划线／连字符，首字符为字母或数字，不可重复。kind 为 `literal`、`regex`、`boolean-literal` 或 `boolean-regex`；后两者使用生产布尔查询语法。编码是 Qt 支持的显式名称，例如 UTF-8、UTF-16LE、ISO-8859-1，不自动猜测。
+
+可选项：`case_sensitive` 默认 true，`inverse` 默认 false，`threads` 默认 1（1～256），`chunk_lines` 默认 1024（1～1000000），`prefilter` 默认空字符串，`timeout_ms` 默认 30000（1～3600000）。数字必须为整数，布尔必须是真正 JSON 布尔值；未知字段／编码、无效查询／预过滤立即失败。`--corpus` 不能与生成样例 `--case` 或 `--verify*` 混用，避免悄悄忽略外部输入。
+
+runner 先以 1 MiB 缓冲流式复制每个不同源文件到私有临时目录，同一文件的多条查询共用副本；复制时发现大小／时间／文件身份变化即拒绝。应提供停止写入的普通文件，这种检查不构成文件系统原子快照。探针再用 1 MiB 缓冲准备自己的索引文件，索引内存和搜索块内存并不受复制缓冲大小限制。所需额外磁盘约为全部语料快照加当前 case 的临时副本；正常退出时自动清理临时文件，runner 在硬超时后也会清理其管理的子进程临时目录；源文件不修改。输出目录不能包含源日志或清单，防止报告文件覆盖输入。
+
+计时仍使用前述热页缓存和完整搜索边界；复制、内容 SHA、索引、完整结果 SHA 在计时外。每条记录新增 `file_sha256` 和 `input_bytes`，runner 与快照核对；`input_sha256` 采用版本化结构，包含文件内容摘要、编码、全部查询标志、预过滤、线程／块大小和软超时。生成样例也改用这套完整签名，不能拿新版签名与旧结果的签名字符串直接比较。
+
+最终 `results.json` 包含原始清单（包括查询与本地路径）、每个源文件内容摘要、所有轮次样本和汇总，不复制日志正文，也不上传数据。所有原始输出和汇总都用新临时文件替换目录项，不沿已有软链接／硬链接写入；完整场景／配对顺序／输入和结果摘要均校验后才发布汇总；安全输出路径检查通过后会先移除旧汇总，后续错误不会留下本轮成功报告。输入与输出冲突时直接拒绝，不删除可能属于输入的旧文件。
+
+`timeout_ms` 是每次索引等待／后台搜索的软超时，不能立即中断正在执行的单次 Qt 调用。runner 的 `--timeout` 是每个 probe 子进程的硬超时（秒），覆盖该进程的全部 case 和诊断，默认 600；大语料可适当调高两者。失败时命令非零退出，检查 stderr 日志，不能仅凭部分 JSONL 判断验收成功。
+
+外部输入和报告方案见 [语料入口记录](../../../docs/superpowers/plans/2026-11-18-search-corpus-input.md)。构建／CI 日志仅可证明流程可用，不能代替用户业务日志的代表性与跨平台性能证据。
