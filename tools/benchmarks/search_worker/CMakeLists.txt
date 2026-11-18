@@ -29,3 +29,13 @@ target_link_libraries(zzlogg_probe_regex PRIVATE zzlogg_literal_probe_rust)
 worker_probe_copy(klogg_logdata zzlogg_probe_logdata)
 add_executable(zzlogg_search_worker_probe EXCLUDE_FROM_ALL main.cpp harness.cpp contract.cpp)
 target_link_libraries(zzlogg_search_worker_probe PRIVATE zzlogg_probe_logdata klogg_settings Qt6::Test)
+
+# Compile only the actual highlighting components with the probe ABI. Linking
+# klogg_ui here would bring the original regex/logdata libraries into this copy.
+target_sources(zzlogg_search_worker_probe PRIVATE integration.cpp
+  ${PROJECT_SOURCE_DIR}/src/ui/src/highlighterset.cpp
+  ${PROJECT_SOURCE_DIR}/src/ui/src/quickfindpattern.cpp
+  ${PROJECT_SOURCE_DIR}/src/ui/include/quickfindpattern.h)
+target_include_directories(zzlogg_search_worker_probe PRIVATE ${PROJECT_SOURCE_DIR}/src/ui/include)
+target_link_libraries(zzlogg_search_worker_probe PRIVATE Qt6::Widgets simdutf)
+set_target_properties(zzlogg_search_worker_probe PROPERTIES AUTOMOC ON)

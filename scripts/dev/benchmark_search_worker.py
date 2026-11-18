@@ -91,7 +91,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     files = [Path(__file__).resolve(), root / 'CMakeLists.txt']
     for directory in ['tools/benchmarks/search_worker', 'tools/benchmarks/literal_search',
-                      'src/regex', 'src/logdata', 'src/utils', 'src/settings']:
+                      'src/regex', 'src/logdata', 'src/utils', 'src/settings', 'src/ui']:
         files += [p for p in (root / directory).rglob('*') if p.is_file()]
     cache = binary.parent.parent / 'CMakeCache.txt'
     metadata = dict(platform=platform.platform(), cpus=cpus,

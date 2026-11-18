@@ -216,6 +216,13 @@ PatternMatcher::PatternMatcher( const RegularExpression& expression )
     }
 
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+#ifdef KLOGG_HAS_HS
+    if ( std::holds_alternative<HsSingleMatcher>( matcher_ )
+         || std::holds_alternative<HsMultiMatcher>( matcher_ )
+         || std::holds_alternative<HsPrefilterMatcher>( matcher_ ) ) {
+        experimental::recordAcceleratedMatcher();
+    }
+#endif
     if ( !useHyperscanEngine ) {
         batchMatcher_ = experimental::createMatcher( expression.subPatterns_ );
         batchPatternCount_ = expression.subPatterns_.size();

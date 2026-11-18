@@ -24,10 +24,12 @@ void setEnabled(bool enabled); // Probe controller only, between completed searc
 void resetDiagnostics(bool enabled);
 struct Metrics {
     uint64_t matchers = 0, batches = 0, rows = 0, oversized = 0, maxRows = 0, maxBytes = 0;
+    uint64_t acceleratedMatchers = 0;
 };
 Metrics metrics();
 size_t batchEnd(const klogg::vector<std::string_view>& lines, size_t start);
 void recordOversized();
+void recordAcceleratedMatcher();
 class BatchMatcher {
 public:
     explicit BatchMatcher(const klogg::vector<RegularExpressionPattern>&);

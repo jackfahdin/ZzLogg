@@ -39,3 +39,20 @@ python3 scripts/dev/benchmark_search_worker.py \
 契约覆盖固定命中、复杂布尔／反选、回退、三种显示编码、BOM／NUL／坏字节、范围、空文件、预过滤、批次字节／行数边界、超长行、预取消、同步／异步取消后重搜、同一 worker 的尾行追加及旧匹配移除。生命周期计数必须归零；默认应用另有取消和多编码 EOF 回归。
 
 原始 JSONL、stderr、源码／二进制 SHA、CMakeCache、CPU 与 Rust 版本保存在输出目录。结果及未完成准入见 [本轮记录](../../../docs/superpowers/plans/2026-11-18-search-worker-evaluation.md)。真实用户日志、高亮、加速后端及其他平台仍需验证，生产采用未获准入。
+
+## 高亮坐标和既有加速后端
+
+```bash
+out/build/p6-boolean/output/zzlogg_search_worker_probe --verify-integration
+# 在已配置 KLOGG_USE_VECTORSCAN=ON 的构建目录中显式启用本探针后：
+cmake -S . -B out/build/linux-gcc-vectorscan-release -DZZLOGG_BUILD_SEARCH_WORKER_PROBE=ON
+cmake --build out/build/linux-gcc-vectorscan-release --target zzlogg_search_worker_probe --parallel 4
+out/build/linux-gcc-vectorscan-release/output/zzlogg_search_worker_probe \
+  --verify-integration --require-accelerated
+```
+
+`--require-accelerated` 在没有编译加速库时失败，不把设置引擎枚举当作验证。集成契约执行实际加速 single/multi matcher，并在实际 worker 中记录所选 matcher 类型：选择加速引擎时不得创建 memchr 批次；选择 Qt 时不得采用加速 matcher。没有库的构建则验证保留的 Qt 兼容路径。
+
+高亮仍由 Qt 对显示 QString 计算 UTF-16 坐标。探针只额外编译真实 Highlighter／QuickFindPattern 源文件，复用视图的 tab 坐标展开，未链接整个 klogg_ui；9 组实际文件检查覆盖编码、中文／emoji、NUL／坏字节／BOM、字面元字符、大小写回退和捕获组。加速路由的六种查询使用有效 UTF-8，不声称坏编码上的加速语义与 Qt 全部一致。没有截图／像素测试，也没有改动布尔／反选的主搜索高亮策略。
+
+增加高亮组件后探针会链接 Qt Widgets；这只影响显式工具。前轮性能结果对应当时的二进制，不将新工具体积／运行开销倒算进旧数据。本轮仅做正确性验证，详见 [高亮与路由记录](../../../docs/superpowers/plans/2026-11-18-search-highlight-routing.md)。

@@ -45,13 +45,13 @@
 #include <random>
 #include <utility>
 
+#include <QApplication>
 #include <QSettings>
 
 #include <simdutf.h>
 
 #include "containers.h"
 #include "crc32.h"
-#include "highlightersetedit.h"
 #include "linetypes.h"
 #include "log.h"
 #include "regularexpression.h"

@@ -26,4 +26,5 @@ Outcome search(Fixture&, const RegularExpressionPattern&, bool memchr, unsigned 
                unsigned chunk = 4096, bool cancel = false,
                uint64_t start = 0, uint64_t end = std::numeric_limits<uint64_t>::max());
 void verify();
+void verifyIntegration(bool requireAccelerated);
 }

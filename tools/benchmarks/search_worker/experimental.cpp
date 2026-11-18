@@ -13,6 +13,7 @@ int64_t liveBlocks() { return blocks.load(); }
 namespace experimental {
 namespace {
 std::atomic<bool> enabled{false}, diagnostics{false};
+std::atomic<uint64_t> acceleratedCount{0};
 std::atomic<uint64_t> matcherCount{0}, batchCount{0}, rowCount{0}, oversizedCount{0}, maxRows{0}, maxBytes{0};
 void maximum(std::atomic<uint64_t>& value, uint64_t candidate)
 {
@@ -24,10 +25,12 @@ void setEnabled(bool value) { enabled = value; }
 void resetDiagnostics(bool value)
 {
     diagnostics = value;
+    acceleratedCount = 0;
     matcherCount = 0; batchCount = 0; rowCount = 0; oversizedCount = 0; maxRows = 0; maxBytes = 0;
 }
 Metrics metrics() { return {matcherCount.load(), batchCount.load(), rowCount.load(),
-                           oversizedCount.load(), maxRows.load(), maxBytes.load()}; }
+                           oversizedCount.load(), maxRows.load(), maxBytes.load(), acceleratedCount.load()}; }
+void recordAcceleratedMatcher() { if (diagnostics) ++acceleratedCount; }
 void recordOversized() { if (diagnostics) ++oversizedCount; }
 size_t batchEnd(const klogg::vector<std::string_view>& lines, size_t start)
 {

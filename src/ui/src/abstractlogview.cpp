@@ -2476,34 +2476,10 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             }
         }
 
-        // Ranges are sorted and disjoint. Convert tab columns in a single
-        // forward pass; rescanning each token's prefix is quadratic for code.
-        qsizetype rawColumn = 0;
-        qsizetype expandedColumn = 0;
-        const auto expandColumn = [&](qsizetype target) {
-            target = std::min(target, logLine.size());
-            while (rawColumn < target) {
-                expandedColumn += logLine.at(rawColumn++) == QChar::Tabulation
-                    ? TabStop - expandedColumn % TabStop : 1;
-            }
-            return expandedColumn;
-        };
-        const auto untabifyHighlight = [&](const auto& match) {
-            const auto start = expandColumn(match.startColumn().get());
-            const auto end = expandColumn(match.startColumn().get() + match.size().get());
-            return HighlightedMatch{
-                LineColumn{static_cast<LineColumn::UnderlyingType>(start)},
-                LineLength{static_cast<LineLength::UnderlyingType>(end - start)},
-                match.foreColor(), match.backColor()};
-        };
+        // Convert the merged UTF-16 ranges using the same tab stops as the text.
+        HighlightedMatchRanges allHighlights{ highlighterMatches.matches() };
+        allHighlights.expandTabs( logLine );
 
-        klogg::vector<HighlightedMatch> sortedHighlights = highlighterMatches.matches();
-        std::transform( sortedHighlights.begin(), sortedHighlights.end(), sortedHighlights.begin(),
-                        untabifyHighlight );
-
-        HighlightedMatchRanges allHighlights{ std::move( sortedHighlights ) };
-
-        // string to print, cut to fit the length and position of the view
         const QString& expandedLine = untabify( std::move( logLine ) );
 
         // Has the line got elements to be highlighted

@@ -128,7 +128,9 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     QCommandLineParser parser;
     parser.addHelpOption();
-    parser.addOptions({{"verify", "Run worker integration and lifecycle contracts."},
+    parser.addOptions({{"verify-integration", "Verify highlight positions and backend routing."},
+        {"require-accelerated", "Fail integration verification unless an accelerated library executes."},
+        {"verify", "Run worker integration and lifecycle contracts."},
         {"candidate", "memchr or identical Qt control", "backend", "qt"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
         {"profile", "Run untimed routing/cancellation diagnostics."}});
@@ -141,6 +143,10 @@ int main(int argc, char** argv)
     qRegisterMetaType<LineNumber>();
     Configuration::getSynced().setRegexpEnging(RegexpEngine::QRegularExpression);
     try {
+        if (parser.isSet("verify-integration")) {
+            workerprobe::verifyIntegration(parser.isSet("require-accelerated")); return 0;
+        }
+        workerprobe::require(!parser.isSet("require-accelerated"), "Use --require-accelerated with --verify-integration");
         if (parser.isSet("verify")) { workerprobe::verify(); return 0; }
         const auto candidate = parser.value("candidate");
         workerprobe::require(candidate == "qt" || candidate == "memchr", "Unknown backend");

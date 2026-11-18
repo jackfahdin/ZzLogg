@@ -23,6 +23,7 @@
 #include "containers.h"
 #include "linetypes.h"
 #include <QColor>
+#include <QString>
 #include <algorithm>
 
 // Represents a match result for QuickFind or highlighter
@@ -102,6 +103,30 @@ public:
     const HighlightedMatch& back() const
     {
         return matches_.back();
+    }
+
+    // Ranges must be sorted and disjoint, as maintained by addMatches().
+    // Columns are UTF-16 code units, matching QString and Qt regex offsets.
+    void expandTabs( const QString& line )
+    {
+        qsizetype rawColumn = 0;
+        qsizetype expandedColumn = 0;
+        const auto expandColumn = [&]( qsizetype target ) {
+            target = std::min( target, line.size() );
+            while ( rawColumn < target ) {
+                expandedColumn += line.at( rawColumn++ ) == QChar::Tabulation
+                                      ? TabStop - expandedColumn % TabStop : 1;
+            }
+            return expandedColumn;
+        };
+        for ( auto& match : matches_ ) {
+            const auto start = expandColumn( match.startColumn().get() );
+            const auto end = expandColumn( match.startColumn().get() + match.size().get() );
+            match = HighlightedMatch{
+                LineColumn{ static_cast<LineColumn::UnderlyingType>( start ) },
+                LineLength{ static_cast<LineLength::UnderlyingType>( end - start ) },
+                match.foreColor(), match.backColor() };
+        }
     }
 
     void clamp( LineColumn firstVisibleColumn, LineColumn lastVisibleColumn )
