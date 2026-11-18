@@ -32,6 +32,9 @@
 
 #include "booleanevaluator.h"
 #include "regularexpression.h"
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+#include "experimental.h"
+#endif
 
 namespace {
 klogg::vector<RegularExpressionPattern>
@@ -212,6 +215,13 @@ PatternMatcher::PatternMatcher( const RegularExpression& expression )
             expression.expression_.toStdString(), expression.subPatterns_ );
     }
 
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    if ( !useHyperscanEngine ) {
+        batchMatcher_ = experimental::createMatcher( expression.subPatterns_ );
+        batchPatternCount_ = expression.subPatterns_.size();
+    }
+#endif
+
     if ( !isBooleanCombination_ ) {
         hasMatchImpl_ = isInverse_ ? matching::hasInverseSingleMatch : matching::hasSingleMatch;
     }
@@ -226,6 +236,22 @@ bool PatternMatcher::hasMatch( std::string_view line ) const
 {
     return hasMatchImpl_( line, matcher_, evaluator_.get() );
 }
+
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+std::string PatternMatcher::matchBatch( const klogg::vector<std::string_view>& lines,
+                                        size_t start, size_t count ) const
+{
+    if ( !batchMatcher_ ) throw std::logic_error( "No experimental batch matcher" );
+    const auto bitmap = batchMatcher_->scan( lines, start, count );
+    std::string result( count, 0 );
+    for ( size_t row = 0; row < count; ++row ) {
+        const auto values = std::string_view( bitmap ).substr( row * batchPatternCount_, batchPatternCount_ );
+        const bool matched = isBooleanCombination_ ? evaluator_->evaluate( values ) : values.front() != 0;
+        result[row] = static_cast<char>( isInverse_ ? !matched : matched );
+    }
+    return result;
+}
+#endif
 
 MultiRegularExpression::MultiRegularExpression(
     const klogg::vector<RegularExpressionPattern>& patterns )

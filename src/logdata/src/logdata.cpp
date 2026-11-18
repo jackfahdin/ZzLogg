@@ -382,7 +382,11 @@ LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number,
             endOfLines.begin(), endOfLines.end(), std::back_inserter( rawLines.endOfLines ),
             [ firstByte ]( const OffsetInFile& offset ) { return offset.get() - firstByte; } );
 
-        const auto bytesToRead = lastByte - firstByte;
+        // The index represents an unterminated final line with a one-byte
+        // sentinel, regardless of the text encoding. Never read that sentinel
+        // from the file (which may already have grown since indexing).
+        const bool virtualFinalLF = lastByte == scopedAccessor.getIndexedSize() + 1;
+        const auto bytesToRead = lastByte - firstByte - ( virtualFinalLF ? 1 : 0 );
         LOG_DEBUG << "will try to read:" << bytesToRead << " bytes";
         rawLines.buffer.resize( static_cast<std::size_t>( bytesToRead ) );
 
@@ -391,11 +395,17 @@ LogData::RawLines LogData::getLinesRaw( LineNumber firstLine, LinesCount number,
 
         if ( bytesRead != bytesToRead ) {
             LOG_DEBUG << "failed to read " << bytesToRead << " bytes, got " << bytesRead;
-            if (maxBytes != std::numeric_limits<qint64>::max()) return {};
+            return {};
         }
 
         LOG_DEBUG << "done reading lines:" << rawLines.buffer.size();
         rawLines.textDecoder = codec_.makeDecoder();
+        if ( virtualFinalLF ) {
+            // decodeLines subtracts an encoding-sized LF. Normalize only this
+            // local offset; the buffer contains exactly the real file bytes.
+            rawLines.endOfLines.back()
+                = bytesToRead + rawLines.textDecoder.encodingParams.lineFeedWidth;
+        }
         return rawLines;
 
     } catch ( const std::bad_alloc& ) {

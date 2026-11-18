@@ -58,6 +58,9 @@
 
 #include "logfiltereddataworker.h"
 #include "synchronization.h"
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+#include "experimental.h"
+#endif
 
 namespace {
 struct PartialSearchResults {
@@ -93,17 +96,49 @@ struct SearchBlockData {
     LogData::RawLines lines;
 
     PartialSearchResults searchResults;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    experimental::BlockLifetime lifetime;
+#endif
 };
 
 PartialSearchResults filterLines( const PatternMatcher& matcher, const LogData::RawLines& rawLines,
-                                  LineNumber chunkStart )
+                                  LineNumber chunkStart, const AtomicFlag& interrupted )
 {
     LOG_DEBUG << "Filter lines at " << chunkStart;
     PartialSearchResults results;
     results.chunkStart = chunkStart;
     results.processedLines = LinesCount{ rawLines.endOfLines.size() };
 
+    if ( interrupted ) return results;
     const auto& lines = rawLines.buildUtf8View();
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    if ( matcher.hasBatchMatcher() ) {
+        size_t offset = 0;
+        while ( offset < lines.size() && !interrupted ) {
+            const auto end = experimental::batchEnd( lines, offset );
+            if ( end == offset ) {
+                // A single oversized line keeps the existing Qt behavior.
+                experimental::recordOversized();
+                if ( matcher.hasMatch( lines[offset] ) ) {
+                    results.maxLength = qMax( results.maxLength, getUntabifiedLength( lines[offset] ) );
+                    results.matchingLines.add( ( chunkStart + LinesCount{ offset } ).get() );
+                }
+                ++offset;
+                continue;
+            }
+            const auto matches = matcher.matchBatch( lines, offset, end - offset );
+            for ( auto row = offset; row < end; ++row ) {
+                if ( matches[row - offset] ) {
+                    results.maxLength = qMax( results.maxLength, getUntabifiedLength( lines[row] ) );
+                    results.matchingLines.add( ( chunkStart + LinesCount{ row } ).get() );
+                }
+            }
+            offset = end;
+        }
+        // The result processor rejects the whole block when interrupted.
+        return results;
+    }
+#endif
 
     for ( auto offset = 0u; offset < lines.size(); ++offset ) {
         const auto& line = lines[ offset ];
@@ -312,7 +347,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
 
     std::chrono::microseconds fileReadingDuration{ 0 };
 
-    using BlockDataType = SearchBlockData*;
+    using BlockDataType = std::shared_ptr<SearchBlockData>;
     auto blockPrefetcher
         = tbb::flow::limiter_node<BlockDataType>( searchGraph, matchingThreadsCount * 3 );
 
@@ -334,7 +369,6 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                 searchGraph, 1, [ &regexMatchers, index, this ]( const BlockDataType& blockData ) {
                     if ( interruptRequested_ ) {
                         LOG_INFO << "Matcher " << index << " interrupted";
-                        auto results = std::make_shared<PartialSearchResults>();
                         blockData->searchResults.chunkStart = blockData->chunkStart;
                         blockData->searchResults.processedLines
                             = LinesCount{ blockData->lines.endOfLines.size() };
@@ -345,7 +379,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                     const auto matchStartTime = high_resolution_clock::now();
 
                     blockData->searchResults
-                        = filterLines( *matcher, blockData->lines, blockData->chunkStart );
+                        = filterLines( *matcher, blockData->lines, blockData->chunkStart, interruptRequested_ );
 
                     const auto matchEndTime = high_resolution_clock::now();
 
@@ -403,7 +437,6 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                               << ", " << matchResults.processedLines << " lines read.";
                 }
 
-                delete blockData;
 
                 const auto matchProcessorEndTime = high_resolution_clock::now();
                 matchCombiningDuration += duration_cast<microseconds>( matchProcessorEndTime
@@ -444,7 +477,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         /*LOG_DEBUG << "Sending chunk starting at " << chunkStart << ", " <<
             lines.second.size()
                 << " lines read.";*/
-        BlockDataType blockData = new SearchBlockData{ chunkStart, std::move( lines ) };
+        auto blockData = std::make_shared<SearchBlockData>( chunkStart, std::move( lines ) );
 
         const auto lineSourceEndTime = high_resolution_clock::now();
         const auto chunkReadTime

@@ -31,6 +31,7 @@
 
 #include "logdata.h"
 #include "logfiltereddata.h"
+#include "logfiltereddataworker.h"
 
 static const qint64 SL_NB_LINES = 500LL;
 
@@ -567,4 +568,43 @@ SCENARIO( "marks and matches in filtered log data", "[logdata]" )
             }
         }
     }
+}
+
+TEST_CASE( "Cancelled search drains its graph and permits a complete retry", "[logdata][cancel]" )
+{
+    LogDataLoader source;
+    auto& config = Configuration::get();
+    const auto oldParallel = config.useParallelSearch();
+    const auto oldThreads = config.searchThreadPoolSize();
+    const auto oldChunk = config.searchReadBufferSizeLines();
+    config.setUseParallelSearch( true );
+    config.setSearchThreadPoolSize( 2 );
+    config.setSearchReadBufferSizeLines( 16 );
+
+    AtomicFlag cancelled;
+    SearchData data;
+    FullSearchOperation operation( source.log_data, cancelled,
+        RegularExpressionPattern{ "LOGDATA", true, false, false, true },
+        0_lnum, LineNumber{ static_cast<uint64_t>( SL_NB_LINES ) } );
+    const auto connection = QObject::connect( &operation, &SearchOperation::searchProgressed,
+        &source.log_data, [ & ]( LinesCount, int percent, LineNumber ) {
+            if ( percent < 100 ) cancelled.set();
+        }, Qt::DirectConnection );
+    operation.run( data );
+    const auto interrupted = static_cast<bool>( cancelled );
+    const auto partialCount = data.getNbMatches().get();
+    QObject::disconnect( connection );
+    cancelled.clear();
+    operation.run( data );
+    const auto final = data.takeCurrentResults();
+
+    config.setUseParallelSearch( oldParallel );
+    config.setSearchThreadPoolSize( oldThreads );
+    config.setSearchReadBufferSizeLines( oldChunk );
+    REQUIRE( interrupted );
+    REQUIRE( partialCount > 0 );
+    REQUIRE( partialCount < static_cast<uint64_t>( SL_NB_LINES ) );
+    REQUIRE( final.newMatches.cardinality() == static_cast<uint64_t>( SL_NB_LINES ) );
+    REQUIRE( final.processedLines.get() == static_cast<uint64_t>( SL_NB_LINES ) );
+    REQUIRE( final.removedMatches.isEmpty() );
 }

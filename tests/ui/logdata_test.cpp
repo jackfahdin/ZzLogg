@@ -271,3 +271,51 @@ SCENARIO( "Attaching log data to files", "[logdata]" )
         }
     }
 }
+
+TEST_CASE( "Raw EOF views contain only bytes actually read", "[logdata][raw-eof]" )
+{
+    const auto encoding = GENERATE( "UTF-8", "UTF-16LE", "UTF-16BE", "UTF-32LE" );
+    const auto embeddedNul = GENERATE( false, true );
+    const auto terminated = GENERATE( false, true );
+    auto* codec = QTextCodec::codecForName( encoding );
+    QString contents = QStringLiteral( "prefix\nERROR" );
+    if ( embeddedNul ) contents += QChar( 0 );
+    if ( terminated ) contents += QChar( '\n' );
+    const auto bytes = codec->fromUnicode( contents );
+    QTemporaryFile file;
+    REQUIRE( file.open() );
+    REQUIRE( file.write( bytes ) == bytes.size() );
+    REQUIRE( file.flush() );
+    LogData log;
+    SafeQSignalSpy loaded( &log, SIGNAL( loadingFinished( LoadingStatus ) ) );
+    log.attachFile( file.fileName() );
+    REQUIRE( loaded.safeWait( 10000 ) );
+    loaded.clear();
+    log.reload( codec );
+    REQUIRE( loaded.safeWait( 10000 ) );
+    log.setDisplayEncoding( encoding );
+    REQUIRE( log.getNbLine() == 2_lcount );
+    auto raw = log.getLinesRaw( 0_lnum, 2_lcount );
+    const auto views = raw.buildUtf8View();
+    REQUIRE( views.size() == 2 );
+    const std::string expected = embeddedNul ? std::string( "ERROR\0", 6 ) : std::string( "ERROR" );
+    REQUIRE( views[1] == expected );
+    const auto decoded = raw.decodeLines();
+    REQUIRE( decoded.size() == 2 );
+    REQUIRE( decoded[1] == QString::fromUtf8( expected.data(), static_cast<qsizetype>( expected.size() ) ) );
+
+    // Appending before the next index update must not turn the virtual LF
+    // into one real byte from the new tail.
+    REQUIRE( file.seek( file.size() ) );
+    REQUIRE( file.write( codec->fromUnicode( QStringLiteral( "MORE" ) ) ) > 0 );
+    REQUIRE( file.flush() );
+    const auto tail = log.getLinesRaw( 1_lnum, 1_lcount );
+    const auto tailViews = tail.buildUtf8View();
+    REQUIRE( tailViews.size() == 1 );
+    REQUIRE( tailViews[0] == expected );
+    REQUIRE( tail.decodeLines()[0] == decoded[1] );
+
+    // A real short read after truncation must not expose zero-filled capacity.
+    REQUIRE( file.resize( 0 ) );
+    REQUIRE( log.getLinesRaw( 0_lnum, 2_lcount ).endOfLines.empty() );
+}

@@ -36,6 +36,9 @@
 class PatternMatcher;
 class MultiPatternMatcher;
 class BooleanExpressionEvaluator;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+namespace experimental { class BatchMatcher; }
+#endif
 
 class RegularExpression {
   public:
@@ -67,6 +70,10 @@ class PatternMatcher {
     ~PatternMatcher();
 
     bool hasMatch( std::string_view line ) const;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    bool hasBatchMatcher() const { return static_cast<bool>( batchMatcher_ ); }
+    std::string matchBatch( const klogg::vector<std::string_view>& lines, size_t start, size_t count ) const;
+#endif
 
   private:
     using MatchFunc = bool ( * )( std::string_view line, const MatcherVariant& matcher, BooleanExpressionEvaluator* evaluator );
@@ -80,6 +87,10 @@ class PatternMatcher {
 
     MatcherVariant matcher_;
     std::unique_ptr<BooleanExpressionEvaluator> evaluator_;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    std::unique_ptr<experimental::BatchMatcher> batchMatcher_;
+    size_t batchPatternCount_ = 0;
+#endif
 };
 
 class MultiRegularExpression {

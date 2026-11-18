@@ -498,3 +498,8 @@ option(ZZLOGG_BUILD_SEARCH_PIPELINE_PROBE "Build explicit experimental search pi
 if(ZZLOGG_BUILD_SEARCH_PIPELINE_PROBE)
   add_subdirectory(tools/benchmarks/search_pipeline EXCLUDE_FROM_ALL)
 endif()
+
+option(ZZLOGG_BUILD_SEARCH_WORKER_PROBE "Build isolated experimental full search worker probe" OFF)
+if(ZZLOGG_BUILD_SEARCH_WORKER_PROBE)
+  add_subdirectory(tools/benchmarks/search_worker EXCLUDE_FROM_ALL)
+endif()
