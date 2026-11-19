@@ -28,7 +28,7 @@ void highlightCase(const QByteArray& bytes, const char* codec, const RegularExpr
     require(qt.digest() == candidate.digest(), "Highlight input search differs from Qt");
     require(candidate.result.newMatches.cardinality() == 1
                 && candidate.result.newMatches.contains(uint64_t{0}), "Highlight fixture row differs");
-    require((candidate.diagnostics.matchers != 0) == (query.isPlainText && query.isCaseSensitive),
+    require((candidate.diagnostics.matchers != 0) == (experimental::usesPcre2 || (query.isPlainText && query.isCaseSensitive)),
             "Unexpected highlight fixture search routing");
     const auto lines = file.log.getLines(0_lnum, 1_lcount);
     require(lines.size() == 1, "Missing display line");
@@ -83,7 +83,7 @@ void backendRoute(RegexpEngine engine)
             require(enabled.result.processedLines.get() == 6, "Selected backend lost progress");
             if (engine == RegexpEngine::Hyperscan) {
                 require(enabled.diagnostics.matchers == 0 && enabled.diagnostics.batches == 0,
-                        "Experimental memchr overrode selected accelerated backend");
+                        "Experimental candidate overrode selected accelerated backend");
 #ifdef KLOGG_HAS_HS
                 if (query.isPlainText && !query.pattern.isEmpty()) {
                     require(enabled.diagnostics.acceleratedMatchers == threads,

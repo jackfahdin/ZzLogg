@@ -96,8 +96,11 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     QElapsedTimer timer;
     qint64 cancelAt = 0;
     QObject::connect(worker.get(), &LogFilteredDataWorker::searchProgressed, &loop,
-        [&](LinesCount, int percent, LineNumber) {
+        [&](LinesCount hits, int percent, LineNumber) {
             out.progress.push_back(percent);
+            const auto now = timer.nsecsElapsed();
+            if (percent < 100 && out.firstProgressNs < 0) out.firstProgressNs = now;
+            if (hits.get() > 0 && out.firstHitNs < 0) out.firstHitNs = now;
             if (cancel && percent < 100 && !out.cancelRequested) {
                 out.cancelRequested = true;
                 cancelAt = timer.nsecsElapsed();
@@ -120,6 +123,8 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     out.elapsedNs = timer.nsecsElapsed();
     if (out.cancelRequested) out.cancelNs = out.elapsedNs - cancelAt;
     require(!expired && finished, "Worker search timeout");
+    require(experimental::liveMatchers() == 0, "Search leaked live matchers");
+    require(out.firstProgressNs <= out.elapsedNs && out.firstHitNs <= out.elapsedNs, "Notification after completion");
     require(experimental::liveBlocks() == 0, "Search leaked live blocks");
     require(!out.progress.empty() && out.progress.back() == 100, "Missing terminal progress");
     require(std::is_sorted(out.progress.begin(), out.progress.end()), "Progress regressed");

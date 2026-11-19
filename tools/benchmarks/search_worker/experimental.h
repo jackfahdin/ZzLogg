@@ -10,6 +10,14 @@ struct BlockLifetime {
     BlockLifetime& operator=(const BlockLifetime&) = delete;
 };
 int64_t liveBlocks();
+int64_t liveMatchers();
+#ifdef ZZLOGG_WORKER_PCRE2
+inline constexpr bool usesPcre2 = true;
+inline constexpr auto candidateName = "pcre2";
+#else
+inline constexpr bool usesPcre2 = false;
+inline constexpr auto candidateName = "memchr";
+#endif
 }
 
 #include "containers.h"
@@ -25,6 +33,8 @@ void resetDiagnostics(bool enabled);
 struct Metrics {
     uint64_t matchers = 0, batches = 0, rows = 0, oversized = 0, maxRows = 0, maxBytes = 0;
     uint64_t acceleratedMatchers = 0;
+    uint64_t programs = 0, jitPrograms = 0, fallbackPatterns = 0, codeBytes = 0, jitBytes = 0;
+    uint64_t direct = 0, fallback = 0, runtimeErrors = 0, peakMatchers = 0;
 };
 Metrics metrics();
 size_t batchEnd(const klogg::vector<std::string_view>& lines, size_t start);

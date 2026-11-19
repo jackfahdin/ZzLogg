@@ -111,3 +111,64 @@ python3 scripts/dev/generate_android_search_corpus.py verify \
 生成器独立计算完整命中行号、最大字节宽度和处理位置的 SHA-256，验收全部样本／诊断的结果、文件摘要、配对和两种后端覆盖、路由与批次资源限制。预期不是从探针输出反推；Python 谓词只适用于这组固定模式，不作为通用 Qt 正则参考。`expected.json` 保存生成器源码摘要、参数和每份文件的内容摘要。
 
 这些模拟日志用于可重复的正确性与性能对照，不能代表真实设备的所有格式、分布或大小。单机热页缓存结果不代表冷盘、Windows 或整应用加速倍数；小文件也可能在取消请求到达前已经完成。测量结论见 [Android 语料记录](../../../docs/superpowers/plans/2026-11-19-android-log-corpus.md)。
+
+## PCRE2-8 worker experiment
+
+The probe can instead compile the existing `utf8_regex` candidate. Set
+`ZZLOGG_SEARCH_WORKER_PCRE2_SOURCE_DIR` to the explicit Qt bundled PCRE2 10.47
+source directory when configuring the root project with
+`ZZLOGG_BUILD_SEARCH_WORKER_PROBE=ON`. This selection never downloads sources,
+never discovers Cargo, and does not change application libraries. Leave it empty
+for the existing memchr experiment. Use a separate build directory for each.
+
+```sh
+cmake -S . -B out/build/p12-utf8-worker -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/path/to/Qt/gcc_64 \
+  -DKLOGG_USE_LTO=OFF -DKLOGG_USE_HYPERSCAN=OFF -DKLOGG_USE_VECTORSCAN=OFF \
+  -DZZLOGG_BUILD_SEARCH_WORKER_PROBE=ON \
+  -DZZLOGG_SEARCH_WORKER_PCRE2_SOURCE_DIR=/path/to/Qt/Src/qtbase/src/3rdparty/pcre2
+cmake --build out/build/p12-utf8-worker --target zzlogg_search_worker_probe
+out/build/p12-utf8-worker/output/zzlogg_search_worker_probe --verify
+out/build/p12-utf8-worker/output/zzlogg_search_worker_probe --verify-integration
+python3 scripts/dev/utf8_worker_corpus.py generate \
+  --corpus out/benchmarks/p11-android/corpus-verified \
+  --output out/benchmarks/p12-worker/input
+python3 scripts/dev/benchmark_search_worker.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe \
+  --candidate pcre2 --isolated-profiles \
+  --corpus out/benchmarks/p12-worker/input/queries.json \
+  --output out/benchmarks/p12-worker/results
+python3 scripts/dev/utf8_worker_corpus.py verify \
+  --expected out/benchmarks/p12-worker/input/expected.json \
+  --report out/benchmarks/p12-worker/results/results.json
+```
+
+The input logs are **synthetic Android logs**; generate them with
+`generate_android_search_corpus.py` first if absent. The fixed Python oracle
+covers only the declared patterns, not arbitrary PCRE syntax. It checks complete
+row/width/progress digests, independent input identity, routing, actual JIT
+program counts and effective cancellation on the full main files.
+
+Each search creates fresh workers and matchers. `elapsed_ns` includes submission,
+matching, result retrieval and worker destruction/join; indexing and snapshot
+creation happen before timing. `first_progress_ns` is the first delivered
+nonterminal progress notification; `first_hit_ns` is the first delivered
+notification with nonzero cumulative matches (possibly the terminal one).
+Both are main-thread observations, not GUI painting; `-1` means no such event.
+The reference uses the same instrumentation. Cancellation is requested on the
+first nonterminal notification; a single Qt/PCRE call remains uninterruptible.
+
+`--isolated-profiles` starts a fresh process per scenario/backend/round. Reported
+RSS is that whole process's high-water mark, including indexing, Qt reference,
+full/cancelled searches and libraries; it is **not candidate allocation or a
+memory delta**. Unsupported platforms report `-1`. Without this flag RSS may
+include earlier scenarios. PCRE code/JIT byte totals are across all matchers,
+exclude scratch/Qt caches, and do not represent RSS. Per-worker JIT stacks retain
+the component's 32 KiB initial / 512 KiB maximum settings. Live matcher/block
+counts must reach zero after every full/cancelled search; this is ownership
+verification, not a full heap leak detector.
+
+Selected Hyperscan/Vectorscan routes and actual Qt highlighting keep precedence.
+Oversized lines (>256 KiB) still execute the worker's original Qt matcher.
+Regular PCRE batches preserve component-level Qt fallback for BOM, invalid UTF-8,
+code-unit patterns and runtime errors. No production adoption is implied.

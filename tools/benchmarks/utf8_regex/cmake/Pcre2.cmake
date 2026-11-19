@@ -1,0 +1,17 @@
+function(zzlogg_add_probe_pcre2 target source_dir)
+  file(READ "${source_dir}/src/pcre2.h" _header)
+  if(NOT _header MATCHES "#define PCRE2_MAJOR +10" OR NOT _header MATCHES "#define PCRE2_MINOR +47")
+    message(FATAL_ERROR "This experiment requires Qt bundled PCRE2 10.47")
+  endif()
+  # Reuse the exact source list/configuration of the supplied Qt package; do not
+  # invoke private Qt CMake functions or modify the supplied third-party sources.
+  file(READ "${source_dir}/CMakeLists.txt" _cmake)
+  string(REGEX MATCHALL "src/pcre2_[a-z0-9_]+\\.c" _sources "${_cmake}")
+  if(NOT _sources)
+    message(FATAL_ERROR "Missing Qt bundled PCRE2 source list")
+  endif()
+  list(TRANSFORM _sources PREPEND "${source_dir}/")
+  add_library(${target} STATIC EXCLUDE_FROM_ALL ${_sources})
+  target_compile_definitions(${target} PUBLIC PCRE2_CODE_UNIT_WIDTH=8 PCRE2_STATIC PRIVATE HAVE_CONFIG_H)
+  target_include_directories(${target} PUBLIC "${source_dir}/src")
+endfunction()

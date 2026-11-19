@@ -32,13 +32,28 @@ void check(Fixture& fixture, const RegularExpressionPattern& pattern,
     }
     require(candidate.result.processedLines.get() == std::min(last, fixture.log.getNbLine().get()),
             "Complete search did not cover requested range");
-    require((candidate.diagnostics.matchers != 0) == fast, "Incorrect query-level routing");
+    require((candidate.firstHitNs >= 0) == !expected.empty(), "First-hit notification disagrees with fixed rows");
+    require(candidate.firstProgressNs >= 0, "Missing intermediate progress notification");
+    require((candidate.diagnostics.matchers != 0) == (fast || experimental::usesPcre2), "Incorrect query-level routing");
     require(candidate.diagnostics.maxBytes <= experimental::MaxBatchBytes
                 && candidate.diagnostics.maxRows <= experimental::MaxBatchRows, "Batch exceeded limits");
 }
 }
 void verify()
 {
+    if (experimental::usesPcre2) {
+        // Actual worker bitmap order, boolean evaluation and inverse, including regex-only syntax.
+        Fixture regexRows("ab\nac\nblocked ab\n中文😀\n\n");
+        check(regexRows, {"\"a(?=b)\" and not(\"blocked\")", true, false, true, false}, {0}, true, 2);
+        check(regexRows, {"\"a(?=b)\" and not(\"blocked\")", true, true, true, false}, {1, 2, 3, 4}, true, 2);
+        require(experimental::metrics().programs == 4 && experimental::metrics().jitPrograms == 4
+                    && experimental::metrics().direct == 10 && experimental::metrics().fallback == 0,
+                "Regex boolean worker did not execute all PCRE programs");
+        check(regexRows, {"^$", true, false, false, false}, {4}, true);
+        check(regexRows, {"^\\C\\C$", true, false, false, false}, {0, 1}, true);
+        require(experimental::metrics().fallbackPatterns == 1 && experimental::metrics().fallback == 5
+                    && experimental::metrics().direct == 0, "Code-unit pattern did not fall back to Qt");
+    }
     Fixture plain("a\nb\nab\nac\nnothing\n\na\"b\na.b\n");
     for (const unsigned threads : {1U, 2U}) {
         check(plain, literal("\"a\" and (not(\"b\") or \"c\")", true), {0, 3}, true, threads);
@@ -58,6 +73,10 @@ void verify()
     Fixture bad(QByteArray("ok\n\xFF\n\xEF\xBB\xBF" "needle\n") + QByteArray("needle\0tail", 11));
     check(bad, literal(QString::fromUtf8("�")), {1}, true);
     check(bad, literal("needle"), {2, 3}, true);
+    if (experimental::usesPcre2) {
+        require(experimental::metrics().direct == 2 && experimental::metrics().fallback == 2,
+                "Worker did not preserve bad UTF-8 and BOM fallback");
+    }
     check(bad, literal(QString::fromUtf8("needle\0tail", 11)), {3}, true);
     Fixture pref("[tag]ERROR\nok\nERROR\n");
     pref.log.setPrefilter("\\[tag\\]");
@@ -96,13 +115,14 @@ void verify()
             operation.run(data);
             require(static_cast<bool>(cancelled) && data.getNbMatches().get() > 0
                         && data.getNbMatches().get() < 65536, "Synchronous cancellation did not stop search");
-            require(experimental::liveBlocks() == 0, "Cancellation leaked queued/unsubmitted blocks");
+            require(experimental::liveBlocks() == 0 && experimental::liveMatchers() == 0, "Cancellation leaked queued/unsubmitted blocks");
             AtomicFlag preCancelled(true);
             SearchData noResults;
             FullSearchOperation pre(many.log, preCancelled, literal("ERROR"), 0_lnum, LineNumber{65536});
             pre.run(noResults);
             require(noResults.getNbMatches().get() == 0 && experimental::liveBlocks() == 0,
                     "Pre-cancel processed data or leaked blocks");
+            require(experimental::liveMatchers() == 0, "Pre-cancel leaked matchers");
             const auto stopped = search(many, literal("ERROR"), memchr, threads, 128, true);
             require(stopped.cancelRequested && stopped.result.newMatches.cardinality() < 65536,
                     "Async cancellation missed active search");
@@ -142,7 +162,7 @@ void verify()
                         && updated.newMatches.cardinality() == (regex ? 1U : 2U), "Tail update results differ");
             require(updated.removedMatches.contains(uint64_t{1}) == regex, "Old tail removal differs");
             worker.reset();
-            require(experimental::liveBlocks() == 0, "Update leaked search blocks");
+            require(experimental::liveBlocks() == 0 && experimental::liveMatchers() == 0, "Update leaked search blocks");
         }
     }
     Fixture emptyFile(QByteArray{});

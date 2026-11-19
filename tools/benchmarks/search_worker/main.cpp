@@ -10,8 +10,25 @@
 #include <QTemporaryDir>
 #include <array>
 #include <iostream>
+#if defined(Q_OS_UNIX)
+#include <sys/resource.h>
+#endif
 
 namespace {
+qint64 peakRssBytes()
+{
+#if defined(Q_OS_UNIX)
+    rusage usage{};
+    if (getrusage(RUSAGE_SELF, &usage) != 0) return -1;
+#ifdef Q_OS_MACOS
+    return usage.ru_maxrss;
+#else
+    return static_cast<qint64>(usage.ru_maxrss) * 1024;
+#endif
+#else
+    return -1;
+#endif
+}
 std::vector<std::string> names()
 {
     std::vector<std::string> result;
@@ -87,10 +104,17 @@ void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
         const auto stats = full.diagnostics;
         experimental::resetDiagnostics(false);
         const auto cancelled = run(candidate, true);
-        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? "memchr" : "qt"},
+        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? experimental::candidateName : "qt"},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
-                {"matchers", double(stats.matchers)}, {"batches", double(stats.batches)},
+                {"matchers", double(stats.matchers)}, {"peak_matchers", double(stats.peakMatchers)},
+                {"pcre_programs", double(stats.programs)}, {"pcre_jit_programs", double(stats.jitPrograms)},
+                {"pcre_fallback_patterns", double(stats.fallbackPatterns)},
+                {"pcre_code_bytes", double(stats.codeBytes)}, {"pcre_jit_bytes", double(stats.jitBytes)},
+                {"pcre_direct", double(stats.direct)}, {"pcre_fallback", double(stats.fallback)},
+                {"pcre_runtime_errors", double(stats.runtimeErrors)},
+                {"live_matchers", double(experimental::liveMatchers())},
+                {"process_peak_rss_bytes", double(peakRssBytes())}, {"batches", double(stats.batches)},
                 {"batched_rows", double(stats.rows)}, {"oversized_qt_lines", double(stats.oversized)},
                 {"max_batch_rows", double(stats.maxRows)}, {"max_batch_bytes", double(stats.maxBytes)},
                 {"cancel_requested", cancelled.cancelRequested}, {"cancel_ns", double(cancelled.cancelNs)},
@@ -106,11 +130,12 @@ void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
     for (const bool current : order) {
         const auto result = run(current && candidate);
         check(result);
-        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? "memchr" : "qt"},
+        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? experimental::candidateName : "qt"},
                 {"role", current ? "candidate" : "reference"}, {"threads", int(s.threads)},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
-                {"elapsed_ns", double(result.elapsedNs)}, {"rows", double(result.result.processedLines.get())},
+                {"elapsed_ns", double(result.elapsedNs)},
+                {"first_progress_ns", double(result.firstProgressNs)}, {"first_hit_ns", double(result.firstHitNs)}, {"rows", double(result.result.processedLines.get())},
                 {"matched", double(result.result.newMatches.cardinality())}, {"chunk_rows", int(s.chunk)}});
     }
 }
@@ -123,10 +148,11 @@ int main(int argc, char** argv)
     parser.addOptions({{"verify-integration", "Verify highlight positions and backend routing."},
         {"require-accelerated", "Fail integration verification unless an accelerated library executes."},
         {"verify", "Run worker integration and lifecycle contracts."},
-        {"candidate", "memchr or identical Qt control", "backend", "qt"},
+        {"candidate", "Compiled experimental candidate or identical Qt control", "backend", "qt"},
         {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
-        {"profile", "Run untimed routing/cancellation diagnostics."}});
+        {"profile", "Run untimed routing/cancellation diagnostics."},
+        {"profile-case", "Select one corpus case for a fresh-process resource profile", "id"}});
     parser.process(app);
     QTemporaryDir root;
     if (!root.isValid() || !StorageContext::install({StorageMode::CustomDirectory, root.path(),
@@ -144,18 +170,25 @@ int main(int argc, char** argv)
         }
         workerprobe::require(!parser.isSet("require-accelerated"), "Use --require-accelerated with --verify-integration");
         if (parser.isSet("verify")) { workerprobe::verify(); return 0; }
+        workerprobe::require(!parser.isSet("profile-case") || (parser.isSet("corpus") && parser.isSet("profile")),
+                             "Use --profile-case with --corpus --profile");
         const auto candidate = parser.value("candidate");
-        workerprobe::require(candidate == "qt" || candidate == "memchr", "Unknown backend");
+        workerprobe::require(candidate == "qt" || candidate == experimental::candidateName, "Unknown backend");
         if (parser.isSet("corpus")) {
             workerprobe::require(!parser.isSet("case"), "Use either --corpus or --case");
-            for (const auto& scenario : loadCorpus(parser.value("corpus")))
-                measure(scenario, candidate == "memchr", parser.isSet("reverse"), parser.isSet("profile"));
+            bool measured = false;
+            for (const auto& scenario : loadCorpus(parser.value("corpus"))) {
+                if (parser.isSet("profile-case") && parser.value("profile-case").toStdString() != scenario.name) continue;
+                measure(scenario, candidate == experimental::candidateName, parser.isSet("reverse"), parser.isSet("profile"));
+                measured = true;
+            }
+            workerprobe::require(measured, "Unknown profile case");
             return 0;
         }
         bool measured = false;
         for (const auto& name : names()) {
             if (parser.isSet("case") && parser.value("case").toStdString() != name) continue;
-            measure(makeScenario(name), candidate == "memchr", parser.isSet("reverse"), parser.isSet("profile"));
+            measure(makeScenario(name), candidate == experimental::candidateName, parser.isSet("reverse"), parser.isSet("profile"));
             measured = true;
         }
         workerprobe::require(measured, "Unknown scenario");
