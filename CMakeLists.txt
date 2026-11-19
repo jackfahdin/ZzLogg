@@ -503,3 +503,8 @@ option(ZZLOGG_BUILD_SEARCH_WORKER_PROBE "Build isolated experimental full search
 if(ZZLOGG_BUILD_SEARCH_WORKER_PROBE)
   add_subdirectory(tools/benchmarks/search_worker EXCLUDE_FROM_ALL)
 endif()
+
+option(ZZLOGG_BUILD_QT_REGEX_PROBE "Build explicit Qt regex reuse probe" OFF)
+if(ZZLOGG_BUILD_QT_REGEX_PROBE)
+  add_subdirectory(tools/benchmarks/qt_regex EXCLUDE_FROM_ALL)
+endif()

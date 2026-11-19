@@ -118,22 +118,26 @@ MatchedPatterns HsNoopMatcher::match( const std::string_view& ) const
 
 HsPrefilterMatcher::HsPrefilterMatcher( const klogg::vector<RegularExpressionPattern>& patterns,
                                         HsMultiMatcher&& hsMatcher )
-    : patterns_( patterns )
-    , hsMatcher_( std::move( hsMatcher ) )
+    : hsMatcher_( std::move( hsMatcher ) )
 
 {
+    std::transform( patterns.cbegin(), patterns.cend(), std::back_inserter( regexp_ ),
+                    []( const auto& pattern ) { return static_cast<QRegularExpression>( pattern ); } );
 }
 
 MatchedPatterns HsPrefilterMatcher::match( const std::string_view& utf8Data ) const
 {
     MatchedPatterns matchingPatterns = hsMatcher_.match( utf8Data );
+    QString decoded;
+    bool hasDecoded = false;
 
     for ( size_t i = 0u; i < matchingPatterns.size(); ++i ) {
         if ( matchingPatterns[ i ] ) {
-            matchingPatterns[ i ]
-                = static_cast<QRegularExpression>( patterns_[ i ] )
-                      .match( QString::fromUtf8( utf8Data.data(), klogg::isize( utf8Data ) ) )
-                      .hasMatch();
+            if ( !hasDecoded ) {
+                decoded = QString::fromUtf8( utf8Data.data(), klogg::isize( utf8Data ) );
+                hasDecoded = true;
+            }
+            matchingPatterns[ i ] = regexp_[ i ].match( decoded ).hasMatch();
         }
     }
 

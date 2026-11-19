@@ -1,0 +1,2 @@
+add_executable(zzlogg_qt_regex_probe EXCLUDE_FROM_ALL main.cpp)
+target_link_libraries(zzlogg_qt_regex_probe PRIVATE klogg_regex Qt6::Core)

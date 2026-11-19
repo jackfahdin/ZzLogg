@@ -136,7 +136,7 @@ class HsPrefilterMatcher {
     MatchedPatterns match( const std::string_view& utf8Data ) const;
   
   private:
-    klogg::vector<RegularExpressionPattern> patterns_;
+    klogg::vector<QRegularExpression> regexp_;
     HsMultiMatcher hsMatcher_;
 };
 
