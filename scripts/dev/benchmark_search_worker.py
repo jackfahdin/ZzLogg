@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=Path('out/benchmarks/p11-worker/results'))
-    parser.add_argument('--candidate', choices=('memchr', 'pcre2'), default='memchr')
+    parser.add_argument('--candidate', choices=('memchr', 'pcre2', 'wake'), default='memchr')
     parser.add_argument('--isolated-profiles', action='store_true', help='Fresh process per scenario for peak RSS')
     parser.add_argument('--rounds', type=int, default=4)
     source = parser.add_mutually_exclusive_group()
@@ -88,6 +88,8 @@ def benchmark(args, corpus):
                 check_file(row)
                 if row['candidate'] != candidate or row['role'] not in ('reference', 'candidate') or row['elapsed_ns'] <= 0:
                     raise RuntimeError('Invalid measurement')
+                if row['process_cpu_ns'] < -1:
+                    raise RuntimeError('Invalid process CPU time')
                 for field in ('first_progress_ns', 'first_hit_ns'):
                     if not -1 <= row[field] <= row['elapsed_ns']:
                         raise RuntimeError('Invalid notification timing')
@@ -146,13 +148,17 @@ def benchmark(args, corpus):
             current = statistics.median(r['elapsed_ns'] for r in selected if r['role'] == 'candidate')
             summary.append(dict(candidate=candidate, scenario=scenario, reference_ns=reference,
                                 candidate_ns=current, speedup=reference/current,
+                                process_cpu_ns={role: statistics.median(r['process_cpu_ns'] for r in selected
+                                    if r['role'] == role and r['process_cpu_ns'] >= 0) if any(r['role'] == role
+                                    and r['process_cpu_ns'] >= 0 for r in selected) else None
+                                    for role in ('reference', 'candidate')},
                                 first_notifications={role: {field: statistics.median(r[field] for r in selected
                                     if r['role'] == role and r[field] >= 0) if any(r['role'] == role and r[field] >= 0
                                     for r in selected) else None for field in ('first_progress_ns', 'first_hit_ns')}
                                     for role in ('reference', 'candidate')}))
     root = Path(__file__).resolve().parents[2]
     files = [Path(__file__).resolve(), Path(__file__).with_name('search_corpus.py').resolve(), root / 'CMakeLists.txt']
-    if args.candidate == 'pcre2':
+    if args.candidate in ('pcre2', 'wake'):
         files += [Path(__file__).with_name(name).resolve() for name in
                   ('utf8_worker_corpus.py', 'benchmark_utf8_regex.py', 'generate_android_search_corpus.py')]
     for directory in ['tools/benchmarks/search_worker', 'tools/benchmarks/literal_search', 'tools/benchmarks/utf8_regex',
@@ -166,10 +172,10 @@ def benchmark(args, corpus):
         cmake_cache=cache.read_text() if cache.exists() else None,
         candidate=args.candidate, isolated_profiles=args.isolated_profiles, qt_jit_environment='1',
         rustc=subprocess.check_output(['rustc', '--version'], text=True).strip() if args.candidate == 'memchr' else None)
-    if args.candidate == 'pcre2':
-        source = re.search(r'^ZZLOGG_SEARCH_WORKER_PCRE2_SOURCE_DIR:PATH=(.+)$', metadata['cmake_cache'] or '', re.MULTILINE)
-        if not source:
-            raise ValueError('PCRE worker requires explicit source in CMakeCache')
+    source = re.search(r'^ZZLOGG_SEARCH_WORKER_PCRE2_SOURCE_DIR:PATH=(.+)$', metadata['cmake_cache'] or '', re.MULTILINE)
+    if args.candidate == 'pcre2' and not source:
+        raise ValueError('PCRE worker requires explicit source in CMakeCache')
+    if source:
         pcre = Path(source[1])
         metadata['pcre_source'] = str(pcre)
         metadata['pcre_source_sha256'] = {str(p.relative_to(pcre)): hashlib.sha256(p.read_bytes()).hexdigest()

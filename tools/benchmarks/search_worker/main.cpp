@@ -79,15 +79,17 @@ Scenario makeScenario(const std::string& name)
     return result;
 }
 void output(const QJsonObject& row) { std::cout << QJsonDocument(row).toJson(QJsonDocument::Compact).constData() << '\n'; }
-void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
+void measure(const Scenario& s, const QString& backendName, bool reverse, bool profile)
 {
+    const bool candidate = backendName != "qt";
     auto owned = s.path.isEmpty()
         ? std::make_unique<workerprobe::Fixture>(s.bytes, s.codec.constData())
         : std::make_unique<workerprobe::Fixture>(workerprobe::FileSource{s.path}, s.codec.constData(), s.timeoutMs);
     auto& fixture = *owned;
     const auto signature = inputHash(s, fixture.fileHash);
     const auto run = [&](bool backend, bool cancel = false) {
-        return workerprobe::search(fixture, s.query, backend, s.threads, s.chunk, cancel,
+        experimental::setWakeup(backend && backendName == "wake");
+        return workerprobe::search(fixture, s.query, backend && backendName != "wake", s.threads, s.chunk, cancel,
                                    0, std::numeric_limits<uint64_t>::max(), s.timeoutMs);
     };
     fixture.log.setPrefilter(s.prefilter);
@@ -104,9 +106,12 @@ void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
         const auto stats = full.diagnostics;
         experimental::resetDiagnostics(false);
         const auto cancelled = run(candidate, true);
-        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? experimental::candidateName : "qt"},
+        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", backendName},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
+                {"wake_searches", double(stats.wakeSearches)}, {"capacity_waits", double(stats.waits)},
+                {"capacity_timeouts", double(stats.timeouts)}, {"capacity_releases", double(stats.releases)},
+                {"poll_sleeps", double(stats.pollSleeps)},
                 {"matchers", double(stats.matchers)}, {"peak_matchers", double(stats.peakMatchers)},
                 {"pcre_programs", double(stats.programs)}, {"pcre_jit_programs", double(stats.jitPrograms)},
                 {"pcre_fallback_patterns", double(stats.fallbackPatterns)},
@@ -130,11 +135,11 @@ void measure(const Scenario& s, bool candidate, bool reverse, bool profile)
     for (const bool current : order) {
         const auto result = run(current && candidate);
         check(result);
-        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", candidate ? experimental::candidateName : "qt"},
+        output({{"scenario", QString::fromStdString(s.name)}, {"candidate", backendName},
                 {"role", current ? "candidate" : "reference"}, {"threads", int(s.threads)},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
-                {"elapsed_ns", double(result.elapsedNs)},
+                {"elapsed_ns", double(result.elapsedNs)}, {"process_cpu_ns", double(result.cpuNs)},
                 {"first_progress_ns", double(result.firstProgressNs)}, {"first_hit_ns", double(result.firstHitNs)}, {"rows", double(result.result.processedLines.get())},
                 {"matched", double(result.result.newMatches.cardinality())}, {"chunk_rows", int(s.chunk)}});
     }
@@ -148,7 +153,7 @@ int main(int argc, char** argv)
     parser.addOptions({{"verify-integration", "Verify highlight positions and backend routing."},
         {"require-accelerated", "Fail integration verification unless an accelerated library executes."},
         {"verify", "Run worker integration and lifecycle contracts."},
-        {"candidate", "Compiled experimental candidate or identical Qt control", "backend", "qt"},
+        {"candidate", "Compiled regex candidate, wake (Qt with capacity notifications), or Qt control", "backend", "qt"},
         {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
         {"profile", "Run untimed routing/cancellation diagnostics."},
@@ -166,20 +171,32 @@ int main(int argc, char** argv)
             || (!parser.isSet("verify") && !parser.isSet("verify-integration") && !parser.isSet("case")),
             "Use --corpus separately from generated cases and verification modes");
         if (parser.isSet("verify-integration")) {
-            workerprobe::verifyIntegration(parser.isSet("require-accelerated")); return 0;
+            for (bool wake : {false, true}) {
+                experimental::setWakeup(wake);
+                workerprobe::verifyIntegration(parser.isSet("require-accelerated"));
+            }
+            experimental::setWakeup(false);
+            return 0;
         }
         workerprobe::require(!parser.isSet("require-accelerated"), "Use --require-accelerated with --verify-integration");
-        if (parser.isSet("verify")) { workerprobe::verify(); return 0; }
+        if (parser.isSet("verify")) {
+            for (bool wake : {false, true}) {
+                experimental::setWakeup(wake);
+                workerprobe::verify();
+            }
+            experimental::setWakeup(false);
+            return 0;
+        }
         workerprobe::require(!parser.isSet("profile-case") || (parser.isSet("corpus") && parser.isSet("profile")),
                              "Use --profile-case with --corpus --profile");
         const auto candidate = parser.value("candidate");
-        workerprobe::require(candidate == "qt" || candidate == experimental::candidateName, "Unknown backend");
+        workerprobe::require(candidate == "qt" || candidate == "wake" || candidate == experimental::candidateName, "Unknown backend");
         if (parser.isSet("corpus")) {
             workerprobe::require(!parser.isSet("case"), "Use either --corpus or --case");
             bool measured = false;
             for (const auto& scenario : loadCorpus(parser.value("corpus"))) {
                 if (parser.isSet("profile-case") && parser.value("profile-case").toStdString() != scenario.name) continue;
-                measure(scenario, candidate == experimental::candidateName, parser.isSet("reverse"), parser.isSet("profile"));
+                measure(scenario, candidate, parser.isSet("reverse"), parser.isSet("profile"));
                 measured = true;
             }
             workerprobe::require(measured, "Unknown profile case");
@@ -188,7 +205,7 @@ int main(int argc, char** argv)
         bool measured = false;
         for (const auto& name : names()) {
             if (parser.isSet("case") && parser.value("case").toStdString() != name) continue;
-            measure(makeScenario(name), candidate == experimental::candidateName, parser.isSet("reverse"), parser.isSet("profile"));
+            measure(makeScenario(name), candidate, parser.isSet("reverse"), parser.isSet("profile"));
             measured = true;
         }
         workerprobe::require(measured, "Unknown scenario");

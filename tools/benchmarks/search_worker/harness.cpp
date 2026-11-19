@@ -8,9 +8,23 @@
 #include <QTest>
 #include <QTimer>
 #include <stdexcept>
+#if defined(Q_OS_UNIX)
+#include <sys/resource.h>
+#endif
 namespace workerprobe {
 void require(bool good, const char* message) { if (!good) throw std::runtime_error(message); }
 namespace {
+qint64 processCpuNs()
+{
+#if defined(Q_OS_UNIX)
+    rusage usage{};
+    if (getrusage(RUSAGE_SELF, &usage) != 0) return -1;
+    return (static_cast<qint64>(usage.ru_utime.tv_sec) + usage.ru_stime.tv_sec) * 1000000000
+         + (static_cast<qint64>(usage.ru_utime.tv_usec) + usage.ru_stime.tv_usec) * 1000;
+#else
+    return -1;
+#endif
+}
 void loaded(QSignalSpy& spy, int timeoutMs)
 {
     QElapsedTimer timer;
@@ -112,6 +126,7 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     QObject::connect(&timeout, &QTimer::timeout, &loop, [&] {
         expired = true; worker->interrupt(); loop.quit();
     });
+    const auto cpuStart = processCpuNs();
     timer.start();
     timeout.start(timeoutMs);
     const auto last = std::min(end, fixture.log.getNbLine().get());
@@ -121,6 +136,8 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     out.result = worker->getSearchResults();
     worker.reset(); // Also joins the operation and destroys its TBB graph.
     out.elapsedNs = timer.nsecsElapsed();
+    const auto cpuEnd = processCpuNs();
+    if (cpuStart >= 0 && cpuEnd >= cpuStart) out.cpuNs = cpuEnd - cpuStart;
     if (out.cancelRequested) out.cancelNs = out.elapsedNs - cancelAt;
     require(!expired && finished, "Worker search timeout");
     require(experimental::liveMatchers() == 0, "Search leaked live matchers");

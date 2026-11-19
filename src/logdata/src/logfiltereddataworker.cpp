@@ -60,6 +60,7 @@
 #include "synchronization.h"
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
 #include "experimental.h"
+#include <QScopeGuard>
 #endif
 
 namespace {
@@ -335,6 +336,12 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
 
     LOG_INFO << "Using " << matchingThreadsCount << " matching threads";
 
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    // Declared before the graph so callbacks cannot outlive the notification state.
+    experimental::WakeupGate capacityAvailable;
+    const bool useWakeup = experimental::wakeupEnabled();
+    uint64_t pollSleeps = 0;
+#endif
     tbb::flow::graph searchGraph;
 
     if ( initialLine < startLine_ ) {
@@ -407,6 +414,15 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     auto matchProcessor
         = tbb::flow::function_node<BlockDataType, tbb::flow::continue_msg, tbb::flow::rejecting>(
             searchGraph, 1, [ & ]( const BlockDataType& blockData ) {
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                const auto releaseCapacity = qScopeGuard( [ & ] {
+                    if ( useWakeup ) {
+                        capacityAvailable.release( [ & ] {
+                            blockPrefetcher.decrementer().try_put( tbb::flow::continue_msg{} );
+                        } );
+                    }
+                } );
+#endif
                 if ( interruptRequested_ ) {
                     LOG_INFO << "Match processor interrupted";
                     return tbb::flow::continue_msg{};
@@ -463,6 +479,9 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     }
 
     tbb::flow::make_edge( resultsQueue, matchProcessor );
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    if ( !useWakeup )
+#endif
     tbb::flow::make_edge( matchProcessor, blockPrefetcher.decrementer() );
 
     auto chunkStart = initialLine;
@@ -492,12 +511,27 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         chunkStart = chunkStart + nbLinesInChunk;
         fileReadingDuration += chunkReadTime;
 
-        while ( !blockPrefetcher.try_put( blockData ) && !interruptRequested_ ) {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+        if ( useWakeup ) {
+            capacityAvailable.submit( [ & ] { return blockPrefetcher.try_put( blockData ); },
+                                      [ & ] { return static_cast<bool>( interruptRequested_ ); } );
+        }
+        else
+#endif
+        {
+            while ( !blockPrefetcher.try_put( blockData ) && !interruptRequested_ ) {
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                ++pollSleeps;
+#endif
+                std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
+            }
         }
     }
 
     searchGraph.wait_for_all();
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+    experimental::recordScheduling( useWakeup, capacityAvailable.stats(), pollSleeps );
+#endif
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     const auto durationUs = duration_cast<microseconds>( t2 - t1 );

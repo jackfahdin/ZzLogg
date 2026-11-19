@@ -172,3 +172,45 @@ Selected Hyperscan/Vectorscan routes and actual Qt highlighting keep precedence.
 Oversized lines (>256 KiB) still execute the worker's original Qt matcher.
 Regular PCRE batches preserve component-level Qt fallback for BOM, invalid UTF-8,
 code-unit patterns and runtime errors. No production adoption is implied.
+
+## Capacity notification experiment
+
+`--candidate wake` compares the actual Qt matcher with capacity notifications
+against the same Qt matcher with the original 1 ms polling loop. It does not use
+the compiled memchr/PCRE candidate. This mode is compiled only into the explicit
+worker probe; default application scheduling is unchanged.
+
+The producer checks the existing TBB limiter under a mutex. After processing a
+block, the consumer decrements that limiter under the same mutex and notifies a
+condition variable. Predicate-based waiting tolerates spurious notifications
+and prevents a release between rejection and sleep from being lost. The 1 ms
+timeout remains as a cancellation check when no block finishes. The limiter
+still bounds admitted blocks at three times the matching thread count, plus the
+producer's one already-read pending block. No single regex or conversion call
+becomes interruptible.
+
+Use the same fixed Android query manifest and independent oracle as above:
+
+```sh
+python3 scripts/dev/benchmark_search_worker.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe \
+  --candidate wake --isolated-profiles \
+  --corpus out/benchmarks/p12-worker/input/queries.json \
+  --output out/benchmarks/p12-wakeup/results
+python3 scripts/dev/utf8_worker_corpus.py verify \
+  --expected out/benchmarks/p12-worker/input/expected.json \
+  --report out/benchmarks/p12-wakeup/results/results.json
+```
+
+`process_cpu_ns` is the process user+system CPU time delta (`getrusage`) around
+search submission through worker destruction/join, matching the wall-time
+interval apart from the adjacent clock reads. It includes all process threads
+and any process background work, can exceed elapsed time, and is not system CPU
+percentage. Unsupported platforms return `-1` and summary `null`.
+`capacity_waits/timeouts/releases`, `wake_searches` and `poll_sleeps` are separate
+untimed routing diagnostics. Timeout counts may include a notification that
+arrives only after the deadline; they are not CPU usage. Full searches require
+one capacity release per submitted chunk and no polling sleeps on the wake
+route. Fixed contracts exercise both scheduling modes, release-before-wait,
+release-after-rejection, cancellation without release, bounded concurrent
+submissions, repeated searches and append updates.

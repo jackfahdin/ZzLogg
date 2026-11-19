@@ -8,6 +8,10 @@
 #include <QElapsedTimer>
 #include <QTest>
 #include <iostream>
+#include "wakeup.h"
+#include <future>
+#include <atomic>
+#include <thread>
 namespace workerprobe {
 namespace {
 RegularExpressionPattern literal(const QString& text, bool boolean = false, bool inverse = false)
@@ -32,6 +36,11 @@ void check(Fixture& fixture, const RegularExpressionPattern& pattern,
     }
     require(candidate.result.processedLines.get() == std::min(last, fixture.log.getNbLine().get()),
             "Complete search did not cover requested range");
+    require(candidate.diagnostics.wakeSearches == (experimental::wakeupEnabled() ? 1U : 0U),
+            "Worker ignored requested scheduling route");
+    require(!experimental::wakeupEnabled() || (candidate.diagnostics.pollSleeps == 0
+                && candidate.diagnostics.releases == (std::min(last, fixture.log.getNbLine().get()) - first + 16) / 17),
+            "Notification path polled or lost capacity release");
     require((candidate.firstHitNs >= 0) == !expected.empty(), "First-hit notification disagrees with fixed rows");
     require(candidate.firstProgressNs >= 0, "Missing intermediate progress notification");
     require((candidate.diagnostics.matchers != 0) == (fast || experimental::usesPcre2), "Incorrect query-level routing");
@@ -39,8 +48,72 @@ void check(Fixture& fixture, const RegularExpressionPattern& pattern,
                 && candidate.diagnostics.maxRows <= experimental::MaxBatchRows, "Batch exceeded limits");
 }
 }
+void verifyWakeup()
+{
+    using namespace std::chrono_literals;
+    // A release between failed check and actual sleep must not be lost.
+    experimental::WakeupGate gate(250ms);
+    bool capacity = false; // Accessed only inside gate callbacks, under the same mutex.
+    std::promise<void> rejected;
+    auto ready = rejected.get_future();
+    bool first = true;
+    auto producer = std::async(std::launch::async, [&] {
+        return gate.submit([&] {
+            if (first) { first = false; rejected.set_value(); }
+            return capacity;
+        }, [] { return false; });
+    });
+    ready.wait();
+    gate.release([&] { capacity = true; });
+    require(producer.get(), "Capacity release did not admit producer");
+    require(gate.stats().waits == 1 && gate.stats().timeouts == 0,
+            "Capacity notification was lost; producer waited for polling timeout");
+    experimental::WakeupGate early;
+    bool free = false;
+    early.release([&] { free = true; });
+    require(early.submit([&] { return free; }, [] { return false; }) && early.stats().waits == 0,
+            "Release before submit was lost");
+    experimental::WakeupGate cancelled;
+    std::atomic<bool> stop{false};
+    std::promise<void> blocked;
+    auto waiting = blocked.get_future();
+    bool announced = false;
+    auto pending = std::async(std::launch::async, [&] {
+        return cancelled.submit([&] {
+            if (!announced) { announced = true; blocked.set_value(); }
+            return false;
+        }, [&] { return stop.load(); });
+    });
+    waiting.wait();
+    stop = true; // No release/notification: bounded timeout must still observe cancellation.
+    require(pending.wait_for(2s) == std::future_status::ready && !pending.get(),
+            "Cancelled producer remained blocked without a capacity release");
+    require(cancelled.stats().timeouts > 0, "Cancellation fallback was not exercised");
+    experimental::WakeupGate bounded;
+    std::atomic<int> outstanding{0};
+    constexpr int limit = 3, count = 4096;
+    int maximum = 0;
+    auto consumer = std::async(std::launch::async, [&] {
+        for (int done = 0; done < count;) {
+            if (outstanding.load() == 0) { std::this_thread::yield(); continue; }
+            bounded.release([&] { --outstanding; });
+            ++done;
+        }
+    });
+    for (int row = 0; row < count; ++row) {
+        require(bounded.submit([&] {
+            if (outstanding.load() == limit) return false;
+            maximum = std::max(maximum, ++outstanding);
+            return true;
+        }, [] { return false; }), "Uncancelled bounded submission failed");
+    }
+    consumer.get();
+    require(maximum <= limit && outstanding == 0 && bounded.stats().releases == count,
+            "Notifications changed capacity or lost/duplicated a release");
+}
 void verify()
 {
+    verifyWakeup();
     if (experimental::usesPcre2) {
         // Actual worker bitmap order, boolean evaluation and inverse, including regex-only syntax.
         Fixture regexRows("ab\nac\nblocked ab\n中文😀\n\n");

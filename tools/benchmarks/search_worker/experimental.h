@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "wakeup.h"
 namespace experimental {
 // Instantiated only in the instrumented worker copy, not in application objects.
 struct BlockLifetime {
@@ -30,10 +31,14 @@ constexpr size_t MaxBatchRows = 128;
 constexpr size_t MaxBatchBytes = 256 * 1024;
 void setEnabled(bool enabled); // Probe controller only, between completed searches.
 void resetDiagnostics(bool enabled);
+void setWakeup(bool enabled); // Only between fully joined searches.
+bool wakeupEnabled();
+void recordScheduling(bool wake, const WaitStats&, uint64_t pollSleeps);
 struct Metrics {
     uint64_t matchers = 0, batches = 0, rows = 0, oversized = 0, maxRows = 0, maxBytes = 0;
     uint64_t acceleratedMatchers = 0;
     uint64_t programs = 0, jitPrograms = 0, fallbackPatterns = 0, codeBytes = 0, jitBytes = 0;
+    uint64_t wakeSearches = 0, waits = 0, timeouts = 0, releases = 0, pollSleeps = 0;
     uint64_t direct = 0, fallback = 0, runtimeErrors = 0, peakMatchers = 0;
 };
 Metrics metrics();

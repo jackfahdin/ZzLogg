@@ -50,6 +50,27 @@ class WorkerOracleTests(unittest.TestCase):
             expected.write_text(json.dumps(dict(cases={'fixed': case})))
             actual.write_text(json.dumps(report))
             worker.verify(expected, actual)
+            wake_report = copy.deepcopy(report)
+            wake_report['metadata']['candidate'] = 'wake'
+            for row in wake_report['samples']:
+                if row['candidate'] == 'pcre2': row['candidate'] = 'wake'
+                row['process_cpu_ns'] = 80
+            for row in wake_report['profiles']:
+                wake = row['candidate'] == 'pcre2'
+                if wake: row['candidate'] = 'wake'
+                for key in ('matchers', 'peak_matchers', 'batched_rows', 'pcre_direct', 'pcre_programs',
+                            'pcre_jit_programs', 'max_batch_rows', 'max_batch_bytes'):
+                    row[key] = 0
+                row.update(wake_searches=int(wake), capacity_releases=int(wake),
+                    capacity_waits=int(wake), capacity_timeouts=0, poll_sleeps=0)
+            actual.write_text(json.dumps(wake_report))
+            worker.verify(expected, actual)
+            for key, value in [('capacity_releases', 0), ('wake_searches', 0), ('poll_sleeps', 1), ('matchers', 1)]:
+                broken = copy.deepcopy(wake_report)
+                broken['profiles'][0][key] = value
+                actual.write_text(json.dumps(broken))
+                with self.subTest(wake_key=key), self.assertRaises(ValueError):
+                    worker.verify(expected, actual)
             for field, key, value in [('samples', 'result_sha256', 'wrong'),
                 ('samples', 'threads', 2), ('samples', 'first_hit_ns', -1),
                 ('profiles', 'pcre_direct', 0), ('profiles', 'live_matchers', 1),

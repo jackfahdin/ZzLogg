@@ -81,7 +81,7 @@ def generate(corpus, output):
                 chunk_lines=1024, timeout_ms=120000)
             cases.append(case)
             wanted[case['id']] = dict(stats, file_sha256=file_hash, input_bytes=len(data), threads=threads,
-                                      input_sha256=input_signature(case, file_hash))
+                                      input_sha256=input_signature(case, file_hash), chunk_lines=case['chunk_lines'])
     (output / 'queries.json').write_text(json.dumps(dict(version=1, cases=cases), ensure_ascii=False, indent=2) + '\n')
     (output / 'expected.json').write_text(json.dumps(dict(synthetic=True, cases=wanted), indent=2) + '\n')
     print('SYNTHETIC Android worker scenarios:', len(cases))
@@ -90,15 +90,16 @@ def generate(corpus, output):
 def verify(expected_path, report_path):
     wanted = json.loads(expected_path.read_text())['cases']
     report = json.loads(report_path.read_text())
-    if report['metadata']['candidate'] != 'pcre2' or not report['metadata']['isolated_profiles']:
-        raise ValueError('Expected PCRE candidate and isolated process profiles')
+    candidate = report['metadata']['candidate']
+    if candidate not in ('pcre2', 'wake') or not report['metadata']['isolated_profiles']:
+        raise ValueError('Expected PCRE or wake candidate and isolated process profiles')
     groups = {field: defaultdict(list) for field in ('samples', 'profiles')}
     for field, group in groups.items():
         for row in report[field]:
             name = row['scenario']
             case = wanted[name]
             backend = row['candidate']
-            if backend not in ('pcre2', 'qt') or type(row['round']) is not int or row['round'] < 0:
+            if backend not in (candidate, 'qt') or type(row['round']) is not int or row['round'] < 0:
                 raise ValueError('Invalid backend or round')
             group[name, backend, row['round']].append(row)
             for key in ('result_sha256', 'file_sha256', 'input_sha256', 'input_bytes'):
@@ -107,6 +108,8 @@ def verify(expected_path, report_path):
             if field == 'samples':
                 if (row['rows'], row['matched'], row['threads']) != (case['rows'], case['matched'], case['threads']):
                     raise ValueError('Result counts or threads differ')
+                if candidate == 'wake' and row['process_cpu_ns'] < -1:
+                    raise ValueError('Invalid process CPU time')
                 if row['elapsed_ns'] <= 0 or any(not -1 <= row[k] <= row['elapsed_ns']
                     for k in ('first_progress_ns', 'first_hit_ns')) or (row['first_hit_ns'] >= 0) != (case['matched'] > 0):
                     raise ValueError('Invalid elapsed/notification timing')
@@ -121,6 +124,16 @@ def verify(expected_path, report_path):
                     pcre_jit_programs=case['programs'] * case['threads'] if fast else 0,
                     pcre_fallback_patterns=case['fallback_patterns'] * case['threads'] if fast else 0,
                     pcre_runtime_errors=0)
+                if candidate == 'wake':
+                    wake = backend == 'wake'
+                    expected_metrics.update(wake_searches=int(wake),
+                        capacity_releases=(case['rows'] + case.get('chunk_lines', 1024) - 1) // case.get('chunk_lines', 1024) if wake else 0)
+                    if wake:
+                        expected_metrics['poll_sleeps'] = 0
+                    elif row['capacity_waits'] != 0 or row['capacity_timeouts'] != 0:
+                        raise ValueError('Qt control entered capacity wait')
+                    if not 0 <= row['capacity_timeouts'] <= row['capacity_waits'] or row['poll_sleeps'] < 0:
+                        raise ValueError('Invalid scheduling counts')
                 for key, value in expected_metrics.items():
                     if row[key] != value:
                         raise ValueError(f'Routing/resource mismatch: {name} {key}: {row[key]} != {value}')
@@ -134,7 +147,7 @@ def verify(expected_path, report_path):
     rounds = {key[2] for key in groups['samples']}
     if not rounds or rounds != set(range(max(rounds) + 1)):
         raise ValueError('Incomplete rounds')
-    keys = {(name, backend, r) for name in wanted for backend in ('pcre2', 'qt') for r in rounds}
+    keys = {(name, backend, r) for name in wanted for backend in (candidate, 'qt') for r in rounds}
     if any(set(g) != keys for g in groups.values()):
         raise ValueError('Incomplete case/backend/round coverage')
     for key in keys:
