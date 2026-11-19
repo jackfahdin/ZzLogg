@@ -89,3 +89,25 @@ runner 先以 1 MiB 缓冲流式复制每个不同源文件到私有临时目录
 `timeout_ms` 是每次索引等待／后台搜索的软超时，不能立即中断正在执行的单次 Qt 调用。runner 的 `--timeout` 是每个 probe 子进程的硬超时（秒），覆盖该进程的全部 case 和诊断，默认 600；大语料可适当调高两者。失败时命令非零退出，检查 stderr 日志，不能仅凭部分 JSONL 判断验收成功。
 
 外部输入和报告方案见 [语料入口记录](../../../docs/superpowers/plans/2026-11-18-search-corpus-input.md)。构建／CI 日志仅可证明流程可用，不能代替用户业务日志的代表性与跨平台性能证据。
+
+## Android 驱动开发模拟语料
+
+无需设备日志即可复现这一组实验。生成器仅用 Python 标准库，固定种子生成 dmesg、threadtime logcat、JSON／堆栈混合应用日志，各 65536 行；另有 12 行异常边界文件。所有内容都是 **synthetic 模拟数据**，不是从设备采集。输出必须是空目录；数据和结果不提交到仓库。
+
+```bash
+python3 scripts/dev/generate_android_search_corpus.py generate \
+  --output out/benchmarks/p11-android/corpus --rows 65536 --seed 20261119
+python3 scripts/dev/benchmark_search_worker.py \
+  --binary out/build/p6-boolean/output/zzlogg_search_worker_probe \
+  --corpus out/benchmarks/p11-android/corpus/queries.json \
+  --output out/benchmarks/p11-android/results --rounds 4
+python3 scripts/dev/generate_android_search_corpus.py verify \
+  --expected out/benchmarks/p11-android/corpus/expected.json \
+  --report out/benchmarks/p11-android/results/results.json
+```
+
+34 组查询覆盖驱动 probe 失败、I2C 超时、irq、errno 正则、Java/native 崩溃、binder 排除 debug、包名、中文、ANR、长载荷和反选，各用 1／2 匹配线程。异常文件含 BOM、坏 UTF-8、NUL、CRLF、空行、tab、emoji、无尾换行，以及超过 256 KiB／1 MiB 的行。大行直接走 Qt，其余不符合候选条件的查询仍走原有后端。
+
+生成器独立计算完整命中行号、最大字节宽度和处理位置的 SHA-256，验收全部样本／诊断的结果、文件摘要、配对和两种后端覆盖、路由与批次资源限制。预期不是从探针输出反推；Python 谓词只适用于这组固定模式，不作为通用 Qt 正则参考。`expected.json` 保存生成器源码摘要、参数和每份文件的内容摘要。
+
+这些模拟日志用于可重复的正确性与性能对照，不能代表真实设备的所有格式、分布或大小。单机热页缓存结果不代表冷盘、Windows 或整应用加速倍数；小文件也可能在取消请求到达前已经完成。测量结论见 [Android 语料记录](../../../docs/superpowers/plans/2026-11-19-android-log-corpus.md)。

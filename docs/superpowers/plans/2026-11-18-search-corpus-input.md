@@ -90,3 +90,5 @@ Expected: 实际文件对照结果一致，失败可辨认，报告足以检查�
 - 使用说明见 [README](../../../tools/benchmarks/search_worker/README.md#外部日志语料)，输入模板见 [示例清单](../../../tools/benchmarks/search_worker/corpus.example.json)。
 
 下一步可以将同一入口用于明确的业务日志和常用查询，补足文件规模、编码、关键词数量／命中率、长行和异常输入的代表性。真实业务语料、其他平台／独立 Hyperscan、工具链分发成本及冷盘仍未准入；P11 保持实验，不替换生产实现。
+
+2026-11-19 跟进：按用户要求自行生成 Android 驱动开发的 dmesg／logcat／应用日志，完成约 25 MB 的独立预期与四轮对照，见 [Android 模拟语料记录](2026-11-19-android-log-corpus.md)。这是可复现的模拟数据，未冒充真实设备日志。
