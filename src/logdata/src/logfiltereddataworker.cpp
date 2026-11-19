@@ -43,6 +43,8 @@
 #include <utility>
 
 #include <tbb/flow_graph.h>
+#include <tbb/global_control.h>
+#include <tbb/task_arena.h>
 #include <vector>
 
 #include "configuration.h"
@@ -215,6 +217,18 @@ void SearchData::clear()
     removedMatches_ = {};
 }
 
+void SearchData::invalidate()
+{
+    UniqueLock locker( dataMutex_ );
+    // Previously delivered matches must also be removed by the consumer.
+    removedMatches_ |= matches_;
+    matches_ = {};
+    newMatches_ = {};
+    maxLength_ = LineLength( 0 );
+    nbLinesProcessed_ = LinesCount( 0 );
+    nbMatches_ = LinesCount( 0 );
+}
+
 LogFilteredDataWorker::LogFilteredDataWorker( const LogData& sourceLogData )
     : sourceLogData_( sourceLogData )
 {
@@ -342,7 +356,15 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     const bool useWakeup = experimental::wakeupEnabled();
     uint64_t pollSleeps = 0;
 #endif
-    tbb::flow::graph searchGraph;
+    tbb::task_group_context searchContext( tbb::task_group_context::isolated );
+    tbb::flow::graph searchGraph( searchContext );
+    const auto needsProducer = [] {
+        return tbb::global_control::active_value( tbb::global_control::max_allowed_parallelism ) <= 1
+               || tbb::this_task_arena::max_concurrency() <= 1;
+    };
+    const auto stopped = [ & ] {
+        return interruptRequested_ || searchContext.is_group_execution_cancelled();
+    };
 
     if ( initialLine < startLine_ ) {
         initialLine = startLine_;
@@ -374,6 +396,10 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
             regularExpression.createMatcher(), microseconds{ 0 },
             RegexMatcherNode(
                 searchGraph, 1, [ &regexMatchers, index, this ]( const BlockDataType& blockData ) {
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                    experimental::CallbackLifetime callbackLifetime;
+                    experimental::recoveryPoint( experimental::RecoveryPoint::Match );
+#endif
                     if ( interruptRequested_ ) {
                         LOG_INFO << "Matcher " << index << " interrupted";
                         blockData->searchResults.chunkStart = blockData->chunkStart;
@@ -415,6 +441,8 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         = tbb::flow::function_node<BlockDataType, tbb::flow::continue_msg, tbb::flow::rejecting>(
             searchGraph, 1, [ & ]( const BlockDataType& blockData ) {
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                experimental::CallbackLifetime callbackLifetime;
+                experimental::recoveryPoint( experimental::RecoveryPoint::Combine );
                 const auto releaseCapacity = qScopeGuard( [ & ] {
                     if ( useWakeup ) {
                         capacityAvailable.release( [ & ] {
@@ -471,67 +499,103 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                 return tbb::flow::continue_msg{};
             } );
 
-    tbb::flow::make_edge( blockPrefetcher, lineBlocksQueue );
-
-    for ( auto& regexMatcher : regexMatchers ) {
-        tbb::flow::make_edge( lineBlocksQueue, std::get<RegexMatcherNode>( regexMatcher ) );
-        tbb::flow::make_edge( std::get<RegexMatcherNode>( regexMatcher ), resultsQueue );
-    }
-
-    tbb::flow::make_edge( resultsQueue, matchProcessor );
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
-    if ( !useWakeup )
+    const auto checkNodeLifetime = qScopeGuard( [] {
+        experimental::recoveryPoint( experimental::RecoveryPoint::BeforeNodeDestruction );
+    } );
 #endif
-    tbb::flow::make_edge( matchProcessor, blockPrefetcher.decrementer() );
+    try {
+        tbb::flow::make_edge( blockPrefetcher, lineBlocksQueue );
 
-    auto chunkStart = initialLine;
-    while ( chunkStart < endLine && !interruptRequested_ ) {
-        const auto lineSourceStartTime = high_resolution_clock::now();
-        LOG_DEBUG << "Reading chunk starting at " << chunkStart;
-
-        const auto linesInChunk
-            = LinesCount( qMin( nbLinesInChunk.get(), ( endLine - chunkStart ).get() ) );
-        auto lines = sourceLogData_.getLinesRaw( chunkStart, linesInChunk );
-
-        /*LOG_DEBUG << "Sending chunk starting at " << chunkStart << ", " <<
-            lines.second.size()
-                << " lines read.";*/
-        auto blockData = std::make_shared<SearchBlockData>( chunkStart, std::move( lines ) );
-
-        const auto lineSourceEndTime = high_resolution_clock::now();
-        const auto chunkReadTime
-            = duration_cast<microseconds>( lineSourceEndTime - lineSourceStartTime );
-
-        /*LOG_DEBUG << "Sent chunk starting at " << chunkStart << ", " <<
-        blockData->lines.second.size()
-                << " lines read in " << static_cast<float>( chunkReadTime.count() )
-        / 1000.f
-                << " ms";*/
-
-        chunkStart = chunkStart + nbLinesInChunk;
-        fileReadingDuration += chunkReadTime;
-
+        for ( auto& regexMatcher : regexMatchers ) {
+            tbb::flow::make_edge( lineBlocksQueue, std::get<RegexMatcherNode>( regexMatcher ) );
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
-        if ( useWakeup ) {
-            capacityAvailable.submit( [ & ] { return blockPrefetcher.try_put( blockData ); },
-                                      [ & ] { return static_cast<bool>( interruptRequested_ ); } );
+            experimental::recoveryPoint( experimental::RecoveryPoint::Connect );
+#endif
+            tbb::flow::make_edge( std::get<RegexMatcherNode>( regexMatcher ), resultsQueue );
         }
-        else
+
+        tbb::flow::make_edge( resultsQueue, matchProcessor );
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+        if ( !useWakeup )
 #endif
-        {
-            while ( !blockPrefetcher.try_put( blockData ) && !interruptRequested_ ) {
+        tbb::flow::make_edge( matchProcessor, blockPrefetcher.decrementer() );
+
+        auto chunkStart = initialLine;
+        while ( chunkStart < endLine && !stopped() ) {
+            const auto lineSourceStartTime = high_resolution_clock::now();
+            LOG_DEBUG << "Reading chunk starting at " << chunkStart;
+
+            const auto linesInChunk
+                = LinesCount( qMin( nbLinesInChunk.get(), ( endLine - chunkStart ).get() ) );
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+            experimental::recoveryPoint( experimental::RecoveryPoint::Read );
+#endif
+            auto lines = sourceLogData_.getLinesRaw( chunkStart, linesInChunk );
+
+            /*LOG_DEBUG << "Sending chunk starting at " << chunkStart << ", " <<
+                lines.second.size()
+                    << " lines read.";*/
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+            experimental::recoveryPoint( experimental::RecoveryPoint::Allocate );
+#endif
+            auto blockData = std::make_shared<SearchBlockData>( chunkStart, std::move( lines ) );
+
+            const auto lineSourceEndTime = high_resolution_clock::now();
+            const auto chunkReadTime
+                = duration_cast<microseconds>( lineSourceEndTime - lineSourceStartTime );
+
+            /*LOG_DEBUG << "Sent chunk starting at " << chunkStart << ", " <<
+            blockData->lines.second.size()
+                    << " lines read in " << static_cast<float>( chunkReadTime.count() )
+            / 1000.f
+                    << " ms";*/
+
+            chunkStart = chunkStart + nbLinesInChunk;
+            fileReadingDuration += chunkReadTime;
+
+            while ( !stopped() ) {
+                // With no TBB background slot, sleeping cannot free capacity. Let
+                // this producer execute the bounded set of already admitted tasks.
+                if ( needsProducer() ) {
+                    if ( blockPrefetcher.try_put( blockData ) ) break;
+                    searchGraph.wait_for_all();
+                    continue;
+                }
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                if ( useWakeup ) {
+                    if ( capacityAvailable.submit(
+                             [ & ] { return blockPrefetcher.try_put( blockData ); },
+                             [ & ] { return stopped() || needsProducer(); } ) ) break;
+                    continue;
+                }
+#endif
+                if ( blockPrefetcher.try_put( blockData ) ) break;
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
                 ++pollSleeps;
 #endif
                 std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
             }
         }
-    }
 
-    searchGraph.wait_for_all();
+        searchGraph.wait_for_all();
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
-    experimental::recordScheduling( useWakeup, capacityAvailable.stats(), pollSleeps );
+        experimental::recordScheduling( useWakeup, capacityAvailable.stats(), pollSleeps );
 #endif
+    } catch ( ... ) {
+        // Graph destruction is too late: its nodes and captured state are
+        // declared after it and would already be gone during stack unwinding.
+        searchGraph.cancel();
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+        experimental::recoveryPoint( experimental::RecoveryPoint::BeforeDrain );
+#endif
+        try {
+            searchGraph.wait_for_all();
+        } catch ( ... ) {
+            // Preserve the original read/allocation/task exception.
+        }
+        throw;
+    }
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     const auto durationUs = duration_cast<microseconds>( t2 - t1 );
@@ -562,6 +626,13 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     Q_EMIT searchFinished();
 }
 
+void SearchOperation::failSearch( SearchData& searchData )
+{
+    searchData.invalidate();
+    Q_EMIT searchProgressed( 0_lcount, 100, startLine_ );
+    Q_EMIT searchFinished();
+}
+
 // Called in the worker thread's context
 void FullSearchOperation::run( SearchData& searchData )
 {
@@ -570,12 +641,16 @@ void FullSearchOperation::run( SearchData& searchData )
         searchData.clear();
         doSearch( searchData, 0_lnum );
     } catch ( const std::exception& err ) {
+        failSearch( searchData );
         const auto errorString = QString( "FullSearchOperation failed: %1" ).arg( err.what() );
         LOG_ERROR << errorString;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+        experimental::recoveryPoint( experimental::RecoveryPoint::ErrorReported );
+        if ( !experimental::hasRecoveryHook() )
+#endif
         dispatchToMainThread( [ errorString ]() {
             IssueReporter::askUserAndReportIssue( IssueTemplate::Exception, errorString );
         } );
-        searchData.clear();
     }
 }
 
@@ -595,11 +670,15 @@ void UpdateSearchOperation::run( SearchData& searchData )
 
         doSearch( searchData, initialLine );
     } catch ( const std::exception& err ) {
-        const auto errorString = QString( "UpdateSearchOpertaion failed: %1" ).arg( err.what() );
+        failSearch( searchData );
+        const auto errorString = QString( "UpdateSearchOperation failed: %1" ).arg( err.what() );
         LOG_ERROR << errorString;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+        experimental::recoveryPoint( experimental::RecoveryPoint::ErrorReported );
+        if ( !experimental::hasRecoveryHook() )
+#endif
         dispatchToMainThread( [ errorString ]() {
             IssueReporter::askUserAndReportIssue( IssueTemplate::Exception, errorString );
         } );
-        searchData.clear();
     }
 }

@@ -12,6 +12,18 @@ struct BlockLifetime {
 };
 int64_t liveBlocks();
 int64_t liveMatchers();
+enum class RecoveryPoint { Connect, Read, Allocate, Match, Combine, BeforeDrain, BeforeNodeDestruction, ErrorReported };
+using RecoveryHook = void (*)(RecoveryPoint);
+void setRecoveryHook(RecoveryHook);
+bool hasRecoveryHook();
+void recoveryPoint(RecoveryPoint);
+int64_t activeCallbacks();
+struct CallbackLifetime {
+    CallbackLifetime();
+    ~CallbackLifetime();
+    CallbackLifetime(const CallbackLifetime&) = delete;
+    CallbackLifetime& operator=(const CallbackLifetime&) = delete;
+};
 #ifdef ZZLOGG_WORKER_PCRE2
 inline constexpr bool usesPcre2 = true;
 inline constexpr auto candidateName = "pcre2";

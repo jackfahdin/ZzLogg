@@ -34,5 +34,6 @@ Outcome search(Fixture&, const RegularExpressionPattern&, bool memchr, unsigned 
                uint64_t start = 0, uint64_t end = std::numeric_limits<uint64_t>::max(),
                int timeoutMs = 30000);
 void verify();
+void verifyRecovery(const QString& mode, bool wake);
 void verifyIntegration(bool requireAccelerated);
 }

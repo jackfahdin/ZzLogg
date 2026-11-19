@@ -117,6 +117,9 @@ public:
     // Atomically clear the data.
     void clear();
 
+    // Clear a failed search and retract matches already delivered to its consumer.
+    void invalidate();
+
 private:
     mutable SharedMutex dataMutex_;
 
@@ -147,6 +150,7 @@ protected:
     // Implement the common part of the search, passing
     // the shared results and the line to begin the search from.
     void doSearch( SearchData& result, LineNumber initialLine );
+    void failSearch( SearchData& result );
 
     AtomicFlag& interruptRequested_;
     const RegularExpressionPattern regexp_;

@@ -153,6 +153,8 @@ int main(int argc, char** argv)
     parser.addOptions({{"verify-integration", "Verify highlight positions and backend routing."},
         {"require-accelerated", "Fail integration verification unless an accelerated library executes."},
         {"verify", "Run worker integration and lifecycle contracts."},
+        {"verify-recovery", "Inject a bounded worker failure: connect, read, allocation, match, combine, completion", "mode"},
+        {"recovery-wake", "Use wake scheduling for the recovery contract."},
         {"candidate", "Compiled regex candidate, wake (Qt with capacity notifications), or Qt control", "backend", "qt"},
         {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
@@ -170,6 +172,10 @@ int main(int argc, char** argv)
         workerprobe::require(!parser.isSet("corpus")
             || (!parser.isSet("verify") && !parser.isSet("verify-integration") && !parser.isSet("case")),
             "Use --corpus separately from generated cases and verification modes");
+        if (parser.isSet("verify-recovery")) {
+            workerprobe::verifyRecovery(parser.value("verify-recovery"), parser.isSet("recovery-wake"));
+            return 0;
+        }
         if (parser.isSet("verify-integration")) {
             for (bool wake : {false, true}) {
                 experimental::setWakeup(wake);

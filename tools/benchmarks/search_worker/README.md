@@ -214,3 +214,49 @@ one capacity release per submitted chunk and no polling sleeps on the wake
 route. Fixed contracts exercise both scheduling modes, release-before-wait,
 release-after-rejection, cancellation without release, bounded concurrent
 submissions, repeated searches and append updates.
+
+## Single-slot scheduling and failure recovery
+
+The production worker now participates in its graph when either the process TBB
+limit or its arena has only one execution slot. A full queue can therefore drain
+without relying on a nonexistent background worker. The default multi-slot
+scheduler still polls; wake remains an explicit experiment.
+
+Production searches use an explicit isolated task context to observe task
+failure while submitting blocks. On an edge-setup/read/allocation/task exception they cancel
+and wait while all graph nodes and captures are alive, then propagate the
+original exception. A failed operation retracts previously delivered matches,
+resets processed extent and sends terminal progress plus completion before the
+existing error report. It does not label partial rows as a complete result.
+
+The default `zzlogg_ui.search_worker_recovery` CTest links the actual production
+library, tests full/cancel searches on fresh workers under `global_control(1)`
+and full matching in a one-slot arena, and has a 30-second hard process deadline.
+Same-worker recovery is covered by the explicit fault matrix below; extending
+that reuse and arena cancellation coverage in the default test is deferred. On Linux, the same executable can also be run under
+`taskset -c <one-allowed-CPU>`.
+
+The explicit probe has failure checkpoints that are absent from production:
+
+```sh
+python3 scripts/dev/verify_search_recovery.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe
+# Linux: repeat with one allowed CPU to cover queued-but-not-yet-executing tasks.
+taskset -c 0 python3 scripts/dev/verify_search_recovery.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe
+```
+
+This executes graph-edge, read, block-allocation, matcher, result-combiner and initial-read
+failures in separate bounded processes, with both poll and wake scheduling.
+Each process verifies a full-search failure and an append-update failure,
+withdrawal of consumed/partial results, one terminal/completion, resource
+release and a successful retry on the same worker. Multi-CPU producer failures
+hold a real callback active until cleanup begins; the child explicitly fails
+before node destruction if any callback is still active. One-CPU producer faults
+instead cover cancellation of queued tasks. The combiner fault waits until a
+partial result is consumed. Error dialogs alone are suppressed in fault mode;
+the real worker graph and exception handlers execute.
+
+A one-shot `bad_alloc` is injected at the boundary; this is not a claim that a
+process with continuously exhausted memory can allocate Qt error messages or
+continue operating. Single regex calls remain uninterruptible.

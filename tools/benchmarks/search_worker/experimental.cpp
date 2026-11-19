@@ -1,12 +1,19 @@
 #include "experimental.h"
 #include <atomic>
 namespace experimental {
-namespace { std::atomic<int64_t> blocks{0}, live{0}; }
+namespace { std::atomic<int64_t> blocks{0}, live{0}, callbacks{0};
+std::atomic<RecoveryHook> recoveryHook{nullptr}; }
 BlockLifetime::BlockLifetime() { ++blocks; }
 BlockLifetime::BlockLifetime(BlockLifetime&&) { ++blocks; }
 BlockLifetime::~BlockLifetime() { --blocks; }
 int64_t liveBlocks() { return blocks.load(); }
 int64_t liveMatchers() { return live.load(); }
+int64_t activeCallbacks() { return callbacks.load(); }
+CallbackLifetime::CallbackLifetime() { ++callbacks; }
+CallbackLifetime::~CallbackLifetime() { --callbacks; }
+void setRecoveryHook(RecoveryHook hook) { recoveryHook = hook; }
+bool hasRecoveryHook() { return recoveryHook.load() != nullptr; }
+void recoveryPoint(RecoveryPoint point) { if (const auto hook = recoveryHook.load()) hook(point); }
 }
 #include "matcher.h"
 #include <algorithm>

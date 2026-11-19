@@ -24,6 +24,13 @@ add_test(
 # The Windows CI action bounds retries of this known intermittent parallel
 # search scenario via ctest --repeat. REPEAT_UNTIL_PASS is not a test property.
 
+# Separate process and hard CTest deadline: a scheduler regression must not hang the suite.
+add_executable(zzlogg_search_worker_recovery_test search_worker_recovery_test.cpp)
+target_link_libraries(zzlogg_search_worker_recovery_test PRIVATE klogg_logdata klogg_settings Qt6::Test)
+add_test(NAME zzlogg_ui.search_worker_recovery COMMAND zzlogg_search_worker_recovery_test)
+set_tests_properties(zzlogg_ui.search_worker_recovery PROPERTIES TIMEOUT 30)
+add_dependencies(ci_build zzlogg_search_worker_recovery_test)
+
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
 zzlogg_relax_test_warnings_in_current_dir()
