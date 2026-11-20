@@ -21,6 +21,7 @@
 
 #include <QFileInfo>
 #include <QMimeDatabase>
+#include <QScopeGuard>
 #include <QtConcurrent>
 
 #include <k7zip.h>
@@ -200,38 +201,47 @@ bool doExtract( std::shared_ptr<KArchive> archive, const QString& archiveFilePat
 bool doDecompress( std::shared_ptr<KCompressionDevice> input, const QString& archiveFilePath,
                    QFile* outputFile, AtomicFlag& interrupt )
 {
+    const auto closeFiles = qScopeGuard( [ & ] {
+        input->close();
+        outputFile->close();
+    } );
     if ( !input->open( QIODevice::ReadOnly ) ) {
         LOG_WARNING << "Cannot open " << archiveFilePath;
         return false;
     }
 
-    bool success = true;
     try {
+        QByteArray data( 4 * 1024 * 1024, Qt::Uninitialized );
         while ( !input->atEnd() ) {
             if ( interrupt ) {
-                success = false;
                 LOG_INFO << "Interrupted decompress of " << archiveFilePath;
-                break;
+                return false;
             }
 
-            QByteArray data = input->read( 4 * 1024 * 1024 );
-            if ( data.size() > 0 ) {
-                const auto writtenBytes = outputFile->write( data );
-                if ( writtenBytes < 0 ) {
+            const auto bytes = input->read( data.data(), data.size() );
+            // This is a local file: zero progress before a valid stream end
+            // means truncation/decoding failure, not data that may arrive later.
+            if ( bytes < 0 || ( bytes == 0 && !input->atEnd() ) ) {
+                LOG_ERROR << "Error reading compressed data from " << archiveFilePath;
+                return false;
+            }
+            if ( bytes > 0 ) {
+                if ( outputFile->write( data.constData(), bytes ) != bytes ) {
                     LOG_ERROR << "Error decompressing " << archiveFilePath;
-                    success = false;
-                    break;
+                    return false;
                 }
             }
         }
+        // QFile may have accepted bytes into its buffer while the device is full.
+        if ( !outputFile->flush() ) {
+            LOG_ERROR << "Error flushing decompressed data from " << archiveFilePath;
+            return false;
+        }
+        return !interrupt;
     } catch ( const std::exception& e ) {
         LOG_ERROR << "Exception during decompress: " << e.what();
+        return false;
     }
-
-    input->close();
-    outputFile->close();
-
-    return success;
 }
 
 } // namespace

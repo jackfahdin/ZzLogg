@@ -37,6 +37,16 @@ add_test(NAME zzlogg_ui.search_capacity_gate COMMAND zzlogg_search_capacity_gate
 set_tests_properties(zzlogg_ui.search_capacity_gate PROPERTIES TIMEOUT 30)
 add_dependencies(ci_build zzlogg_search_capacity_gate_test)
 
+# Keep corrupt-stream regressions bounded even if a worker stops responding.
+add_executable(zzlogg_decompressor_test decompressor_test.cpp)
+target_link_libraries(zzlogg_decompressor_test PRIVATE klogg_ui Qt6::Test)
+target_compile_definitions(zzlogg_decompressor_test PRIVATE
+    DECOMPRESS_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/compression")
+set_target_properties(zzlogg_decompressor_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.decompressor COMMAND zzlogg_decompressor_test)
+set_tests_properties(zzlogg_ui.decompressor PROPERTIES TIMEOUT 45)
+add_dependencies(ci_build zzlogg_decompressor_test)
+
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
 zzlogg_relax_test_warnings_in_current_dir()
