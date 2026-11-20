@@ -34,6 +34,14 @@ void check(Fixture& fixture, const RegularExpressionPattern& pattern,
         for (auto row : candidate.result.newMatches) actual += std::to_string(row) + ",";
         throw std::runtime_error("Fixed rows differ for " + pattern.pattern.toStdString() + ": " + actual);
     }
+    for (const auto* result : {&qt, &candidate}) {
+        require((result->cpuNs >= 0 && result->userCpuNs >= 0 && result->systemCpuNs >= 0
+                    && result->cpuNs == result->userCpuNs + result->systemCpuNs
+                    && result->voluntarySwitches >= 0 && result->involuntarySwitches >= 0)
+                || (result->cpuNs == -1 && result->userCpuNs == -1 && result->systemCpuNs == -1
+                    && result->voluntarySwitches == -1 && result->involuntarySwitches == -1),
+                "Incomplete or inconsistent per-search process resource counters");
+    }
     require(candidate.result.processedLines.get() == std::min(last, fixture.log.getNbLine().get()),
             "Complete search did not cover requested range");
     require(candidate.diagnostics.wakeSearches == (experimental::wakeupEnabled() ? 1U : 0U),

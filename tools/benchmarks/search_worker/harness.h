@@ -24,6 +24,8 @@ struct Outcome {
     SearchResults result;
     std::vector<int> progress;
     qint64 elapsedNs = 0, cancelNs = 0, cpuNs = -1;
+    qint64 userCpuNs = -1, systemCpuNs = -1;
+    qint64 voluntarySwitches = -1, involuntarySwitches = -1;
     qint64 firstProgressNs = -1, firstHitNs = -1;
     bool cancelRequested = false;
     experimental::Metrics diagnostics;

@@ -14,17 +14,24 @@
 namespace workerprobe {
 void require(bool good, const char* message) { if (!good) throw std::runtime_error(message); }
 namespace {
-qint64 processCpuNs()
+struct ProcessUsage {
+    qint64 userNs = -1, systemNs = -1, voluntary = -1, involuntary = -1;
+};
+ProcessUsage processUsage()
 {
 #if defined(Q_OS_UNIX)
     rusage usage{};
-    if (getrusage(RUSAGE_SELF, &usage) != 0) return -1;
-    return (static_cast<qint64>(usage.ru_utime.tv_sec) + usage.ru_stime.tv_sec) * 1000000000
-         + (static_cast<qint64>(usage.ru_utime.tv_usec) + usage.ru_stime.tv_usec) * 1000;
+    if (getrusage(RUSAGE_SELF, &usage) != 0) return {};
+    return {static_cast<qint64>(usage.ru_utime.tv_sec) * 1000000000
+                + static_cast<qint64>(usage.ru_utime.tv_usec) * 1000,
+            static_cast<qint64>(usage.ru_stime.tv_sec) * 1000000000
+                + static_cast<qint64>(usage.ru_stime.tv_usec) * 1000,
+            static_cast<qint64>(usage.ru_nvcsw), static_cast<qint64>(usage.ru_nivcsw)};
 #else
-    return -1;
+    return {};
 #endif
 }
+
 void loaded(QSignalSpy& spy, int timeoutMs)
 {
     QElapsedTimer timer;
@@ -126,7 +133,7 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     QObject::connect(&timeout, &QTimer::timeout, &loop, [&] {
         expired = true; worker->interrupt(); loop.quit();
     });
-    const auto cpuStart = processCpuNs();
+    const auto usageStart = processUsage();
     timer.start();
     timeout.start(timeoutMs);
     const auto last = std::min(end, fixture.log.getNbLine().get());
@@ -136,8 +143,17 @@ Outcome search(Fixture& fixture, const RegularExpressionPattern& pattern, bool m
     out.result = worker->getSearchResults();
     worker.reset(); // Also joins the operation and destroys its TBB graph.
     out.elapsedNs = timer.nsecsElapsed();
-    const auto cpuEnd = processCpuNs();
-    if (cpuStart >= 0 && cpuEnd >= cpuStart) out.cpuNs = cpuEnd - cpuStart;
+    const auto usageEnd = processUsage();
+    if (usageStart.userNs >= 0 && usageStart.systemNs >= 0 && usageStart.voluntary >= 0
+        && usageStart.involuntary >= 0 && usageEnd.userNs >= usageStart.userNs
+        && usageEnd.systemNs >= usageStart.systemNs && usageEnd.voluntary >= usageStart.voluntary
+        && usageEnd.involuntary >= usageStart.involuntary) {
+        out.userCpuNs = usageEnd.userNs - usageStart.userNs;
+        out.systemCpuNs = usageEnd.systemNs - usageStart.systemNs;
+        out.cpuNs = out.userCpuNs + out.systemCpuNs;
+        out.voluntarySwitches = usageEnd.voluntary - usageStart.voluntary;
+        out.involuntarySwitches = usageEnd.involuntary - usageStart.involuntary;
+    }
     if (out.cancelRequested) out.cancelNs = out.elapsedNs - cancelAt;
     require(!expired && finished, "Worker search timeout");
     require(experimental::liveMatchers() == 0, "Search leaked live matchers");

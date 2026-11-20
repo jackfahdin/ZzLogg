@@ -10,6 +10,8 @@
 #include <QTemporaryDir>
 #include <array>
 #include <iostream>
+#include <tbb/global_control.h>
+#include <tbb/info.h>
 #if defined(Q_OS_UNIX)
 #include <sys/resource.h>
 #endif
@@ -109,6 +111,8 @@ void measure(const Scenario& s, const QString& backendName, bool reverse, bool p
         output({{"scenario", QString::fromStdString(s.name)}, {"candidate", backendName},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
+                {"tbb_default_concurrency", tbb::info::default_concurrency()},
+                {"tbb_global_limit", double(tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism))},
                 {"wake_searches", double(stats.wakeSearches)}, {"capacity_waits", double(stats.waits)},
                 {"capacity_timeouts", double(stats.timeouts)}, {"capacity_releases", double(stats.releases)},
                 {"poll_sleeps", double(stats.pollSleeps)},
@@ -140,6 +144,9 @@ void measure(const Scenario& s, const QString& backendName, bool reverse, bool p
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
                 {"elapsed_ns", double(result.elapsedNs)}, {"process_cpu_ns", double(result.cpuNs)},
+                {"process_user_cpu_ns", double(result.userCpuNs)}, {"process_system_cpu_ns", double(result.systemCpuNs)},
+                {"voluntary_context_switches", double(result.voluntarySwitches)},
+                {"involuntary_context_switches", double(result.involuntarySwitches)},
                 {"first_progress_ns", double(result.firstProgressNs)}, {"first_hit_ns", double(result.firstHitNs)}, {"rows", double(result.result.processedLines.get())},
                 {"matched", double(result.result.newMatches.cardinality())}, {"chunk_rows", int(s.chunk)}});
     }

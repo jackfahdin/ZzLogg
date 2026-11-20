@@ -276,3 +276,31 @@ the real worker graph and exception handlers execute.
 A one-shot `bad_alloc` is injected at the boundary; this is not a claim that a
 process with continuously exhausted memory can allocate Qt error messages or
 continue operating. Single regex calls remain uninterruptible.
+
+
+## CPU topology and scheduling diagnostics
+
+`--cpus` selects logical CPU IDs. The report's `metadata.cpu_topology` records
+package/core identity and SMT sibling lists from Linux sysfs, together with the
+number of distinct selected physical cores. Unknown or unreadable identities
+produce `null`; logical CPU count is never used as a fallback physical-core count.
+For example, CPU 0/1 on the evaluation host are SMT siblings, while 0/2 select two
+separate P cores. Always inspect the topology for the machine being measured.
+
+Timing rows additionally expose `process_user_cpu_ns`, `process_system_cpu_ns`,
+`voluntary_context_switches` and `involuntary_context_switches`. These are
+`getrusage(RUSAGE_SELF)` deltas over the same submit-through-destruction/join
+interval as `process_cpu_ns`, using the existing two resource snapshots. They
+exclude snapshot creation/indexing and include all process threads. Unsupported
+or failed sampling yields `-1` for the whole group; total CPU equals user plus
+system CPU when available. The runner accepts old output without the new group,
+but rejects partial, negative or inconsistent new records.
+
+Profiles record `tbb_default_concurrency` and `tbb_global_limit`. They describe
+execution budgets, not the number of simultaneously active matchers. Likewise,
+context-switch counts are neither lock-wait duration nor CPU time, and changing
+CPU affinity can affect both hardware sharing and TBB scheduling capacity.
+Use paired Qt controls within each topology and retain all runs. See the
+[scheduling diagnosis](../../../docs/superpowers/plans/2026-11-20-search-scheduling-diagnosis.md)
+for the evaluation and its limits. These diagnostics do not change production
+scheduling or require perf permissions.

@@ -15,6 +15,52 @@ import subprocess
 import tempfile
 
 
+RESOURCE_FIELDS = ('process_user_cpu_ns', 'process_system_cpu_ns',
+                   'voluntary_context_switches', 'involuntary_context_switches')
+
+
+def cpu_topology(cpus, root=Path('/sys/devices/system/cpu')):
+    """Report selected logical CPUs without assuming they are distinct physical cores."""
+    if not cpus:
+        return None
+    records = []
+    for cpu in sorted(set(cpus)):
+        directory = root / f'cpu{cpu}' / 'topology'
+        def read(name):
+            try:
+                return (directory / name).read_text().strip()
+            except (OSError, UnicodeError):
+                return None
+        def identity(name):
+            try:
+                value = int(read(name))
+                return value if value >= 0 else None
+            except (TypeError, ValueError):
+                return None
+        records.append(dict(cpu=cpu, package_id=identity('physical_package_id'),
+                            core_id=identity('core_id'), thread_siblings_list=read('thread_siblings_list')))
+    complete = all(r['package_id'] is not None and r['core_id'] is not None for r in records)
+    physical = len({(r['package_id'], r['core_id']) for r in records}) if complete else None
+    return dict(source=str(root), cpus=records, selected_physical_cores=physical,
+                shares_physical_core=physical < len(records) if complete else None)
+
+
+def validate_process_usage(row):
+    # Old probe output has only total CPU time. New fields must arrive as one group.
+    if not any(field in row for field in RESOURCE_FIELDS):
+        return
+    fields = ('process_cpu_ns', *RESOURCE_FIELDS)
+    if not all(field in row for field in fields):
+        raise ValueError('Incomplete process resource counters')
+    values = [row[field] for field in fields]
+    if not all(type(v) is int or (type(v) is float and math.isfinite(v) and v.is_integer()) for v in values):
+        raise ValueError('Process resource counters must be integral numbers')
+    if all(v == -1 for v in values):
+        return
+    if any(v < 0 for v in values) or values[0] != values[1] + values[2]:
+        raise ValueError('Inconsistent process CPU or context-switch counters')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -43,7 +89,7 @@ def benchmark(args, corpus):
     cpus = None
     if hasattr(os, 'sched_getaffinity'):
         allowed = os.sched_getaffinity(0)
-        cpus = args.cpus or sorted(allowed)[:2]
+        cpus = sorted(set(args.cpus or sorted(allowed)[:2]))
         if not set(cpus) <= allowed:
             raise ValueError('CPUs outside allowed set')
         os.sched_setaffinity(0, set(cpus))
@@ -86,6 +132,7 @@ def benchmark(args, corpus):
             groups = defaultdict(list)
             for row in rows:
                 check_file(row)
+                validate_process_usage(row)
                 if row['candidate'] != candidate or row['role'] not in ('reference', 'candidate') or row['elapsed_ns'] <= 0:
                     raise RuntimeError('Invalid measurement')
                 if row['process_cpu_ns'] < -1:
@@ -165,7 +212,7 @@ def benchmark(args, corpus):
                       'src/regex', 'src/logdata', 'src/utils', 'src/settings', 'src/ui']:
         files += [p for p in (root / directory).rglob('*') if p.is_file()]
     cache = binary.parent.parent / 'CMakeCache.txt'
-    metadata = dict(platform=platform.platform(), cpus=cpus,
+    metadata = dict(platform=platform.platform(), cpus=cpus, cpu_topology=cpu_topology(cpus),
         baseline_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
         binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
         source_sha256={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
