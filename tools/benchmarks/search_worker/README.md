@@ -175,6 +175,24 @@ code-unit patterns and runtime errors. No production adoption is implied.
 
 ## Capacity notification comparison
 
+`--candidate assist` compares the actual Qt matcher with producer participation:
+when the existing limiter rejects a block, the submitting thread enters
+`searchGraph.wait_for_all()` to help execute the admitted tasks before retrying.
+The limiter stays at three blocks per matching node. This can reduce idle waiting,
+but also drains a batch before further reads and may reduce pipeline overlap.
+It is an explicit experiment; the application still uses the original polling.
+
+Separate profiles report `assist_searches`, `producer_drains` (capacity rejection
+followed by a graph wait), and `producer_callbacks` (matcher/combiner invocations
+actually running on the submitting thread). The latter includes the final join,
+even for polling/wake controls, and is not a count of parallel matchers.
+Timing runs do not enable these diagnostic counters. Use the existing runner with
+`--candidate assist --tbb-limit 2 --cpus 0 2 4 --isolated-profiles` and a corpus.
+`--verify` covers all three schedulers; `--verify-recovery MODE --recovery-assist`
+checks the same failure/retry contracts in assist mode. The real-budget contract
+script now covers 6 faults × 3 schedulers × 3 limits per probe build.
+See the [producer assistance evaluation](../../../docs/superpowers/plans/2026-11-20-search-producer-assist.md).
+
 `--candidate wake` compares the actual Qt matcher with capacity notifications
 against the same Qt matcher with the original 1 ms polling loop. It does not use
 the compiled memchr/PCRE candidate. Default application scheduling remains the

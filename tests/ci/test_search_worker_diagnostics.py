@@ -9,6 +9,19 @@ import benchmark_search_worker as runner
 
 
 class WorkerDiagnosticsTests(unittest.TestCase):
+    def test_assist_profile_requires_actual_execution_policy(self):
+        row = dict(assist_searches=1, producer_drains=3, producer_callbacks=14,
+                   wake_searches=0, poll_sleeps=0, capacity_waits=0, capacity_releases=0)
+        runner.validate_assist_profile(row, 'assist')
+        runner.validate_assist_profile({}, 'qt')  # Older probe output is still supported.
+        for key, value in [('assist_searches', 0), ('wake_searches', 1), ('poll_sleeps', 1),
+                           ('capacity_waits', 1), ('capacity_releases', 1),
+                           ('producer_drains', -1), ('producer_callbacks', True)]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                runner.validate_assist_profile(dict(row, **{key: value}), 'assist')
+        with self.assertRaises(ValueError):
+            runner.validate_assist_profile({}, 'assist')
+
     def test_explicit_tbb_limit_requires_actual_matching_budget(self):
         runner.validate_tbb_limit({}, None)  # Older probe output remains usable without override.
         for limit in (1, 2, 3, 256):

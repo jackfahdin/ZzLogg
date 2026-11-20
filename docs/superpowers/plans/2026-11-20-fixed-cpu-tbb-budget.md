@@ -88,3 +88,5 @@ probe 的 `--tbb-limit` 使用局部 RAII `tbb::global_control`，在 fixture／
 - 验证日志：`out/benchmarks/p12-fixed-budget/validation/`。
 
 报告相对路径位于 `out/benchmarks/p12-fixed-budget/`，二进制为 `out/build/p12-utf8-worker/output/zzlogg_search_worker_probe`。测量基线 `8b5ee894d453a2775cd1d98e16ebb6be6c9d7f87`，实际使用本轮工作树，报告记录源码摘要。
+
+后续已完成 [提交线程协助执行实验](2026-11-20-search-producer-assist.md)：有限名额下部分查询明显受益，但 CPU 成本和重正则稳定性尚不足以默认采用。

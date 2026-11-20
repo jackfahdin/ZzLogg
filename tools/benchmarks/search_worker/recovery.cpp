@@ -97,7 +97,7 @@ void checkpoint(experimental::RecoveryPoint point)
     }
 }
 }
-void verifyRecovery(const QString& mode, bool wake)
+void verifyRecovery(const QString& mode, experimental::Scheduling scheduler)
 {
     require(mode == "connect" || mode == "read" || mode == "allocation" || mode == "match" || mode == "combine"
                 || mode == "completion", "Unknown failure contract");
@@ -108,7 +108,7 @@ void verifyRecovery(const QString& mode, bool wake)
     Configuration::get().setSearchThreadPoolSize(1);
     Configuration::get().setSearchReadBufferSizeLines(128);
     experimental::setEnabled(false);
-    experimental::setWakeup(wake);
+    experimental::setScheduling(scheduler);
     for (bool update : {false, true}) {
         Fixture fixture(bytes);
         uint64_t expectedRows = rows;
@@ -172,6 +172,7 @@ void verifyRecovery(const QString& mode, bool wake)
         injection = nullptr;
     }
     std::cout << "Worker failure/research contract passed: " << mode.toStdString()
-              << (wake ? " wake" : " poll") << '\n';
+              << (scheduler == experimental::Scheduling::Assist ? " assist"
+                  : scheduler == experimental::Scheduling::Wake ? " wake" : " poll") << '\n';
 }
 }

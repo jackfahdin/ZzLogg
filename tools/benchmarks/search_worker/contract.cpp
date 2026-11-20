@@ -46,6 +46,10 @@ void check(Fixture& fixture, const RegularExpressionPattern& pattern,
             "Complete search did not cover requested range");
     require(candidate.diagnostics.wakeSearches == (experimental::wakeupEnabled() ? 1U : 0U),
             "Worker ignored requested scheduling route");
+    const bool assist = experimental::scheduling() == experimental::Scheduling::Assist;
+    require(candidate.diagnostics.assistSearches == (assist ? 1U : 0U), "Worker ignored producer assistance");
+    require(!assist || (candidate.diagnostics.pollSleeps == 0 && candidate.diagnostics.waits == 0),
+            "Producer assistance fell back to a passive wait");
     require(!experimental::wakeupEnabled() || (candidate.diagnostics.pollSleeps == 0
                 && candidate.diagnostics.releases == (std::min(last, fixture.log.getNbLine().get()) - first + 16) / 17),
             "Notification path polled or lost capacity release");

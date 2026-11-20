@@ -2,6 +2,7 @@
 #include <atomic>
 namespace experimental {
 namespace { std::atomic<int64_t> blocks{0}, live{0}, callbacks{0};
+thread_local bool producerThread = false;
 std::atomic<RecoveryHook> recoveryHook{nullptr}; }
 BlockLifetime::BlockLifetime() { ++blocks; }
 BlockLifetime::BlockLifetime(BlockLifetime&&) { ++blocks; }
@@ -9,7 +10,8 @@ BlockLifetime::~BlockLifetime() { --blocks; }
 int64_t liveBlocks() { return blocks.load(); }
 int64_t liveMatchers() { return live.load(); }
 int64_t activeCallbacks() { return callbacks.load(); }
-CallbackLifetime::CallbackLifetime() { ++callbacks; }
+ProducerScope::ProducerScope() : previous_(producerThread) { producerThread = true; }
+ProducerScope::~ProducerScope() { producerThread = previous_; }
 CallbackLifetime::~CallbackLifetime() { --callbacks; }
 void setRecoveryHook(RecoveryHook hook) { recoveryHook = hook; }
 bool hasRecoveryHook() { return recoveryHook.load() != nullptr; }
@@ -24,8 +26,10 @@ namespace {
 using Patterns = klogg::vector<RegularExpressionPattern>;
 std::atomic<uint64_t> programs{0}, jitPrograms{0}, fallbackPatterns{0}, codeBytes{0}, jitBytes{0};
 std::atomic<uint64_t> direct{0}, fallback{0}, runtimeErrors{0}, peakMatchers{0};
-std::atomic<bool> enabled{false}, diagnostics{false}, wakeup{false};
+std::atomic<bool> enabled{false}, diagnostics{false};
+std::atomic<Scheduling> scheduler{Scheduling::Poll};
 std::atomic<uint64_t> wakeSearches{0}, waits{0}, timeouts{0}, releases{0}, pollSleeps{0};
+std::atomic<uint64_t> assistSearches{0}, producerDrains{0}, producerCallbacks{0};
 std::atomic<uint64_t> acceleratedCount{0};
 std::atomic<uint64_t> matcherCount{0}, batchCount{0}, rowCount{0}, oversizedCount{0}, maxRows{0}, maxBytes{0};
 void maximum(std::atomic<uint64_t>& value, uint64_t candidate)
@@ -34,12 +38,21 @@ void maximum(std::atomic<uint64_t>& value, uint64_t candidate)
     while (candidate > current && !value.compare_exchange_weak(current, candidate)) {}
 }
 }
-void setWakeup(bool value) { wakeup = value; }
-bool wakeupEnabled() { return wakeup.load(); }
-void recordScheduling(bool wake, const WaitStats& stats, uint64_t sleeps)
+CallbackLifetime::CallbackLifetime()
+{
+    ++callbacks;
+    if (producerThread && diagnostics) ++producerCallbacks;
+}
+void setScheduling(Scheduling value) { scheduler = value; }
+Scheduling scheduling() { return scheduler.load(); }
+void setWakeup(bool value) { setScheduling(value ? Scheduling::Wake : Scheduling::Poll); }
+bool wakeupEnabled() { return scheduling() == Scheduling::Wake; }
+void recordScheduling(bool wake, const WaitStats& stats, uint64_t sleeps, bool assist, uint64_t drains)
 {
     if (!diagnostics) return;
     if (wake) ++wakeSearches;
+    if (assist) ++assistSearches;
+    producerDrains += drains;
     waits += stats.waits; timeouts += stats.timeouts; releases += stats.releases; pollSleeps += sleeps;
 }
 void setEnabled(bool value) { enabled = value; }
@@ -47,6 +60,7 @@ void resetDiagnostics(bool value)
 {
     if (liveMatchers() != 0 || liveBlocks() != 0) throw std::logic_error("Reset during active search");
     wakeSearches = 0; waits = 0; timeouts = 0; releases = 0; pollSleeps = 0;
+    assistSearches = 0; producerDrains = 0; producerCallbacks = 0;
     programs = 0; jitPrograms = 0; fallbackPatterns = 0; codeBytes = 0; jitBytes = 0;
     direct = 0; fallback = 0; runtimeErrors = 0; peakMatchers = 0;
     diagnostics = value;
@@ -57,7 +71,8 @@ Metrics metrics() { return {matcherCount.load(), batchCount.load(), rowCount.loa
                            oversizedCount.load(), maxRows.load(), maxBytes.load(), acceleratedCount.load(),
                            programs.load(), jitPrograms.load(), fallbackPatterns.load(), codeBytes.load(), jitBytes.load(),
                            wakeSearches.load(), waits.load(), timeouts.load(), releases.load(), pollSleeps.load(),
-                           direct.load(), fallback.load(), runtimeErrors.load(), peakMatchers.load()}; }
+                           direct.load(), fallback.load(), runtimeErrors.load(), peakMatchers.load(),
+                           assistSearches.load(), producerDrains.load(), producerCallbacks.load()}; }
 void recordAcceleratedMatcher() { if (diagnostics) ++acceleratedCount; }
 void recordOversized() { if (diagnostics) ++oversizedCount; }
 size_t batchEnd(const klogg::vector<std::string_view>& lines, size_t start)

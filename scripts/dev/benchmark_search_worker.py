@@ -69,11 +69,21 @@ def validate_tbb_limit(row, requested):
         raise ValueError('Probe did not report the requested effective TBB budget')
 
 
+def validate_assist_profile(row, candidate):
+    if candidate != 'assist':
+        return
+    expected = dict(assist_searches=1, wake_searches=0, poll_sleeps=0, capacity_waits=0, capacity_releases=0)
+    if (any(type(row.get(key)) is not int or row[key] != value for key, value in expected.items())
+            or any(type(row.get(key)) is not int or row[key] < 0
+                   for key in ('producer_drains', 'producer_callbacks'))):
+        raise ValueError('Probe did not execute the requested producer assistance policy')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=Path('out/benchmarks/p11-worker/results'))
-    parser.add_argument('--candidate', choices=('memchr', 'pcre2', 'wake'), default='memchr')
+    parser.add_argument('--candidate', choices=('memchr', 'pcre2', 'wake', 'assist'), default='memchr')
     parser.add_argument('--isolated-profiles', action='store_true', help='Fresh process per scenario for peak RSS')
     parser.add_argument('--rounds', type=int, default=4)
     source = parser.add_mutually_exclusive_group()
@@ -199,6 +209,7 @@ def benchmark(args, corpus):
                 validate_tbb_limit(row, args.tbb_limit)
                 if row['candidate'] != candidate or (row['input_sha256'], row['result_sha256']) != signatures[row['scenario']]:
                     raise RuntimeError('Profile differs from measured inputs/results')
+                validate_assist_profile(row, candidate)
                 if row['live_blocks'] != 0 or row['live_matchers'] != 0 or row['max_batch_rows'] > 128 or row['max_batch_bytes'] > 262144:
                     raise RuntimeError('Resource or batch-bound contract failed')
                 profiles.append(dict(row, round=repetition))
@@ -220,7 +231,7 @@ def benchmark(args, corpus):
                                     for role in ('reference', 'candidate')}))
     root = Path(__file__).resolve().parents[2]
     files = [Path(__file__).resolve(), Path(__file__).with_name('search_corpus.py').resolve(), root / 'CMakeLists.txt']
-    if args.candidate in ('pcre2', 'wake'):
+    if args.candidate in ('pcre2', 'wake', 'assist'):
         files += [Path(__file__).with_name(name).resolve() for name in
                   ('utf8_worker_corpus.py', 'benchmark_utf8_regex.py', 'generate_android_search_corpus.py')]
     for directory in ['tools/benchmarks/search_worker', 'tools/benchmarks/literal_search', 'tools/benchmarks/utf8_regex',

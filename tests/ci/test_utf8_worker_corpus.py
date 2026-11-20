@@ -65,6 +65,23 @@ class WorkerOracleTests(unittest.TestCase):
                     capacity_waits=int(wake), capacity_timeouts=0, poll_sleeps=0)
             actual.write_text(json.dumps(wake_report))
             worker.verify(expected, actual)
+            assist_report = copy.deepcopy(wake_report)
+            assist_report['metadata']['candidate'] = 'assist'
+            for field in ('samples', 'profiles'):
+                for row in assist_report[field]:
+                    if row['candidate'] == 'wake': row['candidate'] = 'assist'
+            for row in assist_report['profiles']:
+                row.update(assist_searches=int(row['candidate'] == 'assist'), producer_drains=0,
+                    producer_callbacks=2, wake_searches=0, capacity_waits=0, capacity_releases=0)
+            actual.write_text(json.dumps(assist_report))
+            worker.verify(expected, actual)
+            for key, value in [('assist_searches', 0), ('capacity_waits', 1), ('poll_sleeps', 1),
+                               ('matchers', 1), ('producer_callbacks', -1)]:
+                broken = copy.deepcopy(assist_report)
+                broken['profiles'][0][key] = value
+                actual.write_text(json.dumps(broken))
+                with self.subTest(assist_key=key), self.assertRaises(ValueError):
+                    worker.verify(expected, actual)
             for key, value in [('capacity_releases', 0), ('wake_searches', 0), ('poll_sleeps', 1), ('matchers', 1)]:
                 broken = copy.deepcopy(wake_report)
                 broken['profiles'][0][key] = value

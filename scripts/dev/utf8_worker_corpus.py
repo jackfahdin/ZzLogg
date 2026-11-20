@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 
 from benchmark_utf8_regex import CASES
+from benchmark_search_worker import validate_assist_profile
 from generate_android_search_corpus import Oracle, input_signature
 
 
@@ -91,8 +92,8 @@ def verify(expected_path, report_path):
     wanted = json.loads(expected_path.read_text())['cases']
     report = json.loads(report_path.read_text())
     candidate = report['metadata']['candidate']
-    if candidate not in ('pcre2', 'wake') or not report['metadata']['isolated_profiles']:
-        raise ValueError('Expected PCRE or wake candidate and isolated process profiles')
+    if candidate not in ('pcre2', 'wake', 'assist') or not report['metadata']['isolated_profiles']:
+        raise ValueError('Expected PCRE, wake or assist candidate and isolated process profiles')
     groups = {field: defaultdict(list) for field in ('samples', 'profiles')}
     for field, group in groups.items():
         for row in report[field]:
@@ -108,7 +109,7 @@ def verify(expected_path, report_path):
             if field == 'samples':
                 if (row['rows'], row['matched'], row['threads']) != (case['rows'], case['matched'], case['threads']):
                     raise ValueError('Result counts or threads differ')
-                if candidate == 'wake' and row['process_cpu_ns'] < -1:
+                if candidate in ('wake', 'assist') and row['process_cpu_ns'] < -1:
                     raise ValueError('Invalid process CPU time')
                 if row['elapsed_ns'] <= 0 or any(not -1 <= row[k] <= row['elapsed_ns']
                     for k in ('first_progress_ns', 'first_hit_ns')) or (row['first_hit_ns'] >= 0) != (case['matched'] > 0):
@@ -124,7 +125,7 @@ def verify(expected_path, report_path):
                     pcre_jit_programs=case['programs'] * case['threads'] if fast else 0,
                     pcre_fallback_patterns=case['fallback_patterns'] * case['threads'] if fast else 0,
                     pcre_runtime_errors=0)
-                if candidate == 'wake':
+                if candidate in ('wake', 'assist'):
                     wake = backend == 'wake'
                     expected_metrics.update(wake_searches=int(wake),
                         capacity_releases=(case['rows'] + case.get('chunk_lines', 1024) - 1) // case.get('chunk_lines', 1024) if wake else 0)
@@ -134,6 +135,9 @@ def verify(expected_path, report_path):
                         raise ValueError('Qt control entered capacity wait')
                     if not 0 <= row['capacity_timeouts'] <= row['capacity_waits'] or row['poll_sleeps'] < 0:
                         raise ValueError('Invalid scheduling counts')
+                if candidate == 'assist':
+                    expected_metrics['assist_searches'] = int(backend == 'assist')
+                    validate_assist_profile(row, backend)
                 for key, value in expected_metrics.items():
                     if row[key] != value:
                         raise ValueError(f'Routing/resource mismatch: {name} {key}: {row[key]} != {value}')

@@ -96,8 +96,10 @@ void measure(const Scenario& s, const QString& backendName, bool reverse, bool p
     auto& fixture = *owned;
     const auto signature = inputHash(s, fixture.fileHash);
     const auto run = [&](bool backend, bool cancel = false) {
-        experimental::setWakeup(backend && backendName == "wake");
-        return workerprobe::search(fixture, s.query, backend && backendName != "wake", s.threads, s.chunk, cancel,
+        using experimental::Scheduling;
+        experimental::setScheduling(!backend ? Scheduling::Poll : backendName == "assist" ? Scheduling::Assist
+                                                           : backendName == "wake" ? Scheduling::Wake : Scheduling::Poll);
+        return workerprobe::search(fixture, s.query, backend && backendName == experimental::candidateName, s.threads, s.chunk, cancel,
                                    0, std::numeric_limits<uint64_t>::max(), s.timeoutMs);
     };
     fixture.log.setPrefilter(s.prefilter);
@@ -120,6 +122,8 @@ void measure(const Scenario& s, const QString& backendName, bool reverse, bool p
                 {"wake_searches", double(stats.wakeSearches)}, {"capacity_waits", double(stats.waits)},
                 {"capacity_timeouts", double(stats.timeouts)}, {"capacity_releases", double(stats.releases)},
                 {"poll_sleeps", double(stats.pollSleeps)},
+                {"assist_searches", double(stats.assistSearches)}, {"producer_drains", double(stats.producerDrains)},
+                {"producer_callbacks", double(stats.producerCallbacks)},
                 {"matchers", double(stats.matchers)}, {"peak_matchers", double(stats.peakMatchers)},
                 {"pcre_programs", double(stats.programs)}, {"pcre_jit_programs", double(stats.jitPrograms)},
                 {"pcre_fallback_patterns", double(stats.fallbackPatterns)},
@@ -166,7 +170,8 @@ int main(int argc, char** argv)
         {"verify", "Run worker integration and lifecycle contracts."},
         {"verify-recovery", "Inject a bounded worker failure: connect, read, allocation, match, combine, completion", "mode"},
         {"recovery-wake", "Use wake scheduling for the recovery contract."},
-        {"candidate", "Compiled regex candidate, wake (Qt with capacity notifications), or Qt control", "backend", "qt"},
+        {"recovery-assist", "Use producer assistance for the recovery contract."},
+        {"candidate", "Compiled regex candidate, wake/assist (Qt scheduling experiments), or Qt control", "backend", "qt"},
         {"tbb-limit", "Explicit process TBB budget (1..256); omitted keeps automatic budget", "slots"},
         {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
@@ -193,12 +198,16 @@ int main(int argc, char** argv)
             || (!parser.isSet("verify") && !parser.isSet("verify-integration") && !parser.isSet("case")),
             "Use --corpus separately from generated cases and verification modes");
         if (parser.isSet("verify-recovery")) {
-            workerprobe::verifyRecovery(parser.value("verify-recovery"), parser.isSet("recovery-wake"));
+            using experimental::Scheduling;
+            workerprobe::require(!(parser.isSet("recovery-wake") && parser.isSet("recovery-assist")),
+                                 "Use only one recovery scheduler");
+            workerprobe::verifyRecovery(parser.value("verify-recovery"), parser.isSet("recovery-assist") ? Scheduling::Assist
+                                        : parser.isSet("recovery-wake") ? Scheduling::Wake : Scheduling::Poll);
             return 0;
         }
         if (parser.isSet("verify-integration")) {
-            for (bool wake : {false, true}) {
-                experimental::setWakeup(wake);
+            for (auto scheduler : {experimental::Scheduling::Poll, experimental::Scheduling::Wake, experimental::Scheduling::Assist}) {
+                experimental::setScheduling(scheduler);
                 workerprobe::verifyIntegration(parser.isSet("require-accelerated"));
             }
             experimental::setWakeup(false);
@@ -206,8 +215,8 @@ int main(int argc, char** argv)
         }
         workerprobe::require(!parser.isSet("require-accelerated"), "Use --require-accelerated with --verify-integration");
         if (parser.isSet("verify")) {
-            for (bool wake : {false, true}) {
-                experimental::setWakeup(wake);
+            for (auto scheduler : {experimental::Scheduling::Poll, experimental::Scheduling::Wake, experimental::Scheduling::Assist}) {
+                experimental::setScheduling(scheduler);
                 workerprobe::verify();
             }
             experimental::setWakeup(false);
@@ -216,7 +225,8 @@ int main(int argc, char** argv)
         workerprobe::require(!parser.isSet("profile-case") || (parser.isSet("corpus") && parser.isSet("profile")),
                              "Use --profile-case with --corpus --profile");
         const auto candidate = parser.value("candidate");
-        workerprobe::require(candidate == "qt" || candidate == "wake" || candidate == experimental::candidateName, "Unknown backend");
+        workerprobe::require(candidate == "qt" || candidate == "wake" || candidate == "assist"
+                                || candidate == experimental::candidateName, "Unknown backend");
         if (parser.isSet("corpus")) {
             workerprobe::require(!parser.isSet("case"), "Use either --corpus or --case");
             bool measured = false;

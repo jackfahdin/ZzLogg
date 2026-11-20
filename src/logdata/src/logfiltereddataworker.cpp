@@ -354,7 +354,10 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     // Declared before the graph so callbacks cannot outlive the notification state.
     experimental::WakeupGate capacityAvailable;
     const bool useWakeup = experimental::wakeupEnabled();
+    const bool useAssist = experimental::scheduling() == experimental::Scheduling::Assist;
+    experimental::ProducerScope producerScope;
     uint64_t pollSleeps = 0;
+    uint64_t producerDrains = 0;
 #endif
     tbb::task_group_context searchContext( tbb::task_group_context::isolated );
     tbb::flow::graph searchGraph( searchContext );
@@ -557,8 +560,15 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
             while ( !stopped() ) {
                 // With no TBB background slot, sleeping cannot free capacity. Let
                 // this producer execute the bounded set of already admitted tasks.
-                if ( needsProducer() ) {
+                if ( needsProducer()
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                     || useAssist
+#endif
+                ) {
                     if ( blockPrefetcher.try_put( blockData ) ) break;
+#ifdef ZZLOGG_EXPERIMENTAL_SEARCH
+                    ++producerDrains;
+#endif
                     searchGraph.wait_for_all();
                     continue;
                 }
@@ -580,7 +590,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
 
         searchGraph.wait_for_all();
 #ifdef ZZLOGG_EXPERIMENTAL_SEARCH
-        experimental::recordScheduling( useWakeup, capacityAvailable.stats(), pollSleeps );
+        experimental::recordScheduling( useWakeup, capacityAvailable.stats(), pollSleeps, useAssist, producerDrains );
 #endif
     } catch ( ... ) {
         // Graph destruction is too late: its nodes and captured state are
