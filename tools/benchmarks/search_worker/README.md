@@ -304,3 +304,40 @@ Use paired Qt controls within each topology and retain all runs. See the
 [scheduling diagnosis](../../../docs/superpowers/plans/2026-11-20-search-scheduling-diagnosis.md)
 for the evaluation and its limits. These diagnostics do not change production
 scheduling or require perf permissions.
+
+
+## Fixed-CPU TBB budget comparison
+
+Both the probe and `benchmark_search_worker.py` accept `--tbb-limit N` (1–256).
+Omitting it keeps the automatic budget and remains compatible with older probe
+output. The override is scoped to the probe process, covers verification and all
+searches through their final join, and is independent of the query's matching
+node count. It does not change application settings or add a production option.
+
+```sh
+python3 scripts/dev/benchmark_search_worker.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe \
+  --candidate wake --isolated-profiles \
+  --corpus out/benchmarks/p12-scheduling-diagnosis/input/queries.json \
+  --cpus 0 2 4 --tbb-limit 2 \
+  --output out/benchmarks/my-fixed-budget
+python3 scripts/dev/verify_search_tbb_limit.py \
+  --binary out/build/p12-utf8-worker/output/zzlogg_search_worker_probe
+```
+
+Use CPU IDs available on the current machine. The runner records
+`requested_tbb_limit` and rejects any timing or profile row whose reported
+effective `tbb_global_limit` differs. Every row also reports
+`tbb_default_concurrency`, which describes the CPU-derived default and need not
+equal the explicit global budget. Raising a global budget does not guarantee
+that an arena or the hardware can provide that many active workers.
+
+For a single-variable comparison keep the CPU set, binary, query, chunk size and
+matching node count fixed, and vary only `--tbb-limit`; retain Qt/Qt controls and
+all paired runs. See the [fixed-CPU evaluation](../../../docs/superpowers/plans/2026-11-20-fixed-cpu-tbb-budget.md).
+
+The explicit budget contract also runs all six injected recovery failures under
+budgets 1/2/3, with both polling and notifications. Recovery handshakes use the
+effective global budget and the actual callback arena, and assert that the
+selected fault was injected exactly once; a handshake timeout alone cannot make
+a failure-recovery contract pass.

@@ -80,7 +80,13 @@ Scenario makeScenario(const std::string& name)
     }
     return result;
 }
-void output(const QJsonObject& row) { std::cout << QJsonDocument(row).toJson(QJsonDocument::Compact).constData() << '\n'; }
+void output(QJsonObject row)
+{
+    // Record the effective budget on every timed/profile row, not just the requested CLI value.
+    row.insert("tbb_default_concurrency", tbb::info::default_concurrency());
+    row.insert("tbb_global_limit", double(tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism)));
+    std::cout << QJsonDocument(row).toJson(QJsonDocument::Compact).constData() << '\n';
+}
 void measure(const Scenario& s, const QString& backendName, bool reverse, bool profile)
 {
     const bool candidate = backendName != "qt";
@@ -111,8 +117,6 @@ void measure(const Scenario& s, const QString& backendName, bool reverse, bool p
         output({{"scenario", QString::fromStdString(s.name)}, {"candidate", backendName},
                 {"input_sha256", signature}, {"file_sha256", QString::fromLatin1(fixture.fileHash)},
                 {"input_bytes", double(fixture.file.size())}, {"result_sha256", QString::fromStdString(digest)},
-                {"tbb_default_concurrency", tbb::info::default_concurrency()},
-                {"tbb_global_limit", double(tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism))},
                 {"wake_searches", double(stats.wakeSearches)}, {"capacity_waits", double(stats.waits)},
                 {"capacity_timeouts", double(stats.timeouts)}, {"capacity_releases", double(stats.releases)},
                 {"poll_sleeps", double(stats.pollSleeps)},
@@ -163,6 +167,7 @@ int main(int argc, char** argv)
         {"verify-recovery", "Inject a bounded worker failure: connect, read, allocation, match, combine, completion", "mode"},
         {"recovery-wake", "Use wake scheduling for the recovery contract."},
         {"candidate", "Compiled regex candidate, wake (Qt with capacity notifications), or Qt control", "backend", "qt"},
+        {"tbb-limit", "Explicit process TBB budget (1..256); omitted keeps automatic budget", "slots"},
         {"corpus", "Version 1 external-file query manifest", "path"},
         {"case", "Exact generated scenario name", "name"}, {"reverse", "Reverse paired order."},
         {"profile", "Run untimed routing/cancellation diagnostics."},
@@ -176,6 +181,14 @@ int main(int argc, char** argv)
     qRegisterMetaType<LineNumber>();
     Configuration::getSynced().setRegexpEnging(RegexpEngine::QRegularExpression);
     try {
+        // Construct before any fixture/search, keep alive through all worker joins and unwinding.
+        std::unique_ptr<tbb::global_control> tbbLimit;
+        if (parser.isSet("tbb-limit")) {
+            bool valid = false;
+            const auto slots = parser.value("tbb-limit").toUInt(&valid);
+            workerprobe::require(valid && slots >= 1 && slots <= 256, "Use --tbb-limit from 1 through 256");
+            tbbLimit = std::make_unique<tbb::global_control>(tbb::global_control::max_allowed_parallelism, slots);
+        }
         workerprobe::require(!parser.isSet("corpus")
             || (!parser.isSet("verify") && !parser.isSet("verify-integration") && !parser.isSet("case")),
             "Use --corpus separately from generated cases and verification modes");

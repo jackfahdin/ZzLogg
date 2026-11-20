@@ -9,6 +9,17 @@ import benchmark_search_worker as runner
 
 
 class WorkerDiagnosticsTests(unittest.TestCase):
+    def test_explicit_tbb_limit_requires_actual_matching_budget(self):
+        runner.validate_tbb_limit({}, None)  # Older probe output remains usable without override.
+        for limit in (1, 2, 3, 256):
+            runner.validate_tbb_limit(dict(tbb_global_limit=limit, tbb_default_concurrency=3), limit)
+        for row in ({}, dict(tbb_global_limit=3, tbb_default_concurrency=3),
+                    dict(tbb_global_limit=2, tbb_default_concurrency=0),
+                    dict(tbb_global_limit=True, tbb_default_concurrency=3),
+                    dict(tbb_global_limit=2)):
+            with self.subTest(row=row), self.assertRaises(ValueError):
+                runner.validate_tbb_limit(row, 2)
+
     def topology(self, root, cpu, package, core, siblings):
         path = root / f'cpu{cpu}' / 'topology'
         path.mkdir(parents=True)

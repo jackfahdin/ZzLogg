@@ -8,20 +8,27 @@
 #include <iostream>
 #include <mutex>
 #include <stdexcept>
-#include <tbb/info.h>
+#include <tbb/global_control.h>
+#include <tbb/task_arena.h>
 
 namespace workerprobe {
 namespace {
 struct Injection {
     QString mode;
-    bool concurrentProducer = tbb::info::default_concurrency() > 1;
     std::atomic<bool> armed{false};
+    std::atomic<unsigned> injected{0};
     std::atomic<unsigned> connections{0}, reads{0}, allocations{0}, matches{0}, combines{0}, errors{0}, drains{0};
     std::mutex mutex;
     std::condition_variable changed;
     bool callbackEntered = false, release = false, visible = false;
 };
 Injection* injection = nullptr; // Installed before search; removed only after join.
+bool concurrentProducer()
+{
+    // Query from the actual producer/matcher arena, not the machine's CPU-derived default.
+    return tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism) > 1
+        && tbb::this_task_arena::max_concurrency() > 1;
+}
 void checkpoint(experimental::RecoveryPoint point)
 {
     using Point = experimental::RecoveryPoint;
@@ -48,35 +55,43 @@ void checkpoint(experimental::RecoveryPoint point)
     if (point == Point::Connect && state.mode == "connect") {
         ++state.connections;
         state.armed = false;
+        ++state.injected;
         throw std::bad_alloc();
     }
     const bool producer = state.mode == "read" || state.mode == "allocation";
     if (point == Point::Match) {
-        if (++state.matches == 1 && producer && state.concurrentProducer) {
+        if (++state.matches == 1 && producer && concurrentProducer()) {
             std::unique_lock<std::mutex> lock(state.mutex);
             state.callbackEntered = true;
             state.changed.notify_all();
             require(state.changed.wait_for(lock, std::chrono::seconds(5), [&] { return state.release; }),
                     "Producer did not enter exception drain");
-        } else if (state.mode == "match" && state.armed.exchange(false)) throw std::bad_alloc();
+        } else if (state.mode == "match" && state.armed.exchange(false)) {
+            ++state.injected;
+            throw std::bad_alloc();
+        }
     }
     if (point == Point::Combine && ++state.combines == 2 && state.mode == "combine") {
         std::unique_lock<std::mutex> lock(state.mutex);
         require(state.changed.wait_for(lock, std::chrono::seconds(5), [&] { return state.visible; }),
                 "No partial result delivered before injected combine failure");
         state.armed = false;
+        ++state.injected;
         throw std::runtime_error("injected result failure");
     }
-    if (point == Point::Read && state.mode == "completion" && state.armed.exchange(false))
+    if (point == Point::Read && state.mode == "completion" && state.armed.exchange(false)) {
+        ++state.injected;
         throw std::runtime_error("injected initial read failure");
+    }
     if ((point == Point::Read && ++state.reads == 4 && state.mode == "read")
         || (point == Point::Allocate && ++state.allocations == 4 && state.mode == "allocation")) {
         std::unique_lock<std::mutex> lock(state.mutex);
-        if (state.concurrentProducer) {
+        if (concurrentProducer()) {
             require(state.changed.wait_for(lock, std::chrono::seconds(5), [&] { return state.callbackEntered; }),
                     "No active callback at producer failure");
         }
         state.armed = false;
+        ++state.injected;
         if (state.mode == "allocation") throw std::bad_alloc();
         throw std::runtime_error("injected file read failure");
     }
@@ -146,6 +161,7 @@ void verifyRecovery(const QString& mode, bool wake)
         }
         state.armed = true;
         run(update, true);
+        require(state.injected == 1 && !state.armed, "Requested recovery injection was not reached exactly once");
         // This call also joins the prior operation before starting another on the same worker.
         run(false, false);
         worker.reset();

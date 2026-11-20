@@ -88,3 +88,5 @@
 - 验证日志 `out/benchmarks/p12-scheduling-diagnosis/validation/`；最终报告的源码、外部 PCRE 和二进制摘要已核对。
 
 报告相对路径均位于 `out/benchmarks/p12-scheduling-diagnosis/`。测量基线为 `1576e7103cb3e2ff116712168c0c4c381de59ce1`，实际使用本轮工作树；不追加用户已取消的 Windows 验证。
+
+后续：[固定 CPU 的 TBB 上限对照](2026-11-20-fixed-cpu-tbb-budget.md) 已完成，同硬件下确认执行预算显著影响目标查询；重正则负载仍有退化，默认保持轮询。

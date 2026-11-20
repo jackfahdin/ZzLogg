@@ -61,6 +61,14 @@ def validate_process_usage(row):
         raise ValueError('Inconsistent process CPU or context-switch counters')
 
 
+def validate_tbb_limit(row, requested):
+    if requested is None:
+        return  # Old probes remain compatible when no budget override was requested.
+    if (type(row.get('tbb_global_limit')) is not int or row['tbb_global_limit'] != requested
+            or type(row.get('tbb_default_concurrency')) is not int or row['tbb_default_concurrency'] < 1):
+        raise ValueError('Probe did not report the requested effective TBB budget')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -73,7 +81,10 @@ def main():
     source.add_argument('--corpus', type=Path)
     parser.add_argument('--timeout', type=float, default=600, help='Hard timeout per probe process in seconds')
     parser.add_argument('--cpus', type=int, nargs='+')
+    parser.add_argument('--tbb-limit', type=int, help='Explicit probe global TBB budget (1..256); omitted uses automatic budget')
     args = parser.parse_args()
+    if args.tbb_limit is not None and not 1 <= args.tbb_limit <= 256:
+        parser.error('Use --tbb-limit from 1 through 256')
     if args.rounds < 1:
         parser.error('Use positive rounds')
     if not math.isfinite(args.timeout) or args.timeout <= 0:
@@ -97,6 +108,8 @@ def benchmark(args, corpus):
         raise ValueError('CPU affinity unsupported')
     binary = args.binary.resolve()
     def run(command, label):
+        if args.tbb_limit is not None:
+            command = [*command, '--tbb-limit', str(args.tbb_limit)]
         try:
             # Qt's temporary files must also be reclaimed after a hard process kill.
             with tempfile.TemporaryDirectory(prefix='zzlogg-probe-') as temporary:
@@ -132,6 +145,7 @@ def benchmark(args, corpus):
             groups = defaultdict(list)
             for row in rows:
                 check_file(row)
+                validate_tbb_limit(row, args.tbb_limit)
                 validate_process_usage(row)
                 if row['candidate'] != candidate or row['role'] not in ('reference', 'candidate') or row['elapsed_ns'] <= 0:
                     raise RuntimeError('Invalid measurement')
@@ -182,6 +196,7 @@ def benchmark(args, corpus):
                 raise RuntimeError('Incomplete profile coverage')
             for row in rows:
                 check_file(row)
+                validate_tbb_limit(row, args.tbb_limit)
                 if row['candidate'] != candidate or (row['input_sha256'], row['result_sha256']) != signatures[row['scenario']]:
                     raise RuntimeError('Profile differs from measured inputs/results')
                 if row['live_blocks'] != 0 or row['live_matchers'] != 0 or row['max_batch_rows'] > 128 or row['max_batch_bytes'] > 262144:
@@ -213,6 +228,7 @@ def benchmark(args, corpus):
         files += [p for p in (root / directory).rglob('*') if p.is_file()]
     cache = binary.parent.parent / 'CMakeCache.txt'
     metadata = dict(platform=platform.platform(), cpus=cpus, cpu_topology=cpu_topology(cpus),
+        requested_tbb_limit=args.tbb_limit,
         baseline_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
         binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
         source_sha256={str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
