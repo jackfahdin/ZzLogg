@@ -230,11 +230,18 @@ resets processed extent and sends terminal progress plus completion before the
 existing error report. It does not label partial rows as a complete result.
 
 The default `zzlogg_ui.search_worker_recovery` CTest links the actual production
-library, tests full/cancel searches on fresh workers under `global_control(1)`
-and full matching in a one-slot arena, and has a 30-second hard process deadline.
-Same-worker recovery is covered by the explicit fault matrix below; extending
-that reuse and arena cancellation coverage in the default test is deferred. On Linux, the same executable can also be run under
-`taskset -c <one-allowed-CPU>`.
+library and has a 30-second hard process deadline. Under `global_control(1)`,
+each configuration reuses one worker for full search, cancellation request and
+complete searches with different queries, checking match rows, counts, widths,
+consumed deltas and exactly one terminal/completion in order. Queued UI progress
+can arrive after a fast search has completed, so that cancellation race accepts
+valid partial or complete results. A separate one-slot arena (global limit 2)
+cancels synchronously at the first intermediate progress and requires nonempty
+partial results, then retries on the same operation/data. Both paths cover one
+and two matching nodes. On Linux, the same executable can also be run under
+`taskset -c <one-allowed-CPU>`. See the
+[reuse regression record](../../../docs/superpowers/plans/2026-11-20-search-worker-reuse.md).
+Same-worker exception recovery remains covered by the explicit fault matrix below.
 
 The explicit probe has failure checkpoints that are absent from production:
 
