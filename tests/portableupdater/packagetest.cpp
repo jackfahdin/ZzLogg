@@ -2,6 +2,9 @@
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
+#include <QMap>
+#include <stdexcept>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -39,6 +42,44 @@ class PackageTest:public QObject {
         QVERIFY(zip.close());
     }
 private slots:
+    void extractsIndependentZip() {
+        CanonicalTemporaryDir dir;
+        const auto root=dir.path()+"/app",stage=dir.path()+"/stage";
+        const auto zip=QString::fromUtf8(PORTABLE_ZIP_FIXTURE);
+        const auto snapshot=[](const QString& directory) {
+            QMap<QString,QByteArray> contents;
+            QDirIterator it(directory,QDir::Files|QDir::Hidden|QDir::NoDotAndDotDot,QDirIterator::Subdirectories);
+            while(it.hasNext()) {
+                QFile file(it.next());
+                if(!file.open(QIODevice::ReadOnly)) throw std::runtime_error("Cannot read package snapshot");
+                contents.insert(QDir(directory).relativeFilePath(file.fileName()),file.readAll());
+            }
+            return contents;
+        };
+        const QMap<QString,QByteArray> expected{
+            {"ZzLogg.exe","new executable"},
+            {".zzlogg-portable","ZzLogg portable\n"},
+            {".zzlogg-portable-files.json",R"({"schema": 1, "files": ["ZzLogg.exe", ".zzlogg-portable"]})"}
+        };
+        installed(root); put(root+"/notes.txt","user notes");
+        const auto before=snapshot(root);
+        QCOMPARE(before.size(),qsizetype(5));
+        std::atomic_bool cancel{false};
+        const auto result=preparePackage(zip,digest(zip),QFileInfo(zip).size(),root,stage,cancel);
+        QCOMPARE(result.files.size(),std::size_t(expected.size()));
+        QStringList paths;
+        for(const auto& file:result.files) {
+            const auto path=QString::fromStdString(file.path);
+            QVERIFY(expected.contains(path));
+            paths.append(path);
+            QCOMPARE(file.size,std::uintmax_t(expected[path].size()));
+            QCOMPARE(QByteArray::fromStdString(file.sha256),
+                     QCryptographicHash::hash(expected[path],QCryptographicHash::Sha256).toHex());
+        }
+        paths.sort(); QCOMPARE(paths,expected.keys());
+        QCOMPARE(snapshot(stage+"/payload"),expected);
+        QCOMPARE(snapshot(root),before);
+    }
     void extractsVersionedRoot() {
         CanonicalTemporaryDir dir; const auto root=dir.path()+"/app",zip=dir.path()+"/update.zip",stage=dir.path()+"/stage";
         installed(root); package(zip,"ZzLogg-1.2.3/"); std::atomic_bool cancel{false};

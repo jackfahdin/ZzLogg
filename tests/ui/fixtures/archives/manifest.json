@@ -1,0 +1,35 @@
+{
+  "files": {
+    "logs/dmesg.log": {
+      "bytes": 25,
+      "sha256": "2eec5f859768ab483f9cc8728ae143dc46f40a4f6ed51aec7f66c4f6819fee7b",
+      "hex": "5b312e3030305d206932632074696d656f75740a00656e640a"
+    },
+    "logs/logcat.txt": {
+      "bytes": 27,
+      "sha256": "05e7b75325d33faae831ff11c52c3e02cf14af44f567841e2e2f054ea8e8e869",
+      "hex": "31312d32302045204472697665723a206572726f720d0a6c617374"
+    },
+    "empty.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hex": ""
+    },
+    "中文/应用.log": {
+      "bytes": 11,
+      "sha256": "44276d52d46b7ba8d906bb98e43af03e8ce15991612bc8747b36fd804a458d35",
+      "hex": "e9a9b1e58aa8f09f98800a"
+    }
+  },
+  "archives": {
+    "stored.zip": "797a687e465128cf4333e0f28c92c6f3d89c6b3931d0e4e7fc91b4b49cf13698",
+    "deflated.zip": "fbf278d80b5a0a1b7b9b408e1a0e43bc9f8630cb57e48c036aee94757a038f77",
+    "logs.tar": "b126a16114a4c0a194ab1a8980f04adecb44272d4a83a490089bd13c4a1e8b45",
+    "logs.tar.gz": "88f21789da34b5b3563330956ce0d92afd3b45c8a23256ccd2f5e45c324df080",
+    "logs.tar.bz2": "613f5b2325440f606d5416072fbab79e3fe028f0845b7c75b9efe8f5281f53a1",
+    "logs.tar.xz": "94b5f3c38b62778afc6d544ca4d84ee9fd19de901077dc3da455c01dd328d5b9",
+    "solid-on.7z": "7e07c055eb474f5e71c6d872216388d10006992be3f0f74f7c036735a8fafe1f",
+    "solid-off.7z": "98dc989426e9d4d1b7303f41111a505c3823b0a7a6889fe6453a69a39aff558e"
+  },
+  "portable_sha256": "fd5ca4396f7bb790461d48dcd4eb06cf446748329a8112f627c427a06aac1f91"
+}

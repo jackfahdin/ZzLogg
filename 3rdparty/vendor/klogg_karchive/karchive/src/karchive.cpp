@@ -31,6 +31,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <memory>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,7 +839,7 @@ bool KArchiveFile::copyTo(const QString &dest, const QAtomicInt& isCanceled) con
 {
     QFile f(dest + QLatin1Char('/')  + name());
     if (f.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
-        QIODevice *inputDev = createDevice();
+        std::unique_ptr<QIODevice> inputDev(createDevice());
         if (!inputDev) {
             f.remove();
             return false;
@@ -856,15 +857,17 @@ bool KArchiveFile::copyTo(const QString &dest, const QAtomicInt& isCanceled) con
             }
             const qint64 currentChunkSize = qMin(chunkSize, remainingSize);
             const qint64 n = inputDev->read(array.data(), currentChunkSize);
-            Q_UNUSED(n) // except in Q_ASSERT
-            Q_ASSERT(n == currentChunkSize);
-            f.write(array.data(), currentChunkSize);
-            remainingSize -= currentChunkSize;
+            if (n <= 0 || n > currentChunkSize || f.write(array.constData(), n) != n) {
+                return false;
+            }
+            remainingSize -= n;
+        }
+        if (remainingSize != 0 || !f.flush()) {
+            return false;
         }
         f.setPermissions(withExecutablePerms(f.permissions(), permissions()));
         f.close();
 
-        delete inputDev;
         return isCanceled.loadAcquire() == 0;
     }
     return false;
@@ -962,7 +965,7 @@ bool KArchiveDirectory::copyTo(const QString &dest, const QAtomicInt& isCanceled
     const QString destDir(QDir(dest).absolutePath()); // get directory path without any "." or ".."
 
     QList<const KArchiveFile *> fileList;
-    QMap<qint64, QString> fileToDir;
+    QMap<const KArchiveFile *, QString> fileToDir;
 
     // placeholders for iterated items
     QStack<const KArchiveDirectory *> dirStack;
@@ -1007,7 +1010,7 @@ bool KArchiveDirectory::copyTo(const QString &dest, const QAtomicInt& isCanceled
                     const KArchiveFile *curFile = dynamic_cast<const KArchiveFile *>(curEntry);
                     if (curFile) {
                         fileList.append(curFile);
-                        fileToDir.insert(curFile->position(), curDirName);
+                        fileToDir.insert(curFile, curDirName);
                     }
                 }
 
@@ -1027,8 +1030,7 @@ bool KArchiveDirectory::copyTo(const QString &dest, const QAtomicInt& isCanceled
     for (QList<const KArchiveFile *>::const_iterator it = fileList.constBegin(), end = fileList.constEnd();
          it != end; ++it) {
         const KArchiveFile *f = *it;
-        qint64 pos = f->position();
-        if (!f->copyTo(fileToDir[pos], isCanceled)) {
+        if (!f->copyTo(fileToDir.value(f), isCanceled)) {
             return false;
         }
     }

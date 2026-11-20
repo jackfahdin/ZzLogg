@@ -4,6 +4,8 @@ target_include_directories(zzlogg_portable_transaction_test PRIVATE ../../src/po
 target_compile_features(zzlogg_portable_transaction_test PRIVATE cxx_std_17)
 add_test(NAME zzlogg_portable.transaction COMMAND zzlogg_portable_transaction_test)
 add_executable(zzlogg_portable_package_test packagetest.cpp)
+target_compile_definitions(zzlogg_portable_package_test PRIVATE
+  PORTABLE_ZIP_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../ui/fixtures/archives/portable.zip")
 target_link_libraries(zzlogg_portable_package_test PRIVATE zzlogg_portableupdater klogg_karchive Qt6::Test)
 set_target_properties(zzlogg_portable_package_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_portable.package COMMAND zzlogg_portable_package_test)

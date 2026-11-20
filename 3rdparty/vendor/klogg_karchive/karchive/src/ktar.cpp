@@ -397,7 +397,7 @@ bool KTar::openArchive(QIODevice::OpenMode mode)
 
         // Read header
         qint64 n = d->readHeader(buffer, name, symlink);
-        if (n < 0) {
+        if (n != 0 && n != 0x200) {
             setErrorString(tr("Could not read tar header"));
             return false;
         }

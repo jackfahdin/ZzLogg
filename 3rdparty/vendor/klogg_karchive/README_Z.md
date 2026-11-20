@@ -66,6 +66,18 @@ Qt6 中 `QIODevice::OpenMode` 无法直接传给 `QString::arg`，因此在以�
 - `karchive/src/krcc.cpp`
 - `karchive/src/karchive.cpp`
 
+## 2026-11-20 归档完整性补丁
+
+独立 Python ZIP／tar 和 7-Zip 夹具经真实 Decompressor 复现后，增加以下局部修复：
+
+- `karchive/src/karchive.cpp`：`KArchiveFile::copyTo` 用 RAII 管理输入设备，检查实际读取、完整写入和 flush，拒绝短流／写入失败；支持正常短读继续读取，禁止将未读出的缓冲区内容写入文件。目录映射按文件对象而非数据偏移索引，避免空文件与下一文件共享偏移时被复制到错误目录。
+- `karchive/src/k7zip.cpp`：合法 7z 省略修改时间属性时，使用原有缺省时间路径，避免索引空向量导致崩溃。
+- `karchive/src/ktar.cpp`：非零但不足 512 字节的头部视为失败，不能当成正常归档结束。
+
+验证见 `tests/ui/archive_test.cpp`、独立夹具 `tests/ui/fixtures/archives/` 和
+[实施记录](../../../docs/superpowers/plans/2026-11-20-archive-baseline.md)。
+本轮未调整流 codec；bzip2／xz 拼接成员与尾随数据处理的已知差异由显式审计记录，不能认为这些补丁已解决。
+
 ## 更新步骤
 
 1. 从上游 fork 获取目标提交（例如 `f546bf6`）。
