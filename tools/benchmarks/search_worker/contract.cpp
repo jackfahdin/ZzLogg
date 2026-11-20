@@ -52,7 +52,7 @@ void verifyWakeup()
 {
     using namespace std::chrono_literals;
     // A release between failed check and actual sleep must not be lost.
-    experimental::WakeupGate gate(250ms);
+    experimental::WakeupGate gate(5s);
     bool capacity = false; // Accessed only inside gate callbacks, under the same mutex.
     std::promise<void> rejected;
     auto ready = rejected.get_future();
@@ -65,6 +65,10 @@ void verifyWakeup()
     });
     ready.wait();
     gate.release([&] { capacity = true; });
+    // A predicate can become true only at the fallback deadline even without a
+    // notification. Check readiness before that deadline, not just wait statistics.
+    require(producer.wait_for(2s) == std::future_status::ready,
+            "Capacity release did not wake producer before fallback");
     require(producer.get(), "Capacity release did not admit producer");
     require(gate.stats().waits == 1 && gate.stats().timeouts == 0,
             "Capacity notification was lost; producer waited for polling timeout");

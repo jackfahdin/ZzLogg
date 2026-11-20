@@ -173,12 +173,15 @@ Oversized lines (>256 KiB) still execute the worker's original Qt matcher.
 Regular PCRE batches preserve component-level Qt fallback for BOM, invalid UTF-8,
 code-unit patterns and runtime errors. No production adoption is implied.
 
-## Capacity notification experiment
+## Capacity notification comparison
 
 `--candidate wake` compares the actual Qt matcher with capacity notifications
 against the same Qt matcher with the original 1 ms polling loop. It does not use
-the compiled memchr/PCRE candidate. This mode is compiled only into the explicit
-worker probe; default application scheduling is unchanged.
+the compiled memchr/PCRE candidate. Default application scheduling remains the
+original polling route: the production-adoption evaluation found a repeatable
+regression in a two-thread boolean query. The explicit probe and default gate
+contract share `SearchCapacityGate` in `src/utils/include/searchcapacitygate.h`;
+there is no second copy of the notification algorithm to maintain.
 
 The producer checks the existing TBB limiter under a mutex. After processing a
 block, the consumer decrements that limiter under the same mutex and notifies a
@@ -208,8 +211,11 @@ interval apart from the adjacent clock reads. It includes all process threads
 and any process background work, can exceed elapsed time, and is not system CPU
 percentage. Unsupported platforms return `-1` and summary `null`.
 `capacity_waits/timeouts/releases`, `wake_searches` and `poll_sleeps` are separate
-untimed routing diagnostics. Timeout counts may include a notification that
-arrives only after the deadline; they are not CPU usage. Full searches require
+untimed routing diagnostics. A timeout is counted when the release predicate is
+still false at the deadline; a changed predicate may return true at the deadline
+even if no notification arrived. These counters alone cannot prove prompt waking
+and are not CPU usage. The default gate contract separately requires completion
+before its deliberately longer fallback deadline. Full searches require
 one capacity release per submitted chunk and no polling sleeps on the wake
 route. Fixed contracts exercise both scheduling modes, release-before-wait,
 release-after-rejection, cancellation without release, bounded concurrent
@@ -220,7 +226,9 @@ submissions, repeated searches and append updates.
 The production worker now participates in its graph when either the process TBB
 limit or its arena has only one execution slot. A full queue can therefore drain
 without relying on a nonexistent background worker. The default multi-slot
-scheduler still polls; wake remains an explicit experiment.
+scheduler still polls. The experimental notification path retains a 1 ms timed
+fallback to check cancellation and whether the producer must drive the graph.
+See the [production adoption evaluation](../../../docs/superpowers/plans/2026-11-20-production-search-wakeup.md).
 
 Production searches use an explicit isolated task context to observe task
 failure while submitting blocks. On an edge-setup/read/allocation/task exception they cancel
@@ -230,7 +238,8 @@ resets processed extent and sends terminal progress plus completion before the
 existing error report. It does not label partial rows as a complete result.
 
 The default `zzlogg_ui.search_worker_recovery` CTest links the actual production
-library and has a 30-second hard process deadline. Under `global_control(1)`,
+library and has a 30-second hard process deadline. Under `global_control(1)` and
+`global_control(2)`,
 each configuration reuses one worker for full search, cancellation request and
 complete searches with different queries, checking match rows, counts, widths,
 consumed deltas and exactly one terminal/completion in order. Queued UI progress

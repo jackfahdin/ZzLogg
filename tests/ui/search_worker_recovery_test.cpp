@@ -144,8 +144,8 @@ int main(int argc, char** argv)
         require(!loaded.isEmpty() || loaded.wait(10000), "Indexing timeout");
         require(qvariant_cast<LoadingStatus>(loaded.last().at(0)) == LoadingStatus::Successful, "Index failed");
         Configuration::get().setRegexpEnging(RegexpEngine::QRegularExpression);
-        {
-            tbb::global_control limit(tbb::global_control::max_allowed_parallelism, 1);
+        for (size_t slots : {1U, 2U}) {
+            tbb::global_control limit(tbb::global_control::max_allowed_parallelism, slots);
             for (unsigned threads : {1U, 2U}) {
                 configure(threads);
                 LogFilteredDataWorker worker(log);

@@ -31,6 +31,12 @@ add_test(NAME zzlogg_ui.search_worker_recovery COMMAND zzlogg_search_worker_reco
 set_tests_properties(zzlogg_ui.search_worker_recovery PROPERTIES TIMEOUT 30)
 add_dependencies(ci_build zzlogg_search_worker_recovery_test)
 
+add_executable(zzlogg_search_capacity_gate_test search_capacity_gate_test.cpp)
+target_link_libraries(zzlogg_search_capacity_gate_test PRIVATE klogg_utils)
+add_test(NAME zzlogg_ui.search_capacity_gate COMMAND zzlogg_search_capacity_gate_test)
+set_tests_properties(zzlogg_ui.search_capacity_gate PROPERTIES TIMEOUT 30)
+add_dependencies(ci_build zzlogg_search_capacity_gate_test)
+
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
 zzlogg_relax_test_warnings_in_current_dir()

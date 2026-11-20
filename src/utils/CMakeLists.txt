@@ -7,6 +7,7 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/openfilehelper.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/progress.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/synchronization.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/searchcapacitygate.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/overload_visitor.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/resourcewrapper.h
   ${CMAKE_CURRENT_SOURCE_DIR}/include/crc32.h
