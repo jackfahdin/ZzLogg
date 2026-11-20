@@ -1,6 +1,9 @@
 #include "decompressor.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -119,6 +122,42 @@ private Q_SLOTS:
         QVERIFY(output.open(QIODevice::WriteOnly));
         AtomicFlag interrupt;
         checkOutcome(run(damaged.fileName(), output, interrupt), false);
+    }
+    void concatenated_data()
+    {
+        QTest::addColumn<QString>("file");
+        QTest::addColumn<bool>("success");
+        QTest::addColumn<QByteArray>("expected");
+        const QString root = QString::fromUtf8(STREAM_FIXTURES) + '/';
+        QFile manifest(root + "manifest.json");
+        QVERIFY(manifest.open(QIODevice::ReadOnly));
+        for (const auto& value : QJsonDocument::fromJson(manifest.readAll()).array()) {
+            const auto row = value.toObject();
+            QByteArray expected;
+            for (const auto& part : row["parts"].toArray()) {
+                QFile payload(root + part.toString() + ".bin");
+                QVERIFY(payload.open(QIODevice::ReadOnly));
+                expected += payload.readAll();
+            }
+            const auto file = row["file"].toString();
+            QTest::newRow(qPrintable(file)) << file << !row["parts"].isNull() << expected;
+        }
+    }
+    void concatenated()
+    {
+        QFETCH(QString, file);
+        QFETCH(bool, success);
+        QFETCH(QByteArray, expected);
+        QTemporaryDir temporary;
+        QVERIFY(temporary.isValid());
+        QFile output(temporary.filePath("decoded.log"));
+        QVERIFY(output.open(QIODevice::WriteOnly));
+        AtomicFlag interrupt;
+        checkOutcome(run(QString::fromUtf8(STREAM_FIXTURES) + '/' + file, output, interrupt), success);
+        if (success) {
+            QVERIFY(output.open(QIODevice::ReadOnly));
+            QCOMPARE(output.readAll(), expected);
+        }
     }
     void outputFailures_data()
     {

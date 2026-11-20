@@ -1,0 +1,348 @@
+[
+  {
+    "file": "two.gz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 26,
+    "sha256": "4c6327c55801bfcc794ef26bdbd376076ff5e3ccf96d829e7bc8388c16130de7"
+  },
+  {
+    "file": "empty-first.gz",
+    "parts": [
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "fbc0e92376e4eb9bc5614579d830fb6127311d61c01c8e823a10dd04965886f5"
+  },
+  {
+    "file": "empty-middle.gz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "34ce0d0ceab05341ed3b50de9815bdb308602d0a226b587282c197249e493f9d"
+  },
+  {
+    "file": "empty-last.gz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "1bb60cde19f952b25d3ea5bc8268a22eb9e435024db402b42d3b707bbc1b7ef2"
+  },
+  {
+    "file": "all-empty.gz",
+    "parts": [],
+    "first_size": 0,
+    "sha256": "35c9d5d12a9d5b3e79f268e98351f83a861ecd91b857402821fe15f5dade8aea"
+  },
+  {
+    "file": "large-first.gz",
+    "parts": [
+      "large",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "7523a0c071ac907a2ed013a3f327b86968eb05abcbbf8430cc891cfa99a136e2"
+  },
+  {
+    "file": "output-boundary.gz",
+    "parts": [
+      "boundary",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "5039c5286e50642b2bc62da488ab8af5da58c5f1140a22fa7a3da8313be25469"
+  },
+  {
+    "file": "truncated-second.gz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "ec616ec7a3a2b08c4fa354705ce40ebd523b089ed76ceb5f95ccb71b8c81d7d2"
+  },
+  {
+    "file": "corrupt-second.gz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "e7990e17fa4735a5ea3ddbcb07407fa6e8f2d10bb0c8d260f7a9799d8c51ad45"
+  },
+  {
+    "file": "trailing-garbage.gz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "dba4ca0e74581bbaeab2745b54a2d9e5c4bba60c5610befb4e2254f924ff49cb"
+  },
+  {
+    "file": "two.bz2",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 44,
+    "sha256": "ce4172fa83e4db5c1b1740836b91d5ad9608e3c0ca46bc16a34a7bc9f72ed630"
+  },
+  {
+    "file": "empty-first.bz2",
+    "parts": [
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "bf51169a4e04443c43681c22373f4378653a53f5bb434e975b3ae31b357e06ee"
+  },
+  {
+    "file": "empty-middle.bz2",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "3e074b8732e2b4b0bba49592bfc657c3e9695b4692d49e16d2b10840f50db0e8"
+  },
+  {
+    "file": "empty-last.bz2",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "eabc6db4e4a9095aa3a3a8fe1bd262c14371c7caa6e49db89cbca849d4f2cbbb"
+  },
+  {
+    "file": "all-empty.bz2",
+    "parts": [],
+    "first_size": 0,
+    "sha256": "f43ffa97e8272d81422a41aa2b1599c418bd3c361fe23ebdd391676379dfe771"
+  },
+  {
+    "file": "large-first.bz2",
+    "parts": [
+      "large",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "96de21600e7b48547b742d9a027c5f2754d55f70dcfb749efef5e8348e63ed4c"
+  },
+  {
+    "file": "output-boundary.bz2",
+    "parts": [
+      "boundary",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "e2bee83b377e85e98555f5efa8e1457c2fab41848b54498b833fef6860ea9aba"
+  },
+  {
+    "file": "truncated-second.bz2",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "4c90e59a0037eb31bf778dc45cc4399ee0a92ebe27af740c608bd9968fe80142"
+  },
+  {
+    "file": "corrupt-second.bz2",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "963e8ee494c4fac8e5938027dbf315ffdd3540d8cf8c2cef778082312198175c"
+  },
+  {
+    "file": "trailing-garbage.bz2",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "89205f6c168a5656f9dbf2aa9a0996ab407cee6d19afb07e91729ffaf2c9cb3c"
+  },
+  {
+    "file": "two.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 64,
+    "sha256": "df699034cc9e5168571e30265ed5cbde33be7b7501204b499c8a682ed3668ab9"
+  },
+  {
+    "file": "empty-first.xz",
+    "parts": [
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "75928559b04b250b8ef24a7664c882f0055dc5443178159fbfe6cc1032028d0e"
+  },
+  {
+    "file": "empty-middle.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "39fe50aa1a0867eba307769e5eb889472a523a4df2d2e216f17d7a3da735fb21"
+  },
+  {
+    "file": "empty-last.xz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "80fabb67f8dad0fdde8057f66879f8925ae3dc66d3f69ce97c821b765bc40702"
+  },
+  {
+    "file": "all-empty.xz",
+    "parts": [],
+    "first_size": 0,
+    "sha256": "1ecf8ede6a1ae61b641204572f1da419db0786316399292b17e653658e90f36e"
+  },
+  {
+    "file": "large-first.xz",
+    "parts": [
+      "large",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "1178514e072d2b03dc64b177a959c80c916195422fac6ecf9f8e99f0a9134560"
+  },
+  {
+    "file": "output-boundary.xz",
+    "parts": [
+      "boundary",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "e420967effe72be0c5a7a2c7d9ba62b3689b936e448a50fac70e284eeb8644ee"
+  },
+  {
+    "file": "truncated-second.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "3fd3e1b84045eb57399e63de05aadb17b4218cad1d0ec9b21750f4731a2d3768"
+  },
+  {
+    "file": "corrupt-second.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "88f6657166dd713fad738debda50996c0517af76eabf20c6f7f07cad3b8a528b"
+  },
+  {
+    "file": "trailing-garbage.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "bdf5c113774196779342464c178336d8f8d6838ab84ae702a66a8458d5e3dec7"
+  },
+  {
+    "file": "padding-1-end.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "9452b14f509540c157974d7175bf3d9e932c36d2217f9fe9b208474d3f1f47b7"
+  },
+  {
+    "file": "padding-1-between.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "d9ec9a3a3246292a6fc646c4d18a3e696f4b879f8829b5083951a7eb7a8204f0"
+  },
+  {
+    "file": "padding-3-end.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "e532ce3043024d5d239b9446282f75a9ca59b1c8672df694c49f9538c5310082"
+  },
+  {
+    "file": "padding-3-between.xz",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "14cdc106d392aeff5353a51337ff658a23e055aa4fcf8437e0522564d716f21f"
+  },
+  {
+    "file": "padding-4-end.xz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "714e898758427429305d190545a12882664be722cf3d52a27b35b25b9614c8b8"
+  },
+  {
+    "file": "padding-4-between.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "8ed99d74f4b677cb6ac3956bd6588439e3bca001e63881bb84e805ebf5097cb8"
+  },
+  {
+    "file": "padding-8-end.xz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "2e7281936e639f7f1ae5fd979ff72a342cbd046bab75ce7ba5ec3cf9873087f5"
+  },
+  {
+    "file": "padding-8-between.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "51412d2a32a672adae278df2801cc8daf51278a1843f9e55b7351e181856a54d"
+  },
+  {
+    "file": "padding-8192-end.xz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "15941cb4cdf5076896c0f2f33532e5e2a299f67d98c11ba081d1fbbde82da222"
+  },
+  {
+    "file": "padding-8192-between.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "a76496c1a615ddc60f85000feb34e326acf70397676cb0534975111e89d4f925"
+  },
+  {
+    "file": "padding-8196-end.xz",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "513262738ae45b322ac4c203f7e04a34b793df6f0f5ba2a6659ebaa97b7134ea"
+  },
+  {
+    "file": "padding-8196-between.xz",
+    "parts": [
+      "first",
+      "second"
+    ],
+    "first_size": 0,
+    "sha256": "cbe901f2df18efd2aca66e43493c5ffea991a958db1c0ae532edf7d39569e9f6"
+  },
+  {
+    "file": "legacy.lzma",
+    "parts": [
+      "first"
+    ],
+    "first_size": 0,
+    "sha256": "2880bf15c93af69b8363f0523c5ea14840fe0cafdb824cc08689e5702e960762"
+  },
+  {
+    "file": "legacy-concatenated.lzma",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "93fd9d6fac80a41f90c031c63d50547574f41e7b1e77ff07c340241574089eae"
+  },
+  {
+    "file": "legacy-trailing.lzma",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "add1a9be4ef3a75598af434f0d86b35039ebf74b75436c6e33ff0d09ca67eaed"
+  },
+  {
+    "file": "legacy-truncated.lzma",
+    "parts": null,
+    "first_size": 0,
+    "sha256": "50cb6dfa515ca71a86c3725acec12034fcee8bebcd9d20fecd9543d0ad3ce291"
+  }
+]

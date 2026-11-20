@@ -26,6 +26,7 @@
 #include <stdio.h> // for EOF
 #include <stdlib.h>
 #include <assert.h>
+#include <climits>
 
 #include "kgzipfilter.h"
 #include "knonefilter.h"
@@ -151,6 +152,9 @@ bool KCompressionDevice::open(QIODevice::OpenMode mode)
         return false;
     }
     d->bOpenedUnderlyingDevice = false;
+    d->deviceReadPos = 0;
+    d->errorCode = QFileDevice::NoError;
+    d->filter->setInBuffer(nullptr, 0);
     //qCDebug(KArchiveLog) << mode;
     if (mode == QIODevice::ReadOnly) {
         d->buffer.resize(0);
@@ -261,6 +265,7 @@ bool KCompressionDevice::seek(qint64 pos)
 bool KCompressionDevice::atEnd() const
 {
     return (d->type == KCompressionDevice::None || d->result == KFilterBase::End)
+           && d->filter->inBufferEmpty()
            && QIODevice::atEnd() // take QIODevice's internal buffer into account
            && d->filter->device()->atEnd();
 }
@@ -268,74 +273,97 @@ bool KCompressionDevice::atEnd() const
 qint64 KCompressionDevice::readData(char *data, qint64 maxlen)
 {
     Q_ASSERT(d->filter->mode() == QIODevice::ReadOnly);
-    //qCDebug(KArchiveLog) << "maxlen=" << maxlen;
     KFilterBase *filter = d->filter;
-
-    uint dataReceived = 0;
-
-    // We came to the end of the stream
-    if (d->result == KFilterBase::End) {
-        return dataReceived;
+    if (maxlen <= 0 || d->result == KFilterBase::End) {
+        return 0;
     }
-
-    // If we had an error, return -1.
-    if (d->result != KFilterBase::Ok) {
+    if (d->result == KFilterBase::Error) {
         return -1;
     }
 
-    qint64 availOut = maxlen;
-    filter->setOutBuffer(data, maxlen);
-
+    qint64 dataReceived = 0;
     while (dataReceived < maxlen) {
         if (filter->inBufferEmpty()) {
-            // Not sure about the best size to set there.
-            // For sure, it should be bigger than the header size (see comment in readHeader)
             d->buffer.resize(BUFFER_SIZE);
-            // Request data from underlying device
-            int size = filter->device()->read(d->buffer.data(),
-                                              d->buffer.size());
-            //qCDebug(KArchiveLog) << "got" << size << "bytes from device";
-            if (size) {
-                filter->setInBuffer(d->buffer.data(), size);
-            } else {
-                // Not enough data available in underlying device for now
+            const qint64 size = filter->device()->read(d->buffer.data(), d->buffer.size());
+            if (size < 0) {
+                d->result = KFilterBase::Error;
+                d->errorCode = QFileDevice::ReadError;
+                setErrorString(filter->device()->errorString());
                 break;
+            }
+            // Keep the actual buffer end, so unread bytes survive member reinitialization.
+            d->buffer.resize(size);
+            filter->setInBuffer(d->buffer.constData(), size);
+            if (size == 0 && !filter->device()->atEnd()) {
+                break; // Sequential input may have more data later.
             }
         }
         if (d->bNeedHeader) {
-            (void) filter->readHeader();
+            // Gzip's legacy plain-text detection needs a complete fixed header.
+            // Preserve short reads until it can distinguish compression from passthrough.
+            while (d->type == KCompressionDevice::GZip && d->buffer.size() < 10
+                   && !filter->device()->atEnd()) {
+                const auto previous = d->buffer.size();
+                d->buffer.resize(10);
+                const auto size = filter->device()->read(d->buffer.data() + previous, 10 - previous);
+                d->buffer.resize(previous + qMax<qint64>(size, 0));
+                filter->setInBuffer(d->buffer.constData(), d->buffer.size());
+                if (size < 0) {
+                    d->result = KFilterBase::Error;
+                    d->errorCode = QFileDevice::ReadError;
+                    setErrorString(filter->device()->errorString());
+                    return -1;
+                }
+                if (size == 0 && !filter->device()->atEnd()) {
+                    return 0; // Retain the partial header until more input arrives.
+                }
+            }
+            (void)filter->readHeader();
             d->bNeedHeader = false;
         }
-
-        d->result = filter->uncompress();
-
+        const auto availOut = qMin<qint64>(maxlen - dataReceived, INT_MAX);
+        filter->setOutBuffer(data + dataReceived, availOut);
+        const int availIn = filter->inBufferAvailable();
+#if HAVE_XZ_SUPPORT
+        // AUTO XZ/LZMA validates all input, including padding, using native liblzma.
+        if (d->type == KCompressionDevice::Xz) {
+            d->result = static_cast<KXzFilter *>(filter)->uncompress(filter->device()->atEnd());
+        } else
+#endif
+        {
+            d->result = filter->uncompress();
+        }
         if (d->result == KFilterBase::Error) {
-            //qCWarning(KArchiveLog) << "KCompressionDevice: Error when uncompressing data";
             break;
         }
-
-        // We got that much data since the last time we went here
-        uint outReceived = availOut - filter->outBufferAvailable();
-        //qCDebug(KArchiveLog) << "avail_out = " << filter->outBufferAvailable() << " result=" << d->result << " outReceived=" << outReceived;
-        if (availOut < uint(filter->outBufferAvailable())) {
-            //qCWarning(KArchiveLog) << " last availOut " << availOut << " smaller than new avail_out=" << filter->outBufferAvailable() << " !";
-        }
-
-        dataReceived += outReceived;
-        data += outReceived;
-        availOut = maxlen - dataReceived;
+        const qint64 produced = availOut - filter->outBufferAvailable();
+        dataReceived += produced;
         if (d->result == KFilterBase::End) {
-            // We're actually at the end, no more data to check
-            if (filter->device()->atEnd()) {
+            // The source may already be at EOF while the next member is in our buffer.
+            if (filter->inBufferEmpty() && filter->device()->atEnd()) {
                 break;
             }
-
-            // Still not done, re-init and try again
-            filter->init(filter->mode());
+            const int remaining = filter->inBufferAvailable();
+            const char *next = d->buffer.constData() + d->buffer.size() - remaining;
+            if (!filter->init(filter->mode())) {
+                d->result = KFilterBase::Error;
+                break;
+            }
+            filter->setInBuffer(next, remaining);
+            d->result = KFilterBase::Ok;
+        } else if (produced == 0 && availIn == filter->inBufferAvailable()) {
+            // No input/output progress at EOF means a truncated stream, not success.
+            d->result = KFilterBase::Error;
+            break;
         }
-        filter->setOutBuffer(data, availOut);
     }
-
+    if (d->result == KFilterBase::Error) {
+        d->errorCode = QFileDevice::ReadError;
+        if (dataReceived == 0) {
+            return -1;
+        }
+    }
     d->deviceReadPos += dataReceived;
     return dataReceived;
 }

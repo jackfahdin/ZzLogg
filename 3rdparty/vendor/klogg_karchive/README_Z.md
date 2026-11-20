@@ -78,6 +78,16 @@ Qt6 中 `QIODevice::OpenMode` 无法直接传给 `QString::arg`，因此在以�
 [实施记录](../../../docs/superpowers/plans/2026-11-20-archive-baseline.md)。
 本轮未调整流 codec；bzip2／xz 拼接成员与尾随数据处理的已知差异由显式审计记录，不能认为这些补丁已解决。
 
+## 2026-11-20 拼接压缩流补丁
+
+后续修复上一轮明确保留的流兼容缺口：
+
+- `kcompressiondevice.cpp`：底层 EOF 不再忽略输入缓冲中的下一成员；重启解码器时恢复未消费输入并检查初始化结果。负读取直接失败，EOF 时允许解码器完成剩余输出／验证，零进展不循环。重新打开时重置输入位置和错误状态。gzip 初始短读先保留并补齐识别头部，避免把合法压缩数据误当普通文本透传。
+- `kgzipfilter.cpp`：单次调用处理一个成员，拼接由设备统一管理，避免缓冲区边界和输出恰满时两层各自重启。
+- `kxzfilter.cpp/h`：AUTO 模式启用 liblzma 的 `LZMA_CONCATENATED`，由设备在底层 EOF 时显式传 `LZMA_FINISH`，原生处理 XZ 拼接、padding 及尾部拒绝。旧 LZMA 单流继续可读，拼接／垃圾尾部拒绝；7z 的 raw LZMA／LZMA2 调用仍使用非 finish 路径。
+
+独立 16 项流审计由 6 项通过提升为全部通过；默认回归含 46 个独立输入及读取边界／seek／重开测试。详见 [拼接流修复记录](../../../docs/superpowers/plans/2026-11-20-concatenated-streams.md)。未升级内嵌 codec、未改变内存上限，也不据此宣称性能或归档安全验收完成。
+
 ## 更新步骤
 
 1. 从上游 fork 获取目标提交（例如 `f546bf6`）。

@@ -307,44 +307,12 @@ KGzipFilter::Result KGzipFilter::uncompress()
     qCDebug(KArchiveLog) << "    next_in=" << d->zStream.next_in;
 #endif
 
-    while (d->zStream.avail_in > 0) {
-        int result = inflate(&d->zStream, Z_SYNC_FLUSH);
-
-#ifdef DEBUG_GZIP
-        qCDebug(KArchiveLog) << " -> inflate returned " << result;
-        qCDebug(KArchiveLog) << " now avail_in=" << inBufferAvailable() << " avail_out=" << outBufferAvailable();
-        qCDebug(KArchiveLog) << "     next_in=" << d->zStream.next_in;
-#endif
-
-        if (result == Z_OK) {
-            return KFilterBase::Ok;
-        }
-
-        // We can't handle any other results
-        if (result != Z_STREAM_END) {
-            return KFilterBase::Error;
-        }
-
-        // It really was the end
-        if (d->zStream.avail_in == 0) {
-            return KFilterBase::End;
-        }
-
-        // Store before resetting
-        Bytef *data = d->zStream.next_in; // This is increased appropriately by zlib beforehand
-        uInt size = d->zStream.avail_in;
-
-        // Reset the stream, if that fails we assume we're at the end
-        if (!init(d->mode)) {
-            return KFilterBase::End;
-        }
-
-        // Reset the data to where we left off
-        d->zStream.next_in = data;
-        d->zStream.avail_in = size;
+    // Member transitions belong to KCompressionDevice, which also owns unread input.
+    const int result = inflate(&d->zStream, Z_SYNC_FLUSH);
+    if (result == Z_STREAM_END) {
+        return KFilterBase::End;
     }
-
-    return KFilterBase::End;
+    return result == Z_OK || result == Z_BUF_ERROR ? KFilterBase::Ok : KFilterBase::Error;
 }
 
 KGzipFilter::Result KGzipFilter::compress(bool finish)

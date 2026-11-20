@@ -93,7 +93,7 @@ bool KXzFilter::init(int mode, Flag flag, const QVector<unsigned char> &properti
             /* We set the memlimit for decompression to 100MiB which should be
             * more than enough to be sufficient for level 9 which requires 65 MiB.
             */
-            result = lzma_auto_decoder(&d->zStream, 100 << 20, 0);
+            result = lzma_auto_decoder(&d->zStream, 100 << 20, LZMA_CONCATENATED);
             if (result != LZMA_OK) {
                 qCWarning(KArchiveLog) << "lzma_auto_decoder returned" << result;
                 return false;
@@ -254,9 +254,14 @@ int KXzFilter::outBufferAvailable() const
 
 KXzFilter::Result KXzFilter::uncompress()
 {
+    return uncompress(false);
+}
+
+KXzFilter::Result KXzFilter::uncompress(bool finish)
+{
     //qCDebug(KArchiveLog) << "Calling lzma_code with avail_in=" << inBufferAvailable() << " avail_out =" << outBufferAvailable();
     lzma_ret result;
-    result = lzma_code(&d->zStream, LZMA_RUN);
+    result = lzma_code(&d->zStream, finish ? LZMA_FINISH : LZMA_RUN);
 
     /*if (result != LZMA_OK) {
         qCDebug(KArchiveLog) << "lzma_code returned " << result;

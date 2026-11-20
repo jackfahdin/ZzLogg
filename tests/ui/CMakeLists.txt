@@ -41,7 +41,8 @@ add_dependencies(ci_build zzlogg_search_capacity_gate_test)
 add_executable(zzlogg_decompressor_test decompressor_test.cpp)
 target_link_libraries(zzlogg_decompressor_test PRIVATE klogg_ui Qt6::Test)
 target_compile_definitions(zzlogg_decompressor_test PRIVATE
-    DECOMPRESS_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/compression")
+    DECOMPRESS_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/compression"
+    STREAM_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/streams")
 set_target_properties(zzlogg_decompressor_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.decompressor COMMAND zzlogg_decompressor_test)
 set_tests_properties(zzlogg_ui.decompressor PROPERTIES TIMEOUT 45)
@@ -54,6 +55,14 @@ set_target_properties(zzlogg_archive_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.archive COMMAND zzlogg_archive_test)
 set_tests_properties(zzlogg_ui.archive PROPERTIES TIMEOUT 45)
 add_dependencies(ci_build zzlogg_archive_test)
+
+add_executable(zzlogg_compression_device_test compression_device_test.cpp)
+target_link_libraries(zzlogg_compression_device_test PRIVATE klogg_ui Qt6::Test)
+target_compile_definitions(zzlogg_compression_device_test PRIVATE STREAM_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/streams")
+set_target_properties(zzlogg_compression_device_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.compression_device COMMAND zzlogg_compression_device_test)
+set_tests_properties(zzlogg_ui.compression_device PROPERTIES TIMEOUT 45)
+add_dependencies(ci_build zzlogg_compression_device_test)
 
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).

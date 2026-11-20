@@ -70,6 +70,8 @@ public:
     int  inBufferAvailable() const override;
     int  outBufferAvailable() const override;
     Result uncompress() override;
+    // AUTO streams require an explicit end-of-input to validate concatenation/padding.
+    Result uncompress(bool finish);
     Result compress(bool finish) override;
 private:
     class Private;
