@@ -36,8 +36,6 @@ stage_runtime_notice("3rdparty/vendor/ZzPureTools/ZzThirdParty/ZzLog/licenses/fm
   "licenses/ZzPureTools/ZzLog/fmt/LICENSE.txt")
 stage_runtime_notice("3rdparty/vendor/ZzPureTools/ZzThirdParty/qwindowkit/LICENSE"
   "licenses/ZzPureTools/qwindowkit/LICENSE")
-stage_runtime_notice("3rdparty/vendor/ZzPureTools/ZzThirdParty/qwindowkit/qmsetup/LICENSE"
-  "licenses/ZzPureTools/qwindowkit/qmsetup/LICENSE")
 
 file(COPY "${SOURCE_ROOT}/3rdparty/licenses/KSyntaxHighlighting"
   DESTINATION "${DEPLOY_DIR}/licenses")

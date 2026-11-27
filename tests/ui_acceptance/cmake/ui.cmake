@@ -2,7 +2,8 @@ add_executable(zzlogg_text_cache_test ui/textcachetest.cpp)
 target_link_libraries(zzlogg_text_cache_test PRIVATE
   klogg_ui klogg_storage Qt6::Test Qt6::Widgets)
 set_target_properties(zzlogg_text_cache_test PROPERTIES AUTOMOC ON)
-add_test(NAME zzlogg_ui.text_cache COMMAND zzlogg_text_cache_test -platform offscreen)
+add_test(NAME zzlogg_ui.text_cache COMMAND zzlogg_text_cache_test -platform offscreen
+  -o "${CMAKE_CURRENT_BINARY_DIR}/text-cache-$<CONFIG>.txt,txt" -o "-,txt")
 if(WIN32)
   set_property(TEST zzlogg_ui.text_cache PROPERTY ENVIRONMENT
     "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::QOffscreenIntegrationPlugin>/..")

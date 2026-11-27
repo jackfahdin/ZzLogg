@@ -178,3 +178,8 @@ if(WIN32)
     ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
 endif()
+
+add_test(NAME zzlogg_ui.runtime_licenses
+  COMMAND "${CMAKE_COMMAND}" "-DSOURCE_ROOT=${PROJECT_SOURCE_DIR}"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/runtime-licenses"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/packaging/runtimelicensestest.cmake")

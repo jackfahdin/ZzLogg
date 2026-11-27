@@ -18,3 +18,23 @@ runs:
         else
           ctest --verbose
         fi
+
+    - name: Preserve test diagnostics
+      if: failure() && runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $root = Join-Path $env:GITHUB_WORKSPACE $env:KLOGG_BUILD_ROOT
+        Get-ChildItem (Join-Path $root 'tests/ui_acceptance') -Filter 'text-cache-*.txt' -ErrorAction SilentlyContinue | ForEach-Object {
+          Write-Output "Test report: $($_.FullName)"
+          Get-Content -LiteralPath $_.FullName
+        }
+
+    - name: Upload failed test reports
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-diagnostics-${{ runner.os }}-${{ runner.arch }}
+        path: |
+          ${{ env.KLOGG_BUILD_ROOT }}/Testing/Temporary/*.log
+          ${{ env.KLOGG_BUILD_ROOT }}/tests/ui_acceptance/*.txt
+        if-no-files-found: warn

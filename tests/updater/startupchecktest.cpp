@@ -13,7 +13,7 @@ int wmain(int argc,wchar_t** argv) {
         return result.passed?0:1;
     }
     if(argc==3 && std::wstring(argv[1])==L"--application-readiness") {
-        const fs::path app(argv[2]);
+        const auto app=fs::path(argv[2]).make_preferred();
         const auto data=createTestRoot(fs::path(testTempDirectory()));
         auto command=quoteWindowsArgument(app.wstring())+L" --data-dir "+quoteWindowsArgument(data.wstring());
         STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION child{};
@@ -27,7 +27,8 @@ int wmain(int argc,wchar_t** argv) {
         TerminateProcess(process.get(),0);
         const bool exited=WaitForSingleObject(process.get(),5000)==WAIT_OBJECT_0;
         if(exited) {std::error_code ignored;fs::remove_all(data,ignored);}
-        if(!ready)std::cerr<<"Primary application never published startup readiness\n";
+        if(!identified)std::wcerr<<L"Cannot identify application directory: "<<app.parent_path().wstring()<<L"\n";
+        else if(!ready)std::cerr<<"Primary application never published startup readiness\n";
         return ready && exited?0:1;
     }
     // The same image is a real child, with failure selected by a fixture file.
