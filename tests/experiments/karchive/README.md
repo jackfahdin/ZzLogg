@@ -38,6 +38,10 @@ cmake --build "$evaluation_root/build-upstream" -j6
 ctest --test-dir "$evaluation_root/build-upstream" --output-on-failure
 
 python3 scripts/dev/audit_compressed_streams.py \
+  --binary "$evaluation_root/build-fork/bin/zzlogg_archive_test" \
+  --output "$evaluation_root/audit-fork"
+
+python3 scripts/dev/audit_compressed_streams.py \
   --binary "$evaluation_root/build-upstream/bin/zzlogg_archive_test" \
   --output "$evaluation_root/audit-upstream"
 ```

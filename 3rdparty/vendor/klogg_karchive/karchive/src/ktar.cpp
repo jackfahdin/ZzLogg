@@ -18,6 +18,7 @@
 */
 
 #include "ktar.h"
+#include <limits>
 #include "karchive_p.h"
 #include "loggingcategory.h"
 
@@ -481,7 +482,12 @@ bool KTar::openArchive(QIODevice::OpenMode mode)
             } else {
                 // read size
                 QByteArray sizeBuffer(buffer + 0x7c, 12);
-                qint64 size = sizeBuffer.trimmed().toLongLong(nullptr, 8 /*octal*/);
+                bool sizeOk = false;
+                qint64 size = sizeBuffer.trimmed().toLongLong(&sizeOk, 8 /*octal*/);
+                if (!sizeOk || size < 0 || size > std::numeric_limits<qint64>::max() - 511 - dev->pos()) {
+                    setErrorString(tr("Invalid tar member size"));
+                    return false;
+                }
                 //qCDebug(KArchiveLog) << "sizeBuffer='" << sizeBuffer << "' -> size=" << size;
 
                 // for isDumpDir we will skip the additional info about that dirs contents

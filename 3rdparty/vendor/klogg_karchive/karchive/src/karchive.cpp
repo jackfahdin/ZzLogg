@@ -32,6 +32,9 @@
 #include <QDir>
 #include <QFile>
 #include <memory>
+#include <limits>
+#include <QSaveFile>
+#include <QSet>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -835,42 +838,158 @@ static QFileDevice::Permissions withExecutablePerms(
     return filePerms;
 }
 
-bool KArchiveFile::copyTo(const QString &dest, const QAtomicInt& isCanceled) const
+namespace {
+// Use a conservative, host-independent identity for archive names. Otherwise a
+// plan checked on case-sensitive strings can become ambiguous on the output FS.
+QString portablePathKey(const QString &path)
 {
-    QFile f(dest + QLatin1Char('/')  + name());
-    if (f.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
-        std::unique_ptr<QIODevice> inputDev(createDevice());
-        if (!inputDev) {
-            f.remove();
+    return path.normalized(QString::NormalizationForm_C).toCaseFolded().normalized(QString::NormalizationForm_C);
+}
+
+bool safeComponent(const QString &name)
+{
+    if (name.isEmpty() || name == QLatin1String(".") || name == QLatin1String("..")
+        || name.contains(QLatin1Char('/')) || name.contains(QLatin1Char('\\')) || name.contains(QChar(0))) {
+        return false;
+    }
+#ifdef Q_OS_WIN
+    if (name.contains(QLatin1Char(':')) || name.endsWith(QLatin1Char('.')) || name.endsWith(QLatin1Char(' '))) {
+        return false;
+    }
+    const auto base = name.section(QLatin1Char('.'), 0, 0).toUpper();
+    if (base == QLatin1String("CON") || base == QLatin1String("PRN") || base == QLatin1String("AUX")
+        || base == QLatin1String("NUL") || base == QLatin1String("CONIN$") || base == QLatin1String("CONOUT$")) {
+        return false;
+    }
+    if (base.size() == 4 && (base.startsWith(QLatin1String("COM")) || base.startsWith(QLatin1String("LPT")))
+        && (QStringLiteral("123456789").contains(base[3]) || base[3] == QChar(0x00b9)
+            || base[3] == QChar(0x00b2) || base[3] == QChar(0x00b3))) {
+        return false;
+    }
+#endif
+    return true;
+}
+
+bool isLink(const QFileInfo &info)
+{
+    return info.isSymLink() || info.isJunction();
+}
+
+// The caller owns the output root. Reject static links below it; this is not
+// a sandbox against another process concurrently replacing its directories.
+bool safeExistingPath(const QString &root, const QString &path)
+{
+    const QFileInfo rootInfo(root);
+    if (isLink(rootInfo) || (rootInfo.exists() && !rootInfo.isDir())) {
+        return false;
+    }
+    const auto relative = QDir(root).relativeFilePath(path);
+    if (relative == QLatin1String(".")) {
+        return true;
+    }
+    QString current = root;
+    const auto parts = relative.split(QLatin1Char('/'));
+    for (qsizetype i = 0; i < parts.size(); ++i) {
+        if (!safeComponent(parts[i])) {
             return false;
         }
+        current += QLatin1Char('/') + parts[i];
+        const QFileInfo info(current);
+        if (isLink(info) || (info.exists() && !info.isFile() && !info.isDir())
+            || (i + 1 < parts.size() && info.exists() && !info.isDir())) {
+            return false;
+        }
+    }
+    return true;
+}
 
-        // Read and write data in chunks to minimize memory usage
-        const qint64 chunkSize = 1024 * 1024;
-        qint64 remainingSize = d->size;
-        QByteArray array;
-        array.resize(int(qMin(chunkSize, remainingSize)));
-
-        while (remainingSize > 0) {
-            if (isCanceled.loadAcquire() != 0) {
-                break;
-            }
-            const qint64 currentChunkSize = qMin(chunkSize, remainingSize);
-            const qint64 n = inputDev->read(array.data(), currentChunkSize);
-            if (n <= 0 || n > currentChunkSize || f.write(array.constData(), n) != n) {
+bool safeLinkTarget(const QString &root, const QString &link, const QMap<QString, QString> &links,
+                    const QMap<QString, QString> &linkNames, QString &resolved)
+{
+    QStringList position = QDir(root).relativeFilePath(QFileInfo(link).absolutePath()).split(QLatin1Char('/'));
+    if (position == QStringList{QStringLiteral(".")}) {
+        position.clear();
+    }
+    QStringList pending = links.value(link).split(QLatin1Char('/'));
+    int followed = 0;
+    while (!pending.isEmpty()) {
+        const auto component = pending.takeFirst();
+        if (component.isEmpty() || component == QLatin1String(".")) {
+            continue;
+        }
+        if (component == QLatin1String("..")) {
+            if (position.isEmpty()) {
                 return false;
             }
-            remainingSize -= n;
+            position.removeLast();
+            continue;
         }
-        if (remainingSize != 0 || !f.flush()) {
+        if (!safeComponent(component)) {
             return false;
         }
-        f.setPermissions(withExecutablePerms(f.permissions(), permissions()));
-        f.close();
-
-        return isCanceled.loadAcquire() == 0;
+        const auto candidate = root + QLatin1Char('/') + (position + QStringList{component}).join(QLatin1Char('/'));
+        if (!safeExistingPath(root, candidate)) {
+            return false;
+        }
+        const auto plannedLink = linkNames.constFind(portablePathKey(candidate));
+        if (plannedLink != linkNames.cend()) {
+            // A differently spelled link is dangling on some filesystems and
+            // followed on others. Reject it instead of guessing the FS rules.
+            if (plannedLink.value() != candidate) {
+                return false;
+            }
+            // Expand links before '..', matching filesystem semantics. A lexical
+            // cleanPath would miss escapes such as pivot/../outside with pivot='.'.
+            if (++followed > 40) {
+                return false;
+            }
+            pending = links.value(candidate).split(QLatin1Char('/')) + pending;
+        } else {
+            position.append(component);
+        }
     }
-    return false;
+    resolved = position.isEmpty() ? root : root + QLatin1Char('/') + position.join(QLatin1Char('/'));
+    return safeExistingPath(root, resolved);
+}
+}
+
+bool KArchiveFile::copyTo(const QString &dest, const QAtomicInt& isCanceled) const
+{
+    const QFileInfo directory(dest);
+    const QString path = dest + QLatin1Char('/') + name();
+    const QFileInfo target(path);
+    if (isCanceled.loadAcquire() != 0 || d->size < 0 || !safeComponent(name())
+        || isLink(directory) || !directory.isDir() || isLink(target) || (target.exists() && !target.isFile())) {
+        return false;
+    }
+    QSaveFile f(path);
+    f.setDirectWriteFallback(false); // Never truncate an existing hard-link target.
+    if (!f.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    std::unique_ptr<QIODevice> inputDev(createDevice());
+    if (!inputDev) {
+        return false;
+    }
+    const qint64 chunkSize = 1024 * 1024;
+    qint64 remainingSize = d->size;
+    QByteArray array(int(qMin(chunkSize, remainingSize)), 0);
+    while (remainingSize > 0) {
+        if (isCanceled.loadAcquire() != 0) {
+            return false;
+        }
+        const qint64 currentChunkSize = qMin(chunkSize, remainingSize);
+        const qint64 n = inputDev->read(array.data(), currentChunkSize);
+        if (n <= 0 || n > currentChunkSize || f.write(array.constData(), n) != n) {
+            return false;
+        }
+        remainingSize -= n;
+    }
+    if (isCanceled.loadAcquire() != 0 || !f.flush()) {
+        return false;
+    }
+    f.setPermissions(withExecutablePerms(f.permissions(), permissions()));
+    return f.commit();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -961,80 +1080,124 @@ static bool sortByPosition(const KArchiveFile *file1, const KArchiveFile *file2)
 
 bool KArchiveDirectory::copyTo(const QString &dest, const QAtomicInt& isCanceled, bool recursiveCopy) const
 {
-    QDir root;
-    const QString destDir(QDir(dest).absolutePath()); // get directory path without any "." or ".."
-
+    const QString destDir(QDir(dest).absolutePath());
+    if (isCanceled.loadAcquire() != 0 || !safeExistingPath(destDir, destDir)) {
+        return false;
+    }
     QList<const KArchiveFile *> fileList;
     QMap<const KArchiveFile *, QString> fileToDir;
-
-    // placeholders for iterated items
+    QStringList directories;
+    QMap<QString, QString> links;
+    QMap<QString, QString> linkNames;
+    QMap<QString, QString> linkOutputs;
+    QSet<QString> outputs;
+    qint64 totalSize = 0;
     QStack<const KArchiveDirectory *> dirStack;
     QStack<QString> dirNameStack;
-
-    dirStack.push(this);       // init stack at current directory
-    dirNameStack.push(destDir);   // ... with given path
-    do {
-        const KArchiveDirectory *curDir = dirStack.pop();
-
-        // extract only to specified folder if it is located within archive's extraction folder
-        // otherwise put file under root position in extraction folder
-        QString curDirName = dirNameStack.pop();
-        if (!QDir(curDirName).absolutePath().startsWith(destDir)) {
-            qCWarning(KArchiveLog) << "Attempted export into folder" << curDirName
-                << "which is outside of the extraction root folder" << destDir << "."
-                << "Changing export of contained files to extraction root folder.";
-            curDirName = destDir;
-        }
-
-        if (!root.mkpath(curDirName)) {
+    dirStack.push(this);
+    dirNameStack.push(destDir);
+    // Preflight the entire tree before creating anything or following links.
+    while (!dirStack.isEmpty()) {
+        if (isCanceled.loadAcquire() != 0) {
             return false;
         }
-
-        const QStringList dirEntries = curDir->entries();
-        for (QStringList::const_iterator it = dirEntries.begin(); it != dirEntries.end(); ++it) {
-            const KArchiveEntry *curEntry = curDir->entry(*it);
-            if (!curEntry->symLinkTarget().isEmpty()) {
-                QString linkName = curDirName + QLatin1Char('/') + curEntry->name();
-                // To create a valid link on Windows, linkName must have a .lnk file extension.
+        const auto *curDir = dirStack.pop();
+        const auto curDirName = dirNameStack.pop();
+        if (!safeExistingPath(destDir, curDirName)
+            || (QFileInfo::exists(curDirName) && !QFileInfo(curDirName).isDir())) {
+            return false;
+        }
+        directories.append(curDirName);
+        for (const auto &name : curDir->entries()) {
+            if (isCanceled.loadAcquire() != 0 || !safeComponent(name)) {
+                return false;
+            }
+            const auto *entry = curDir->entry(name);
+            if (!entry) {
+                return false;
+            }
+            const QString path = curDirName + QLatin1Char('/') + name;
+            if (!safeExistingPath(destDir, path)) {
+                return false;
+            }
+            QString output = path;
+            if (!entry->symLinkTarget().isEmpty()) {
+                const auto target = entry->symLinkTarget();
+                if (!QDir::isRelativePath(target) || target.contains(QLatin1Char('\\')) || target.contains(QChar(0))) {
+                    return false;
+                }
 #ifdef Q_OS_WIN
-                if (!linkName.endsWith(QLatin1String(".lnk"))) {
-                    linkName += QLatin1String(".lnk");
+                if (!output.endsWith(QLatin1String(".lnk"), Qt::CaseInsensitive)) {
+                    output += QLatin1String(".lnk");
                 }
 #endif
-                QFile symLinkTarget(curEntry->symLinkTarget());
-                if (!symLinkTarget.link(linkName)) {
-                    //qCDebug(KArchiveLog) << "symlink(" << curEntry->symLinkTarget() << ',' << linkName << ") failed:" << strerror(errno);
+                if (!safeExistingPath(destDir, output) || QFileInfo::exists(output)) {
+                    return false;
                 }
+                links.insert(path, target);
+                linkNames.insert(portablePathKey(path), path);
+                linkOutputs.insert(path, output);
+            } else if (entry->isFile()) {
+                const auto *file = static_cast<const KArchiveFile *>(entry);
+                if (file->size() < 0 || file->size() > std::numeric_limits<qint64>::max() - totalSize
+                    || (QFileInfo::exists(path) && !QFileInfo(path).isFile())) {
+                    return false;
+                }
+                totalSize += file->size();
+                fileList.append(file);
+                fileToDir.insert(file, curDirName);
+            } else if (entry->isDirectory()) {
+                if (!recursiveCopy) {
+                    continue;
+                }
+                dirStack.push(static_cast<const KArchiveDirectory *>(entry));
+                dirNameStack.push(path);
             } else {
-                if (curEntry->isFile()) {
-                    const KArchiveFile *curFile = dynamic_cast<const KArchiveFile *>(curEntry);
-                    if (curFile) {
-                        fileList.append(curFile);
-                        fileToDir.insert(curFile, curDirName);
-                    }
-                }
-
-                if (curEntry->isDirectory() && recursiveCopy) {
-                    const KArchiveDirectory *ad = dynamic_cast<const KArchiveDirectory *>(curEntry);
-                    if (ad) {
-                        dirStack.push(ad);
-                        dirNameStack.push(curDirName + QLatin1Char('/') + curEntry->name());
-                    }
-                }
+                return false;
             }
+            output = portablePathKey(output);
+            if (outputs.contains(output)) {
+                return false;
+            }
+            outputs.insert(output);
         }
-    } while (!dirStack.isEmpty());
-
-    std::sort(fileList.begin(), fileList.end(), sortByPosition);    // sort on d->pos, so we have a linear access
-
-    for (QList<const KArchiveFile *>::const_iterator it = fileList.constBegin(), end = fileList.constEnd();
-         it != end; ++it) {
-        const KArchiveFile *f = *it;
-        if (!f->copyTo(fileToDir.value(f), isCanceled)) {
+    }
+    QMap<QString, QString> resolvedTargets;
+    for (auto it = links.cbegin(); it != links.cend(); ++it) {
+        QString resolved;
+        if (isCanceled.loadAcquire() != 0 || !safeLinkTarget(destDir, it.key(), links, linkNames, resolved)) {
+            return false;
+        }
+        resolvedTargets.insert(it.key(), resolved);
+    }
+    for (const auto &directory : directories) {
+        if (isCanceled.loadAcquire() != 0 || !safeExistingPath(destDir, directory) || !QDir().mkpath(directory)) {
             return false;
         }
     }
-    return true;
+    std::sort(fileList.begin(), fileList.end(), sortByPosition);
+    for (const auto *file : fileList) {
+        const auto directory = fileToDir.value(file);
+        if (!safeExistingPath(destDir, directory) || !file->copyTo(directory, isCanceled)) {
+            return false;
+        }
+    }
+    // No ordinary file is ever written through a link created by this archive.
+    for (auto it = links.cbegin(); it != links.cend(); ++it) {
+        const auto output = linkOutputs.value(it.key());
+        if (isCanceled.loadAcquire() != 0 || !safeExistingPath(destDir, QFileInfo(output).absolutePath())) {
+            return false;
+        }
+#ifdef Q_OS_WIN
+        QFile target(resolvedTargets.value(it.key())); // Windows shortcuts need a full target path.
+#else
+        QFile target(it.value());
+#endif
+        if (!target.link(output)) {
+            return false;
+        }
+    }
+    return isCanceled.loadAcquire() == 0;
 }
 
 void KArchive::virtual_hook(int, void *)

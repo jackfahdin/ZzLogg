@@ -111,7 +111,7 @@ private Q_SLOTS:
         AtomicFlag cancel(cancelled);
         check(run(worker, cancel, [&] { return worker.extract(source.fileName(), temporary.filePath("result"), cancel); }), false);
     }
-    void outputWriteFailure()
+    void refusesLinkedOutput()
     {
         if (!QFileInfo::exists("/dev/full")) QSKIP("No native always-full device");
         QTemporaryDir temporary;

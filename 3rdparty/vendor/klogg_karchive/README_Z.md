@@ -88,6 +88,18 @@ Qt6 中 `QIODevice::OpenMode` 无法直接传给 `QString::arg`，因此在以�
 
 独立 16 项流审计由 6 项通过提升为全部通过；默认回归含 46 个独立输入及读取边界／seek／重开测试。详见 [拼接流修复记录](../../../docs/superpowers/plans/2026-11-20-concatenated-streams.md)。未升级内嵌 codec、未改变内存上限，也不据此宣称性能或归档安全验收完成。
 
+## 2026-11-27 归档输出边界补丁
+
+- `karchive.cpp`：复制前遍历归档树，检查成员名、目录／文件类型、负长度和总量溢出，拒绝既有符号链接、junction 和特殊文件；内部链接逐分量展开后验证，普通文件复制完成后才创建链接，创建失败返回 false。
+- 输出名称以 NFC＋case folding＋NFC 检查冲突；链接目标若以不同大小写或 Unicode 规范写法引用计划内的链接，提前拒绝。规则在所有平台一致，因此 Linux 上仅大小写不同的成员也会被拒绝。
+- 单文件输出使用关闭 direct-write fallback 的 `QSaveFile`，短读、取消或提交失败不截断既有文件；替换已有硬链接目录项时不修改其原始 inode。
+- `ktar.cpp`：拒绝无效／负数以及使块对齐后的偏移溢出的传统八进制长度字段。
+
+验证入口为 `tests/ui/archive_safety_test.cpp` 和独立 tar／ZIP 夹具
+`tests/ui/fixtures/archive-safety/`，详见[实施记录](../../../docs/superpowers/plans/2026-11-20-archive-boundaries.md)。
+信任边界为调用者拥有的私有输出目录及静态文件树；不保证抵抗同权限进程并发替换路径。
+没有新增固定解压大小上限，也不宣称原生 Windows／macOS 文件系统、性能或完整资源耗尽验收。
+
 ## 更新步骤
 
 1. 从上游 fork 获取目标提交（例如 `f546bf6`）。

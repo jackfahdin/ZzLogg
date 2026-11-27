@@ -64,6 +64,14 @@ add_test(NAME zzlogg_ui.compression_device COMMAND zzlogg_compression_device_tes
 set_tests_properties(zzlogg_ui.compression_device PROPERTIES TIMEOUT 45)
 add_dependencies(ci_build zzlogg_compression_device_test)
 
+add_executable(zzlogg_archive_safety_test archive_safety_test.cpp)
+target_link_libraries(zzlogg_archive_safety_test PRIVATE klogg_ui Qt6::Test)
+target_compile_definitions(zzlogg_archive_safety_test PRIVATE SAFETY_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/archive-safety")
+set_target_properties(zzlogg_archive_safety_test PROPERTIES AUTOMOC ON)
+add_test(NAME zzlogg_ui.archive_safety COMMAND zzlogg_archive_safety_test)
+set_tests_properties(zzlogg_ui.archive_safety PROPERTIES TIMEOUT 45)
+add_dependencies(ci_build zzlogg_archive_safety_test)
+
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
 zzlogg_relax_test_warnings_in_current_dir()
