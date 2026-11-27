@@ -22,6 +22,7 @@
 
 #include <QFile>
 #include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class Downloader : public QObject {
     Q_OBJECT
@@ -44,7 +45,7 @@ class Downloader : public QObject {
     QNetworkAccessManager manager_;
     QNetworkReply* currentDownload_ = nullptr;
 
-    QString lastError_;
+    QNetworkReply::NetworkError lastError_ = QNetworkReply::NoError;
 
     QFile* output_;
 };

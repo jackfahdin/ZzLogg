@@ -578,7 +578,7 @@ void HighlighterSetCollection::retrieveFromStorage( QSettings& settings )
                 quickHighlighter.useInCycle = settings.value( "cycle", true ).toBool();
 
                 quickHighlighter.name
-                    = settings.value( "name", QString( "Color label %1" ).arg( i + 1 ) ).toString();
+                    = settings.value( "name", QApplication::translate( "QApplication", "Color label %1" ).arg( i + 1 ) ).toString();
 
                 quickHighlighters_.append( std::move( quickHighlighter ) );
             }

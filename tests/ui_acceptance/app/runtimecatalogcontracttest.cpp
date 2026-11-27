@@ -1,6 +1,10 @@
 #include "runtimecatalogvalidator.h"
 
 #include <QFile>
+#include <QProcess>
+#include <QTemporaryDir>
+#include <QXmlStreamReader>
+#include <QRegularExpression>
 #include <QtTest>
 
 namespace {
@@ -30,6 +34,7 @@ class RuntimeCatalogContractTest final : public QObject {
     void rejectsInvalidFixtures();
     void acceptsCurrentCatalogs_data();
     void acceptsCurrentCatalogs();
+    void allSourceMessagesAreTranslated();
 };
 
 void RuntimeCatalogContractTest::decodesEntitiesAndMultilineTranslations()
@@ -124,6 +129,80 @@ void RuntimeCatalogContractTest::acceptsCurrentCatalogs()
 
     const auto result = validateRuntimeCatalog( catalog.readAll(), runtimeSources() );
     QVERIFY2( result.valid, qPrintable( QStringLiteral( "%1: %2" ).arg( language, result.error ) ) );
+}
+
+void RuntimeCatalogContractTest::allSourceMessagesAreTranslated()
+{
+    QTemporaryDir temporary;
+    QVERIFY( temporary.isValid() );
+    const auto extractedPath = temporary.filePath( "extracted.ts" );
+    QProcess lupdate;
+    lupdate.start( QStringLiteral( ZZLOGG_LUPDATE_EXECUTABLE ),
+        { QStringLiteral( ZZLOGG_SOURCE_ROOT "/src" ), "-recursive", "-no-obsolete",
+          "-ts", extractedPath } );
+    QVERIFY( lupdate.waitForFinished( 30000 ) );
+    QCOMPARE( lupdate.exitStatus(), QProcess::NormalExit );
+    QCOMPARE( lupdate.exitCode(), 0 );
+
+    struct Message { QString source, translation, type; };
+    using Catalog = QMap<QString, Message>;
+    QString parseError;
+    const auto readCatalog = [&]( const QString& path ) {
+        Catalog result;
+        QFile file{ path };
+        if ( !file.open( QIODevice::ReadOnly ) ) {
+            parseError = file.errorString();
+            return result;
+        }
+        QXmlStreamReader xml{ &file };
+        QString context;
+        while ( !xml.atEnd() ) {
+            xml.readNext();
+            if ( !xml.isStartElement() ) continue;
+            if ( xml.name() == QLatin1String( "name" ) ) context = xml.readElementText();
+            if ( xml.name() != QLatin1String( "message" ) ) continue;
+            Message message;
+            QString comment;
+            while ( xml.readNextStartElement() ) {
+                const auto tag = xml.name().toString();
+                if ( tag == "translation" ) message.type = xml.attributes().value( "type" ).toString();
+                const auto text = xml.readElementText( QXmlStreamReader::IncludeChildElements );
+                if ( tag == "source" ) message.source = text;
+                if ( tag == "translation" ) message.translation = text;
+                if ( tag == "comment" ) comment = text;
+            }
+            if ( message.type == "obsolete" || message.type == "vanished" ) continue;
+            const auto key = context + QChar( 0x1f ) + message.source + QChar( 0x1f ) + comment;
+            if ( result.contains( key ) ) parseError = "Duplicate message: " + key;
+            result.insert( key, message );
+        }
+        if ( xml.hasError() ) parseError = xml.errorString();
+        return result;
+    };
+    const auto sources = readCatalog( extractedPath );
+    QVERIFY2( parseError.isEmpty(), qPrintable( parseError ) );
+    QVERIFY( !sources.isEmpty() );
+    const auto placeholders = []( const QString& text ) {
+        QStringList result;
+        auto matches = QRegularExpression{ "%L?(?:[1-9][0-9]*|n)" }.globalMatch( text );
+        while ( matches.hasNext() ) result.append( matches.next().captured() );
+        result.sort();
+        return result;
+    };
+    for ( const auto* language : { "en", "zh_CN", "zh_TW" } ) {
+        const auto catalog = readCatalog( QStringLiteral( ZZLOGG_SOURCE_ROOT "/src/app/i18n/%1.ts" ).arg( language ) );
+        QVERIFY2( parseError.isEmpty(), qPrintable( parseError ) );
+        for ( auto it = sources.cbegin(); it != sources.cend(); ++it ) {
+            QVERIFY2( catalog.contains( it.key() ), qPrintable( QString{ language } + ": missing " + it.key() ) );
+        }
+        for ( auto it = catalog.cbegin(); it != catalog.cend(); ++it ) {
+            const auto description = QString{ language } + ": " + it.key();
+            QVERIFY2( it->type.isEmpty(), qPrintable( description + " is unfinished" ) );
+            QVERIFY2( !it->translation.trimmed().isEmpty(), qPrintable( description + " is empty" ) );
+            QVERIFY2( placeholders( it->source ) == placeholders( it->translation ),
+                      qPrintable( description + " has mismatched placeholders" ) );
+        }
+    }
 }
 
 QTEST_APPLESS_MAIN( RuntimeCatalogContractTest )

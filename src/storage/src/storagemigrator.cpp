@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "storagemigrator.h"
 
 #include "storagevalidator.h"
@@ -116,7 +117,7 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
     const QString absoluteRoot = normalized( QFileInfo{ dataRoot }.absoluteFilePath() );
     if ( !sameOrChildPath( absolutePath, absoluteRoot ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "migration target escapes data root: %1 (root: %2)" )
+            *error = QCoreApplication::translate( "Storage", "migration target escapes data root: %1 (root: %2)" )
                          .arg( absolutePath, absoluteRoot );
         }
         return false;
@@ -127,7 +128,7 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
         const QFileInfo info{ component };
         if ( isFileSystemLink( info ) ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "refusing symbolic link in migration target path: %1" )
+                *error = QCoreApplication::translate( "Storage", "refusing symbolic link in migration target path: %1" )
                              .arg( component );
             }
             return false;
@@ -156,7 +157,7 @@ bool validateMigrationTargetPath( const QString& path, const QString& dataRoot, 
     if ( canonicalRoot.isEmpty() || canonicalExisting.isEmpty()
          || !sameOrChildPath( canonicalExisting, canonicalRoot ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "canonical migration target escapes data root through %1: %2" )
+            *error = QCoreApplication::translate( "Storage", "canonical migration target escapes data root through %1: %2" )
                          .arg( existing, absolutePath );
         }
         return false;
@@ -189,14 +190,14 @@ bool canonicalLocation( const StorageLocation& input, const StorageLocatorStore&
 {
     if ( input.commandLineOverride ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "command-line storage locations cannot be migrated" );
+            *error = QCoreApplication::translate( "Storage", "command-line storage locations cannot be migrated" );
         }
         return false;
     }
     const QString expectedLocator = normalized( expectedLocatorPath( input.mode, store ) );
     if ( !input.locatorPath.isEmpty() && !samePath( input.locatorPath, expectedLocator ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "storage migration location uses the wrong locator: %1" )
+            *error = QCoreApplication::translate( "Storage", "storage migration location uses the wrong locator: %1" )
                          .arg( input.locatorPath );
         }
         return false;
@@ -214,7 +215,7 @@ bool canonicalLocation( const StorageLocation& input, const StorageLocatorStore&
     }
     else {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "storage migration data root must be absolute: %1" )
+            *error = QCoreApplication::translate( "Storage", "storage migration data root must be absolute: %1" )
                          .arg( input.dataRoot );
         }
         return false;
@@ -233,7 +234,7 @@ bool canonicalLegacyPath( const QString& input, const QString& label, QString* o
     const QString path = normalized( input );
     if ( !QFileInfo{ path }.isAbsolute() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "%1 must be an absolute path: %2" ).arg( label, input );
+            *error = QCoreApplication::translate( "Storage", "%1 must be an absolute path: %2" ).arg( label, input );
         }
         return false;
     }
@@ -250,7 +251,7 @@ bool validateNoSourceTargetConflicts( const StorageMigrationRequest& request, QS
     if ( !request.sourceLogsDirectory.isEmpty()
          && sameOrChildPath( targetContext.dataRoot(), request.sourceLogsDirectory ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "target storage conflicts with source logs path: %1" )
+            *error = QCoreApplication::translate( "Storage", "target storage conflicts with source logs path: %1" )
                          .arg( request.sourceLogsDirectory );
         }
         return false;
@@ -268,7 +269,7 @@ bool validateNoSourceTargetConflicts( const StorageMigrationRequest& request, QS
         for ( const QString& output : outputs ) {
             if ( samePath( source, output ) ) {
                 if ( error != nullptr ) {
-                    *error = QStringLiteral( "legacy INI path conflicts with target output: %1" )
+                    *error = QCoreApplication::translate( "Storage", "legacy INI path conflicts with target output: %1" )
                                  .arg( source );
                 }
                 return false;
@@ -283,7 +284,7 @@ bool canonicalRequest( const StorageMigrationRequest& input, const StorageLocato
 {
     if ( input.transactionId.isEmpty() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "storage migration transaction id is empty" );
+            *error = QCoreApplication::translate( "Storage", "storage migration transaction id is empty" );
         }
         return false;
     }
@@ -296,12 +297,12 @@ bool canonicalRequest( const StorageMigrationRequest& input, const StorageLocato
     QString legacyConfigFile;
     QString legacySessionFile;
     QString sourceLogsDirectory;
-    if ( !canonicalLegacyPath( input.legacyConfigFile, QStringLiteral( "legacy config file" ),
+    if ( !canonicalLegacyPath( input.legacyConfigFile, QCoreApplication::translate( "Storage", "legacy config file" ),
                                &legacyConfigFile, error )
-         || !canonicalLegacyPath( input.legacySessionFile, QStringLiteral( "legacy session file" ),
+         || !canonicalLegacyPath( input.legacySessionFile, QCoreApplication::translate( "Storage", "legacy session file" ),
                                   &legacySessionFile, error )
          || !canonicalLegacyPath( input.sourceLogsDirectory,
-                                  QStringLiteral( "source logs directory" ), &sourceLogsDirectory,
+                                  QCoreApplication::translate( "Storage", "source logs directory" ), &sourceLogsDirectory,
                                   error ) ) {
         return false;
     }
@@ -342,7 +343,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
     if ( !info.isFile() ) {
         DirectLocatorState state;
         state.found = true;
-        state.error = QStringLiteral( "storage locator is not a file: %1" ).arg( path );
+        state.error = QCoreApplication::translate( "Storage", "storage locator is not a file: %1" ).arg( path );
         return state;
     }
 
@@ -357,7 +358,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
         DirectLocatorState state;
         state.found = true;
         state.error
-            = QStringLiteral( "storage locator has invalid storage metadata: %1" ).arg( path );
+            = QCoreApplication::translate( "Storage", "storage locator has invalid storage metadata: %1" ).arg( path );
         return state;
     }
     const QString serializedVerified
@@ -369,7 +370,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
         DirectLocatorState state;
         state.found = true;
         state.error
-            = QStringLiteral( "storage locator has an invalid verified value: %1" ).arg( path );
+            = QCoreApplication::translate( "Storage", "storage locator has an invalid verified value: %1" ).arg( path );
         return state;
     }
     verified = serializedVerified == QStringLiteral( "true" );
@@ -393,7 +394,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
     if ( groups.contains( QStringLiteral( "Pending" ) )
          && groups.contains( QStringLiteral( "LastMigration" ) ) ) {
         state.error
-            = QStringLiteral( "storage locator cannot contain both Pending and LastMigration: %1" )
+            = QCoreApplication::translate( "Storage", "storage locator cannot contain both Pending and LastMigration: %1" )
                   .arg( path );
         return state;
     }
@@ -409,7 +410,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                                 QStringLiteral( "Pending/legacySessionFile" ) };
         for ( const QString& key : keys ) {
             if ( !settings.contains( key ) ) {
-                state.error = QStringLiteral( "storage locator Pending is missing %1: %2" )
+                state.error = QCoreApplication::translate( "Storage", "storage locator Pending is missing %1: %2" )
                                   .arg( key, path );
                 return state;
             }
@@ -426,7 +427,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                  settings.value( QStringLiteral( "Pending/targetMode" ) ).toString(), &targetMode )
              || !samePath( sourceLocator, path ) ) {
             state.error
-                = QStringLiteral( "storage locator has invalid Pending locations: %1" ).arg( path );
+                = QCoreApplication::translate( "Storage", "storage locator has invalid Pending locations: %1" ).arg( path );
             return state;
         }
         const QString legacyConfigFile
@@ -443,7 +444,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
                 = settings.value( QStringLiteral( "Pending/sourceLocatorExisted" ) ).toString();
             if ( serializedExists != QStringLiteral( "true" )
                  && serializedExists != QStringLiteral( "false" ) ) {
-                state.error = QStringLiteral( "invalid pending source preimage: %1" ).arg( path );
+                state.error = QCoreApplication::translate( "Storage", "invalid pending source preimage: %1" ).arg( path );
                 return state;
             }
             sourceLocatorExisted = serializedExists == QStringLiteral( "true" );
@@ -463,7 +464,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
         QString pendingError;
         if ( !canonicalRequest( serialized, store, &pending, &pendingError )
              || !sameLocation( pending.source, active ) ) {
-            state.error = QStringLiteral( "invalid pending storage migration: %1: %2" )
+            state.error = QCoreApplication::translate( "Storage", "invalid pending storage migration: %1: %2" )
                               .arg( pendingError, path );
             return state;
         }
@@ -477,7 +478,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
         if ( transactionId.isEmpty()
              || ( outcome != QStringLiteral( "committed" )
                   && outcome != QStringLiteral( "rolledBack" ) ) ) {
-            state.error = QStringLiteral( "storage locator has invalid LastMigration metadata: %1" )
+            state.error = QCoreApplication::translate( "Storage", "storage locator has invalid LastMigration metadata: %1" )
                               .arg( path );
             return state;
         }
@@ -485,7 +486,7 @@ DirectLocatorState readDirectLocator( const QString& locatorPath, const StorageL
         state.lastOutcome = outcome;
     }
     if ( settings.status() != QSettings::NoError ) {
-        state.error = QStringLiteral( "failed to read storage locator: %1" ).arg( path );
+        state.error = QCoreApplication::translate( "Storage", "failed to read storage locator: %1" ).arg( path );
         return state;
     }
     state.valid = true;
@@ -508,14 +509,13 @@ commitFailureRequiringRecovery( const StorageMigrationRequest& request,
     const DirectLocatorState targetState = readDirectLocator( request.target.locatorPath, store );
     if ( targetState.found && !targetState.valid ) {
         return StorageMigrationResult{ false, false,
-                                       QStringLiteral(
-                                           "%1; target locator invalid; recovery required: %2" )
+                                       QCoreApplication::translate( "Storage", "%1; target locator invalid; recovery required: %2" )
                                            .arg( commitError, targetState.error ) };
     }
     if ( targetRemainsCommitted( request, targetState ) ) {
         return StorageMigrationResult{
             false, false,
-            QStringLiteral( "%1; target locator remains committed; recovery required: %2" )
+            QCoreApplication::translate( "Storage", "%1; target locator remains committed; recovery required: %2" )
                 .arg( commitError, request.target.locatorPath )
         };
     }
@@ -539,7 +539,7 @@ bool defaultCopy( const QString& source, const QString& target, QString* error )
     QFile input{ source };
     if ( !input.open( QIODevice::ReadOnly ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to open source file for reading" );
+            *error = QCoreApplication::translate( "Storage", "failed to open source file for reading" );
         }
         return false;
     }
@@ -547,7 +547,7 @@ bool defaultCopy( const QString& source, const QString& target, QString* error )
     QSaveFile output{ target };
     if ( !output.open( QIODevice::WriteOnly ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to open target file for atomic writing" );
+            *error = QCoreApplication::translate( "Storage", "failed to open target file for atomic writing" );
         }
         return false;
     }
@@ -556,20 +556,20 @@ bool defaultCopy( const QString& source, const QString& target, QString* error )
         const QByteArray bytes = input.read( 64 * 1024 );
         if ( bytes.isEmpty() && input.error() != QFileDevice::NoError ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed while reading source file" );
+                *error = QCoreApplication::translate( "Storage", "failed while reading source file" );
             }
             return false;
         }
         if ( output.write( bytes ) != bytes.size() ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed while writing target file" );
+                *error = QCoreApplication::translate( "Storage", "failed while writing target file" );
             }
             return false;
         }
     }
     if ( !output.commit() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to commit target file atomically" );
+            *error = QCoreApplication::translate( "Storage", "failed to commit target file atomically" );
         }
         return false;
     }
@@ -582,13 +582,13 @@ bool filesHaveSameContents( const QString& source, const QString& target, QStrin
     QFile targetFile{ target };
     if ( !sourceFile.open( QIODevice::ReadOnly ) || !targetFile.open( QIODevice::ReadOnly ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to open existing migration files for comparison" );
+            *error = QCoreApplication::translate( "Storage", "failed to open existing migration files for comparison" );
         }
         return false;
     }
     if ( sourceFile.size() != targetFile.size() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "existing migration target size differs from source" );
+            *error = QCoreApplication::translate( "Storage", "existing migration target size differs from source" );
         }
         return false;
     }
@@ -597,14 +597,14 @@ bool filesHaveSameContents( const QString& source, const QString& target, QStrin
         const QByteArray targetBytes = targetFile.read( 64 * 1024 );
         if ( sourceBytes != targetBytes ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "existing migration target differs from source" );
+                *error = QCoreApplication::translate( "Storage", "existing migration target differs from source" );
             }
             return false;
         }
         if ( sourceFile.error() != QFileDevice::NoError
              || targetFile.error() != QFileDevice::NoError ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed while comparing existing migration files" );
+                *error = QCoreApplication::translate( "Storage", "failed while comparing existing migration files" );
             }
             return false;
         }
@@ -617,14 +617,14 @@ bool fileHasContents( const QString& path, const QByteArray& expected, QString* 
     QFile file{ path };
     if ( !file.open( QIODevice::ReadOnly ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to open existing migration target for comparison" );
+            *error = QCoreApplication::translate( "Storage", "failed to open existing migration target for comparison" );
         }
         return false;
     }
     const QByteArray contents = file.readAll();
     if ( file.error() != QFileDevice::NoError || contents != expected ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "existing migration target differs from expected contents" );
+            *error = QCoreApplication::translate( "Storage", "existing migration target differs from expected contents" );
         }
         return false;
     }
@@ -671,7 +671,7 @@ bool createEmptyIni( const QString& target, CreatedTargets* created, QString* er
     if ( !output.open( QIODevice::WriteOnly ) || output.write( contents ) != contents.size()
          || !output.commit() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to atomically create empty INI: %1" ).arg( target );
+            *error = QCoreApplication::translate( "Storage", "failed to atomically create empty INI: %1" ).arg( target );
         }
         return false;
     }
@@ -697,7 +697,7 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
                 return true;
             }
             if ( error != nullptr ) {
-                *error = QStringLiteral( "refusing non-matching existing migration target for "
+                *error = QCoreApplication::translate( "Storage", "refusing non-matching existing migration target for "
                                          "missing %1 at %2: %3" )
                              .arg( source, target, detail );
             }
@@ -708,14 +708,14 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
             return true;
         }
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to create empty legacy INI from missing %1 to %2: %3" )
+            *error = QCoreApplication::translate( "Storage", "failed to create empty legacy INI from missing %1 to %2: %3" )
                          .arg( source, target, detail );
         }
         return false;
     }
     if ( !sourceInfo.isFile() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "legacy INI source is not a file: %1" ).arg( source );
+            *error = QCoreApplication::translate( "Storage", "legacy INI source is not a file: %1" ).arg( source );
         }
         return false;
     }
@@ -726,8 +726,7 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
             return true;
         }
         if ( error != nullptr ) {
-            *error = QStringLiteral(
-                         "refusing non-matching existing migration target from %1 to %2: %3" )
+            *error = QCoreApplication::translate( "Storage", "refusing non-matching existing migration target from %1 to %2: %3" )
                          .arg( source, target, detail );
         }
         return false;
@@ -740,7 +739,7 @@ bool copyLegacyIni( const QString& source, const QString& target, const QString&
             appendUnique( created->files, target );
         }
         if ( error != nullptr ) {
-            *error = QStringLiteral( "failed to copy legacy INI from %1 to %2: %3" )
+            *error = QCoreApplication::translate( "Storage", "failed to copy legacy INI from %1 to %2: %3" )
                          .arg( source, target, detail );
         }
         return false;
@@ -765,7 +764,7 @@ bool ensureTreeDirectory( const QString& path, const QString& targetDataRoot, co
         return validateMigrationTargetPath( path, targetDataRoot, error );
     }
     if ( error != nullptr ) {
-        *error = QStringLiteral( "failed to create %1 target directory: %2" ).arg( label, path );
+        *error = QCoreApplication::translate( "Storage", "failed to create %1 target directory: %2" ).arg( label, path );
     }
     return false;
 }
@@ -778,7 +777,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
     const QFileInfo rootInfo{ sourceRoot };
     if ( rootInfo.isSymLink() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "refusing symbolic link in %1 tree: %2" )
+            *error = QCoreApplication::translate( "Storage", "refusing symbolic link in %1 tree: %2" )
                          .arg( label, sourceRoot );
         }
         return false;
@@ -788,7 +787,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
     }
     if ( !rootInfo.isDir() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "%1 source is not a directory: %2" ).arg( label, sourceRoot );
+            *error = QCoreApplication::translate( "Storage", "%1 source is not a directory: %2" ).arg( label, sourceRoot );
         }
         return false;
     }
@@ -803,7 +802,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
         const QString source = normalized( info.filePath() );
         if ( info.isSymLink() ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "refusing symbolic link in %1 tree: %2" )
+                *error = QCoreApplication::translate( "Storage", "refusing symbolic link in %1 tree: %2" )
                              .arg( label, source );
             }
             return false;
@@ -819,7 +818,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
         }
         if ( !info.isFile() ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "unsupported entry in %1 tree: %2" ).arg( label, source );
+                *error = QCoreApplication::translate( "Storage", "unsupported entry in %1 tree: %2" ).arg( label, source );
             }
             return false;
         }
@@ -836,7 +835,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
             }
             if ( error != nullptr ) {
                 *error
-                    = QStringLiteral( "refusing non-matching existing %1 target from %2 to %3: %4" )
+                    = QCoreApplication::translate( "Storage", "refusing non-matching existing %1 target from %2 to %3: %4" )
                           .arg( label, source, target, detail );
             }
             return false;
@@ -847,7 +846,7 @@ bool copyDirectoryTree( const QString& sourceRoot, const QString& targetRoot,
                 appendUnique( created->files, target );
             }
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed to copy %1 file from %2 to %3: %4" )
+                *error = QCoreApplication::translate( "Storage", "failed to copy %1 file from %2 to %3: %4" )
                              .arg( label, source, target, detail );
             }
             return false;
@@ -864,14 +863,14 @@ bool readableIni( const QString& path, QString* error )
     const QFileInfo info{ path };
     if ( !info.isFile() ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "target INI is missing or not a file: %1" ).arg( path );
+            *error = QCoreApplication::translate( "Storage", "target INI is missing or not a file: %1" ).arg( path );
         }
         return false;
     }
     QFile file{ path };
     if ( !file.open( QIODevice::ReadOnly ) ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "target INI is not readable: %1" ).arg( path );
+            *error = QCoreApplication::translate( "Storage", "target INI is not readable: %1" ).arg( path );
         }
         return false;
     }
@@ -879,7 +878,7 @@ bool readableIni( const QString& path, QString* error )
         file.read( 64 * 1024 );
         if ( file.error() != QFileDevice::NoError ) {
             if ( error != nullptr ) {
-                *error = QStringLiteral( "failed while reading target INI: %1" ).arg( path );
+                *error = QCoreApplication::translate( "Storage", "failed while reading target INI: %1" ).arg( path );
             }
             return false;
         }
@@ -888,7 +887,7 @@ bool readableIni( const QString& path, QString* error )
     settings.allKeys();
     if ( settings.status() != QSettings::NoError ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "target INI has invalid format: %1" ).arg( path );
+            *error = QCoreApplication::translate( "Storage", "target INI has invalid format: %1" ).arg( path );
         }
         return false;
     }
@@ -910,7 +909,7 @@ QString cleanupCreatedTargets( const CreatedTargets& created )
         }
     }
     return failedPaths.isEmpty() ? QString{}
-                                 : QStringLiteral( "cleanup failed for transaction paths: %1" )
+                                 : QCoreApplication::translate( "Storage", "cleanup failed for transaction paths: %1" )
                                        .arg( failedPaths.join( QStringLiteral( ", " ) ) );
 }
 
@@ -927,7 +926,7 @@ StorageMigrationResult rollbackFailure( const StorageLocatorStore& locatorStore,
     }
     QStringList errors{ originalError };
     if ( !locatorRolledBack ) {
-        errors.append( QStringLiteral( "rollback failed: %1" ).arg( rollbackError ) );
+        errors.append( QCoreApplication::translate( "Storage", "rollback failed: %1" ).arg( rollbackError ) );
     }
     if ( !cleanupError.isEmpty() ) {
         errors.append( cleanupError );
@@ -942,7 +941,7 @@ bool ensureLockParent( const QString& lockPath, QString* error )
         return true;
     }
     if ( error != nullptr ) {
-        *error = QStringLiteral( "failed to create storage migration lock directory for %1" )
+        *error = QCoreApplication::translate( "Storage", "failed to create storage migration lock directory for %1" )
                      .arg( lockPath );
     }
     return false;
@@ -952,17 +951,17 @@ QString lockFailure( const QLockFile& lock, const QString& lockPath )
 {
     switch ( lock.error() ) {
     case QLockFile::LockFailedError:
-        return QStringLiteral( "storage migration lock is already held: %1" ).arg( lockPath );
+        return QCoreApplication::translate( "Storage", "storage migration lock is already held: %1" ).arg( lockPath );
     case QLockFile::PermissionError:
-        return QStringLiteral( "permission denied acquiring storage migration lock: %1" )
+        return QCoreApplication::translate( "Storage", "permission denied acquiring storage migration lock: %1" )
             .arg( lockPath );
     case QLockFile::UnknownError:
-        return QStringLiteral( "unknown error acquiring storage migration lock: %1" )
+        return QCoreApplication::translate( "Storage", "unknown error acquiring storage migration lock: %1" )
             .arg( lockPath );
     case QLockFile::NoError:
         break;
     }
-    return QStringLiteral( "failed to acquire storage migration lock: %1" ).arg( lockPath );
+    return QCoreApplication::translate( "Storage", "failed to acquire storage migration lock: %1" ).arg( lockPath );
 }
 
 constexpr qint64 malformedMigrationLockGraceMs = 30 * 1000;
@@ -1022,7 +1021,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     StorageMigrationRequest canonical;
     if ( !canonicalRequest( request, locatorStore_, &canonical, &error ) ) {
         return { false, false,
-                 QStringLiteral( "invalid storage migration request: %1" ).arg( error ) };
+                 QCoreApplication::translate( "Storage", "invalid storage migration request: %1" ).arg( error ) };
     }
 
     const QString lockPath = canonical.source.locatorPath + QStringLiteral( ".migration.lock" );
@@ -1036,7 +1035,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
 
     if ( !locatorStore_.writePending( canonical, &error ) ) {
         return { false, false,
-                 QStringLiteral( "failed to write pending storage migration: %1" ).arg( error ) };
+                 QCoreApplication::translate( "Storage", "failed to write pending storage migration: %1" ).arg( error ) };
     }
 
     const StorageContext targetContext{ canonical.target };
@@ -1053,13 +1052,13 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
             const QString detail = !configError.isEmpty() ? configError : sessionError;
             return rollbackFailure(
                 locatorStore_, canonical, targetContext, created,
-                QStringLiteral( "same-root storage change requires complete managed data: %1" )
+                QCoreApplication::translate( "Storage", "same-root storage change requires complete managed data: %1" )
                     .arg( detail ) );
         }
         if ( !locatorStore_.commitPending( canonical, &error ) ) {
             return {
                 false, false,
-                QStringLiteral( "failed to commit same-root storage change: %1" ).arg( error )
+                QCoreApplication::translate( "Storage", "failed to commit same-root storage change: %1" ).arg( error )
             };
         }
         return { true, false, {} };
@@ -1070,7 +1069,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
     if ( pathExistsOrIsSymlink( targetContext.manifestFilePath() ) ) {
         return rollbackFailure(
             locatorStore_, canonical, targetContext, created,
-            QStringLiteral( "refusing to overwrite existing storage manifest: %1" )
+            QCoreApplication::translate( "Storage", "refusing to overwrite existing storage manifest: %1" )
                 .arg( targetContext.manifestFilePath() ) );
     }
     if ( !copyLegacyIni( canonical.legacyConfigFile, targetContext.configFilePath(),
@@ -1082,7 +1081,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
     if ( !copyDirectoryTree( canonical.sourceLogsDirectory, targetContext.logsDirectory(),
-                             targetContext.dataRoot(), QStringLiteral( "stored logs" ),
+                             targetContext.dataRoot(), QCoreApplication::translate( "Storage", "stored logs" ),
                              copyOperation_, &created, &error ) ) {
         return rollbackFailure( locatorStore_, canonical, targetContext, created, error );
     }
@@ -1108,7 +1107,7 @@ StorageMigrationResult StorageMigrator::execute( const StorageMigrationRequest& 
 
     if ( !locatorStore_.commitPending( canonical, &error ) ) {
         const QString commitError
-            = QStringLiteral( "failed to commit pending storage migration: %1" ).arg( error );
+            = QCoreApplication::translate( "Storage", "failed to commit pending storage migration: %1" ).arg( error );
         if ( const auto recovery
              = commitFailureRequiringRecovery( canonical, locatorStore_, commitError ) ) {
             return *recovery;
@@ -1125,7 +1124,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
     StorageMigrationRequest canonical;
     if ( !canonicalRequest( request, locatorStore_, &canonical, &error ) ) {
         return { false, false,
-                 QStringLiteral( "invalid storage migration request: %1" ).arg( error ) };
+                 QCoreApplication::translate( "Storage", "invalid storage migration request: %1" ).arg( error ) };
     }
 
     const QString lockPath = canonical.source.locatorPath + QStringLiteral( ".migration.lock" );
@@ -1144,7 +1143,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
     }
     if ( sourceState.pending.has_value() && !sameRequest( *sourceState.pending, canonical ) ) {
         return { false, false,
-                 QStringLiteral( "pending storage migration does not match transaction request" ) };
+                 QCoreApplication::translate( "Storage", "pending storage migration does not match transaction request" ) };
     }
     if ( !sourceState.pending.has_value() ) {
         if ( sourceState.found && sourceState.lastTransactionId == canonical.transactionId ) {
@@ -1155,10 +1154,10 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
             if ( sourceState.lastOutcome == QStringLiteral( "rolledBack" )
                  && sameLocation( sourceState.active, canonical.source ) ) {
                 return { false, true,
-                         QStringLiteral( "storage migration was already rolled back" ) };
+                         QCoreApplication::translate( "Storage", "storage migration was already rolled back" ) };
             }
             return { false, false,
-                     QStringLiteral( "last migration outcome conflicts with active storage" ) };
+                     QCoreApplication::translate( "Storage", "last migration outcome conflicts with active storage" ) };
         }
         const DirectLocatorState targetState
             = readDirectLocator( canonical.target.locatorPath, locatorStore_ );
@@ -1172,8 +1171,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
             return { true, false, {} };
         }
         return { false, false,
-                 QStringLiteral(
-                     "storage migration transaction has no matching pending or last outcome" ) };
+                 QCoreApplication::translate( "Storage", "storage migration transaction has no matching pending or last outcome" ) };
     }
 
     const StorageContext targetContext{ canonical.target };
@@ -1183,7 +1181,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
             return { false, true, error };
         }
         return { false, false,
-                 QStringLiteral( "%1; rollback failed: %2" ).arg( error, rollbackError ) };
+                 QCoreApplication::translate( "Storage", "%1; rollback failed: %2" ).arg( error, rollbackError ) };
     }
     QString configError;
     QString sessionError;
@@ -1195,7 +1193,7 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
             return { true, false, {} };
         }
         const QString commitError
-            = QStringLiteral( "failed to recover pending storage migration: %1" ).arg( error );
+            = QCoreApplication::translate( "Storage", "failed to recover pending storage migration: %1" ).arg( error );
         if ( const auto recovery
              = commitFailureRequiringRecovery( canonical, locatorStore_, commitError ) ) {
             return *recovery;
@@ -1205,14 +1203,14 @@ StorageMigrator::recoverPending( const StorageMigrationRequest& request ) const
             return { false, true, commitError };
         }
         return { false, false,
-                 QStringLiteral( "%1; rollback failed: %2" ).arg( commitError, rollbackError ) };
+                 QCoreApplication::translate( "Storage", "%1; rollback failed: %2" ).arg( commitError, rollbackError ) };
     }
 
     if ( locatorStore_.rollbackPending( canonical, &error ) ) {
         return { false, true,
-                 QStringLiteral( "incomplete pending storage migration rolled back" ) };
+                 QCoreApplication::translate( "Storage", "incomplete pending storage migration rolled back" ) };
     }
     return { false, false,
-             QStringLiteral( "failed to roll back incomplete pending storage migration: %1" )
+             QCoreApplication::translate( "Storage", "failed to roll back incomplete pending storage migration: %1" )
                  .arg( error ) };
 }

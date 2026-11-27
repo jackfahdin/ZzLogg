@@ -47,7 +47,13 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         auto fail=[this](const QString& error) {
             impl_->busy=false; save(logPath(),error.toUtf8()+"\n");Q_EMIT failed(error+tr("\nUpdate log: %1").arg(logPath()));
         };
-        if(!result.error.isEmpty()) {fail(result.error);return;}
+        if(!result.error.isEmpty()) {
+            save(logPath(), result.error.toUtf8()+"\n");
+            impl_->busy=false;
+            Q_EMIT failed(tr("The portable update package could not be prepared. See the update log for details.")
+                +tr("\nUpdate log: %1").arg(logPath()));
+            return;
+        }
         if(impl_->cancelled->load()) {fail(tr("Portable update cancelled."));return;}
 #ifdef Q_OS_WIN
         QByteArray plan="ZZLOGG_PORTABLE_UPDATE_1\n";
@@ -62,7 +68,8 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         qint64 childPid=0;
         if(!QProcess::startDetached(helper,{QDir::toNativeSeparators(impl_->root),QDir::toNativeSeparators(impl_->stage),
             QString::number(QCoreApplication::applicationPid()),QString::fromLatin1(QCryptographicHash::hash(plan,QCryptographicHash::Sha256).toHex()),
-            QString::fromLatin1(result.package.oldManifestSha256),QDir::toNativeSeparators(impl_->dataDirectory)},impl_->stage,&childPid)) {
+            QString::fromLatin1(result.package.oldManifestSha256),QDir::toNativeSeparators(impl_->dataDirectory),tr("ZzLogg portable update"),
+            tr("The portable update could not finish. See the update log for details.\n\nUpdate log and recovery backup:")},impl_->stage,&childPid)) {
             fail(tr("The portable update helper could not start."));return;
         }
         impl_->child=OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE,FALSE,static_cast<DWORD>(childPid));
@@ -77,7 +84,8 @@ PortableUpdateInstaller::PortableUpdateInstaller(QObject* parent):QObject(parent
         QFile failure(impl_->stage+"/failed");
         if(failure.open(QIODevice::ReadOnly)) {
             impl_->timer.stop();impl_->busy=false;
-            Q_EMIT failed(QString::fromUtf8(failure.read(8192))+tr("\nUpdate log: %1").arg(logPath()));return;
+            Q_EMIT failed(tr("The portable update helper failed. See the update log for details.")
+                +tr("\nUpdate log: %1").arg(logPath()));return;
         }
         if(WaitForSingleObject(impl_->child,0)==WAIT_OBJECT_0 || impl_->handshake.elapsed()>60000) {
             impl_->timer.stop();save(impl_->stage+"/cancel","cancel\n");

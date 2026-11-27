@@ -301,6 +301,9 @@ void MainWindow::reTranslateUI()
     for (auto* action : syntaxMenu->actions()) {
         if (action->data().toString() == QLatin1String("auto")) action->setText(tr("Automatic"));
         if (action->data().toString() == QLatin1String("plain")) action->setText(tr("Plain text"));
+        for (const auto& entry : CodeSyntax::availableLanguages()) {
+            if (action->data().toString() == entry.key) action->setText(entry.display);
+        }
     }
     openedFilesMenu->setTitle( transMenu( menu::openedFilesTitle ) );
     toolsMenu->setTitle( transMenu( menu::toolsTitle ) );
@@ -1860,7 +1863,11 @@ void MainWindow::updateSyntaxLanguageIndicator()
     const auto language = crawler->syntaxLanguage();
     if ( language == QLatin1String( "auto" ) ) {
         const auto effective = crawler->syntaxDefinitionName();
-        languageButton->setText( effective.isEmpty() ? tr( "Auto" ) : effective );
+        QString display = effective.isEmpty() ? tr( "Auto" ) : effective;
+        if ( effective == QLatin1String( "INI Files" ) ) display = CodeSyntax::tr( "INI Files" );
+        else if ( effective == QLatin1String( "Log File (advanced)" ) ) display = CodeSyntax::tr( "Log File (advanced)" );
+        else if ( effective == QLatin1String( "Diff" ) ) display = CodeSyntax::tr( "Diff" );
+        languageButton->setText( display );
     }
     else if ( language == QLatin1String( "plain" ) ) {
         languageButton->setText( tr( "Plain text" ) );

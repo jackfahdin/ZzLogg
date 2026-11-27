@@ -92,12 +92,13 @@ std::unique_ptr<UiRuntime> UiRuntime::create( KloggApp& app, QString* error )
         } );
         return runtime;
     } catch ( const std::exception& exception ) {
+        LOG_ERROR << "Fluent UI initialization failed: " << exception.what();
         if ( error != nullptr ) {
-            *error = QString::fromLocal8Bit( exception.what() );
+            *error = tr( "Fluent UI initialization failed. The standard interface will be used." );
         }
     } catch ( ... ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "Unknown Fluent UI initialization failure" );
+            *error = tr( "Fluent UI initialization failed. The standard interface will be used." );
         }
     }
 

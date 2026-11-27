@@ -536,7 +536,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     const QString bootstrapLanguage = preBootstrapLanguage( QLocale::system() );
     if ( MainWindow::installLanguage( bootstrapLanguage ) != 0 ) {
         reportStorageBootstrapFailure(
-            QStringLiteral( "failed to install pre-bootstrap language: %1" )
+            QCoreApplication::translate( "ApplicationRunner", "failed to install pre-bootstrap language: %1" )
                 .arg( bootstrapLanguage ),
             showStorageBootstrapFailureDialog );
         return EXIT_FAILURE;
@@ -650,7 +650,7 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
     }
     if ( MainWindow::installLanguage( config.language() ) != 0 ) {
         reportStorageBootstrapFailure(
-            QStringLiteral( "failed to install configured language: %1" ).arg( config.language() ),
+            QCoreApplication::translate( "ApplicationRunner", "failed to install configured language: %1" ).arg( config.language() ),
             showStorageBootstrapFailureDialog );
         return EXIT_FAILURE;
     }
@@ -735,7 +735,11 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         }
     }
 
-    auto warning = options.startupWarning;
+    if ( !options.startupWarning.isEmpty() ) {
+        LOG_ERROR << "Window initialization failed: " << options.startupWarning;
+    }
+    auto warning = options.startupWarning.isEmpty() ? QString{} : QApplication::translate(
+        "UiRuntime", "Fluent UI initialization failed. The standard interface will be used." );
     if ( !runtimeError.isEmpty() ) {
         if ( !warning.isEmpty() ) {
             warning.append( "\n\n" );

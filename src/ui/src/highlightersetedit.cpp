@@ -51,7 +51,7 @@
 #include "log.h"
 
 namespace {
-static constexpr QLatin1String DEFAULT_PATTERN = QLatin1String( "New Highlighter", 15 );
+
 static constexpr bool DEFAULT_IGNORE_CASE = false;
 static constexpr bool DEFAULT_ONLY_MATCH = false;
 
@@ -142,12 +142,12 @@ void HighlighterSetEdit::addHighlighter()
 {
     LOG_DEBUG << "addHighlighter()";
 
-    highlighterSet_.highlighterList_.append( Highlighter( DEFAULT_PATTERN, DEFAULT_IGNORE_CASE,
+    highlighterSet_.highlighterList_.append( Highlighter( tr( "New highlighter" ), DEFAULT_IGNORE_CASE,
                                                           DEFAULT_ONLY_MATCH, DEFAULT_FORE_COLOUR,
                                                           DEFAULT_BACK_COLOUR ) );
 
     // Add and select the newly created highlighter
-    highlighterListWidget->addItem( DEFAULT_PATTERN );
+    highlighterListWidget->addItem( tr( "New highlighter" ) );
 
     setCurrentRow( highlighterListWidget->count() - 1 );
 

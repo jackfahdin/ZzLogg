@@ -22,13 +22,13 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="528"/>
         <source>Copy this line with line number</source>
-        <translation type="unfinished"></translation>
+        <translation>Copy this line with line number</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="540"/>
         <location filename="../../ui/src/abstractlogview.cpp" line="2024"/>
         <source>Copy with line numbers</source>
-        <translation type="unfinished"></translation>
+        <translation>Copy with line numbers</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="593"/>
@@ -54,7 +54,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="559"/>
         <source>Unmark</source>
-        <translation type="unfinished"></translation>
+        <translation>Unmark</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2032"/>
@@ -180,6 +180,50 @@
 %1</source>
         <translation>ZzLogg could not open its data directory:
 %1</translation>
+    </message>
+    <message>
+        <source>failed to install pre-bootstrap language: %1</source>
+        <translation>failed to install pre-bootstrap language: %1</translation>
+    </message>
+    <message>
+        <source>This ZzLogg installation is currently being updated. Start ZzLogg again after the update has finished.</source>
+        <translation>This ZzLogg installation is currently being updated. Start ZzLogg again after the update has finished.</translation>
+    </message>
+    <message>
+        <source>ZzLogg could not verify its installation directory. Startup was cancelled to protect the installation.</source>
+        <translation>ZzLogg could not verify its installation directory. Startup was cancelled to protect the installation.</translation>
+    </message>
+    <message>
+        <source>failed to install configured language: %1</source>
+        <translation>failed to install configured language: %1</translation>
+    </message>
+    <message>
+        <source>an update reservation or a preexisting lock object was observed for %1</source>
+        <translation>an update reservation or a preexisting lock object was observed for %1</translation>
+    </message>
+    <message>
+        <source>the installation directory identity could not be verified for %1</source>
+        <translation>the installation directory identity could not be verified for %1</translation>
+    </message>
+    <message>
+        <source>no active installation activity lease</source>
+        <translation>no active installation activity lease</translation>
+    </message>
+    <message>
+        <source>the installation directory is in use (another instance, directory watcher, or working-directory handle)</source>
+        <translation>the installation directory is in use (another instance, directory watcher, or working-directory handle)</translation>
+    </message>
+    <message>
+        <source>a previous update reservation was abandoned by a holder that exited without releasing it</source>
+        <translation>a previous update reservation was abandoned by a holder that exited without releasing it</translation>
+    </message>
+    <message>
+        <source>the installation directory could not be exclusively verified</source>
+        <translation>the installation directory could not be exclusively verified</translation>
+    </message>
+    <message>
+        <source>automatic update is not supported on this platform</source>
+        <translation>automatic update is not supported on this platform</translation>
     </message>
 </context>
 <context>
@@ -376,6 +420,18 @@ nand  not both match;  nor  neither matches
 Example: "error" and not("debug")
 Lines containing error but not debug.</translation>
     </message>
+    <message>
+        <source>Jump to line</source>
+        <translation>Jump to line</translation>
+    </message>
+    <message>
+        <source>Line number</source>
+        <translation>Line number</translation>
+    </message>
+    <message>
+        <source>Mixed</source>
+        <translation>Mixed</translation>
+    </message>
 </context>
 <context>
     <name>EncodingMenu</name>
@@ -470,6 +526,10 @@ Lines containing error but not debug.</translation>
         <source>Move Highlighter Down</source>
         <translation>Move Highlighter Down</translation>
     </message>
+    <message>
+        <source>New highlighter</source>
+        <translation>New highlighter</translation>
+    </message>
 </context>
 <context>
     <name>HighlightersDialog</name>
@@ -554,13 +614,17 @@ Lines containing error but not debug.</translation>
         <source>Highlighters (*.conf)</source>
         <translation>Highlighters (*.conf)</translation>
     </message>
+    <message>
+        <source>New highlighter set</source>
+        <translation>New highlighter set</translation>
+    </message>
 </context>
 <context>
     <name>HighlightersMenu</name>
     <message>
         <location filename="../../ui/src/highlightersmenu.cpp" line="49"/>
         <source>None</source>
-        <translation type="unfinished">None</translation>
+        <translation>None</translation>
     </message>
 </context>
 <context>
@@ -695,7 +759,7 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1126"/>
         <source>Clear file %1? File content will be removed from disk, this is irreversible</source>
-        <translation type="unfinished"></translation>
+        <translation>Clear file %1? File content will be removed from disk, this is irreversible</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1180"/>
@@ -807,6 +871,14 @@ Lines containing error but not debug.</translation>
         <source>%1 -- switch to file</source>
         <translation>%1 -- switch to file</translation>
     </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>Check for updates</translation>
+    </message>
+    <message>
+        <source>Auto</source>
+        <translation>Auto</translation>
+    </message>
 </context>
 <context>
     <name>AboutDialog</name>
@@ -916,17 +988,17 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="146"/>
         <source>Case sensitive</source>
-        <translation type="unfinished"></translation>
+        <translation>Case sensitive</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="153"/>
         <source>Logical combining</source>
-        <translation type="unfinished"></translation>
+        <translation>Logical combining</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="160"/>
         <source>Auto refresh</source>
-        <translation type="unfinished"></translation>
+        <translation>Auto refresh</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="172"/>
@@ -971,17 +1043,17 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="251"/>
         <source>Text</source>
-        <translation type="unfinished"></translation>
+        <translation>Text</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="261"/>
         <source>Font family: </source>
-        <translation type="unfinished"></translation>
+        <translation>Font family: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="278"/>
         <source>Font size: </source>
-        <translation type="unfinished"></translation>
+        <translation>Font size: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="300"/>
@@ -1001,7 +1073,7 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="352"/>
         <source>Theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Theme</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="366"/>
@@ -1146,7 +1218,7 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="699"/>
         <source>Restore defaults</source>
-        <translation type="unfinished"></translation>
+        <translation>Restore defaults</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="712"/>
@@ -1166,12 +1238,12 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="793"/>
         <source>Keep file closed (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>Keep file closed (file reload required)</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="800"/>
         <source>Use compressed index (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>Use compressed index (file reload required)</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="810"/>
@@ -1186,12 +1258,12 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="307"/>
         <source>Use bold font (if supported by selected font)</source>
-        <translation type="unfinished"></translation>
+        <translation>Use bold font (if supported by selected font)</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="314"/>
         <source>Enable text wrap on file open</source>
-        <translation type="unfinished"></translation>
+        <translation>Enable text wrap on file open</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="765"/>
@@ -1368,6 +1440,10 @@ Lines containing error but not debug.</translation>
         <source>Secondary shortcut</source>
         <translation>Secondary shortcut</translation>
     </message>
+    <message>
+        <source>Updates</source>
+        <translation>Updates</translation>
+    </message>
 </context>
 <context>
     <name>PathLine</name>
@@ -1531,6 +1607,10 @@ Lines containing error but not debug.</translation>
         <source>Color label 9</source>
         <translation>Color label 9</translation>
     </message>
+    <message>
+        <source>Color label %1</source>
+        <translation>Color label %1</translation>
+    </message>
 </context>
 <context>
     <name>QFNotification</name>
@@ -1585,7 +1665,7 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../applicationrunner.cpp" line="676"/>
         <source>ZzLogg UI</source>
-        <translation type="unfinished"></translation>
+        <translation>ZzLogg UI</translation>
     </message>
     <message>
         <source>Update postponed</source>
@@ -2242,18 +2322,22 @@ Lines containing error but not debug.</translation>
         <source>Reset tab name</source>
         <translation>Reset tab name</translation>
     </message>
+    <message>
+        <source>Tab name</source>
+        <translation>Tab name</translation>
+    </message>
 </context>
 <context>
     <name>klogg::DateTimeBox</name>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="364"/>
         <source>Time</source>
-        <translation type="unfinished"></translation>
+        <translation>Time</translation>
     </message>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="367"/>
         <source>TimeZone</source>
-        <translation type="unfinished"></translation>
+        <translation>TimeZone</translation>
     </message>
 </context>
 <context>
@@ -2431,7 +2515,7 @@ Lines containing error but not debug.</translation>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="66"/>
         <source>&amp;Wrap text</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Wrap text</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="67"/>
@@ -2850,10 +2934,6 @@ Channel: %2</translation>
         <translation>Check again</translation>
     </message>
     <message>
-        <source>Cancel check</source>
-        <translation>Cancel check</translation>
-    </message>
-    <message>
         <source>Remind me later</source>
         <translation>Remind me later</translation>
     </message>
@@ -2958,20 +3038,6 @@ Channel: %2</translation>
     </message>
 </context>
 <context>
-    <name>OptionsDialog</name>
-    <message>
-        <source>Updates</source>
-        <translation>Updates</translation>
-    </message>
-</context>
-<context>
-    <name>MainWindow</name>
-    <message>
-        <source>Check for updates</source>
-        <translation>Check for updates</translation>
-    </message>
-</context>
-<context>
     <name>PortableUpdateInstaller</name>
     <message>
         <source>
@@ -3017,6 +3083,34 @@ Update log: %1</translation>
         <source>Cannot create portable update staging directory.</source>
         <translation>Cannot create portable update staging directory.</translation>
     </message>
+    <message>
+        <source>The portable update package could not be prepared. See the update log for details.</source>
+        <translation>The portable update package could not be prepared. See the update log for details.</translation>
+    </message>
+    <message>
+        <source>The portable update helper failed. See the update log for details.</source>
+        <translation>The portable update helper failed. See the update log for details.</translation>
+    </message>
+    <message>
+        <source>The active data directory is unavailable.</source>
+        <translation>The active data directory is unavailable.</translation>
+    </message>
+    <message>
+        <source>The active data directory is invalid.</source>
+        <translation>The active data directory is invalid.</translation>
+    </message>
+    <message>
+        <source>ZzLogg portable update</source>
+        <translation>ZzLogg portable update</translation>
+    </message>
+    <message>
+        <source>The portable update could not finish. See the update log for details.
+
+Update log and recovery backup:</source>
+        <translation>The portable update could not finish. See the update log for details.
+
+Update log and recovery backup:</translation>
+    </message>
 </context>
 <context>
     <name>zzlogg::updateqt::SystemPackageInstaller</name>
@@ -3059,6 +3153,1269 @@ Update log: %1</translation>
     <message>
         <source>The system package installer failed (exit code %1). See the installation log.</source>
         <translation>The system package installer failed (exit code %1). See the installation log.</translation>
+    </message>
+    <message>
+        <source>Cannot start the system package installer. See the installation log for details.</source>
+        <translation>Cannot start the system package installer. See the installation log for details.</translation>
+    </message>
+</context>
+<context>
+    <name>CodeSyntax</name>
+    <message>
+        <source>INI Files</source>
+        <translation>INI Files</translation>
+    </message>
+    <message>
+        <source>Log File (advanced)</source>
+        <translation>Log File (advanced)</translation>
+    </message>
+    <message>
+        <source>Diff</source>
+        <translation>Diff</translation>
+    </message>
+</context>
+<context>
+    <name>Downloader</name>
+    <message>
+        <source>The download timed out. Try again later.</source>
+        <translation>The download timed out. Try again later.</translation>
+    </message>
+    <message>
+        <source>The server could not be found. Check the URL and network connection.</source>
+        <translation>The server could not be found. Check the URL and network connection.</translation>
+    </message>
+    <message>
+        <source>The server refused the connection.</source>
+        <translation>The server refused the connection.</translation>
+    </message>
+    <message>
+        <source>The secure connection could not be established. Check the server certificate and system time.</source>
+        <translation>The secure connection could not be established. Check the server certificate and system time.</translation>
+    </message>
+    <message>
+        <source>The requested file was not found on the server.</source>
+        <translation>The requested file was not found on the server.</translation>
+    </message>
+    <message>
+        <source>Access to the requested file was denied.</source>
+        <translation>Access to the requested file was denied.</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>The download was cancelled.</translation>
+    </message>
+    <message>
+        <source>The download failed. Check the URL and network connection.</source>
+        <translation>The download failed. Check the URL and network connection.</translation>
+    </message>
+</context>
+<context>
+    <name>InfoLine</name>
+    <message>
+        <source>Copy</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation>Select all</translation>
+    </message>
+</context>
+<context>
+    <name>KeySequencePresenter</name>
+    <message>
+        <source>Press new key combination</source>
+        <translation>Press new key combination</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Clear</translation>
+    </message>
+</context>
+<context>
+    <name>RegularExpression</name>
+    <message>
+        <source>Enclose each filter condition in straight double quotes, for example "text".</source>
+        <translation>Enclose each filter condition in straight double quotes, for example "text".</translation>
+    </message>
+    <message>
+        <source>A filter condition has unmatched double quotes. Add the missing quote.</source>
+        <translation>A filter condition has unmatched double quotes. Add the missing quote.</translation>
+    </message>
+    <message>
+        <source>Enclose every filter condition in straight double quotes. Check the quotes and logical operators.</source>
+        <translation>Enclose every filter condition in straight double quotes. Check the quotes and logical operators.</translation>
+    </message>
+    <message>
+        <source>Invalid logical expression. Check the operators and parentheses.</source>
+        <translation>Invalid logical expression. Check the operators and parentheses.</translation>
+    </message>
+    <message>
+        <source>Unable to compile the search expression.</source>
+        <translation>Unable to compile the search expression.</translation>
+    </message>
+</context>
+<context>
+    <name>ScratchPad</name>
+    <message>
+        <source>From base64</source>
+        <translation>From base64</translation>
+    </message>
+    <message>
+        <source>To base64</source>
+        <translation>To base64</translation>
+    </message>
+    <message>
+        <source>From hex</source>
+        <translation>From hex</translation>
+    </message>
+    <message>
+        <source>To hex</source>
+        <translation>To hex</translation>
+    </message>
+    <message>
+        <source>Decode url</source>
+        <translation>Decode url</translation>
+    </message>
+    <message>
+        <source>Format json</source>
+        <translation>Format json</translation>
+    </message>
+    <message>
+        <source>Format xml</source>
+        <translation>Format xml</translation>
+    </message>
+    <message>
+        <source>Copied to clipboard</source>
+        <translation>Copied to clipboard</translation>
+    </message>
+    <message>
+        <source>Empty transformation</source>
+        <translation>Empty transformation</translation>
+    </message>
+    <message>
+        <source>Time</source>
+        <translation>Time</translation>
+    </message>
+    <message>
+        <source>TimeZone</source>
+        <translation>TimeZone</translation>
+    </message>
+    <message>
+        <source>CRC32 hex</source>
+        <translation>CRC32 hex</translation>
+    </message>
+    <message>
+        <source>CRC32 dec</source>
+        <translation>CRC32 dec</translation>
+    </message>
+    <message>
+        <source>File time</source>
+        <translation>File time</translation>
+    </message>
+    <message>
+        <source>Dec-&gt;Hex</source>
+        <translation>Dec-&gt;Hex</translation>
+    </message>
+    <message>
+        <source>Hex-&gt;Dec</source>
+        <translation>Hex-&gt;Dec</translation>
+    </message>
+</context>
+<context>
+    <name>Storage</name>
+    <message>
+        <source>storage directory is missing: %1</source>
+        <translation>storage directory is missing: %1</translation>
+    </message>
+    <message>
+        <source>invalid storage directory: %1</source>
+        <translation>invalid storage directory: %1</translation>
+    </message>
+    <message>
+        <source>storage directory has no compatible manifest: %1</source>
+        <translation>storage directory has no compatible manifest: %1</translation>
+    </message>
+    <message>
+        <source>failed to install storage context for %1: %2</source>
+        <translation>failed to install storage context for %1: %2</translation>
+    </message>
+    <message>
+        <source>storage locator did not contain an active location</source>
+        <translation>storage locator did not contain an active location</translation>
+    </message>
+    <message>
+        <source>failed to resume storage migration from %1 to %2: %3</source>
+        <translation>failed to resume storage migration from %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration from %1 to %2: %3</source>
+        <translation>failed to recover pending storage migration from %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>storage migration recovery did not converge</source>
+        <translation>storage migration recovery did not converge</translation>
+    </message>
+    <message>
+        <source>command-line storage root could not be resolved: %1</source>
+        <translation>command-line storage root could not be resolved: %1</translation>
+    </message>
+    <message>
+        <source>invalid migration target: %1</source>
+        <translation>invalid migration target: %1</translation>
+    </message>
+    <message>
+        <source>failed to migrate legacy storage from %1 to %2: %3</source>
+        <translation>failed to migrate legacy storage from %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>invalid selected storage directory: %1</source>
+        <translation>invalid selected storage directory: %1</translation>
+    </message>
+    <message>
+        <source>; failed to remove newly written storage manifest: %1</source>
+        <translation>; failed to remove newly written storage manifest: %1</translation>
+    </message>
+    <message>
+        <source>failed to create directory: %1</source>
+        <translation>failed to create directory: %1</translation>
+    </message>
+    <message>
+        <source>storage context already installed</source>
+        <translation>storage context already installed</translation>
+    </message>
+    <message>
+        <source>failed to create storage locator lock directory: %1</source>
+        <translation>failed to create storage locator lock directory: %1</translation>
+    </message>
+    <message>
+        <source>storage locator mutation lock is already held: %1</source>
+        <translation>storage locator mutation lock is already held: %1</translation>
+    </message>
+    <message>
+        <source>program storage must use the adjacent program locator</source>
+        <translation>program storage must use the adjacent program locator</translation>
+    </message>
+    <message>
+        <source>user and custom storage must use the user locator</source>
+        <translation>user and custom storage must use the user locator</translation>
+    </message>
+    <message>
+        <source>relative storage paths are only allowed for program data</source>
+        <translation>relative storage paths are only allowed for program data</translation>
+    </message>
+    <message>
+        <source>storage data root must be an absolute path</source>
+        <translation>storage data root must be an absolute path</translation>
+    </message>
+    <message>
+        <source>%1 must be an absolute path: %2</source>
+        <translation>%1 must be an absolute path: %2</translation>
+    </message>
+    <message>
+        <source>failed to create locator directory: %1</source>
+        <translation>failed to create locator directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to serialize locator: %1</source>
+        <translation>failed to serialize locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to read serialized locator: %1</source>
+        <translation>failed to read serialized locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write locator: %1</source>
+        <translation>failed to atomically write locator: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid mode or data root</source>
+        <translation>storage locator has an invalid mode or data root</translation>
+    </message>
+    <message>
+        <source>storage locator is not a file: %1</source>
+        <translation>storage locator is not a file: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has an unsupported format version: %1</source>
+        <translation>storage locator has an unsupported format version: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid verified value: %1</source>
+        <translation>storage locator has an invalid verified value: %1</translation>
+    </message>
+    <message>
+        <source>storage locator cannot contain both Pending and LastMigration: %1</source>
+        <translation>storage locator cannot contain both Pending and LastMigration: %1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending is missing %1: %2</source>
+        <translation>storage locator Pending is missing %1: %2</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid pending migration metadata: %1</source>
+        <translation>storage locator has invalid pending migration metadata: %1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending source does not match active storage: %1</source>
+        <translation>storage locator Pending source does not match active storage: %1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending has invalid source preimage: %1</source>
+        <translation>storage locator Pending has invalid source preimage: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid LastMigration metadata: %1</source>
+        <translation>storage locator has invalid LastMigration metadata: %1</translation>
+    </message>
+    <message>
+        <source>failed to read storage locator: %1</source>
+        <translation>failed to read storage locator: %1</translation>
+    </message>
+    <message>
+        <source>storage migration transaction id is empty</source>
+        <translation>storage migration transaction id is empty</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be persisted</source>
+        <translation>command-line storage locations cannot be persisted</translation>
+    </message>
+    <message>
+        <source>legacy config file</source>
+        <translation>legacy config file</translation>
+    </message>
+    <message>
+        <source>legacy session file</source>
+        <translation>legacy session file</translation>
+    </message>
+    <message>
+        <source>source logs directory</source>
+        <translation>source logs directory</translation>
+    </message>
+    <message>
+        <source>failed to remove newly written locator: %1</source>
+        <translation>failed to remove newly written locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to restore locator: %1</source>
+        <translation>failed to restore locator: %1</translation>
+    </message>
+    <message>
+        <source>command-line storage root must be an absolute path</source>
+        <translation>command-line storage root must be an absolute path</translation>
+    </message>
+    <message>
+        <source>active storage has a pending migration</source>
+        <translation>active storage has a pending migration</translation>
+    </message>
+    <message>
+        <source>active storage changed before locator write</source>
+        <translation>active storage changed before locator write</translation>
+    </message>
+    <message>
+        <source>failed to read existing storage locator: %1</source>
+        <translation>failed to read existing storage locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1</source>
+        <translation>failed to remove conflicting storage locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1; %2</source>
+        <translation>failed to remove conflicting storage locator: %1; %2</translation>
+    </message>
+    <message>
+        <source>active storage changed before pending migration</source>
+        <translation>active storage changed before pending migration</translation>
+    </message>
+    <message>
+        <source>pending migration source does not match active storage</source>
+        <translation>pending migration source does not match active storage</translation>
+    </message>
+    <message>
+        <source>a different storage migration is already pending</source>
+        <translation>a different storage migration is already pending</translation>
+    </message>
+    <message>
+        <source>pending migration source locator is no longer active</source>
+        <translation>pending migration source locator is no longer active</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match</source>
+        <translation>pending storage migration does not match</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1</source>
+        <translation>failed to remove source storage locator: %1</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1; %2</source>
+        <translation>failed to remove source storage locator: %1; %2</translation>
+    </message>
+    <message>
+        <source>failed to remove newly created source locator: %1</source>
+        <translation>failed to remove newly created source locator: %1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is missing: %1</source>
+        <translation>legacy storage locator is missing: %1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is not safely discardable: %1</source>
+        <translation>legacy storage locator is not safely discardable: %1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator has no rolled-back transaction: %1</source>
+        <translation>legacy storage locator has no rolled-back transaction: %1</translation>
+    </message>
+    <message>
+        <source>failed to discard rolled-back legacy locator: %1</source>
+        <translation>failed to discard rolled-back legacy locator: %1</translation>
+    </message>
+    <message>
+        <source>migration target escapes data root: %1 (root: %2)</source>
+        <translation>migration target escapes data root: %1 (root: %2)</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in migration target path: %1</source>
+        <translation>refusing symbolic link in migration target path: %1</translation>
+    </message>
+    <message>
+        <source>canonical migration target escapes data root through %1: %2</source>
+        <translation>canonical migration target escapes data root through %1: %2</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be migrated</source>
+        <translation>command-line storage locations cannot be migrated</translation>
+    </message>
+    <message>
+        <source>storage migration location uses the wrong locator: %1</source>
+        <translation>storage migration location uses the wrong locator: %1</translation>
+    </message>
+    <message>
+        <source>storage migration data root must be absolute: %1</source>
+        <translation>storage migration data root must be absolute: %1</translation>
+    </message>
+    <message>
+        <source>target storage conflicts with source logs path: %1</source>
+        <translation>target storage conflicts with source logs path: %1</translation>
+    </message>
+    <message>
+        <source>legacy INI path conflicts with target output: %1</source>
+        <translation>legacy INI path conflicts with target output: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid storage metadata: %1</source>
+        <translation>storage locator has invalid storage metadata: %1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid Pending locations: %1</source>
+        <translation>storage locator has invalid Pending locations: %1</translation>
+    </message>
+    <message>
+        <source>invalid pending source preimage: %1</source>
+        <translation>invalid pending source preimage: %1</translation>
+    </message>
+    <message>
+        <source>invalid pending storage migration: %1: %2</source>
+        <translation>invalid pending storage migration: %1: %2</translation>
+    </message>
+    <message>
+        <source>%1; target locator invalid; recovery required: %2</source>
+        <translation>%1; target locator invalid; recovery required: %2</translation>
+    </message>
+    <message>
+        <source>%1; target locator remains committed; recovery required: %2</source>
+        <translation>%1; target locator remains committed; recovery required: %2</translation>
+    </message>
+    <message>
+        <source>failed to open source file for reading</source>
+        <translation>failed to open source file for reading</translation>
+    </message>
+    <message>
+        <source>failed to open target file for atomic writing</source>
+        <translation>failed to open target file for atomic writing</translation>
+    </message>
+    <message>
+        <source>failed while reading source file</source>
+        <translation>failed while reading source file</translation>
+    </message>
+    <message>
+        <source>failed while writing target file</source>
+        <translation>failed while writing target file</translation>
+    </message>
+    <message>
+        <source>failed to commit target file atomically</source>
+        <translation>failed to commit target file atomically</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration files for comparison</source>
+        <translation>failed to open existing migration files for comparison</translation>
+    </message>
+    <message>
+        <source>existing migration target size differs from source</source>
+        <translation>existing migration target size differs from source</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from source</source>
+        <translation>existing migration target differs from source</translation>
+    </message>
+    <message>
+        <source>failed while comparing existing migration files</source>
+        <translation>failed while comparing existing migration files</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration target for comparison</source>
+        <translation>failed to open existing migration target for comparison</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from expected contents</source>
+        <translation>existing migration target differs from expected contents</translation>
+    </message>
+    <message>
+        <source>failed to atomically create empty INI: %1</source>
+        <translation>failed to atomically create empty INI: %1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target for missing %1 at %2: %3</source>
+        <translation>refusing non-matching existing migration target for missing %1 at %2: %3</translation>
+    </message>
+    <message>
+        <source>failed to create empty legacy INI from missing %1 to %2: %3</source>
+        <translation>failed to create empty legacy INI from missing %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>legacy INI source is not a file: %1</source>
+        <translation>legacy INI source is not a file: %1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target from %1 to %2: %3</source>
+        <translation>refusing non-matching existing migration target from %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>failed to copy legacy INI from %1 to %2: %3</source>
+        <translation>failed to copy legacy INI from %1 to %2: %3</translation>
+    </message>
+    <message>
+        <source>failed to create %1 target directory: %2</source>
+        <translation>failed to create %1 target directory: %2</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in %1 tree: %2</source>
+        <translation>refusing symbolic link in %1 tree: %2</translation>
+    </message>
+    <message>
+        <source>%1 source is not a directory: %2</source>
+        <translation>%1 source is not a directory: %2</translation>
+    </message>
+    <message>
+        <source>unsupported entry in %1 tree: %2</source>
+        <translation>unsupported entry in %1 tree: %2</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing %1 target from %2 to %3: %4</source>
+        <translation>refusing non-matching existing %1 target from %2 to %3: %4</translation>
+    </message>
+    <message>
+        <source>failed to copy %1 file from %2 to %3: %4</source>
+        <translation>failed to copy %1 file from %2 to %3: %4</translation>
+    </message>
+    <message>
+        <source>target INI is missing or not a file: %1</source>
+        <translation>target INI is missing or not a file: %1</translation>
+    </message>
+    <message>
+        <source>target INI is not readable: %1</source>
+        <translation>target INI is not readable: %1</translation>
+    </message>
+    <message>
+        <source>failed while reading target INI: %1</source>
+        <translation>failed while reading target INI: %1</translation>
+    </message>
+    <message>
+        <source>target INI has invalid format: %1</source>
+        <translation>target INI has invalid format: %1</translation>
+    </message>
+    <message>
+        <source>cleanup failed for transaction paths: %1</source>
+        <translation>cleanup failed for transaction paths: %1</translation>
+    </message>
+    <message>
+        <source>rollback failed: %1</source>
+        <translation>rollback failed: %1</translation>
+    </message>
+    <message>
+        <source>failed to create storage migration lock directory for %1</source>
+        <translation>failed to create storage migration lock directory for %1</translation>
+    </message>
+    <message>
+        <source>storage migration lock is already held: %1</source>
+        <translation>storage migration lock is already held: %1</translation>
+    </message>
+    <message>
+        <source>permission denied acquiring storage migration lock: %1</source>
+        <translation>permission denied acquiring storage migration lock: %1</translation>
+    </message>
+    <message>
+        <source>unknown error acquiring storage migration lock: %1</source>
+        <translation>unknown error acquiring storage migration lock: %1</translation>
+    </message>
+    <message>
+        <source>failed to acquire storage migration lock: %1</source>
+        <translation>failed to acquire storage migration lock: %1</translation>
+    </message>
+    <message>
+        <source>invalid storage migration request: %1</source>
+        <translation>invalid storage migration request: %1</translation>
+    </message>
+    <message>
+        <source>failed to write pending storage migration: %1</source>
+        <translation>failed to write pending storage migration: %1</translation>
+    </message>
+    <message>
+        <source>same-root storage change requires complete managed data: %1</source>
+        <translation>same-root storage change requires complete managed data: %1</translation>
+    </message>
+    <message>
+        <source>failed to commit same-root storage change: %1</source>
+        <translation>failed to commit same-root storage change: %1</translation>
+    </message>
+    <message>
+        <source>refusing to overwrite existing storage manifest: %1</source>
+        <translation>refusing to overwrite existing storage manifest: %1</translation>
+    </message>
+    <message>
+        <source>stored logs</source>
+        <translation>stored logs</translation>
+    </message>
+    <message>
+        <source>failed to commit pending storage migration: %1</source>
+        <translation>failed to commit pending storage migration: %1</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match transaction request</source>
+        <translation>pending storage migration does not match transaction request</translation>
+    </message>
+    <message>
+        <source>storage migration was already rolled back</source>
+        <translation>storage migration was already rolled back</translation>
+    </message>
+    <message>
+        <source>last migration outcome conflicts with active storage</source>
+        <translation>last migration outcome conflicts with active storage</translation>
+    </message>
+    <message>
+        <source>storage migration transaction has no matching pending or last outcome</source>
+        <translation>storage migration transaction has no matching pending or last outcome</translation>
+    </message>
+    <message>
+        <source>%1; rollback failed: %2</source>
+        <translation>%1; rollback failed: %2</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration: %1</source>
+        <translation>failed to recover pending storage migration: %1</translation>
+    </message>
+    <message>
+        <source>incomplete pending storage migration rolled back</source>
+        <translation>incomplete pending storage migration rolled back</translation>
+    </message>
+    <message>
+        <source>failed to roll back incomplete pending storage migration: %1</source>
+        <translation>failed to roll back incomplete pending storage migration: %1</translation>
+    </message>
+    <message>
+        <source>storage directory must be an absolute, non-empty path</source>
+        <translation>storage directory must be an absolute, non-empty path</translation>
+    </message>
+    <message>
+        <source>storage path is not a directory: %1</source>
+        <translation>storage path is not a directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to create storage directory: %1</source>
+        <translation>failed to create storage directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to write storage directory: %1</source>
+        <translation>failed to write storage directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to read storage directory: %1</source>
+        <translation>failed to read storage directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write storage directory: %1</source>
+        <translation>failed to atomically write storage directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to read atomic storage write: %1</source>
+        <translation>failed to read atomic storage write: %1</translation>
+    </message>
+    <message>
+        <source>failed to remove storage probe file: %1</source>
+        <translation>failed to remove storage probe file: %1</translation>
+    </message>
+    <message>
+        <source>storage directory is not an empty managed directory: %1</source>
+        <translation>storage directory is not an empty managed directory: %1</translation>
+    </message>
+    <message>
+        <source>failed to write storage manifest: %1</source>
+        <translation>failed to write storage manifest: %1</translation>
+    </message>
+</context>
+<context>
+    <name>TabbedScratchPad</name>
+    <message>
+        <source>You can add tabs by pressing &lt;b&gt;"+"&lt;/b&gt; or Ctrl+N</source>
+        <translation>You can add tabs by pressing &lt;b&gt;"+"&lt;/b&gt; or Ctrl+N</translation>
+    </message>
+    <message>
+        <source>Scratchpad %1</source>
+        <translation>Scratchpad %1</translation>
+    </message>
+</context>
+<context>
+    <name>UiRuntime</name>
+    <message>
+        <source>Fluent UI initialization failed. The standard interface will be used.</source>
+        <translation>Fluent UI initialization failed. The standard interface will be used.</translation>
+    </message>
+</context>
+<context>
+    <name>IssueReporter</name>
+    <message>
+        <source>An unexpected error occurred. Create an issue on GitHub?</source>
+        <translation>An unexpected error occurred. Create an issue on GitHub?</translation>
+    </message>
+    <message>
+        <source>Create an issue on GitHub?</source>
+        <translation>Create an issue on GitHub?</translation>
+    </message>
+</context>
+<context>
+    <name>LogDataWorker</name>
+    <message>
+        <source>Cannot index this file because some lines are too long.</source>
+        <translation>Cannot index this file because some lines are too long.</translation>
+    </message>
+</context>
+<context>
+    <name>QRegularExpression</name>
+    <message>
+        <source>(*alpha_assertion) not recognized</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(*alpha_assertion) not recognized</translation>
+    </message>
+    <message>
+        <source>(?R (recursive pattern call) must be followed by a closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?R (recursive pattern call) must be followed by a closing parenthesis</translation>
+    </message>
+    <message>
+        <source>(?| and/or (?J: or (?x: parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?| and/or (?J: or (?x: parentheses are too deeply nested</translation>
+    </message>
+    <message>
+        <source>DEFINE subpattern contains more than one branch</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DEFINE subpattern contains more than one branch</translation>
+    </message>
+    <message>
+        <source>PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u</translation>
+    </message>
+    <message>
+        <source>PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode</translation>
+    </message>
+    <message>
+        <source>PCRE2_MATCH_INVALID_UTF is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>PCRE2_MATCH_INVALID_UTF is not supported for DFA matching</translation>
+    </message>
+    <message>
+        <source>POSIX collating elements are not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>POSIX collating elements are not supported</translation>
+    </message>
+    <message>
+        <source>POSIX named classes are supported only within a class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>POSIX named classes are supported only within a class</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: invalid low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 error: invalid low surrogate</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: isolated low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 error: isolated low surrogate</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: missing low surrogate at end</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 error: missing low surrogate at end</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 error: code points 0xd800-0xdfff are not defined</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 error: code points greater than 0x10ffff are not defined</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 5-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: 5-byte character is not allowed (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 6-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: 6-byte character is not allowed (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 2 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: byte 2 top bits not 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 3 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: byte 3 top bits not 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 4 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: byte 4 top bits not 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 5 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: byte 5 top bits not 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 6 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: byte 6 top bits not 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: code points 0xd800-0xdfff are not defined</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: code points greater than 0x10ffff are not defined</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: illegal byte (0xfe or 0xff)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: illegal byte (0xfe or 0xff)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: isolated byte with 0x80 bit set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: isolated byte with 0x80 bit set</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 2-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: overlong 2-byte sequence</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 3-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: overlong 3-byte sequence</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 4-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: overlong 4-byte sequence</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 5-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: overlong 5-byte sequence</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 6-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 error: overlong 6-byte sequence</translation>
+    </message>
+    <message>
+        <source>\C is not allowed in a lookbehind assertion in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\C is not allowed in a lookbehind assertion in UTF-16 mode</translation>
+    </message>
+    <message>
+        <source>\N{U+dddd} is supported only in Unicode (UTF) mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\N{U+dddd} is supported only in Unicode (UTF) mode</translation>
+    </message>
+    <message>
+        <source>\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number</translation>
+    </message>
+    <message>
+        <source>\k is not followed by a braced, angle-bracketed, or quoted name</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\k is not followed by a braced, angle-bracketed, or quoted name</translation>
+    </message>
+    <message>
+        <source>a relative value of zero is not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>a relative value of zero is not allowed</translation>
+    </message>
+    <message>
+        <source>atomic assertion expected after (?( or (?(?C)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>atomic assertion expected after (?( or (?(?C)</translation>
+    </message>
+    <message>
+        <source>backreference condition or recursion test is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>backreference condition or recursion test is not supported for DFA matching</translation>
+    </message>
+    <message>
+        <source>bad offset into UTF string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>bad offset into UTF string</translation>
+    </message>
+    <message>
+        <source>bad serialized data</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>bad serialized data</translation>
+    </message>
+    <message>
+        <source>bad substitution in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>bad substitution in replacement string</translation>
+    </message>
+    <message>
+        <source>callout error code</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>callout error code</translation>
+    </message>
+    <message>
+        <source>callout string is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>callout string is too long</translation>
+    </message>
+    <message>
+        <source>closing parenthesis for (?C expected</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>closing parenthesis for (?C expected</translation>
+    </message>
+    <message>
+        <source>conditional subpattern contains more than two branches</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>conditional subpattern contains more than two branches</translation>
+    </message>
+    <message>
+        <source>different names for subpatterns of the same number are not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>different names for subpatterns of the same number are not allowed</translation>
+    </message>
+    <message>
+        <source>digit expected after (?+ or (?-</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>digit expected after (?+ or (?-</translation>
+    </message>
+    <message>
+        <source>digits missing in \x{} or \o{} or \N{U+}</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>digits missing in \x{} or \o{} or \N{U+}</translation>
+    </message>
+    <message>
+        <source>escape sequence is invalid in character class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>escape sequence is invalid in character class</translation>
+    </message>
+    <message>
+        <source>expected closing curly bracket in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>expected closing curly bracket in replacement string</translation>
+    </message>
+    <message>
+        <source>function is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>function is not supported for DFA matching</translation>
+    </message>
+    <message>
+        <source>heap limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>heap limit exceeded</translation>
+    </message>
+    <message>
+        <source>internal error - duplicate substitution match</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error - duplicate substitution match</translation>
+    </message>
+    <message>
+        <source>internal error in pcre2_study(): should not occur</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error in pcre2_study(): should not occur</translation>
+    </message>
+    <message>
+        <source>internal error: bad code value in parsed_skip()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: bad code value in parsed_skip()</translation>
+    </message>
+    <message>
+        <source>internal error: overran compiling workspace</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: overran compiling workspace</translation>
+    </message>
+    <message>
+        <source>internal error: parsed pattern overflow</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: parsed pattern overflow</translation>
+    </message>
+    <message>
+        <source>internal error: previously-checked referenced subpattern not found</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: previously-checked referenced subpattern not found</translation>
+    </message>
+    <message>
+        <source>internal error: unexpected repeat</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: unexpected repeat</translation>
+    </message>
+    <message>
+        <source>internal error: unknown code in parsed pattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: unknown code in parsed pattern</translation>
+    </message>
+    <message>
+        <source>internal error: unknown meta code in check_lookbehinds()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>internal error: unknown meta code in check_lookbehinds()</translation>
+    </message>
+    <message>
+        <source>invalid data in workspace for DFA restart</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>invalid data in workspace for DFA restart</translation>
+    </message>
+    <message>
+        <source>invalid hyphen in option setting</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>invalid hyphen in option setting</translation>
+    </message>
+    <message>
+        <source>invalid option bits with PCRE2_LITERAL</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>invalid option bits with PCRE2_LITERAL</translation>
+    </message>
+    <message>
+        <source>invalid replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>invalid replacement string</translation>
+    </message>
+    <message>
+        <source>invalid syntax</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>invalid syntax</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is not fixed length</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>lookbehind assertion is not fixed length</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>lookbehind assertion is too long</translation>
+    </message>
+    <message>
+        <source>lookbehind is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>lookbehind is too complicated</translation>
+    </message>
+    <message>
+        <source>magic number missing</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>magic number missing</translation>
+    </message>
+    <message>
+        <source>match with end before start or start moved backwards is not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>match with end before start or start moved backwards is not supported</translation>
+    </message>
+    <message>
+        <source>matching depth limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>matching depth limit exceeded</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>missing closing parenthesis</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis for condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>missing closing parenthesis for condition</translation>
+    </message>
+    <message>
+        <source>missing opening brace after \o</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>missing opening brace after \o</translation>
+    </message>
+    <message>
+        <source>missing terminating delimiter for callout with string argument</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>missing terminating delimiter for callout with string argument</translation>
+    </message>
+    <message>
+        <source>nested recursion at the same subject position</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>nested recursion at the same subject position</translation>
+    </message>
+    <message>
+        <source>non-hex character in \x{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>non-hex character in \x{} (closing brace missing?)</translation>
+    </message>
+    <message>
+        <source>non-octal character in \o{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>non-octal character in \o{} (closing brace missing?)</translation>
+    </message>
+    <message>
+        <source>obsolete error (should not occur)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>obsolete error (should not occur)</translation>
+    </message>
+    <message>
+        <source>octal value is greater than \377 in 8-bit non-UTF-8 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>octal value is greater than \377 in 8-bit non-UTF-8 mode</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>parentheses are too deeply nested</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested (stack check)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>parentheses are too deeply nested (stack check)</translation>
+    </message>
+    <message>
+        <source>pattern compiled in wrong mode: 8/16/32-bit error</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>pattern compiled in wrong mode: 8/16/32-bit error</translation>
+    </message>
+    <message>
+        <source>pattern contains an item that is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>pattern contains an item that is not supported for DFA matching</translation>
+    </message>
+    <message>
+        <source>pattern string is longer than the limit set by the application</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>pattern string is longer than the limit set by the application</translation>
+    </message>
+    <message>
+        <source>patterns do not all use the same character tables</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>patterns do not all use the same character tables</translation>
+    </message>
+    <message>
+        <source>reference to non-existent subpattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>reference to non-existent subpattern</translation>
+    </message>
+    <message>
+        <source>regular expression is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>regular expression is too complicated</translation>
+    </message>
+    <message>
+        <source>requested value is not available</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>requested value is not available</translation>
+    </message>
+    <message>
+        <source>requested value is not set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>requested value is not set</translation>
+    </message>
+    <message>
+        <source>script runs require Unicode support, which this version of PCRE2 does not have</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>script runs require Unicode support, which this version of PCRE2 does not have</translation>
+    </message>
+    <message>
+        <source>subpattern name is too long (maximum 32 code units)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>subpattern name is too long (maximum 32 code units)</translation>
+    </message>
+    <message>
+        <source>subpattern name must start with a non-digit</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>subpattern name must start with a non-digit</translation>
+    </message>
+    <message>
+        <source>subpattern number is too big</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>subpattern number is too big</translation>
+    </message>
+    <message>
+        <source>syntax error in subpattern name (missing terminator?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>syntax error in subpattern name (missing terminator?)</translation>
+    </message>
+    <message>
+        <source>syntax error or number too big in (?(VERSION condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>syntax error or number too big in (?(VERSION condition</translation>
+    </message>
+    <message>
+        <source>too many capturing groups (maximum 65535)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>too many capturing groups (maximum 65535)</translation>
+    </message>
+    <message>
+        <source>too much recursion for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>too much recursion for DFA matching</translation>
+    </message>
+    <message>
+        <source>two named subpatterns have the same name (PCRE2_DUPNAMES not set)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>two named subpatterns have the same name (PCRE2_DUPNAMES not set)</translation>
+    </message>
+    <message>
+        <source>unmatched closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>unmatched closing parenthesis</translation>
+    </message>
+    <message>
+        <source>unrecognized string delimiter follows (?C</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>unrecognized string delimiter follows (?C</translation>
+    </message>
+    <message>
+        <source>using \C is disabled in this PCRE2 library</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>using \C is disabled in this PCRE2 library</translation>
+    </message>
+    <message>
+        <source>workspace size exceeded in DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>workspace size exceeded in DFA matching</translation>
     </message>
 </context>
 </TS>

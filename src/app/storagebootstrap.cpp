@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "storagebootstrap.h"
 
 #include "legacystorage.h"
@@ -45,18 +46,18 @@ StorageBootstrapResult installLocation( StorageLocation location,
 {
     if ( requireManifest && !QFileInfo{ location.dataRoot }.isDir() ) {
         return errorResult(
-            QStringLiteral( "storage directory is missing: %1" ).arg( location.dataRoot ) );
+            QCoreApplication::translate( "Storage", "storage directory is missing: %1" ).arg( location.dataRoot ) );
     }
     const auto validation = StorageValidator::validate( location.dataRoot, true );
     if ( !validation.valid ) {
         return errorResult(
             validation.error.isEmpty()
-                ? QStringLiteral( "invalid storage directory: %1" ).arg( location.dataRoot )
+                ? QCoreApplication::translate( "Storage", "invalid storage directory: %1" ).arg( location.dataRoot )
                 : validation.error );
     }
     location.dataRoot = validation.normalizedRoot;
     if ( requireManifest && !StorageValidator::hasCompatibleManifest( location.dataRoot ) ) {
-        return errorResult( QStringLiteral( "storage directory has no compatible manifest: %1" )
+        return errorResult( QCoreApplication::translate( "Storage", "storage directory has no compatible manifest: %1" )
                                 .arg( location.dataRoot ) );
     }
 
@@ -69,7 +70,7 @@ StorageBootstrapResult installLocation( StorageLocation location,
         return errorResult( error );
     }
     if ( !StorageContext::install( context.location(), runtimePaths, &error ) ) {
-        return errorResult( QStringLiteral( "failed to install storage context for %1: %2" )
+        return errorResult( QCoreApplication::translate( "Storage", "failed to install storage context for %1: %2" )
                                 .arg( context.dataRoot(), error ) );
     }
     return { StorageBootstrapStatus::Ready, {} };
@@ -83,7 +84,7 @@ StorageBootstrapResult installResolvedLocator( const StorageResolution& resoluti
     }
     if ( !resolution.state.has_value() ) {
         return errorResult(
-            QStringLiteral( "storage locator did not contain an active location" ) );
+            QCoreApplication::translate( "Storage", "storage locator did not contain an active location" ) );
     }
     return installLocation( resolution.state->active, runtimePaths, true, false );
 }
@@ -121,7 +122,7 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
         }
         if ( !resolution.state.has_value() ) {
             return errorResult(
-                QStringLiteral( "storage locator did not contain an active location" ) );
+                QCoreApplication::translate( "Storage", "storage locator did not contain an active location" ) );
         }
         if ( !resolution.state->pending.has_value() ) {
             return installResolvedLocator( resolution, runtimePaths );
@@ -138,17 +139,17 @@ StorageBootstrapResult resolveExisting( const StorageLocatorStore& store,
             const StorageMigrationResult retried = migrator.execute( request );
             if ( !retried.success ) {
                 return errorResult(
-                    QStringLiteral( "failed to resume storage migration from %1 to %2: %3" )
+                    QCoreApplication::translate( "Storage", "failed to resume storage migration from %1 to %2: %3" )
                         .arg( request.source.dataRoot, request.target.dataRoot, retried.error ) );
             }
             resolution = store.resolve();
             continue;
         }
         return errorResult(
-            QStringLiteral( "failed to recover pending storage migration from %1 to %2: %3" )
+            QCoreApplication::translate( "Storage", "failed to recover pending storage migration from %1 to %2: %3" )
                 .arg( request.source.dataRoot, request.target.dataRoot, recovered.error ) );
     }
-    return errorResult( QStringLiteral( "storage migration recovery did not converge" ) );
+    return errorResult( QCoreApplication::translate( "Storage", "storage migration recovery did not converge" ) );
 }
 
 } // namespace
@@ -170,7 +171,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         }
         if ( !resolution.state.has_value() ) {
             return errorResult(
-                QStringLiteral( "command-line storage root could not be resolved: %1" )
+                QCoreApplication::translate( "Storage", "command-line storage root could not be resolved: %1" )
                     .arg( commandLineDataRoot ) );
         }
         StorageLocation location = resolution.state->active;
@@ -232,7 +233,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         if ( !validation.valid ) {
             return errorResult(
                 validation.error.isEmpty()
-                    ? QStringLiteral( "invalid migration target: %1" ).arg( target.dataRoot )
+                    ? QCoreApplication::translate( "Storage", "invalid migration target: %1" ).arg( target.dataRoot )
                     : validation.error );
         }
         target.dataRoot = validation.normalizedRoot;
@@ -245,7 +246,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
         const StorageMigrationResult migrated = StorageMigrator{ store }.execute( request );
         if ( !migrated.success ) {
             return errorResult(
-                QStringLiteral( "failed to migrate legacy storage from %1 to %2: %3" )
+                QCoreApplication::translate( "Storage", "failed to migrate legacy storage from %1 to %2: %3" )
                     .arg( source.dataRoot, target.dataRoot, migrated.error ) );
         }
         return resolveExisting( store, store.resolve(), runtimePaths );
@@ -262,7 +263,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
     const auto validation = StorageValidator::validate( location.dataRoot, true );
     if ( !validation.valid ) {
         return errorResult( validation.error.isEmpty()
-                                ? QStringLiteral( "invalid selected storage directory: %1" )
+                                ? QCoreApplication::translate( "Storage", "invalid selected storage directory: %1" )
                                       .arg( location.dataRoot )
                                 : validation.error );
     }
@@ -279,7 +280,7 @@ bootstrapStorage( const QString& applicationDirectory, const QString& appConfigD
     if ( !store.writeActive( context.location(), &error ) ) {
         if ( !manifestExisted && QFileInfo::exists( context.manifestFilePath() )
              && !QFile::remove( context.manifestFilePath() ) ) {
-            error.append( QStringLiteral( "; failed to remove newly written storage manifest: %1" )
+            error.append( QCoreApplication::translate( "Storage", "; failed to remove newly written storage manifest: %1" )
                               .arg( context.manifestFilePath() ) );
         }
         return errorResult( error );

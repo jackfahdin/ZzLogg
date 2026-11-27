@@ -253,7 +253,7 @@ void TabbedCrawlerWidget::showContextMenu( int tab, QPoint globalPoint )
 
     connect( renameTab, &QAction::triggered, this, [ this, tab ] {
         bool isNameEntered = false;
-        auto newName = QInputDialog::getText( this, "Rename tab", "Tab name", QLineEdit::Normal,
+        auto newName = QInputDialog::getText( this, tr( "Rename tab" ), tr( "Tab name" ), QLineEdit::Normal,
                                               myTabBar_.tabText( tab ), &isNameEntered );
         if ( isNameEntered ) {
             const auto tabPath = tabPathAt( tab );

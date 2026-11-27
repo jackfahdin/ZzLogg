@@ -309,7 +309,7 @@ void CrawlerWidget::focusSearchEdit()
 void CrawlerWidget::goToLine()
 {
     bool isLineSelected = true;
-    auto newLine = QInputDialog::getText( this, "Jump to line", "Line number" )
+    auto newLine = QInputDialog::getText( this, tr( "Jump to line" ), tr( "Line number" ) )
                        .toULongLong( &isLineSelected );
 
     if ( isLineSelected ) {
@@ -1490,7 +1490,7 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
             // Accept auto-refresh of the search
             searchState_.startSearch();
             searchInfoState_ = SearchInfoState::Empty;
-            searchExpressionError_.clear();
+            searchInvalidExpression_.reset();
             renderSearchInfoMessage();
             logMainView_->setSearchPattern( regexpPattern );
             filteredView_->setSearchPattern( regexpPattern );
@@ -1503,7 +1503,7 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
 
             // Inform the user
             searchInfoState_ = SearchInfoState::InvalidExpression;
-            searchExpressionError_ = hsExpression.errorString();
+            searchInvalidExpression_ = std::make_unique<RegularExpression>( std::move( hsExpression ) );
             renderSearchInfoMessage();
 
             logMainView_->setSearchPattern( {} );
@@ -1565,7 +1565,7 @@ void CrawlerWidget::renderSearchInfoMessage()
                        : tr( " %1 match found so far." ).arg( searchInfoMatches_.get() ) );
         break;
     case SearchInfoState::InvalidExpression:
-        text = tr( "Error in expression: %1" ).arg( searchExpressionError_ );
+        text = tr( "Error in expression: %1" ).arg( searchInvalidExpression_->errorString() );
         break;
     }
 

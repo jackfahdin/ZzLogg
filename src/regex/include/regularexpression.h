@@ -54,7 +54,8 @@ class RegularExpression {
     klogg::vector<RegularExpressionPattern> subPatterns_;
 
     bool isValid_ = false;
-    QString errorString_;
+    const char* errorSource_ = nullptr;
+    QRegularExpression invalidRegex_;
 
     HsRegularExpression hsExpression_;
 

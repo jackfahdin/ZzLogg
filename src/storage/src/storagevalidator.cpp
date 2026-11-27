@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "storagevalidator.h"
 
 #include <QDir>
@@ -59,23 +60,23 @@ QString technicalErrorText( StorageValidationError errorCode, const QStringList&
     case StorageValidationError::None:
         return {};
     case StorageValidationError::InvalidRoot:
-        return QStringLiteral( "storage directory must be an absolute, non-empty path" );
+        return QCoreApplication::translate( "Storage", "storage directory must be an absolute, non-empty path" );
     case StorageValidationError::NotDirectory:
-        return QStringLiteral( "storage path is not a directory: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "storage path is not a directory: %1" ).arg( parameter );
     case StorageValidationError::CannotCreateDirectory:
-        return QStringLiteral( "failed to create storage directory: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to create storage directory: %1" ).arg( parameter );
     case StorageValidationError::CannotWriteDirectory:
-        return QStringLiteral( "failed to write storage directory: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to write storage directory: %1" ).arg( parameter );
     case StorageValidationError::CannotReadDirectory:
-        return QStringLiteral( "failed to read storage directory: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to read storage directory: %1" ).arg( parameter );
     case StorageValidationError::CannotAtomicallyWriteDirectory:
-        return QStringLiteral( "failed to atomically write storage directory: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to atomically write storage directory: %1" ).arg( parameter );
     case StorageValidationError::CannotReadAtomicWrite:
-        return QStringLiteral( "failed to read atomic storage write: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to read atomic storage write: %1" ).arg( parameter );
     case StorageValidationError::CannotRemoveProbe:
-        return QStringLiteral( "failed to remove storage probe file: %1" ).arg( parameter );
+        return QCoreApplication::translate( "Storage", "failed to remove storage probe file: %1" ).arg( parameter );
     case StorageValidationError::NotEmptyManagedDirectory:
-        return QStringLiteral( "storage directory is not an empty managed directory: %1" )
+        return QCoreApplication::translate( "Storage", "storage directory is not an empty managed directory: %1" )
             .arg( parameter );
     }
     return {};
@@ -168,11 +169,11 @@ bool StorageValidator::writeManifest( const StorageContext& context, QString* er
 {
     const QString root = normalizedAbsolutePath( context.dataRoot() );
     if ( root.isEmpty() ) {
-        setError( error, QStringLiteral( "storage directory must be an absolute, non-empty path" ) );
+        setError( error, QCoreApplication::translate( "Storage", "storage directory must be an absolute, non-empty path" ) );
         return false;
     }
     if ( !QDir{}.mkpath( root ) ) {
-        setError( error, QStringLiteral( "failed to create storage directory: %1" ).arg( root ) );
+        setError( error, QCoreApplication::translate( "Storage", "failed to create storage directory: %1" ).arg( root ) );
         return false;
     }
 
@@ -180,7 +181,7 @@ bool StorageValidator::writeManifest( const StorageContext& context, QString* er
     const QByteArray contents{ "[Storage]\nlayoutVersion=1\nproduct=ZzLogg\n" };
     if ( !manifest.open( QIODevice::WriteOnly ) || manifest.write( contents ) != contents.size()
          || !manifest.commit() ) {
-        setError( error, QStringLiteral( "failed to write storage manifest: %1" ).arg( root ) );
+        setError( error, QCoreApplication::translate( "Storage", "failed to write storage manifest: %1" ).arg( root ) );
         return false;
     }
     return true;

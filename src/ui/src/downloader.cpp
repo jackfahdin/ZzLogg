@@ -32,12 +32,23 @@ Downloader::Downloader( QObject* parent )
 
 QString Downloader::lastError() const
 {
-    return lastError_;
+    switch ( lastError_ ) {
+    case QNetworkReply::NoError: return {};
+    case QNetworkReply::TimeoutError: return tr( "The download timed out. Try again later." );
+    case QNetworkReply::HostNotFoundError: return tr( "The server could not be found. Check the URL and network connection." );
+    case QNetworkReply::ConnectionRefusedError: return tr( "The server refused the connection." );
+    case QNetworkReply::SslHandshakeFailedError: return tr( "The secure connection could not be established. Check the server certificate and system time." );
+    case QNetworkReply::ContentNotFoundError: return tr( "The requested file was not found on the server." );
+    case QNetworkReply::ContentAccessDenied: return tr( "Access to the requested file was denied." );
+    case QNetworkReply::OperationCanceledError: return tr( "The download was cancelled." );
+    default: return tr( "The download failed. Check the URL and network connection." );
+    }
 }
 
 void Downloader::download( const QUrl& url, QFile* outputFile )
 {
     output_ = outputFile;
+    lastError_ = QNetworkReply::NoError;
 
     QNetworkRequest request( url );
 
@@ -67,7 +78,7 @@ void Downloader::downloadFinished()
     if ( currentDownload_->error() ) {
         // download failed
         LOG_ERROR << "Download failed: " << currentDownload_->errorString();
-        lastError_ = currentDownload_->errorString();
+        lastError_ = currentDownload_->error();
         output_->remove();
         Q_EMIT finished( false );
     }

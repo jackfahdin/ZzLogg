@@ -39,7 +39,8 @@ add_executable(zzlogg_runtime_translation_catalog_test
 target_link_libraries(zzlogg_runtime_translation_catalog_test PRIVATE
   Qt6::Test Qt6::Core)
 target_compile_definitions(zzlogg_runtime_translation_catalog_test PRIVATE
-  ZZLOGG_SOURCE_ROOT="${PROJECT_SOURCE_DIR}")
+  ZZLOGG_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
+  ZZLOGG_LUPDATE_EXECUTABLE="$<TARGET_FILE:Qt6::lupdate>")
 set_target_properties(zzlogg_runtime_translation_catalog_test PROPERTIES AUTOMOC ON)
 add_test(NAME zzlogg_ui.runtime_translation_catalog_contract
   COMMAND zzlogg_runtime_translation_catalog_test)

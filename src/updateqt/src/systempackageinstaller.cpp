@@ -223,8 +223,10 @@ void SystemPackageInstaller::start(const QString& packagePath, const update::Art
         process->setProcessChannelMode(QProcess::MergedChannels);
         process->setStandardOutputFile(impl_->log, QIODevice::Append);
         connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error) {
-            if (error == QProcess::FailedToStart)
-                complete(false, tr("Cannot start the system package installer: %1").arg(process->errorString()));
+            if (error == QProcess::FailedToStart) {
+                appendLog(impl_->log, process->errorString());
+                complete(false, tr("Cannot start the system package installer. See the installation log for details."));
+            }
         });
         connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
             [this](int exitCode, QProcess::ExitStatus status) {

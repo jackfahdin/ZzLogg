@@ -563,10 +563,10 @@ void KeySequencePresenter::showEditor()
 {
     QDialog keyEditDialog;
 
-    auto label = new QLabel( "Press new key combination" );
+    auto label = new QLabel( tr( "Press new key combination" ) );
     auto editor = new QKeySequenceEdit( QKeySequence( keySequenceLabel_->text() ) );
     auto clearButton = new QToolButton();
-    clearButton->setText( "Clear" );
+    clearButton->setText( tr( "Clear" ) );
     auto dialogButtons = new QDialogButtonBox( QDialogButtonBox::Ok | QDialogButtonBox::Cancel );
 
     auto layout = new QVBoxLayout();

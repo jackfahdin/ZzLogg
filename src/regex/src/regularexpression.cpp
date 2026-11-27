@@ -17,6 +17,7 @@
  * along with klogg.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <QCoreApplication>
 #include <algorithm>
 #include <exception>
 #include <memory>
@@ -32,13 +33,16 @@
 
 #include "booleanevaluator.h"
 #include "regularexpression.h"
+#include "qtregextranslationkeys.h"
 
 namespace {
+struct PatternSyntaxError { const char* source; };
+
 klogg::vector<RegularExpressionPattern>
 parseBooleanExpressions( QString& pattern, bool isCaseSensitive, bool isPlainText )
 {
     if ( !pattern.contains( '"' ) ) {
-        throw std::runtime_error( "Patterns must be enclosed in quotes" );
+        throw PatternSyntaxError{ QT_TRANSLATE_NOOP( "RegularExpression", "Enclose each filter condition in straight double quotes, for example \"text\"." ) };
     }
 
     klogg::vector<RegularExpressionPattern> subPatterns;
@@ -95,14 +99,14 @@ parseBooleanExpressions( QString& pattern, bool isCaseSensitive, bool isPlainTex
     }
 
     if ( pattern.contains( '"' ) ) {
-        throw std::runtime_error( "Pattern has unmatched quotes" );
+        throw PatternSyntaxError{ QT_TRANSLATE_NOOP( "RegularExpression", "A filter condition has unmatched double quotes. Add the missing quote." ) };
     }
 
     pattern = pattern.toLower();
     LOG_INFO << "Parsed pattern: " << pattern;
     QRegularExpression finalPatternCheck( "^(and|nand|or|nor|xor|xnor|not|[ ()!|&]|p_[0-9]+)+$" );
     if ( !finalPatternCheck.match( pattern ).hasMatch() ) {
-        throw std::runtime_error( "Sub-patterns must be enclosed in quotes" );
+        throw PatternSyntaxError{ QT_TRANSLATE_NOOP( "RegularExpression", "Enclose every filter condition in straight double quotes. Check the quotes and logical operators." ) };
     }
 
     return subPatterns;
@@ -123,7 +127,9 @@ RegularExpression::RegularExpression( const RegularExpressionPattern& pattern )
             BooleanExpressionEvaluator evaluator{ expression_.toStdString(), subPatterns_ };
             if ( !evaluator.isValid() ) {
                 isValid_ = false;
-                errorString_ = QString::fromStdString( evaluator.errorString() );
+                LOG_WARNING << "Invalid logical expression: " << evaluator.errorString();
+                errorSource_ = QT_TRANSLATE_NOOP( "RegularExpression",
+                    "Invalid logical expression. Check the operators and parentheses." );
                 return;
             }
         }
@@ -134,11 +140,24 @@ RegularExpression::RegularExpression( const RegularExpressionPattern& pattern )
 
         hsExpression_ = HsRegularExpression( subPatterns_ );
         isValid_ = hsExpression_.isValid();
-        errorString_ = hsExpression_.errorString();
+        if ( !isValid_ ) {
+            // Keep the regex itself so Qt can translate its diagnostic at display time.
+            for ( const auto& subPattern : subPatterns_ ) {
+                const auto regex = static_cast<QRegularExpression>( subPattern );
+                if ( !regex.isValid() ) {
+                    invalidRegex_ = regex;
+                    break;
+                }
+            }
+        }
 
-    } catch ( std::exception& err ) {
+    } catch ( const PatternSyntaxError& err ) {
         isValid_ = false;
-        errorString_ = err.what();
+        errorSource_ = err.source;
+    } catch ( const std::exception& err ) {
+        isValid_ = false;
+        LOG_WARNING << "Expression compilation failed: " << err.what();
+        errorSource_ = QT_TRANSLATE_NOOP( "RegularExpression", "Unable to compile the search expression." );
     }
 }
 
@@ -149,7 +168,13 @@ bool RegularExpression::isValid() const
 
 QString RegularExpression::errorString() const
 {
-    return errorString_;
+    if ( isValid_ ) {
+        return {};
+    }
+    if ( errorSource_ ) {
+        return QCoreApplication::translate( "RegularExpression", errorSource_ );
+    }
+    return invalidRegex_.errorString();
 }
 
 std::unique_ptr<PatternMatcher> RegularExpression::createMatcher() const

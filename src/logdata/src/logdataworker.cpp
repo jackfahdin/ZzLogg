@@ -774,7 +774,7 @@ void IndexOperation::doIndex( OffsetInFile initialPosition )
          == std::numeric_limits<LineLength::UnderlyingType>::max() ) {
         dispatchToMainThread( [] {
             QMessageBox::critical( nullptr, QCoreApplication::applicationName(),
-                                   "Can't index file: some lines are too long",
+                                   QCoreApplication::translate( "LogDataWorker", "Cannot index this file because some lines are too long." ),
                                    QMessageBox::Close );
         } );
 

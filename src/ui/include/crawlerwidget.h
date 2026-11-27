@@ -424,7 +424,7 @@ private:
     SearchInfoState searchInfoState_ = SearchInfoState::Empty;
     LinesCount searchInfoMatches_ = 0_lcount;
     int searchInfoProgress_ = 0;
-    QString searchExpressionError_;
+    std::unique_ptr<RegularExpression> searchInvalidExpression_;
 
     LineNumber searchStartLine_;
     LineNumber searchEndLine_;

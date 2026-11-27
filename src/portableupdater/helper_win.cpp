@@ -71,7 +71,11 @@ void availableTargets(const fs::path& root,const std::vector<std::string>& oldFi
 }
 }
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=7) return 2;
+    if(argc!=7 && argc!=9) return 2;
+    // The GUI passes translated display text; the helper must remain independent of Qt.
+    const std::wstring failureTitle = argc == 9 ? argv[7] : L"ZzLogg portable update";
+    const std::wstring failureSummary = argc == 9 ? argv[8]
+        : L"The portable update could not finish. See the update log for details.\n\nUpdate log and recovery backup:";
     const fs::path root(argv[1]),stage(argv[2]);
     const std::wstring dataDirectory=argv[6];
     std::ofstream log;
@@ -165,11 +169,8 @@ int wmain(int argc,wchar_t** argv) {
         if(safeStage) {try {writeStatus(stage,"failed",error.what());} catch(...) {}}
         if(mutexOwned) ReleaseMutex(mutex.get());
         if(parentExited) {
-            const std::string message=std::string(error.what())+"\n\nUpdate log and recovery backup: "+stage.u8string();
-            const int length=MultiByteToWideChar(CP_UTF8,0,message.data(),static_cast<int>(message.size()),nullptr,0);
-            std::wstring wide(static_cast<std::size_t>(length),L'\0');
-            MultiByteToWideChar(CP_UTF8,0,message.data(),static_cast<int>(message.size()),wide.data(),length);
-            MessageBoxW(nullptr,wide.c_str(),L"ZzLogg portable update",MB_OK|MB_ICONERROR);
+            const auto message = failureSummary + L"\n" + stage.wstring();
+            MessageBoxW(nullptr,message.c_str(),failureTitle.c_str(),MB_OK|MB_ICONERROR);
         }
         return 1;
     }

@@ -15,6 +15,9 @@
 #include "quickfindwidget.h"
 #include "quickfind.h"
 #include "recentfiles.h"
+#include "regularexpression.h"
+#include "downloader.h"
+#include "storagevalidator.h"
 #include "savedsearches.h"
 #include "searchpanel.h"
 #include "session.h"
@@ -627,6 +630,8 @@ class ApplicationTranslationTest final : public QObject {
     void changingOnlyLanguageDoesNotRequestRestart();
     void retranslatesOpenDocumentSearchAndQuickFindControls();
     void retranslatesCrawlerSemanticSearchStatus();
+    void translatesExpressionErrors();
+    void translatesStorageAndDownloadFailures();
     void resendsPerDocumentLoadingStateAfterTabSwitchAndLanguageChange();
     void opensEncodingMenuFromMenuBar();
     void rendersLayoutsAcrossThemesAndLanguages();
@@ -1216,6 +1221,66 @@ void ApplicationTranslationTest::retranslatesOpenDocumentSearchAndQuickFindContr
                                QStringLiteral( "已到達檔案末尾，未找到符合項目。" ), 5000 );
 }
 
+void ApplicationTranslationTest::translatesExpressionErrors()
+{
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    RegularExpression unquoted{ RegularExpressionPattern{ "text", false, false, true, true } };
+    RegularExpression unmatched{ RegularExpressionPattern{ "\"text", false, false, true, true } };
+    RegularExpression subpattern{ RegularExpressionPattern{ "\"text\" and other", false, false, true, true } };
+    RegularExpression operators{ RegularExpressionPattern{ "\"text\" and", false, false, true, true } };
+    RegularExpression regex{ RegularExpressionPattern{ "[", false, false, false, false } };
+    RegularExpression parentheses{ RegularExpressionPattern{ "(", false, false, false, false } };
+    for (const auto* expression : { &unquoted, &unmatched, &subpattern, &operators, &regex }) {
+        QVERIFY( !expression->isValid() );
+        QVERIFY( !expression->errorString().isEmpty() );
+    }
+    const auto english = unquoted.errorString();
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCOMPARE( unquoted.errorString(), QStringLiteral( "请用英文双引号包住每个筛选条件，例如 \"text\"。" ) );
+    QCOMPARE( unmatched.errorString(), QStringLiteral( "筛选条件的双引号未成对，请补全。" ) );
+    QCOMPARE( subpattern.errorString(), QStringLiteral( "每个筛选条件都必须用英文双引号包住，请检查引号和逻辑运算符。" ) );
+    QCOMPARE( operators.errorString(), QStringLiteral( "逻辑表达式无效，请检查运算符和括号。" ) );
+    QCOMPARE( regex.errorString(), QStringLiteral( "字符类缺少终止 ]" ) );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCOMPARE( unquoted.errorString(), QStringLiteral( "請用英文雙引號包住每個篩選條件，例如 \"text\"。" ) );
+    QCOMPARE( parentheses.errorString(), QStringLiteral( "缺少右括號" ) );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    QCOMPARE( unquoted.errorString(), english );
+}
+
+void ApplicationTranslationTest::translatesStorageAndDownloadFailures()
+{
+    QTemporaryDir directory;
+    QVERIFY( directory.isValid() );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+    Downloader downloader;
+    QFile output{ directory.filePath( "download.log" ) };
+    QVERIFY( output.open( QIODevice::WriteOnly ) );
+    QSignalSpy finished{ &downloader, &Downloader::finished };
+    downloader.download( QUrl::fromLocalFile( directory.filePath( "missing.log" ) ), &output );
+    QTRY_COMPARE( finished.count(), 1 );
+    QCOMPARE( finished.front().front().toBool(), false );
+    QVERIFY( !QFile::exists( output.fileName() ) );
+    QCOMPARE( downloader.lastError(), QStringLiteral( "The requested file was not found on the server." ) );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
+    QCOMPARE( downloader.lastError(), QStringLiteral( "服务器上找不到请求的文件。" ) );
+    const auto invalidRoot = StorageValidator::validate( "relative-path", false );
+    QVERIFY( !invalidRoot.valid );
+    QCOMPARE( invalidRoot.error, QStringLiteral( "存储目录必须是非空的绝对路径" ) );
+    const auto filePath = directory.filePath( "existing-file" );
+    QFile file{ filePath };
+    QVERIFY( file.open( QIODevice::WriteOnly ) );
+    file.close();
+    const auto notDirectory = StorageValidator::validate( filePath, false );
+    QVERIFY( !notDirectory.valid );
+    QCOMPARE( notDirectory.error, QStringLiteral( "存储路径不是目录：%1" ).arg( filePath ) );
+
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCOMPARE( downloader.lastError(), QStringLiteral( "伺服器上找不到請求的檔案。" ) );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
+}
+
 void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
 {
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
@@ -1253,8 +1318,6 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     searchButton->click();
     QTRY_VERIFY_WITH_TIMEOUT(
         searchInfo->text().startsWith( QStringLiteral( "Error in expression: " ) ), 5000 );
-    const QString expressionError = searchInfo->text().mid(
-        QStringLiteral( "Error in expression: " ).size() );
     const QPalette errorPalette = searchInfo->palette();
     QSignalSpy loadingFinishedAfterLanguageChange{ crawler, &CrawlerWidget::loadingFinished };
 
@@ -1262,9 +1325,21 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     QCoreApplication::sendPostedEvents();
     QCoreApplication::processEvents();
     QTRY_COMPARE( searchInfo->text(),
-                  QStringLiteral( "表达式错误：%1" ).arg( expressionError ) );
+                  QStringLiteral( "表达式错误：字符类缺少终止 ]" ) );
     QCOMPARE( searchInfo->palette(), errorPalette );
     QCOMPARE( loadingFinishedAfterLanguageChange.count(), 0 );
+
+    auto* const booleanButton = child<QToolButton>( *crawler, "booleanButton" );
+    booleanButton->setChecked( true );
+    searchEdit->setCurrentText( QStringLiteral( "dd" ) );
+    searchButton->click();
+    QTRY_COMPARE( searchInfo->text(), QStringLiteral( "表达式错误：请用英文双引号包住每个筛选条件，例如 \"text\"。" ) );
+    QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_TW" ) ), 0 );
+    QCoreApplication::sendPostedEvents();
+    QTRY_COMPARE( searchInfo->text(), QStringLiteral( "表達式錯誤：請用英文雙引號包住每個篩選條件，例如 \"text\"。" ) );
+    QCOMPARE( searchEdit->currentText(), QStringLiteral( "dd" ) );
+    QVERIFY( booleanButton->isChecked() );
+    booleanButton->setChecked( false );
 
     QCOMPARE( MainWindow::installLanguage( QStringLiteral( "en" ) ), 0 );
     QCoreApplication::sendPostedEvents();

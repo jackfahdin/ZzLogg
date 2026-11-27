@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 /*
  * Copyright (C) 2016 -- 2021 Anton Filimonov and other contributors
  *
@@ -81,15 +82,13 @@ ApplicationUpdateGuard::Status ApplicationUpdateGuard::enter( const QString& app
         break;
     case zzlogg::updater::ActivityError::Blocked:
         impl_->status = Status::Blocked;
-        impl_->errorText = QStringLiteral(
-            "an update reservation or a preexisting lock object was observed for %1" )
+        impl_->errorText = QCoreApplication::translate( "ApplicationRunner", "an update reservation or a preexisting lock object was observed for %1" )
                                .arg( applicationDir );
         break;
     case zzlogg::updater::ActivityError::Abandoned:
     case zzlogg::updater::ActivityError::Unavailable:
         impl_->status = Status::Unavailable;
-        impl_->errorText = QStringLiteral(
-            "the installation directory identity could not be verified for %1" )
+        impl_->errorText = QCoreApplication::translate( "ApplicationRunner", "the installation directory identity could not be verified for %1" )
                                .arg( applicationDir );
         break;
     }
@@ -130,7 +129,7 @@ bool ApplicationUpdateGuard::reserveUpdate()
 #ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
     if ( !impl_->activity || impl_->status != Status::Active ) {
         impl_->reservationError = ReservationError::Unavailable;
-        impl_->errorText = QStringLiteral( "no active installation activity lease" );
+        impl_->errorText = QCoreApplication::translate( "ApplicationRunner", "no active installation activity lease" );
         return false;
     }
     const auto result = impl_->activity->reserveUpdate();
@@ -143,24 +142,23 @@ bool ApplicationUpdateGuard::reserveUpdate()
     case zzlogg::updater::ActivityError::Blocked:
         impl_->reservationError = ReservationError::Blocked;
         impl_->errorText
-            = QStringLiteral( "the installation directory is in use (another instance, directory watcher, or working-directory handle)" );
+            = QCoreApplication::translate( "ApplicationRunner", "the installation directory is in use (another instance, directory watcher, or working-directory handle)" );
         break;
     case zzlogg::updater::ActivityError::Abandoned:
         impl_->reservationError = ReservationError::Abandoned;
-        impl_->errorText = QStringLiteral(
-            "a previous update reservation was abandoned by a holder that exited without "
+        impl_->errorText = QCoreApplication::translate( "ApplicationRunner", "a previous update reservation was abandoned by a holder that exited without "
             "releasing it" );
         break;
     default:
         impl_->reservationError = ReservationError::Unavailable;
         impl_->errorText
-            = QStringLiteral( "the installation directory could not be exclusively verified" );
+            = QCoreApplication::translate( "ApplicationRunner", "the installation directory could not be exclusively verified" );
         break;
     }
     return false;
 #else
     impl_->reservationError = ReservationError::Unavailable;
-    impl_->errorText = QStringLiteral( "automatic update is not supported on this platform" );
+    impl_->errorText = QCoreApplication::translate( "ApplicationRunner", "automatic update is not supported on this platform" );
     return false;
 #endif
 }

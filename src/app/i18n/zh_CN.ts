@@ -6,34 +6,34 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="538"/>
         <source>Copy the selection</source>
-        <translation>拷贝选中内容</translation>
+        <translation>复制选中内容</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="537"/>
         <location filename="../../ui/src/abstractlogview.cpp" line="2020"/>
         <source>&amp;Copy</source>
-        <translation>拷贝(&amp;C)</translation>
+        <translation>复制(&amp;C)</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="527"/>
         <source>&amp;Copy this line</source>
-        <translation>拷贝当前行(&amp;C)</translation>
+        <translation>复制当前行(&amp;C)</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="528"/>
         <source>Copy this line with line number</source>
-        <translation type="unfinished">拷贝当前行并附加行号</translation>
+        <translation>复制当前行并附加行号</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="540"/>
         <location filename="../../ui/src/abstractlogview.cpp" line="2024"/>
         <source>Copy with line numbers</source>
-        <translation type="unfinished">拷贝并附加行号</translation>
+        <translation>复制并附加行号</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="593"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="627"/>
@@ -43,7 +43,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="1461"/>
         <source>Saving content to %1</source>
-        <translation type="unfinished">将内容保存到 %1</translation>
+        <translation>将内容保存到 %1</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="559"/>
@@ -54,7 +54,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="559"/>
         <source>Unmark</source>
-        <translation type="unfinished"></translation>
+        <translation>取消标记</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2032"/>
@@ -94,22 +94,22 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2055"/>
         <source>&amp;Replace search</source>
-        <translation type="unfinished">替换(&amp;R)</translation>
+        <translation>替换(&amp;R)</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2056"/>
         <source>Replace the search expression with the selection</source>
-        <translation type="unfinished">用选择内容替换搜索表达式</translation>
+        <translation>用选择内容替换搜索表达式</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2060"/>
         <source>&amp;Add to search</source>
-        <translation type="unfinished">添加到搜索(&amp;A)</translation>
+        <translation>添加到搜索(&amp;A)</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2061"/>
         <source>Add the selection to the current search</source>
-        <translation type="unfinished">将选择添加到搜索</translation>
+        <translation>将选择添加到搜索</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2065"/>
@@ -119,7 +119,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2066"/>
         <source>Excludes the selection from search</source>
-        <translation type="unfinished">从搜索中排除所选内容</translation>
+        <translation>从搜索中排除所选内容</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2070"/>
@@ -134,7 +134,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2078"/>
         <source>Clear search limits</source>
-        <translation type="unfinished">清除搜索限制</translation>
+        <translation>清除搜索限制</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2082"/>
@@ -149,7 +149,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2090"/>
         <source>Save splitter position</source>
-        <translation type="unfinished">设置为默认窗口分割线位置</translation>
+        <translation>设置为默认窗口分割线位置</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2094"/>
@@ -164,12 +164,12 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2103"/>
         <source>Highlighters</source>
-        <translation type="unfinished">高亮显示</translation>
+        <translation>高亮显示</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2105"/>
         <source>Color labels</source>
-        <translation type="unfinished">颜色标签</translation>
+        <translation>颜色标签</translation>
     </message>
 </context>
 <context>
@@ -180,6 +180,50 @@
 %1</source>
         <translation>ZzLogg 无法打开其数据目录：
 %1</translation>
+    </message>
+    <message>
+        <source>failed to install pre-bootstrap language: %1</source>
+        <translation>无法加载启动界面语言：%1</translation>
+    </message>
+    <message>
+        <source>This ZzLogg installation is currently being updated. Start ZzLogg again after the update has finished.</source>
+        <translation>此 ZzLogg 安装正在更新。请在更新完成后重新启动 ZzLogg。</translation>
+    </message>
+    <message>
+        <source>ZzLogg could not verify its installation directory. Startup was cancelled to protect the installation.</source>
+        <translation>ZzLogg 无法验证安装目录。为保护现有安装，已取消启动。</translation>
+    </message>
+    <message>
+        <source>failed to install configured language: %1</source>
+        <translation>无法加载配置的界面语言：%1</translation>
+    </message>
+    <message>
+        <source>an update reservation or a preexisting lock object was observed for %1</source>
+        <translation>检测到 %1 正在准备更新或已被锁定</translation>
+    </message>
+    <message>
+        <source>the installation directory identity could not be verified for %1</source>
+        <translation>无法验证安装目录 %1 的身份</translation>
+    </message>
+    <message>
+        <source>no active installation activity lease</source>
+        <translation>没有有效的安装目录使用凭据</translation>
+    </message>
+    <message>
+        <source>the installation directory is in use (another instance, directory watcher, or working-directory handle)</source>
+        <translation>安装目录正在使用中（可能被其他实例、目录监视器或工作目录句柄占用）</translation>
+    </message>
+    <message>
+        <source>a previous update reservation was abandoned by a holder that exited without releasing it</source>
+        <translation>上次更新预留未被释放，持有该预留的进程已退出</translation>
+    </message>
+    <message>
+        <source>the installation directory could not be exclusively verified</source>
+        <translation>无法验证安装目录是否可独占使用</translation>
+    </message>
+    <message>
+        <source>automatic update is not supported on this platform</source>
+        <translation>此平台不支持自动更新</translation>
     </message>
 </context>
 <context>
@@ -376,6 +420,18 @@ nand  两者不同时匹配；nor  两者都不匹配
 示例："error" and not("debug")
 查找包含 error，但不包含 debug 的行。</translation>
     </message>
+    <message>
+        <source>Jump to line</source>
+        <translation>跳转到行</translation>
+    </message>
+    <message>
+        <source>Line number</source>
+        <translation>行号</translation>
+    </message>
+    <message>
+        <source>Mixed</source>
+        <translation>混合</translation>
+    </message>
 </context>
 <context>
     <name>EncodingMenu</name>
@@ -390,7 +446,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/highlighteredit.ui" line="14"/>
         <source>Form</source>
-        <translation type="unfinished">表单</translation>
+        <translation>表单</translation>
     </message>
     <message>
         <location filename="../../ui/include/highlighteredit.ui" line="20"/>
@@ -443,7 +499,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/highlightersetedit.ui" line="14"/>
         <source>Highlighters</source>
-        <translation type="unfinished">高亮显示规则</translation>
+        <translation>高亮显示规则</translation>
     </message>
     <message>
         <location filename="../../ui/include/highlightersetedit.ui" line="22"/>
@@ -470,6 +526,10 @@ nand  两者不同时匹配；nor  两者都不匹配
         <source>Move Highlighter Down</source>
         <translation>向下移动</translation>
     </message>
+    <message>
+        <source>New highlighter</source>
+        <translation>新建高亮规则</translation>
+    </message>
 </context>
 <context>
     <name>HighlightersDialog</name>
@@ -477,12 +537,12 @@ nand  两者不同时匹配；nor  两者都不匹配
         <location filename="../../ui/include/highlightersdialog.ui" line="14"/>
         <location filename="../../ui/include/highlightersdialog.ui" line="24"/>
         <source>Highlighters</source>
-        <translation type="unfinished">高亮规则</translation>
+        <translation>高亮规则</translation>
     </message>
     <message>
         <location filename="../../ui/include/highlightersdialog.ui" line="46"/>
         <source>Available sets</source>
-        <translation type="unfinished">可用列表</translation>
+        <translation>可用规则组</translation>
     </message>
     <message>
         <location filename="../../ui/include/highlightersdialog.ui" line="61"/>
@@ -537,22 +597,26 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/highlightersdialog.ui" line="209"/>
         <source>Include into cycle</source>
-        <translation type="unfinished">包含到标记队列</translation>
+        <translation>包含到标记队列</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlightersdialog.cpp" line="193"/>
         <source>Export highlighters configuration</source>
-        <translation type="unfinished">导出高亮规则到文件</translation>
+        <translation>导出高亮规则到文件</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlightersdialog.cpp" line="211"/>
         <source>Select one or more files to open</source>
-        <translation type="unfinished">选择一个或多个文件打开</translation>
+        <translation>选择一个或多个文件打开</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlightersdialog.cpp" line="211"/>
         <source>Highlighters (*.conf)</source>
-        <translation type="unfinished">高亮规则 (*.conf)</translation>
+        <translation>高亮规则 (*.conf)</translation>
+    </message>
+    <message>
+        <source>New highlighter set</source>
+        <translation>新建高亮规则组</translation>
     </message>
 </context>
 <context>
@@ -560,7 +624,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/highlightersmenu.cpp" line="49"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
 </context>
 <context>
@@ -619,7 +683,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2135"/>
         <source>Select item to remove from favorites</source>
-        <translation type="unfinished">选择从收藏中移除的项目</translation>
+        <translation>选择从收藏中移除的项目</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="2180"/>
@@ -720,7 +784,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1758"/>
         <source>Open file from archive</source>
-        <translation type="unfinished">从压缩包中打开文件</translation>
+        <translation>从压缩包中打开文件</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1881"/>
@@ -740,7 +804,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1126"/>
         <source>Clear file %1? File content will be removed from disk, this is irreversible</source>
-        <translation type="unfinished"></translation>
+        <translation>确定清空文件 %1 吗？文件内容将从磁盘删除，此操作不可撤销。</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1368"/>
@@ -760,12 +824,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1435"/>
         <source>Not enough memory.</source>
-        <translation type="unfinished">内存不足.</translation>
+        <translation>内存不足。</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1437"/>
         <source>The system does not have enough memory to hold the index for this file. The file will now be closed.</source>
-        <translation type="unfinished">系统内存不, 无法来记录文件索引。文件将被关闭。</translation>
+        <translation>系统内存不足，无法保存此文件的索引。该文件将被关闭。</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1704"/>
@@ -775,17 +839,17 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1716"/>
         <source>Extracting %1</source>
-        <translation type="unfinished">正在解压缩 %1</translation>
+        <translation>正在解压缩 %1</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1744"/>
         <source>Failed to decompress %1</source>
-        <translation type="unfinished">解压失败 %1</translation>
+        <translation>解压 %1 失败</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1769"/>
         <source>Failed to extract %1</source>
-        <translation type="unfinished">提取 %1 失败</translation>
+        <translation>提取 %1 失败</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1892"/>
@@ -806,6 +870,14 @@ nand  两者不同时匹配；nor  两者都不匹配
         <location filename="../../ui/src/mainwindow.cpp" line="2134"/>
         <source>Remove from favorites</source>
         <translation>从收藏中移除</translation>
+    </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>检查更新</translation>
+    </message>
+    <message>
+        <source>Auto</source>
+        <translation>自动</translation>
     </message>
 </context>
 <context>
@@ -891,17 +963,17 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="70"/>
         <source>Incremental</source>
-        <translation type="unfinished">增量</translation>
+        <translation>增量</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="84"/>
         <source>Variate highlight</source>
-        <translation type="unfinished">突出显示变量</translation>
+        <translation>变化高亮颜色</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="98"/>
         <source>Run search on add or replace pattern</source>
-        <translation type="unfinished">在添加或替换模式上运行搜索</translation>
+        <translation>添加或替换搜索条件时立即搜索</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="146"/>
@@ -931,17 +1003,17 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="185"/>
         <source>Load last session</source>
-        <translation type="unfinished">加载最后的会话</translation>
+        <translation>恢复上次会话</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="192"/>
         <source>Follow file on load</source>
-        <translation type="unfinished">加载时跟踪文件</translation>
+        <translation>加载时跟踪文件</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="199"/>
         <source>Enable multiple windows</source>
-        <translation type="unfinished">打开多窗口模式</translation>
+        <translation>打开多窗口模式</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="209"/>
@@ -961,32 +1033,32 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="105"/>
         <source>QuickFind search type: </source>
-        <translation type="unfinished">快速查找搜索类型: </translation>
+        <translation>快速查找搜索类型: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="91"/>
         <source>Main search type: </source>
-        <translation type="unfinished">主要查找类型: </translation>
+        <translation>主要查找类型: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="251"/>
         <source>Text</source>
-        <translation type="unfinished">文本</translation>
+        <translation>文本</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="261"/>
         <source>Font family: </source>
-        <translation type="unfinished">字体: </translation>
+        <translation>字体: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="278"/>
         <source>Font size: </source>
-        <translation type="unfinished">大小: </translation>
+        <translation>大小: </translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="300"/>
         <source>Force font anti-aliasing</source>
-        <translation type="unfinished">强制字体抗锯齿</translation>
+        <translation>强制字体抗锯齿</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="328"/>
@@ -1001,7 +1073,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="352"/>
         <source>Theme</source>
-        <translation type="unfinished"></translation>
+        <translation>主题</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="366"/>
@@ -1016,32 +1088,32 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="384"/>
         <source>Scale rounding:</source>
-        <translation type="unfinished">缩放类型:</translation>
+        <translation>缩放取整方式：</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="398"/>
         <source>Round</source>
-        <translation type="unfinished">取近似值</translation>
+        <translation>四舍五入</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="403"/>
         <source>Ceil</source>
-        <translation type="unfinished">向上取整</translation>
+        <translation>向上取整</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="408"/>
         <source>Floor</source>
-        <translation type="unfinished">向下取整</translation>
+        <translation>向下取整</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="413"/>
         <source>RoundPreferFloor</source>
-        <translation type="unfinished">优先向下取整</translation>
+        <translation>临界值优先向下取整</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="418"/>
         <source>PassThrough</source>
-        <translation type="unfinished">透传</translation>
+        <translation>不取整</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="428"/>
@@ -1051,12 +1123,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="438"/>
         <source>Miscellaneous</source>
-        <translation type="unfinished">其他</translation>
+        <translation>其他</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="447"/>
         <source>Hide ANSI Colors (search performance will be reduced)</source>
-        <translation type="unfinished">隐藏ANSI颜色（搜索性能会降低）</translation>
+        <translation>隐藏ANSI颜色（搜索性能会降低）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="474"/>
@@ -1071,7 +1143,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="486"/>
         <source>Enable filesystem change monitoring</source>
-        <translation type="unfinished">启用文件系统变化检测</translation>
+        <translation>启用文件系统变化检测</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="493"/>
@@ -1086,7 +1158,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="524"/>
         <source>Use fast modification detection</source>
-        <translation type="unfinished">使用快速修改检测</translation>
+        <translation>使用快速修改检测</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="531"/>
@@ -1101,7 +1173,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="549"/>
         <source>Encoding for new files</source>
-        <translation type="unfinished">对新文件进行编码</translation>
+        <translation>新打开文件的编码</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="573"/>
@@ -1111,22 +1183,22 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="587"/>
         <source>Show the number of recently opened files:</source>
-        <translation type="unfinished">最近打开文件列表长度：</translation>
+        <translation>最近打开文件列表长度：</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="609"/>
         <source>Archives</source>
-        <translation type="unfinished">归档</translation>
+        <translation>压缩包</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="615"/>
         <source>Extract archives</source>
-        <translation type="unfinished">自动解压归档</translation>
+        <translation>解压压缩包</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="622"/>
         <source>Extract archives without confirmation</source>
-        <translation type="unfinished">无需确认即可提取档案</translation>
+        <translation>解压压缩包时无需确认</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="632"/>
@@ -1146,7 +1218,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="699"/>
         <source>Restore defaults</source>
-        <translation type="unfinished"></translation>
+        <translation>恢复默认设置</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="712"/>
@@ -1166,62 +1238,62 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="793"/>
         <source>Keep file closed (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>尽量保持文件关闭（需要重新加载文件）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="800"/>
         <source>Use compressed index (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>使用压缩索引（需要重新加载文件）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="810"/>
         <source>Use parallel search</source>
-        <translation type="unfinished">使用并行搜索</translation>
+        <translation>使用并行搜索</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="745"/>
         <source>Index file read buffer (Mib):</source>
-        <translation type="unfinished">索引文件读取缓冲区大小(Mib):</translation>
+        <translation>索引文件读取缓冲区大小(Mib):</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="307"/>
         <source>Use bold font (if supported by selected font)</source>
-        <translation type="unfinished"></translation>
+        <translation>使用粗体（需所选字体支持）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="314"/>
         <source>Enable text wrap on file open</source>
-        <translation type="unfinished"></translation>
+        <translation>打开文件时启用自动换行</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="765"/>
         <source>Search read buffer (lines):</source>
-        <translation type="unfinished">搜索读取缓冲区大小(行数):</translation>
+        <translation>搜索读取缓冲区大小(行数):</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="790"/>
         <source>File will be kept closed as much as possible. Affects only files opened after check state changed</source>
-        <translation type="unfinished">文件将尽可能地保持关闭。只影响到检查状态改变后打开的文件</translation>
+        <translation>尽量不持续占用文件。仅影响更改此选项后打开的文件。</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="820"/>
         <source>Optimize search for non-latin encodings</source>
-        <translation type="unfinished">优化非拉丁文编码搜索</translation>
+        <translation>优化非拉丁文编码搜索</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="832"/>
         <source>Caching</source>
-        <translation type="unfinished">缓存</translation>
+        <translation>缓存</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="847"/>
         <source>Enable search results cache</source>
-        <translation type="unfinished">启用搜索结果缓存</translation>
+        <translation>启用搜索结果缓存</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="857"/>
         <source>Search cache size (lines):</source>
-        <translation type="unfinished">搜索缓存行数:</translation>
+        <translation>搜索缓存行数:</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="883"/>
@@ -1231,12 +1303,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="889"/>
         <source>Enable logging</source>
-        <translation type="unfinished">打开日志</translation>
+        <translation>打开日志</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="898"/>
         <source>Verbosity</source>
-        <translation type="unfinished">详细级别</translation>
+        <translation>详细级别</translation>
     </message>
     <message>
         <location filename="../../ui/src/optionsdialog.cpp" line="109"/>
@@ -1368,33 +1440,37 @@ nand  两者不同时匹配；nor  两者都不匹配
         <source>Secondary shortcut</source>
         <translation>备选快捷键</translation>
     </message>
+    <message>
+        <source>Updates</source>
+        <translation>更新</translation>
+    </message>
 </context>
 <context>
     <name>PathLine</name>
     <message>
         <location filename="../../ui/src/pathline.cpp" line="41"/>
         <source>Copy full path</source>
-        <translation type="unfinished">拷贝完整路径</translation>
+        <translation>复制完整路径</translation>
     </message>
     <message>
         <location filename="../../ui/src/pathline.cpp" line="42"/>
         <source>Copy file name</source>
-        <translation type="unfinished">拷贝文件名</translation>
+        <translation>复制文件名</translation>
     </message>
     <message>
         <location filename="../../ui/src/pathline.cpp" line="43"/>
         <source>Open containing folder</source>
-        <translation type="unfinished">打开包含此文件的文件夹</translation>
+        <translation>打开包含此文件的文件夹</translation>
     </message>
     <message>
         <location filename="../../ui/src/pathline.cpp" line="45"/>
         <source>Copy</source>
-        <translation type="unfinished">拷贝</translation>
+        <translation>复制</translation>
     </message>
     <message>
         <location filename="../../ui/src/pathline.cpp" line="47"/>
         <source>Select all</source>
-        <translation type="unfinished">选择全部</translation>
+        <translation>选择全部</translation>
     </message>
 </context>
 <context>
@@ -1446,37 +1522,37 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="158"/>
         <source>Name</source>
-        <translation type="unfinished">名称</translation>
+        <translation>名称</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="158"/>
         <source>Pattern</source>
-        <translation type="unfinished">匹配的值</translation>
+        <translation>匹配模式</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="159"/>
         <source>Regex</source>
-        <translation type="unfinished">正则表达式</translation>
+        <translation>正则表达式</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="290"/>
         <source>Select file to import</source>
-        <translation type="unfinished">选择文件导入</translation>
+        <translation>选择文件导入</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="291"/>
         <source>Predefined filters (*.conf);;All files (*)</source>
-        <translation type="unfinished">预定义过滤器 (*.conf);;全部文件 (*)</translation>
+        <translation>预定义过滤器 (*.conf);;全部文件 (*)</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="307"/>
         <source>Export predefined filters</source>
-        <translation type="unfinished">导出预定义的过滤器</translation>
+        <translation>导出预定义的过滤器</translation>
     </message>
     <message>
         <location filename="../../ui/src/predefinedfiltersdialog.cpp" line="308"/>
         <source>Predefined filters (*.conf)</source>
-        <translation type="unfinished">预定义过滤器 (*.conf)</translation>
+        <translation>预定义过滤器 (*.conf)</translation>
     </message>
 </context>
 <context>
@@ -1489,47 +1565,51 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="595"/>
         <source>Color label 1</source>
-        <translation type="unfinished">颜色标签1</translation>
+        <translation>颜色标签1</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="598"/>
         <source>Color label 2</source>
-        <translation type="unfinished">颜色标签2</translation>
+        <translation>颜色标签2</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="601"/>
         <source>Color label 3</source>
-        <translation type="unfinished">颜色标签3</translation>
+        <translation>颜色标签3</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="604"/>
         <source>Color label 4</source>
-        <translation type="unfinished">颜色标签4</translation>
+        <translation>颜色标签4</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="607"/>
         <source>Color label 5</source>
-        <translation type="unfinished">颜色标签5</translation>
+        <translation>颜色标签5</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="610"/>
         <source>Color label 6</source>
-        <translation type="unfinished">颜色标签6</translation>
+        <translation>颜色标签6</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="613"/>
         <source>Color label 7</source>
-        <translation type="unfinished">颜色标签7</translation>
+        <translation>颜色标签7</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="616"/>
         <source>Color label 8</source>
-        <translation type="unfinished">颜色标签8</translation>
+        <translation>颜色标签8</translation>
     </message>
     <message>
         <location filename="../../ui/src/highlighterset.cpp" line="619"/>
         <source>Color label 9</source>
-        <translation type="unfinished">颜色标签9</translation>
+        <translation>颜色标签9</translation>
+    </message>
+    <message>
+        <source>Color label %1</source>
+        <translation>颜色标签 %1</translation>
     </message>
 </context>
 <context>
@@ -1555,7 +1635,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/include/qfnotifications.h" line="100"/>
         <source>Searching (position %1 %)</source>
-        <translation type="unfinished">查找 （位置 %1 %）</translation>
+        <translation>查找 （位置 %1 %）</translation>
     </message>
     <message>
         <location filename="../../logdata/src/readablesize.cpp" line="50"/>
@@ -1585,7 +1665,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../applicationrunner.cpp" line="676"/>
         <source>ZzLogg UI</source>
-        <translation type="unfinished"></translation>
+        <translation>ZzLogg 界面</translation>
     </message>
     <message>
         <source>Update postponed</source>
@@ -1695,7 +1775,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../settings/src/shortcuts.cpp" line="147"/>
         <source>Copy selection to clipboard</source>
-        <translation>拷贝选中内容到剪贴板</translation>
+        <translation>复制选中内容到剪贴板</translation>
     </message>
     <message>
         <location filename="../../settings/src/shortcuts.cpp" line="154"/>
@@ -1760,7 +1840,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../settings/src/shortcuts.cpp" line="238"/>
         <source>Copy file path to clipboard</source>
-        <translation>拷贝当前文件路径到剪贴板</translation>
+        <translation>复制当前文件路径到剪贴板</translation>
     </message>
     <message>
         <location filename="../../settings/src/shortcuts.cpp" line="245"/>
@@ -2225,7 +2305,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/tabbedcrawlerwidget.cpp" line="204"/>
         <source>Copy full path</source>
-        <translation>拷贝完整路径</translation>
+        <translation>复制完整路径</translation>
     </message>
     <message>
         <location filename="../../ui/src/tabbedcrawlerwidget.cpp" line="205"/>
@@ -2242,18 +2322,22 @@ nand  两者不同时匹配；nor  两者都不匹配
         <source>Reset tab name</source>
         <translation>恢复标签页名称</translation>
     </message>
+    <message>
+        <source>Tab name</source>
+        <translation>标签页名称</translation>
+    </message>
 </context>
 <context>
     <name>klogg::DateTimeBox</name>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="364"/>
         <source>Time</source>
-        <translation type="unfinished"></translation>
+        <translation>时间</translation>
     </message>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="367"/>
         <source>TimeZone</source>
-        <translation type="unfinished"></translation>
+        <translation>时区</translation>
     </message>
 </context>
 <context>
@@ -2316,12 +2400,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="40"/>
         <source>&amp;Copy</source>
-        <translation>拷贝(&amp;C)</translation>
+        <translation>复制(&amp;C)</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="41"/>
         <source>Copy the selection</source>
-        <translation>拷贝选中内容</translation>
+        <translation>复制选中内容</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="42"/>
@@ -2341,7 +2425,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="46"/>
         <source>Scrolls selected main view to specified line</source>
-        <translation type="unfinished">滚动选定的主视图到指定行</translation>
+        <translation>滚动选定的主视图到指定行</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="47"/>
@@ -2366,7 +2450,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="51"/>
         <source>Open containing folder</source>
-        <translation type="unfinished">打开包含此文件的文件夹</translation>
+        <translation>打开包含此文件的文件夹</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="53"/>
@@ -2386,12 +2470,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="56"/>
         <source>Copy full path</source>
-        <translation>拷贝完整路径</translation>
+        <translation>复制完整路径</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="58"/>
         <source>Copy full path for file to clipboard</source>
-        <translation>拷贝完整路径到剪贴板</translation>
+        <translation>复制完整路径到剪贴板</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="59"/>
@@ -2416,7 +2500,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="63"/>
         <source>Matches &amp;overview</source>
-        <translation type="unfinished">匹配预览(&amp;o)</translation>
+        <translation>匹配预览(&amp;o)</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="64"/>
@@ -2431,7 +2515,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="66"/>
         <source>&amp;Wrap text</source>
-        <translation type="unfinished">文本换行(&amp;W)</translation>
+        <translation>文本换行(&amp;W)</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="67"/>
@@ -2446,22 +2530,22 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="69"/>
         <source>&amp;Preferences...</source>
-        <translation type="unfinished">首选项(&amp;P)...</translation>
+        <translation>首选项(&amp;P)...</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="70"/>
         <source>Show application settings dialog</source>
-        <translation type="unfinished">显示应用设置对话框</translation>
+        <translation>显示应用设置对话框</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="71"/>
         <source>Configure &amp;highlighters...</source>
-        <translation type="unfinished">配置高亮显示(&amp;h)...</translation>
+        <translation>配置高亮显示(&amp;h)...</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="72"/>
         <source>Show highlighters configuration</source>
-        <translation type="unfinished">展示高亮显示配置</translation>
+        <translation>展示高亮显示配置</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="73"/>
@@ -2491,7 +2575,7 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="78"/>
         <source>Show the Qt library&apos;s About box</source>
-        <translation type="unfinished">显示Qt库的 &quot;关于 &quot;框</translation>
+        <translation>显示 Qt 库的“关于”对话框</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="79"/>
@@ -2506,12 +2590,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="83"/>
         <source>Scratchpad</source>
-        <translation type="unfinished">暂存器</translation>
+        <translation>暂存器</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="84"/>
         <source>Show the scratchpad</source>
-        <translation type="unfinished">显示暂存器</translation>
+        <translation>显示暂存器</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="85"/>
@@ -2531,12 +2615,12 @@ nand  两者不同时匹配；nor  两者都不匹配
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="88"/>
         <source>Predefined filters...</source>
-        <translation type="unfinished">预定义的过滤器...</translation>
+        <translation>预定义的过滤器...</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="90"/>
         <source>Show dialog to configure filters</source>
-        <translation type="unfinished">显示配置过滤器的对话框</translation>
+        <translation>显示配置过滤器的对话框</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindowtext.cpp" line="91"/>
@@ -2928,10 +3012,6 @@ Channel: %2</source>
         <translation>重新检查</translation>
     </message>
     <message>
-        <source>Cancel check</source>
-        <translation>取消检查</translation>
-    </message>
-    <message>
         <source>Remind me later</source>
         <translation>稍后提醒</translation>
     </message>
@@ -3036,20 +3116,6 @@ Channel: %2</source>
     </message>
 </context>
 <context>
-    <name>OptionsDialog</name>
-    <message>
-        <source>Updates</source>
-        <translation>更新</translation>
-    </message>
-</context>
-<context>
-    <name>MainWindow</name>
-    <message>
-        <source>Check for updates</source>
-        <translation>检查更新</translation>
-    </message>
-</context>
-<context>
     <name>PortableUpdateInstaller</name>
     <message>
         <source>
@@ -3095,6 +3161,34 @@ Update log: %1</source>
         <source>Cannot create portable update staging directory.</source>
         <translation>无法创建便携版更新暂存目录。</translation>
     </message>
+    <message>
+        <source>The portable update package could not be prepared. See the update log for details.</source>
+        <translation>无法准备便携版更新包，请查看更新日志了解详情。</translation>
+    </message>
+    <message>
+        <source>The portable update helper failed. See the update log for details.</source>
+        <translation>便携版更新助手运行失败，请查看更新日志了解详情。</translation>
+    </message>
+    <message>
+        <source>The active data directory is unavailable.</source>
+        <translation>当前数据目录不可用。</translation>
+    </message>
+    <message>
+        <source>The active data directory is invalid.</source>
+        <translation>当前数据目录无效。</translation>
+    </message>
+    <message>
+        <source>ZzLogg portable update</source>
+        <translation>ZzLogg 便携版更新</translation>
+    </message>
+    <message>
+        <source>The portable update could not finish. See the update log for details.
+
+Update log and recovery backup:</source>
+        <translation>便携版更新未能完成，请查看更新日志了解详情。
+
+更新日志和恢复备份位置：</translation>
+    </message>
 </context>
 <context>
     <name>zzlogg::updateqt::SystemPackageInstaller</name>
@@ -3137,6 +3231,1191 @@ Update log: %1</source>
     <message>
         <source>The system package installer failed (exit code %1). See the installation log.</source>
         <translation>系统包安装失败（退出码 %1）。请查看安装日志。</translation>
+    </message>
+    <message>
+        <source>Cannot start the system package installer. See the installation log for details.</source>
+        <translation>无法启动系统软件包安装程序，请查看安装日志了解详情。</translation>
+    </message>
+</context>
+<context>
+    <name>CodeSyntax</name>
+    <message>
+        <source>INI Files</source>
+        <translation>INI 文件</translation>
+    </message>
+    <message>
+        <source>Log File (advanced)</source>
+        <translation>日志文件（高级）</translation>
+    </message>
+    <message>
+        <source>Diff</source>
+        <translation>差异文件</translation>
+    </message>
+</context>
+<context>
+    <name>Downloader</name>
+    <message>
+        <source>The download timed out. Try again later.</source>
+        <translation>下载超时，请稍后重试。</translation>
+    </message>
+    <message>
+        <source>The server could not be found. Check the URL and network connection.</source>
+        <translation>找不到服务器，请检查网址和网络连接。</translation>
+    </message>
+    <message>
+        <source>The server refused the connection.</source>
+        <translation>服务器拒绝连接。</translation>
+    </message>
+    <message>
+        <source>The secure connection could not be established. Check the server certificate and system time.</source>
+        <translation>无法建立安全连接，请检查服务器证书和系统时间。</translation>
+    </message>
+    <message>
+        <source>The requested file was not found on the server.</source>
+        <translation>服务器上找不到请求的文件。</translation>
+    </message>
+    <message>
+        <source>Access to the requested file was denied.</source>
+        <translation>请求的文件拒绝访问。</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>下载已取消。</translation>
+    </message>
+    <message>
+        <source>The download failed. Check the URL and network connection.</source>
+        <translation>下载失败，请检查网址和网络连接。</translation>
+    </message>
+</context>
+<context>
+    <name>InfoLine</name>
+    <message>
+        <source>Copy</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation>全选</translation>
+    </message>
+</context>
+<context>
+    <name>KeySequencePresenter</name>
+    <message>
+        <source>Press new key combination</source>
+        <translation>请按下新的快捷键组合</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>清除</translation>
+    </message>
+</context>
+<context>
+    <name>RegularExpression</name>
+    <message>
+        <source>Enclose each filter condition in straight double quotes, for example "text".</source>
+        <translation>请用英文双引号包住每个筛选条件，例如 "text"。</translation>
+    </message>
+    <message>
+        <source>A filter condition has unmatched double quotes. Add the missing quote.</source>
+        <translation>筛选条件的双引号未成对，请补全。</translation>
+    </message>
+    <message>
+        <source>Enclose every filter condition in straight double quotes. Check the quotes and logical operators.</source>
+        <translation>每个筛选条件都必须用英文双引号包住，请检查引号和逻辑运算符。</translation>
+    </message>
+    <message>
+        <source>Invalid logical expression. Check the operators and parentheses.</source>
+        <translation>逻辑表达式无效，请检查运算符和括号。</translation>
+    </message>
+    <message>
+        <source>Unable to compile the search expression.</source>
+        <translation>无法编译搜索表达式。</translation>
+    </message>
+</context>
+<context>
+    <name>Storage</name>
+    <message>
+        <source>storage directory is missing: %1</source>
+        <translation>存储目录不存在：%1</translation>
+    </message>
+    <message>
+        <source>invalid storage directory: %1</source>
+        <translation>存储目录无效：%1</translation>
+    </message>
+    <message>
+        <source>storage directory has no compatible manifest: %1</source>
+        <translation>存储目录没有兼容的存储清单：%1</translation>
+    </message>
+    <message>
+        <source>failed to install storage context for %1: %2</source>
+        <translation>无法为 %1 初始化存储上下文：%2</translation>
+    </message>
+    <message>
+        <source>storage locator did not contain an active location</source>
+        <translation>存储定位文件中没有当前生效的位置</translation>
+    </message>
+    <message>
+        <source>failed to resume storage migration from %1 to %2: %3</source>
+        <translation>无法继续从 %1 到 %2 的存储迁移：%3</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration from %1 to %2: %3</source>
+        <translation>无法恢复从 %1 到 %2 的待处理存储迁移：%3</translation>
+    </message>
+    <message>
+        <source>storage migration recovery did not converge</source>
+        <translation>存储迁移恢复未能完成</translation>
+    </message>
+    <message>
+        <source>command-line storage root could not be resolved: %1</source>
+        <translation>无法解析命令行指定的数据根目录：%1</translation>
+    </message>
+    <message>
+        <source>invalid migration target: %1</source>
+        <translation>迁移目标无效：%1</translation>
+    </message>
+    <message>
+        <source>failed to migrate legacy storage from %1 to %2: %3</source>
+        <translation>无法将旧版存储从 %1 迁移到 %2：%3</translation>
+    </message>
+    <message>
+        <source>invalid selected storage directory: %1</source>
+        <translation>所选存储目录无效：%1</translation>
+    </message>
+    <message>
+        <source>; failed to remove newly written storage manifest: %1</source>
+        <translation>；无法删除新写入的存储清单：%1</translation>
+    </message>
+    <message>
+        <source>failed to create directory: %1</source>
+        <translation>无法创建目录：%1</translation>
+    </message>
+    <message>
+        <source>storage context already installed</source>
+        <translation>存储上下文已初始化</translation>
+    </message>
+    <message>
+        <source>failed to create storage locator lock directory: %1</source>
+        <translation>无法创建存储定位锁目录：%1</translation>
+    </message>
+    <message>
+        <source>storage locator mutation lock is already held: %1</source>
+        <translation>存储定位文件正在被其他操作修改：%1</translation>
+    </message>
+    <message>
+        <source>program storage must use the adjacent program locator</source>
+        <translation>程序目录存储必须使用程序旁的存储定位文件</translation>
+    </message>
+    <message>
+        <source>user and custom storage must use the user locator</source>
+        <translation>用户目录和自定义目录存储必须使用用户存储定位文件</translation>
+    </message>
+    <message>
+        <source>relative storage paths are only allowed for program data</source>
+        <translation>只有程序目录存储允许使用相对路径</translation>
+    </message>
+    <message>
+        <source>storage data root must be an absolute path</source>
+        <translation>数据根目录必须是绝对路径</translation>
+    </message>
+    <message>
+        <source>%1 must be an absolute path: %2</source>
+        <translation>%1 必须是绝对路径：%2</translation>
+    </message>
+    <message>
+        <source>failed to create locator directory: %1</source>
+        <translation>无法创建存储定位文件所在目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to serialize locator: %1</source>
+        <translation>无法序列化存储定位信息：%1</translation>
+    </message>
+    <message>
+        <source>failed to read serialized locator: %1</source>
+        <translation>无法读取序列化后的存储定位信息：%1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write locator: %1</source>
+        <translation>无法以原子方式写入存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid mode or data root</source>
+        <translation>存储定位文件中的存储模式或数据根目录无效</translation>
+    </message>
+    <message>
+        <source>storage locator is not a file: %1</source>
+        <translation>存储定位路径不是文件：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an unsupported format version: %1</source>
+        <translation>存储定位文件的格式版本不受支持：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid verified value: %1</source>
+        <translation>存储定位文件中的验证标记无效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator cannot contain both Pending and LastMigration: %1</source>
+        <translation>存储定位文件不能同时包含待处理迁移和上次迁移记录：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending is missing %1: %2</source>
+        <translation>存储定位文件的待处理迁移缺少 %1：%2</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid pending migration metadata: %1</source>
+        <translation>存储定位文件中的待处理迁移信息无效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending source does not match active storage: %1</source>
+        <translation>待处理迁移的源目录与当前存储目录不一致：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending has invalid source preimage: %1</source>
+        <translation>待处理迁移的源存储快照无效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid LastMigration metadata: %1</source>
+        <translation>存储定位文件中的上次迁移记录无效：%1</translation>
+    </message>
+    <message>
+        <source>failed to read storage locator: %1</source>
+        <translation>无法读取存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>storage migration transaction id is empty</source>
+        <translation>存储迁移事务标识为空</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be persisted</source>
+        <translation>无法保存命令行指定的临时存储位置</translation>
+    </message>
+    <message>
+        <source>legacy config file</source>
+        <translation>旧版配置文件</translation>
+    </message>
+    <message>
+        <source>legacy session file</source>
+        <translation>旧版会话文件</translation>
+    </message>
+    <message>
+        <source>source logs directory</source>
+        <translation>源日志目录</translation>
+    </message>
+    <message>
+        <source>failed to remove newly written locator: %1</source>
+        <translation>无法删除新写入的存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>failed to restore locator: %1</source>
+        <translation>无法恢复存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>command-line storage root must be an absolute path</source>
+        <translation>命令行指定的数据根目录必须是绝对路径</translation>
+    </message>
+    <message>
+        <source>active storage has a pending migration</source>
+        <translation>当前存储目录存在待处理的迁移</translation>
+    </message>
+    <message>
+        <source>active storage changed before locator write</source>
+        <translation>写入存储定位文件前，当前存储目录已发生变化</translation>
+    </message>
+    <message>
+        <source>failed to read existing storage locator: %1</source>
+        <translation>无法读取现有存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1</source>
+        <translation>无法删除冲突的存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1; %2</source>
+        <translation>无法删除冲突的存储定位文件：%1；%2</translation>
+    </message>
+    <message>
+        <source>active storage changed before pending migration</source>
+        <translation>创建待处理迁移前，当前存储目录已发生变化</translation>
+    </message>
+    <message>
+        <source>pending migration source does not match active storage</source>
+        <translation>待处理迁移的源目录与当前存储目录不一致</translation>
+    </message>
+    <message>
+        <source>a different storage migration is already pending</source>
+        <translation>已有另一项存储迁移等待处理</translation>
+    </message>
+    <message>
+        <source>pending migration source locator is no longer active</source>
+        <translation>待处理迁移的源存储定位文件已不再生效</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match</source>
+        <translation>待处理的存储迁移不匹配</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1</source>
+        <translation>无法删除源存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1; %2</source>
+        <translation>无法删除源存储定位文件：%1；%2</translation>
+    </message>
+    <message>
+        <source>failed to remove newly created source locator: %1</source>
+        <translation>无法删除新创建的源存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is missing: %1</source>
+        <translation>缺少旧版存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is not safely discardable: %1</source>
+        <translation>无法安全丢弃旧版存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator has no rolled-back transaction: %1</source>
+        <translation>旧版存储定位文件没有已回滚的事务：%1</translation>
+    </message>
+    <message>
+        <source>failed to discard rolled-back legacy locator: %1</source>
+        <translation>无法丢弃已回滚的旧版存储定位文件：%1</translation>
+    </message>
+    <message>
+        <source>migration target escapes data root: %1 (root: %2)</source>
+        <translation>迁移目标超出数据根目录：%1（根目录：%2）</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in migration target path: %1</source>
+        <translation>迁移目标路径不允许包含符号链接：%1</translation>
+    </message>
+    <message>
+        <source>canonical migration target escapes data root through %1: %2</source>
+        <translation>规范化后的迁移目标经由 %1 超出了数据根目录：%2</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be migrated</source>
+        <translation>无法迁移命令行指定的临时存储位置</translation>
+    </message>
+    <message>
+        <source>storage migration location uses the wrong locator: %1</source>
+        <translation>存储迁移位置使用了错误的定位文件：%1</translation>
+    </message>
+    <message>
+        <source>storage migration data root must be absolute: %1</source>
+        <translation>存储迁移的数据根目录必须是绝对路径：%1</translation>
+    </message>
+    <message>
+        <source>target storage conflicts with source logs path: %1</source>
+        <translation>目标存储目录与源日志路径冲突：%1</translation>
+    </message>
+    <message>
+        <source>legacy INI path conflicts with target output: %1</source>
+        <translation>旧版 INI 路径与目标输出冲突：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid storage metadata: %1</source>
+        <translation>存储定位文件中的存储信息无效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid Pending locations: %1</source>
+        <translation>存储定位文件中的待处理迁移位置无效：%1</translation>
+    </message>
+    <message>
+        <source>invalid pending source preimage: %1</source>
+        <translation>待处理迁移的源存储快照无效：%1</translation>
+    </message>
+    <message>
+        <source>invalid pending storage migration: %1: %2</source>
+        <translation>待处理的存储迁移无效：%1：%2</translation>
+    </message>
+    <message>
+        <source>%1; target locator invalid; recovery required: %2</source>
+        <translation>%1；目标存储定位文件无效，需要恢复：%2</translation>
+    </message>
+    <message>
+        <source>%1; target locator remains committed; recovery required: %2</source>
+        <translation>%1；目标存储定位文件仍处于已提交状态，需要恢复：%2</translation>
+    </message>
+    <message>
+        <source>failed to open source file for reading</source>
+        <translation>无法打开源文件进行读取</translation>
+    </message>
+    <message>
+        <source>failed to open target file for atomic writing</source>
+        <translation>无法打开目标文件进行原子写入</translation>
+    </message>
+    <message>
+        <source>failed while reading source file</source>
+        <translation>读取源文件失败</translation>
+    </message>
+    <message>
+        <source>failed while writing target file</source>
+        <translation>写入目标文件失败</translation>
+    </message>
+    <message>
+        <source>failed to commit target file atomically</source>
+        <translation>无法以原子方式提交目标文件</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration files for comparison</source>
+        <translation>无法打开现有迁移文件进行比较</translation>
+    </message>
+    <message>
+        <source>existing migration target size differs from source</source>
+        <translation>现有迁移目标的大小与源文件不一致</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from source</source>
+        <translation>现有迁移目标与源文件不一致</translation>
+    </message>
+    <message>
+        <source>failed while comparing existing migration files</source>
+        <translation>比较现有迁移文件失败</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration target for comparison</source>
+        <translation>无法打开现有迁移目标进行比较</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from expected contents</source>
+        <translation>现有迁移目标与预期内容不一致</translation>
+    </message>
+    <message>
+        <source>failed to atomically create empty INI: %1</source>
+        <translation>无法以原子方式创建空 INI 文件：%1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target for missing %1 at %2: %3</source>
+        <translation>%1 缺失，拒绝使用 %2 处内容不匹配的现有迁移目标：%3</translation>
+    </message>
+    <message>
+        <source>failed to create empty legacy INI from missing %1 to %2: %3</source>
+        <translation>%1 缺失，无法在 %2 创建空的旧版 INI 文件：%3</translation>
+    </message>
+    <message>
+        <source>legacy INI source is not a file: %1</source>
+        <translation>旧版 INI 源路径不是文件：%1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target from %1 to %2: %3</source>
+        <translation>拒绝将 %1 迁移到内容不匹配的现有目标 %2：%3</translation>
+    </message>
+    <message>
+        <source>failed to copy legacy INI from %1 to %2: %3</source>
+        <translation>无法将旧版 INI 文件从 %1 复制到 %2：%3</translation>
+    </message>
+    <message>
+        <source>failed to create %1 target directory: %2</source>
+        <translation>无法创建 %1 的目标目录：%2</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in %1 tree: %2</source>
+        <translation>%1 目录树不允许包含符号链接：%2</translation>
+    </message>
+    <message>
+        <source>%1 source is not a directory: %2</source>
+        <translation>%1 的源路径不是目录：%2</translation>
+    </message>
+    <message>
+        <source>unsupported entry in %1 tree: %2</source>
+        <translation>%1 目录树中存在不受支持的条目：%2</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing %1 target from %2 to %3: %4</source>
+        <translation>拒绝将 %1 从 %2 迁移到内容不匹配的现有目标 %3：%4</translation>
+    </message>
+    <message>
+        <source>failed to copy %1 file from %2 to %3: %4</source>
+        <translation>无法将 %1 文件从 %2 复制到 %3：%4</translation>
+    </message>
+    <message>
+        <source>target INI is missing or not a file: %1</source>
+        <translation>目标 INI 文件缺失或路径不是文件：%1</translation>
+    </message>
+    <message>
+        <source>target INI is not readable: %1</source>
+        <translation>目标 INI 文件不可读：%1</translation>
+    </message>
+    <message>
+        <source>failed while reading target INI: %1</source>
+        <translation>读取目标 INI 文件失败：%1</translation>
+    </message>
+    <message>
+        <source>target INI has invalid format: %1</source>
+        <translation>目标 INI 文件格式无效：%1</translation>
+    </message>
+    <message>
+        <source>cleanup failed for transaction paths: %1</source>
+        <translation>清理事务路径失败：%1</translation>
+    </message>
+    <message>
+        <source>rollback failed: %1</source>
+        <translation>回滚失败：%1</translation>
+    </message>
+    <message>
+        <source>failed to create storage migration lock directory for %1</source>
+        <translation>无法为 %1 创建存储迁移锁目录</translation>
+    </message>
+    <message>
+        <source>storage migration lock is already held: %1</source>
+        <translation>存储迁移锁已被占用：%1</translation>
+    </message>
+    <message>
+        <source>permission denied acquiring storage migration lock: %1</source>
+        <translation>无权获取存储迁移锁：%1</translation>
+    </message>
+    <message>
+        <source>unknown error acquiring storage migration lock: %1</source>
+        <translation>获取存储迁移锁时发生未知错误：%1</translation>
+    </message>
+    <message>
+        <source>failed to acquire storage migration lock: %1</source>
+        <translation>无法获取存储迁移锁：%1</translation>
+    </message>
+    <message>
+        <source>invalid storage migration request: %1</source>
+        <translation>存储迁移请求无效：%1</translation>
+    </message>
+    <message>
+        <source>failed to write pending storage migration: %1</source>
+        <translation>无法写入待处理的存储迁移：%1</translation>
+    </message>
+    <message>
+        <source>same-root storage change requires complete managed data: %1</source>
+        <translation>同一根目录内切换存储需要完整的托管数据：%1</translation>
+    </message>
+    <message>
+        <source>failed to commit same-root storage change: %1</source>
+        <translation>无法提交同一根目录内的存储变更：%1</translation>
+    </message>
+    <message>
+        <source>refusing to overwrite existing storage manifest: %1</source>
+        <translation>拒绝覆盖现有存储清单：%1</translation>
+    </message>
+    <message>
+        <source>stored logs</source>
+        <translation>已保存的日志</translation>
+    </message>
+    <message>
+        <source>failed to commit pending storage migration: %1</source>
+        <translation>无法提交待处理的存储迁移：%1</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match transaction request</source>
+        <translation>待处理的存储迁移与事务请求不一致</translation>
+    </message>
+    <message>
+        <source>storage migration was already rolled back</source>
+        <translation>存储迁移已回滚</translation>
+    </message>
+    <message>
+        <source>last migration outcome conflicts with active storage</source>
+        <translation>上次迁移结果与当前存储目录冲突</translation>
+    </message>
+    <message>
+        <source>storage migration transaction has no matching pending or last outcome</source>
+        <translation>存储迁移事务没有匹配的待处理记录或上次迁移结果</translation>
+    </message>
+    <message>
+        <source>%1; rollback failed: %2</source>
+        <translation>%1；回滚失败：%2</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration: %1</source>
+        <translation>无法恢复待处理的存储迁移：%1</translation>
+    </message>
+    <message>
+        <source>incomplete pending storage migration rolled back</source>
+        <translation>未完成的待处理存储迁移已回滚</translation>
+    </message>
+    <message>
+        <source>failed to roll back incomplete pending storage migration: %1</source>
+        <translation>无法回滚未完成的待处理存储迁移：%1</translation>
+    </message>
+    <message>
+        <source>storage directory must be an absolute, non-empty path</source>
+        <translation>存储目录必须是非空的绝对路径</translation>
+    </message>
+    <message>
+        <source>storage path is not a directory: %1</source>
+        <translation>存储路径不是目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to create storage directory: %1</source>
+        <translation>无法创建存储目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to write storage directory: %1</source>
+        <translation>无法写入存储目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to read storage directory: %1</source>
+        <translation>无法读取存储目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write storage directory: %1</source>
+        <translation>无法以原子方式写入存储目录：%1</translation>
+    </message>
+    <message>
+        <source>failed to read atomic storage write: %1</source>
+        <translation>无法读取存储目录的原子写入结果：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove storage probe file: %1</source>
+        <translation>无法删除存储测试文件：%1</translation>
+    </message>
+    <message>
+        <source>storage directory is not an empty managed directory: %1</source>
+        <translation>存储目录非空，且不包含兼容的托管数据：%1</translation>
+    </message>
+    <message>
+        <source>failed to write storage manifest: %1</source>
+        <translation>无法写入存储清单：%1</translation>
+    </message>
+</context>
+<context>
+    <name>UiRuntime</name>
+    <message>
+        <source>Fluent UI initialization failed. The standard interface will be used.</source>
+        <translation>Fluent 界面初始化失败，将使用标准界面。</translation>
+    </message>
+</context>
+<context>
+    <name>IssueReporter</name>
+    <message>
+        <source>An unexpected error occurred. Create an issue on GitHub?</source>
+        <translation>发生意外错误。是否在 GitHub 上创建问题报告？</translation>
+    </message>
+    <message>
+        <source>Create an issue on GitHub?</source>
+        <translation>是否在 GitHub 上创建问题报告？</translation>
+    </message>
+</context>
+<context>
+    <name>LogDataWorker</name>
+    <message>
+        <source>Cannot index this file because some lines are too long.</source>
+        <translation>无法为此文件建立索引：部分行过长。</translation>
+    </message>
+</context>
+<context>
+    <name>QRegularExpression</name>
+    <message>
+        <source>(*alpha_assertion) not recognized</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>未识别 (*alpha_assertion)</translation>
+    </message>
+    <message>
+        <source>(?R (recursive pattern call) must be followed by a closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?R（递归模式调用）后必须跟一个右括号</translation>
+    </message>
+    <message>
+        <source>(?| and/or (?J: or (?x: parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?| 和/或 (?J: 或 (?x: 括号嵌套太深</translation>
+    </message>
+    <message>
+        <source>DEFINE subpattern contains more than one branch</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DEFINE 子模式包含多个分支</translation>
+    </message>
+    <message>
+        <source>PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>PCRE2 不支持 \F, \L, \l, \N{name}, \U 或 \u</translation>
+    </message>
+    <message>
+        <source>PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 UTF-16 模式下不允许使用 PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES</translation>
+    </message>
+    <message>
+        <source>PCRE2_MATCH_INVALID_UTF is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支持 PCRE2_MATCH_INVALID_UTF</translation>
+    </message>
+    <message>
+        <source>POSIX collating elements are not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不支持 POSIX 排序元素</translation>
+    </message>
+    <message>
+        <source>POSIX named classes are supported only within a class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>POSIX 命名类仅在类中受支持</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: invalid low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 错误：低代理无效</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: isolated low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 错误：孤立的低代理</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: missing low surrogate at end</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 错误：末尾缺少低代理</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 错误：未定义代码点 0xd800-0xdfff</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 错误：未定义大于 0x10ffff 的代码点</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 5-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：不允许使用 5 字节字符 (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 6-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：不允许使用 6 字节字符 (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 2 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：字节 2 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 3 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：字节 3 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 4 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：字节 4 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 5 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：字节 5 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 6 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：字节 6 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：未定义代码点 0xD800-0xDFFF</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：未定义大于 0x10FFFF 的代码点</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: illegal byte (0xfe or 0xff)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：非法字节 (0xfe 或 0xff)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: isolated byte with 0x80 bit set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：设置为 0x80 位的隔离字节</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 2-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：超长 2 字节序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 3-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：超长 3 字节序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 4-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：超长 4 字节序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 5-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：超长 5 字节序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 6-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 错误：超长 6 字节序列</translation>
+    </message>
+    <message>
+        <source>\C is not allowed in a lookbehind assertion in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 UTF-16 模式下，后发断言中不允许使用 \C</translation>
+    </message>
+    <message>
+        <source>\N{U+dddd} is supported only in Unicode (UTF) mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\N{U+dddd} 仅在 Unicode (UTF) 模式下受支持</translation>
+    </message>
+    <message>
+        <source>\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\g 后面没有括号，角括号或引用的 名称/数字 或普通数字</translation>
+    </message>
+    <message>
+        <source>\k is not followed by a braced, angle-bracketed, or quoted name</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\k 后面没有括号，角括号或引用的名称</translation>
+    </message>
+    <message>
+        <source>a relative value of zero is not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不允许相对值为零</translation>
+    </message>
+    <message>
+        <source>atomic assertion expected after (?( or (?(?C)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 (?( 或 (?(?C) 后预期有原子断言</translation>
+    </message>
+    <message>
+        <source>backreference condition or recursion test is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支持反向引用条件或递归测试</translation>
+    </message>
+    <message>
+        <source>bad offset into UTF string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>到 UTF 字符串的错误偏移量</translation>
+    </message>
+    <message>
+        <source>bad serialized data</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>错误的序列化数据</translation>
+    </message>
+    <message>
+        <source>bad substitution in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>替换字符串中的替换错误</translation>
+    </message>
+    <message>
+        <source>callout error code</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>调用错误代码</translation>
+    </message>
+    <message>
+        <source>callout string is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>调用字符串过长</translation>
+    </message>
+    <message>
+        <source>closing parenthesis for (?C expected</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?C 需要右括号</translation>
+    </message>
+    <message>
+        <source>conditional subpattern contains more than two branches</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>条件子模式包含多于两个分支</translation>
+    </message>
+    <message>
+        <source>different names for subpatterns of the same number are not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不允许同一编号的子模式有不同的名称</translation>
+    </message>
+    <message>
+        <source>digit expected after (?+ or (?-</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?+ 或 (?- 之后应为数字</translation>
+    </message>
+    <message>
+        <source>digits missing in \x{} or \o{} or \N{U+}</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\x{} 或 \o{} 或 \N{U+} 中缺少数字</translation>
+    </message>
+    <message>
+        <source>escape sequence is invalid in character class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>字符类中的转义序列无效</translation>
+    </message>
+    <message>
+        <source>expected closing curly bracket in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>替换字符串中应有右大括号</translation>
+    </message>
+    <message>
+        <source>function is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支持该功能</translation>
+    </message>
+    <message>
+        <source>heap limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>超出堆内存限制</translation>
+    </message>
+    <message>
+        <source>internal error - duplicate substitution match</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误 - 重复的替换匹配</translation>
+    </message>
+    <message>
+        <source>internal error in pcre2_study(): should not occur</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>pcre2_study() 中的内部错误：不应发生</translation>
+    </message>
+    <message>
+        <source>internal error: bad code value in parsed_skip()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：parsed_skip() 中的错误代码值</translation>
+    </message>
+    <message>
+        <source>internal error: overran compiling workspace</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：超过编译工作区</translation>
+    </message>
+    <message>
+        <source>internal error: parsed pattern overflow</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：解析的模式溢出</translation>
+    </message>
+    <message>
+        <source>internal error: previously-checked referenced subpattern not found</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：找不到先前检查过的引用子模式</translation>
+    </message>
+    <message>
+        <source>internal error: unexpected repeat</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：异常的重复</translation>
+    </message>
+    <message>
+        <source>internal error: unknown code in parsed pattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：解析模式中的未知代码</translation>
+    </message>
+    <message>
+        <source>internal error: unknown meta code in check_lookbehinds()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>内部错误：check_lookbehinds() 中的未知元代码</translation>
+    </message>
+    <message>
+        <source>invalid data in workspace for DFA restart</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>工作区中用于重新启动 DFA 的数据无效</translation>
+    </message>
+    <message>
+        <source>invalid hyphen in option setting</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>选项设置中的连字符无效</translation>
+    </message>
+    <message>
+        <source>invalid option bits with PCRE2_LITERAL</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>与 PCRE2_LITERAL 相关的选项位无效</translation>
+    </message>
+    <message>
+        <source>invalid replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>无效的替换字符串</translation>
+    </message>
+    <message>
+        <source>invalid syntax</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>无效的语法</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is not fixed length</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>后发断言不是固定的长度</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>后发断言太长</translation>
+    </message>
+    <message>
+        <source>lookbehind is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>后发断言过于复杂</translation>
+    </message>
+    <message>
+        <source>magic number missing</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>魔数缺失</translation>
+    </message>
+    <message>
+        <source>match with end before start or start moved backwards is not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不支持结束位置在开始位置之前或开始位置向后移动的匹配</translation>
+    </message>
+    <message>
+        <source>matching depth limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>超出匹配深度限制</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>缺少右括号</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis for condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>条件缺少右括号</translation>
+    </message>
+    <message>
+        <source>missing opening brace after \o</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\o 后面缺少左大括号</translation>
+    </message>
+    <message>
+        <source>missing terminating delimiter for callout with string argument</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>带字符串参数的调用缺少终止分隔符</translation>
+    </message>
+    <message>
+        <source>nested recursion at the same subject position</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在同一主题位置嵌套递归</translation>
+    </message>
+    <message>
+        <source>non-hex character in \x{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\x{} 中非十六进制字符 (右大括号丢失？)</translation>
+    </message>
+    <message>
+        <source>non-octal character in \o{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\o{} 中非八进制字符 (右大括号丢失？)</translation>
+    </message>
+    <message>
+        <source>obsolete error (should not occur)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>过时错误（不应发生）</translation>
+    </message>
+    <message>
+        <source>octal value is greater than \377 in 8-bit non-UTF-8 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 8 位非 UTF-8 模式下，八进制值大于 \377</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>括号嵌套太深</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested (stack check)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>括号嵌套太深( 堆栈检查)</translation>
+    </message>
+    <message>
+        <source>pattern compiled in wrong mode: 8/16/32-bit error</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式编译错误：8/16/32 位错误</translation>
+    </message>
+    <message>
+        <source>pattern contains an item that is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式包含 DFA 匹配不支持的项</translation>
+    </message>
+    <message>
+        <source>pattern string is longer than the limit set by the application</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式字符串长于应用程序设置的限制</translation>
+    </message>
+    <message>
+        <source>patterns do not all use the same character tables</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式并不都使用相同的字符表</translation>
+    </message>
+    <message>
+        <source>reference to non-existent subpattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>引用不存在的子模式</translation>
+    </message>
+    <message>
+        <source>regular expression is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>正则表达式太复杂</translation>
+    </message>
+    <message>
+        <source>requested value is not available</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>请求的值不可用</translation>
+    </message>
+    <message>
+        <source>requested value is not set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>请求的值未设置</translation>
+    </message>
+    <message>
+        <source>script runs require Unicode support, which this version of PCRE2 does not have</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>脚本运行需要 Unicode 支持，而此版本的 PCRE2 不支持</translation>
+    </message>
+    <message>
+        <source>subpattern name is too long (maximum 32 code units)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名称太长（最多32个代码单元）</translation>
+    </message>
+    <message>
+        <source>subpattern name must start with a non-digit</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名称必须以非数字开头</translation>
+    </message>
+    <message>
+        <source>subpattern number is too big</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式编号过大</translation>
+    </message>
+    <message>
+        <source>syntax error in subpattern name (missing terminator?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名称中的语法错误（缺少终止符？）</translation>
+    </message>
+    <message>
+        <source>syntax error or number too big in (?(VERSION condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?(VERSION 条件中的语法错误或数字过大</translation>
+    </message>
+    <message>
+        <source>too many capturing groups (maximum 65535)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>捕获组过多（最大 65535 个）</translation>
+    </message>
+    <message>
+        <source>too much recursion for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配的递归太多</translation>
+    </message>
+    <message>
+        <source>two named subpatterns have the same name (PCRE2_DUPNAMES not set)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>两个命名的子模式具有相同的名称 (未设置 PCRE2_DUPNAMES)</translation>
+    </message>
+    <message>
+        <source>unmatched closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>右括号不匹配</translation>
+    </message>
+    <message>
+        <source>unrecognized string delimiter follows (?C</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?C 之后是无法识别的字符串分隔符</translation>
+    </message>
+    <message>
+        <source>using \C is disabled in this PCRE2 library</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在此 PCRE2 库中禁止使用 \C</translation>
+    </message>
+    <message>
+        <source>workspace size exceeded in DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配中超出工作区大小</translation>
     </message>
 </context>
 </TS>

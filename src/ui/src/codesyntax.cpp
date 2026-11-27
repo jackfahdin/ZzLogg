@@ -169,8 +169,11 @@ QVector<CodeSyntax::LanguageEntry> CodeSyntax::availableLanguages()
     QVector<LanguageEntry> entries;
     entries.reserve( std::size( kLanguages ) );
     for ( const auto& spec : kLanguages ) {
-        entries.push_back( { QString::fromLatin1( spec.key ),
-                             QString::fromLatin1( spec.definition ) } );
+        QString display = QString::fromLatin1( spec.definition );
+        if ( display == QLatin1String( "INI Files" ) ) display = tr( "INI Files" );
+        else if ( display == QLatin1String( "Log File (advanced)" ) ) display = tr( "Log File (advanced)" );
+        else if ( display == QLatin1String( "Diff" ) ) display = tr( "Diff" );
+        entries.push_back( { QString::fromLatin1( spec.key ), display } );
     }
     return entries;
 }

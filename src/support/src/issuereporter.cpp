@@ -19,6 +19,7 @@
 
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QCoreApplication>
 #include <QUrl>
 #include <QUrlQuery>
 #include <qglobal.h>
@@ -53,15 +54,12 @@ static constexpr auto BugTemplate = "#### What did you do?\n\n\n"
                                     "#### What did you expect to see?\n\n\n"
                                     "#### What did you see instead?\n\n\n";
 
-static constexpr auto ExceptionAskUserAction
-    = "Ooops! Something unexpected happened. Create issue on GitHub?";
-
-static constexpr auto AskUserAction = "Create issue on GitHub?";
-
 void IssueReporter::askUserAndReportIssue( IssueTemplate issueTemplate, const QString& information )
 {
     const auto askAction
-        = issueTemplate == IssueTemplate::Exception ? ExceptionAskUserAction : AskUserAction;
+        = issueTemplate == IssueTemplate::Exception
+            ? QCoreApplication::translate( "IssueReporter", "An unexpected error occurred. Create an issue on GitHub?" )
+            : QCoreApplication::translate( "IssueReporter", "Create an issue on GitHub?" );
 
     if ( QMessageBox::Yes
          == QMessageBox::question(

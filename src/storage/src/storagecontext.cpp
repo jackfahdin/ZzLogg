@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "storagecontext.h"
 
 #include <QDir>
@@ -34,7 +35,7 @@ bool ensureDirectory( const QString& path, QString* error )
         return true;
     }
     if ( error != nullptr ) {
-        *error = QStringLiteral( "failed to create directory: %1" ).arg( path );
+        *error = QCoreApplication::translate( "Storage", "failed to create directory: %1" ).arg( path );
     }
     return false;
 }
@@ -63,7 +64,7 @@ bool StorageContext::install( StorageLocation location, StorageRuntimePaths runt
     const QMutexLocker locker{ &contextMutex() };
     if ( installedContext() != nullptr ) {
         if ( error != nullptr ) {
-            *error = QStringLiteral( "storage context already installed" );
+            *error = QCoreApplication::translate( "Storage", "storage context already installed" );
         }
         return false;
     }

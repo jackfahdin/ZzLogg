@@ -54,7 +54,7 @@
 #include "iconloader.h"
 #include "log.h"
 
-static constexpr QLatin1String DEFAULT_NAME = QLatin1String( "New Highlighter set", 19 );
+
 
 // Construct the box, including a copy of the global highlighterSet
 // to handle ok/cancel/apply
@@ -185,7 +185,7 @@ HighlightersDialog::HighlightersDialog( QWidget* parent )
 void HighlightersDialog::exportHighlighters()
 {
     QString file = QFileDialog::getSaveFileName( this, tr( "Export highlighters configuration" ),
-                                                 "", "Highlighters (*.conf)" );
+                                                 "", tr( "Highlighters (*.conf)" ) );
 
     if ( file.isEmpty() ) {
         return;
@@ -230,10 +230,10 @@ void HighlightersDialog::addHighlighterSet()
 {
     LOG_DEBUG << "addHighlighter()";
 
-    highlighterSetCollection_.highlighters_.append( HighlighterSet::createNewSet( DEFAULT_NAME ) );
+    highlighterSetCollection_.highlighters_.append( HighlighterSet::createNewSet( tr( "New highlighter set" ) ) );
 
     // Add and select the newly created highlighter
-    highlighterListWidget->addItem( DEFAULT_NAME );
+    highlighterListWidget->addItem( tr( "New highlighter set" ) );
 
     setCurrentRow( highlighterListWidget->count() - 1 );
 }

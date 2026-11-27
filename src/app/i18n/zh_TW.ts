@@ -54,7 +54,7 @@
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="559"/>
         <source>Unmark</source>
-        <translation type="unfinished"></translation>
+        <translation>取消標記</translation>
     </message>
     <message>
         <location filename="../../ui/src/abstractlogview.cpp" line="2032"/>
@@ -180,6 +180,50 @@
 %1</source>
         <translation>ZzLogg 無法開啟其資料目錄：
 %1</translation>
+    </message>
+    <message>
+        <source>failed to install pre-bootstrap language: %1</source>
+        <translation>無法載入啟動介面語言：%1</translation>
+    </message>
+    <message>
+        <source>This ZzLogg installation is currently being updated. Start ZzLogg again after the update has finished.</source>
+        <translation>此 ZzLogg 安裝正在更新。請在更新完成後重新啟動 ZzLogg。</translation>
+    </message>
+    <message>
+        <source>ZzLogg could not verify its installation directory. Startup was cancelled to protect the installation.</source>
+        <translation>ZzLogg 無法驗證安裝目錄。為保護現有安裝，已取消啟動。</translation>
+    </message>
+    <message>
+        <source>failed to install configured language: %1</source>
+        <translation>無法載入配置的介面語言：%1</translation>
+    </message>
+    <message>
+        <source>an update reservation or a preexisting lock object was observed for %1</source>
+        <translation>檢測到 %1 正在準備更新或已被鎖定</translation>
+    </message>
+    <message>
+        <source>the installation directory identity could not be verified for %1</source>
+        <translation>無法驗證安裝目錄 %1 的身份</translation>
+    </message>
+    <message>
+        <source>no active installation activity lease</source>
+        <translation>沒有有效的安裝目錄使用憑據</translation>
+    </message>
+    <message>
+        <source>the installation directory is in use (another instance, directory watcher, or working-directory handle)</source>
+        <translation>安裝目錄正在使用中（可能被其他例項、目錄監視器或工作目錄控制代碼佔用）</translation>
+    </message>
+    <message>
+        <source>a previous update reservation was abandoned by a holder that exited without releasing it</source>
+        <translation>上次更新預留未被釋放，持有該預留的程序已退出</translation>
+    </message>
+    <message>
+        <source>the installation directory could not be exclusively verified</source>
+        <translation>無法驗證安裝目錄是否可獨佔使用</translation>
+    </message>
+    <message>
+        <source>automatic update is not supported on this platform</source>
+        <translation>此平臺不支援自動更新</translation>
     </message>
 </context>
 <context>
@@ -376,6 +420,18 @@ nand  兩者不同時符合；nor  兩者都不符合
 範例："error" and not("debug")
 尋找包含 error，但不包含 debug 的行。</translation>
     </message>
+    <message>
+        <source>Jump to line</source>
+        <translation>跳轉到行</translation>
+    </message>
+    <message>
+        <source>Line number</source>
+        <translation>行號</translation>
+    </message>
+    <message>
+        <source>Mixed</source>
+        <translation>混合</translation>
+    </message>
 </context>
 <context>
     <name>EncodingMenu</name>
@@ -470,6 +526,10 @@ nand  兩者不同時符合；nor  兩者都不符合
         <source>Move Highlighter Down</source>
         <translation>向下移動</translation>
     </message>
+    <message>
+        <source>New highlighter</source>
+        <translation>新建高亮規則</translation>
+    </message>
 </context>
 <context>
     <name>HighlightersDialog</name>
@@ -554,13 +614,17 @@ nand  兩者不同時符合；nor  兩者都不符合
         <source>Highlighters (*.conf)</source>
         <translation>醒目提示規則 (*.conf)</translation>
     </message>
+    <message>
+        <source>New highlighter set</source>
+        <translation>新建高亮規則組</translation>
+    </message>
 </context>
 <context>
     <name>HighlightersMenu</name>
     <message>
         <location filename="../../ui/src/highlightersmenu.cpp" line="49"/>
         <source>None</source>
-        <translation type="unfinished">無</translation>
+        <translation>無</translation>
     </message>
 </context>
 <context>
@@ -740,7 +804,7 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1126"/>
         <source>Clear file %1? File content will be removed from disk, this is irreversible</source>
-        <translation type="unfinished"></translation>
+        <translation>確定清空檔案 %1 嗎？檔案內容將從磁碟刪除，此操作不可撤銷。</translation>
     </message>
     <message>
         <location filename="../../ui/src/mainwindow.cpp" line="1368"/>
@@ -806,6 +870,14 @@ nand  兩者不同時符合；nor  兩者都不符合
         <location filename="../../ui/src/mainwindow.cpp" line="2134"/>
         <source>Remove from favorites</source>
         <translation>從書籤中移除</translation>
+    </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>檢查更新</translation>
+    </message>
+    <message>
+        <source>Auto</source>
+        <translation>自動</translation>
     </message>
 </context>
 <context>
@@ -1001,7 +1073,7 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="352"/>
         <source>Theme</source>
-        <translation type="unfinished"></translation>
+        <translation>主題</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="366"/>
@@ -1146,7 +1218,7 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="699"/>
         <source>Restore defaults</source>
-        <translation type="unfinished"></translation>
+        <translation>恢復預設設定</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="712"/>
@@ -1166,12 +1238,12 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="793"/>
         <source>Keep file closed (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>儘量保持檔案關閉（需要重新載入檔案）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="800"/>
         <source>Use compressed index (file reload required)</source>
-        <translation type="unfinished"></translation>
+        <translation>使用壓縮索引（需要重新載入檔案）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="810"/>
@@ -1186,12 +1258,12 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="307"/>
         <source>Use bold font (if supported by selected font)</source>
-        <translation type="unfinished"></translation>
+        <translation>使用粗體（需所選字型支援）</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="314"/>
         <source>Enable text wrap on file open</source>
-        <translation type="unfinished"></translation>
+        <translation>開啟檔案時啟用自動換行</translation>
     </message>
     <message>
         <location filename="../../ui/include/optionsdialog.ui" line="765"/>
@@ -1368,6 +1440,10 @@ nand  兩者不同時符合；nor  兩者都不符合
         <source>Secondary shortcut</source>
         <translation>次要快捷鍵</translation>
     </message>
+    <message>
+        <source>Updates</source>
+        <translation>更新</translation>
+    </message>
 </context>
 <context>
     <name>PathLine</name>
@@ -1531,6 +1607,10 @@ nand  兩者不同時符合；nor  兩者都不符合
         <source>Color label 9</source>
         <translation>顏色標籤 9</translation>
     </message>
+    <message>
+        <source>Color label %1</source>
+        <translation>顏色標籤 %1</translation>
+    </message>
 </context>
 <context>
     <name>QFNotification</name>
@@ -1585,7 +1665,7 @@ nand  兩者不同時符合；nor  兩者都不符合
     <message>
         <location filename="../applicationrunner.cpp" line="676"/>
         <source>ZzLogg UI</source>
-        <translation type="unfinished"></translation>
+        <translation>ZzLogg 介面</translation>
     </message>
     <message>
         <source>Update postponed</source>
@@ -2242,18 +2322,22 @@ nand  兩者不同時符合；nor  兩者都不符合
         <source>Reset tab name</source>
         <translation>重設標籤名稱</translation>
     </message>
+    <message>
+        <source>Tab name</source>
+        <translation>標籤頁名稱</translation>
+    </message>
 </context>
 <context>
     <name>klogg::DateTimeBox</name>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="364"/>
         <source>Time</source>
-        <translation type="unfinished"></translation>
+        <translation>時間</translation>
     </message>
     <message>
         <location filename="../../ui/src/scratchpad.cpp" line="367"/>
         <source>TimeZone</source>
-        <translation type="unfinished"></translation>
+        <translation>時區</translation>
     </message>
 </context>
 <context>
@@ -2928,10 +3012,6 @@ Channel: %2</source>
         <translation>重新檢查</translation>
     </message>
     <message>
-        <source>Cancel check</source>
-        <translation>取消檢查</translation>
-    </message>
-    <message>
         <source>Remind me later</source>
         <translation>稍後提醒</translation>
     </message>
@@ -3036,20 +3116,6 @@ Channel: %2</source>
     </message>
 </context>
 <context>
-    <name>OptionsDialog</name>
-    <message>
-        <source>Updates</source>
-        <translation>更新</translation>
-    </message>
-</context>
-<context>
-    <name>MainWindow</name>
-    <message>
-        <source>Check for updates</source>
-        <translation>檢查更新</translation>
-    </message>
-</context>
-<context>
     <name>PortableUpdateInstaller</name>
     <message>
         <source>
@@ -3095,6 +3161,34 @@ Update log: %1</source>
         <source>Cannot create portable update staging directory.</source>
         <translation>無法建立可攜版更新暫存目錄。</translation>
     </message>
+    <message>
+        <source>The portable update package could not be prepared. See the update log for details.</source>
+        <translation>無法準備便攜版更新包，請檢視更新日誌瞭解詳情。</translation>
+    </message>
+    <message>
+        <source>The portable update helper failed. See the update log for details.</source>
+        <translation>便攜版更新助手執行失敗，請檢視更新日誌瞭解詳情。</translation>
+    </message>
+    <message>
+        <source>The active data directory is unavailable.</source>
+        <translation>當前資料目錄不可用。</translation>
+    </message>
+    <message>
+        <source>The active data directory is invalid.</source>
+        <translation>當前資料目錄無效。</translation>
+    </message>
+    <message>
+        <source>ZzLogg portable update</source>
+        <translation>ZzLogg 便攜版更新</translation>
+    </message>
+    <message>
+        <source>The portable update could not finish. See the update log for details.
+
+Update log and recovery backup:</source>
+        <translation>便攜版更新未能完成，請檢視更新日誌瞭解詳情。
+
+更新日誌和恢復備份位置：</translation>
+    </message>
 </context>
 <context>
     <name>zzlogg::updateqt::SystemPackageInstaller</name>
@@ -3137,6 +3231,1191 @@ Update log: %1</source>
     <message>
         <source>The system package installer failed (exit code %1). See the installation log.</source>
         <translation>系統套件安裝失敗（結束代碼 %1）。請查看安裝日誌。</translation>
+    </message>
+    <message>
+        <source>Cannot start the system package installer. See the installation log for details.</source>
+        <translation>無法啟動系統軟體包安裝程式，請檢視安裝日誌瞭解詳情。</translation>
+    </message>
+</context>
+<context>
+    <name>CodeSyntax</name>
+    <message>
+        <source>INI Files</source>
+        <translation>INI 檔案</translation>
+    </message>
+    <message>
+        <source>Log File (advanced)</source>
+        <translation>日誌檔案（高階）</translation>
+    </message>
+    <message>
+        <source>Diff</source>
+        <translation>差異檔案</translation>
+    </message>
+</context>
+<context>
+    <name>Downloader</name>
+    <message>
+        <source>The download timed out. Try again later.</source>
+        <translation>下載超時，請稍後重試。</translation>
+    </message>
+    <message>
+        <source>The server could not be found. Check the URL and network connection.</source>
+        <translation>找不到伺服器，請檢查網址和網路連線。</translation>
+    </message>
+    <message>
+        <source>The server refused the connection.</source>
+        <translation>伺服器拒絕連線。</translation>
+    </message>
+    <message>
+        <source>The secure connection could not be established. Check the server certificate and system time.</source>
+        <translation>無法建立安全連線，請檢查伺服器證書和系統時間。</translation>
+    </message>
+    <message>
+        <source>The requested file was not found on the server.</source>
+        <translation>伺服器上找不到請求的檔案。</translation>
+    </message>
+    <message>
+        <source>Access to the requested file was denied.</source>
+        <translation>請求的檔案拒絕訪問。</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>下載已取消。</translation>
+    </message>
+    <message>
+        <source>The download failed. Check the URL and network connection.</source>
+        <translation>下載失敗，請檢查網址和網路連線。</translation>
+    </message>
+</context>
+<context>
+    <name>InfoLine</name>
+    <message>
+        <source>Copy</source>
+        <translation>複製</translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation>全選</translation>
+    </message>
+</context>
+<context>
+    <name>KeySequencePresenter</name>
+    <message>
+        <source>Press new key combination</source>
+        <translation>請按下新的快捷鍵組合</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>清除</translation>
+    </message>
+</context>
+<context>
+    <name>RegularExpression</name>
+    <message>
+        <source>Enclose each filter condition in straight double quotes, for example "text".</source>
+        <translation>請用英文雙引號包住每個篩選條件，例如 "text"。</translation>
+    </message>
+    <message>
+        <source>A filter condition has unmatched double quotes. Add the missing quote.</source>
+        <translation>篩選條件的雙引號未成對，請補全。</translation>
+    </message>
+    <message>
+        <source>Enclose every filter condition in straight double quotes. Check the quotes and logical operators.</source>
+        <translation>每個篩選條件都必須用英文雙引號包住，請檢查引號和邏輯運算子。</translation>
+    </message>
+    <message>
+        <source>Invalid logical expression. Check the operators and parentheses.</source>
+        <translation>邏輯表示式無效，請檢查運算子和括號。</translation>
+    </message>
+    <message>
+        <source>Unable to compile the search expression.</source>
+        <translation>無法編譯搜尋表示式。</translation>
+    </message>
+</context>
+<context>
+    <name>Storage</name>
+    <message>
+        <source>storage directory is missing: %1</source>
+        <translation>儲存目錄不存在：%1</translation>
+    </message>
+    <message>
+        <source>invalid storage directory: %1</source>
+        <translation>儲存目錄無效：%1</translation>
+    </message>
+    <message>
+        <source>storage directory has no compatible manifest: %1</source>
+        <translation>儲存目錄沒有相容的儲存清單：%1</translation>
+    </message>
+    <message>
+        <source>failed to install storage context for %1: %2</source>
+        <translation>無法為 %1 初始化儲存上下文：%2</translation>
+    </message>
+    <message>
+        <source>storage locator did not contain an active location</source>
+        <translation>儲存定位檔案中沒有當前生效的位置</translation>
+    </message>
+    <message>
+        <source>failed to resume storage migration from %1 to %2: %3</source>
+        <translation>無法繼續從 %1 到 %2 的儲存遷移：%3</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration from %1 to %2: %3</source>
+        <translation>無法恢復從 %1 到 %2 的待處理儲存遷移：%3</translation>
+    </message>
+    <message>
+        <source>storage migration recovery did not converge</source>
+        <translation>儲存遷移恢復未能完成</translation>
+    </message>
+    <message>
+        <source>command-line storage root could not be resolved: %1</source>
+        <translation>無法解析命令列指定的資料根目錄：%1</translation>
+    </message>
+    <message>
+        <source>invalid migration target: %1</source>
+        <translation>遷移目標無效：%1</translation>
+    </message>
+    <message>
+        <source>failed to migrate legacy storage from %1 to %2: %3</source>
+        <translation>無法將舊版儲存從 %1 遷移到 %2：%3</translation>
+    </message>
+    <message>
+        <source>invalid selected storage directory: %1</source>
+        <translation>所選儲存目錄無效：%1</translation>
+    </message>
+    <message>
+        <source>; failed to remove newly written storage manifest: %1</source>
+        <translation>；無法刪除新寫入的儲存清單：%1</translation>
+    </message>
+    <message>
+        <source>failed to create directory: %1</source>
+        <translation>無法建立目錄：%1</translation>
+    </message>
+    <message>
+        <source>storage context already installed</source>
+        <translation>儲存上下文已初始化</translation>
+    </message>
+    <message>
+        <source>failed to create storage locator lock directory: %1</source>
+        <translation>無法建立儲存定位鎖目錄：%1</translation>
+    </message>
+    <message>
+        <source>storage locator mutation lock is already held: %1</source>
+        <translation>儲存定位檔案正在被其他操作修改：%1</translation>
+    </message>
+    <message>
+        <source>program storage must use the adjacent program locator</source>
+        <translation>程式目錄儲存必須使用程式旁的儲存定位檔案</translation>
+    </message>
+    <message>
+        <source>user and custom storage must use the user locator</source>
+        <translation>使用者目錄和自定義目錄儲存必須使用使用者儲存定位檔案</translation>
+    </message>
+    <message>
+        <source>relative storage paths are only allowed for program data</source>
+        <translation>只有程式目錄儲存允許使用相對路徑</translation>
+    </message>
+    <message>
+        <source>storage data root must be an absolute path</source>
+        <translation>資料根目錄必須是絕對路徑</translation>
+    </message>
+    <message>
+        <source>%1 must be an absolute path: %2</source>
+        <translation>%1 必須是絕對路徑：%2</translation>
+    </message>
+    <message>
+        <source>failed to create locator directory: %1</source>
+        <translation>無法建立儲存定位檔案所在目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to serialize locator: %1</source>
+        <translation>無法序列化儲存定位資訊：%1</translation>
+    </message>
+    <message>
+        <source>failed to read serialized locator: %1</source>
+        <translation>無法讀取序列化後的儲存定位資訊：%1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write locator: %1</source>
+        <translation>無法以原子方式寫入儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid mode or data root</source>
+        <translation>儲存定位檔案中的儲存模式或資料根目錄無效</translation>
+    </message>
+    <message>
+        <source>storage locator is not a file: %1</source>
+        <translation>儲存定位路徑不是檔案：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an unsupported format version: %1</source>
+        <translation>儲存定位檔案的格式版本不受支援：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has an invalid verified value: %1</source>
+        <translation>儲存定位檔案中的驗證標記無效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator cannot contain both Pending and LastMigration: %1</source>
+        <translation>儲存定位檔案不能同時包含待處理遷移和上次遷移記錄：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending is missing %1: %2</source>
+        <translation>儲存定位檔案的待處理遷移缺少 %1：%2</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid pending migration metadata: %1</source>
+        <translation>儲存定位檔案中的待處理遷移資訊無效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending source does not match active storage: %1</source>
+        <translation>待處理遷移的源目錄與當前儲存目錄不一致：%1</translation>
+    </message>
+    <message>
+        <source>storage locator Pending has invalid source preimage: %1</source>
+        <translation>待處理遷移的源儲存快照無效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid LastMigration metadata: %1</source>
+        <translation>儲存定位檔案中的上次遷移記錄無效：%1</translation>
+    </message>
+    <message>
+        <source>failed to read storage locator: %1</source>
+        <translation>無法讀取儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>storage migration transaction id is empty</source>
+        <translation>儲存遷移事務標識為空</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be persisted</source>
+        <translation>無法儲存命令列指定的臨時儲存位置</translation>
+    </message>
+    <message>
+        <source>legacy config file</source>
+        <translation>舊版配置檔案</translation>
+    </message>
+    <message>
+        <source>legacy session file</source>
+        <translation>舊版會話檔案</translation>
+    </message>
+    <message>
+        <source>source logs directory</source>
+        <translation>源日誌目錄</translation>
+    </message>
+    <message>
+        <source>failed to remove newly written locator: %1</source>
+        <translation>無法刪除新寫入的儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>failed to restore locator: %1</source>
+        <translation>無法恢復儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>command-line storage root must be an absolute path</source>
+        <translation>命令列指定的資料根目錄必須是絕對路徑</translation>
+    </message>
+    <message>
+        <source>active storage has a pending migration</source>
+        <translation>當前儲存目錄存在待處理的遷移</translation>
+    </message>
+    <message>
+        <source>active storage changed before locator write</source>
+        <translation>寫入儲存定位檔案前，當前儲存目錄已發生變化</translation>
+    </message>
+    <message>
+        <source>failed to read existing storage locator: %1</source>
+        <translation>無法讀取現有儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1</source>
+        <translation>無法刪除衝突的儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove conflicting storage locator: %1; %2</source>
+        <translation>無法刪除衝突的儲存定位檔案：%1；%2</translation>
+    </message>
+    <message>
+        <source>active storage changed before pending migration</source>
+        <translation>建立待處理遷移前，當前儲存目錄已發生變化</translation>
+    </message>
+    <message>
+        <source>pending migration source does not match active storage</source>
+        <translation>待處理遷移的源目錄與當前儲存目錄不一致</translation>
+    </message>
+    <message>
+        <source>a different storage migration is already pending</source>
+        <translation>已有另一項儲存遷移等待處理</translation>
+    </message>
+    <message>
+        <source>pending migration source locator is no longer active</source>
+        <translation>待處理遷移的源儲存定位檔案已不再生效</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match</source>
+        <translation>待處理的儲存遷移不匹配</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1</source>
+        <translation>無法刪除源儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove source storage locator: %1; %2</source>
+        <translation>無法刪除源儲存定位檔案：%1；%2</translation>
+    </message>
+    <message>
+        <source>failed to remove newly created source locator: %1</source>
+        <translation>無法刪除新建立的源儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is missing: %1</source>
+        <translation>缺少舊版儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator is not safely discardable: %1</source>
+        <translation>無法安全丟棄舊版儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>legacy storage locator has no rolled-back transaction: %1</source>
+        <translation>舊版儲存定位檔案沒有已回滾的事務：%1</translation>
+    </message>
+    <message>
+        <source>failed to discard rolled-back legacy locator: %1</source>
+        <translation>無法丟棄已回滾的舊版儲存定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>migration target escapes data root: %1 (root: %2)</source>
+        <translation>遷移目標超出資料根目錄：%1（根目錄：%2）</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in migration target path: %1</source>
+        <translation>遷移目標路徑不允許包含符號連結：%1</translation>
+    </message>
+    <message>
+        <source>canonical migration target escapes data root through %1: %2</source>
+        <translation>規範化後的遷移目標經由 %1 超出了資料根目錄：%2</translation>
+    </message>
+    <message>
+        <source>command-line storage locations cannot be migrated</source>
+        <translation>無法遷移命令列指定的臨時儲存位置</translation>
+    </message>
+    <message>
+        <source>storage migration location uses the wrong locator: %1</source>
+        <translation>儲存遷移位置使用了錯誤的定位檔案：%1</translation>
+    </message>
+    <message>
+        <source>storage migration data root must be absolute: %1</source>
+        <translation>儲存遷移的資料根目錄必須是絕對路徑：%1</translation>
+    </message>
+    <message>
+        <source>target storage conflicts with source logs path: %1</source>
+        <translation>目標儲存目錄與源日誌路徑衝突：%1</translation>
+    </message>
+    <message>
+        <source>legacy INI path conflicts with target output: %1</source>
+        <translation>舊版 INI 路徑與目標輸出衝突：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid storage metadata: %1</source>
+        <translation>儲存定位檔案中的儲存資訊無效：%1</translation>
+    </message>
+    <message>
+        <source>storage locator has invalid Pending locations: %1</source>
+        <translation>儲存定位檔案中的待處理遷移位置無效：%1</translation>
+    </message>
+    <message>
+        <source>invalid pending source preimage: %1</source>
+        <translation>待處理遷移的源儲存快照無效：%1</translation>
+    </message>
+    <message>
+        <source>invalid pending storage migration: %1: %2</source>
+        <translation>待處理的儲存遷移無效：%1：%2</translation>
+    </message>
+    <message>
+        <source>%1; target locator invalid; recovery required: %2</source>
+        <translation>%1；目標儲存定位檔案無效，需要恢復：%2</translation>
+    </message>
+    <message>
+        <source>%1; target locator remains committed; recovery required: %2</source>
+        <translation>%1；目標儲存定位檔案仍處於已提交狀態，需要恢復：%2</translation>
+    </message>
+    <message>
+        <source>failed to open source file for reading</source>
+        <translation>無法開啟原始檔進行讀取</translation>
+    </message>
+    <message>
+        <source>failed to open target file for atomic writing</source>
+        <translation>無法開啟目標檔案進行原子寫入</translation>
+    </message>
+    <message>
+        <source>failed while reading source file</source>
+        <translation>讀取原始檔失敗</translation>
+    </message>
+    <message>
+        <source>failed while writing target file</source>
+        <translation>寫入目標檔案失敗</translation>
+    </message>
+    <message>
+        <source>failed to commit target file atomically</source>
+        <translation>無法以原子方式提交目標檔案</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration files for comparison</source>
+        <translation>無法開啟現有遷移檔案進行比較</translation>
+    </message>
+    <message>
+        <source>existing migration target size differs from source</source>
+        <translation>現有遷移目標的大小與原始檔不一致</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from source</source>
+        <translation>現有遷移目標與原始檔不一致</translation>
+    </message>
+    <message>
+        <source>failed while comparing existing migration files</source>
+        <translation>比較現有遷移檔案失敗</translation>
+    </message>
+    <message>
+        <source>failed to open existing migration target for comparison</source>
+        <translation>無法開啟現有遷移目標進行比較</translation>
+    </message>
+    <message>
+        <source>existing migration target differs from expected contents</source>
+        <translation>現有遷移目標與預期內容不一致</translation>
+    </message>
+    <message>
+        <source>failed to atomically create empty INI: %1</source>
+        <translation>無法以原子方式建立空 INI 檔案：%1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target for missing %1 at %2: %3</source>
+        <translation>%1 缺失，拒絕使用 %2 處內容不匹配的現有遷移目標：%3</translation>
+    </message>
+    <message>
+        <source>failed to create empty legacy INI from missing %1 to %2: %3</source>
+        <translation>%1 缺失，無法在 %2 建立空的舊版 INI 檔案：%3</translation>
+    </message>
+    <message>
+        <source>legacy INI source is not a file: %1</source>
+        <translation>舊版 INI 源路徑不是檔案：%1</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing migration target from %1 to %2: %3</source>
+        <translation>拒絕將 %1 遷移到內容不匹配的現有目標 %2：%3</translation>
+    </message>
+    <message>
+        <source>failed to copy legacy INI from %1 to %2: %3</source>
+        <translation>無法將舊版 INI 檔案從 %1 複製到 %2：%3</translation>
+    </message>
+    <message>
+        <source>failed to create %1 target directory: %2</source>
+        <translation>無法建立 %1 的目標目錄：%2</translation>
+    </message>
+    <message>
+        <source>refusing symbolic link in %1 tree: %2</source>
+        <translation>%1 目錄樹不允許包含符號連結：%2</translation>
+    </message>
+    <message>
+        <source>%1 source is not a directory: %2</source>
+        <translation>%1 的源路徑不是目錄：%2</translation>
+    </message>
+    <message>
+        <source>unsupported entry in %1 tree: %2</source>
+        <translation>%1 目錄樹中存在不受支援的條目：%2</translation>
+    </message>
+    <message>
+        <source>refusing non-matching existing %1 target from %2 to %3: %4</source>
+        <translation>拒絕將 %1 從 %2 遷移到內容不匹配的現有目標 %3：%4</translation>
+    </message>
+    <message>
+        <source>failed to copy %1 file from %2 to %3: %4</source>
+        <translation>無法將 %1 檔案從 %2 複製到 %3：%4</translation>
+    </message>
+    <message>
+        <source>target INI is missing or not a file: %1</source>
+        <translation>目標 INI 檔案缺失或路徑不是檔案：%1</translation>
+    </message>
+    <message>
+        <source>target INI is not readable: %1</source>
+        <translation>目標 INI 檔案不可讀：%1</translation>
+    </message>
+    <message>
+        <source>failed while reading target INI: %1</source>
+        <translation>讀取目標 INI 檔案失敗：%1</translation>
+    </message>
+    <message>
+        <source>target INI has invalid format: %1</source>
+        <translation>目標 INI 檔案格式無效：%1</translation>
+    </message>
+    <message>
+        <source>cleanup failed for transaction paths: %1</source>
+        <translation>清理事務路徑失敗：%1</translation>
+    </message>
+    <message>
+        <source>rollback failed: %1</source>
+        <translation>回滾失敗：%1</translation>
+    </message>
+    <message>
+        <source>failed to create storage migration lock directory for %1</source>
+        <translation>無法為 %1 建立儲存遷移鎖目錄</translation>
+    </message>
+    <message>
+        <source>storage migration lock is already held: %1</source>
+        <translation>儲存遷移鎖已被佔用：%1</translation>
+    </message>
+    <message>
+        <source>permission denied acquiring storage migration lock: %1</source>
+        <translation>無權獲取儲存遷移鎖：%1</translation>
+    </message>
+    <message>
+        <source>unknown error acquiring storage migration lock: %1</source>
+        <translation>獲取儲存遷移鎖時發生未知錯誤：%1</translation>
+    </message>
+    <message>
+        <source>failed to acquire storage migration lock: %1</source>
+        <translation>無法獲取儲存遷移鎖：%1</translation>
+    </message>
+    <message>
+        <source>invalid storage migration request: %1</source>
+        <translation>儲存遷移請求無效：%1</translation>
+    </message>
+    <message>
+        <source>failed to write pending storage migration: %1</source>
+        <translation>無法寫入待處理的儲存遷移：%1</translation>
+    </message>
+    <message>
+        <source>same-root storage change requires complete managed data: %1</source>
+        <translation>同一根目錄內切換儲存需要完整的託管資料：%1</translation>
+    </message>
+    <message>
+        <source>failed to commit same-root storage change: %1</source>
+        <translation>無法提交同一根目錄內的儲存變更：%1</translation>
+    </message>
+    <message>
+        <source>refusing to overwrite existing storage manifest: %1</source>
+        <translation>拒絕覆蓋現有儲存清單：%1</translation>
+    </message>
+    <message>
+        <source>stored logs</source>
+        <translation>已儲存的日誌</translation>
+    </message>
+    <message>
+        <source>failed to commit pending storage migration: %1</source>
+        <translation>無法提交待處理的儲存遷移：%1</translation>
+    </message>
+    <message>
+        <source>pending storage migration does not match transaction request</source>
+        <translation>待處理的儲存遷移與事務請求不一致</translation>
+    </message>
+    <message>
+        <source>storage migration was already rolled back</source>
+        <translation>儲存遷移已回滾</translation>
+    </message>
+    <message>
+        <source>last migration outcome conflicts with active storage</source>
+        <translation>上次遷移結果與當前儲存目錄衝突</translation>
+    </message>
+    <message>
+        <source>storage migration transaction has no matching pending or last outcome</source>
+        <translation>儲存遷移事務沒有匹配的待處理記錄或上次遷移結果</translation>
+    </message>
+    <message>
+        <source>%1; rollback failed: %2</source>
+        <translation>%1；回滾失敗：%2</translation>
+    </message>
+    <message>
+        <source>failed to recover pending storage migration: %1</source>
+        <translation>無法恢復待處理的儲存遷移：%1</translation>
+    </message>
+    <message>
+        <source>incomplete pending storage migration rolled back</source>
+        <translation>未完成的待處理儲存遷移已回滾</translation>
+    </message>
+    <message>
+        <source>failed to roll back incomplete pending storage migration: %1</source>
+        <translation>無法回滾未完成的待處理儲存遷移：%1</translation>
+    </message>
+    <message>
+        <source>storage directory must be an absolute, non-empty path</source>
+        <translation>儲存目錄必須是非空的絕對路徑</translation>
+    </message>
+    <message>
+        <source>storage path is not a directory: %1</source>
+        <translation>儲存路徑不是目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to create storage directory: %1</source>
+        <translation>無法建立儲存目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to write storage directory: %1</source>
+        <translation>無法寫入儲存目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to read storage directory: %1</source>
+        <translation>無法讀取儲存目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to atomically write storage directory: %1</source>
+        <translation>無法以原子方式寫入儲存目錄：%1</translation>
+    </message>
+    <message>
+        <source>failed to read atomic storage write: %1</source>
+        <translation>無法讀取儲存目錄的原子寫入結果：%1</translation>
+    </message>
+    <message>
+        <source>failed to remove storage probe file: %1</source>
+        <translation>無法刪除儲存測試檔案：%1</translation>
+    </message>
+    <message>
+        <source>storage directory is not an empty managed directory: %1</source>
+        <translation>儲存目錄非空，且不包含相容的託管資料：%1</translation>
+    </message>
+    <message>
+        <source>failed to write storage manifest: %1</source>
+        <translation>無法寫入儲存清單：%1</translation>
+    </message>
+</context>
+<context>
+    <name>UiRuntime</name>
+    <message>
+        <source>Fluent UI initialization failed. The standard interface will be used.</source>
+        <translation>Fluent 介面初始化失敗，將使用標準介面。</translation>
+    </message>
+</context>
+<context>
+    <name>IssueReporter</name>
+    <message>
+        <source>An unexpected error occurred. Create an issue on GitHub?</source>
+        <translation>發生意外錯誤。是否在 GitHub 上建立問題報告？</translation>
+    </message>
+    <message>
+        <source>Create an issue on GitHub?</source>
+        <translation>是否在 GitHub 上建立問題報告？</translation>
+    </message>
+</context>
+<context>
+    <name>LogDataWorker</name>
+    <message>
+        <source>Cannot index this file because some lines are too long.</source>
+        <translation>無法為此檔案建立索引：部分行過長。</translation>
+    </message>
+</context>
+<context>
+    <name>QRegularExpression</name>
+    <message>
+        <source>(*alpha_assertion) not recognized</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>未識別 (*alpha_assertion)</translation>
+    </message>
+    <message>
+        <source>(?R (recursive pattern call) must be followed by a closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?R（遞迴模式呼叫）後必須跟一個右括號</translation>
+    </message>
+    <message>
+        <source>(?| and/or (?J: or (?x: parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?| 和/或 (?J: 或 (?x: 括號巢狀太深</translation>
+    </message>
+    <message>
+        <source>DEFINE subpattern contains more than one branch</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DEFINE 子模式包含多個分支</translation>
+    </message>
+    <message>
+        <source>PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>PCRE2 不支援 \F, \L, \l, \N{name}, \U 或 \u</translation>
+    </message>
+    <message>
+        <source>PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 UTF-16 模式下不允許使用 PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES</translation>
+    </message>
+    <message>
+        <source>PCRE2_MATCH_INVALID_UTF is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支援 PCRE2_MATCH_INVALID_UTF</translation>
+    </message>
+    <message>
+        <source>POSIX collating elements are not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不支援 POSIX 排序元素</translation>
+    </message>
+    <message>
+        <source>POSIX named classes are supported only within a class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>POSIX 命名類僅在類中受支援</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: invalid low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 錯誤：低代理無效</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: isolated low surrogate</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 錯誤：孤立的低代理</translation>
+    </message>
+    <message>
+        <source>UTF-16 error: missing low surrogate at end</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-16 錯誤：末尾缺少低代理</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 錯誤：未定義程式碼點 0xd800-0xdfff</translation>
+    </message>
+    <message>
+        <source>UTF-32 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-32 錯誤：未定義大於 0x10ffff 的程式碼點</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 5-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：不允許使用 5 位元組字元 (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: 6-byte character is not allowed (RFC 3629)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：不允許使用 6 位元組字元 (RFC 3629)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 2 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：位元組 2 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 3 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：位元組 3 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 4 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：位元組 4 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 5 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：位元組 5 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: byte 6 top bits not 0x80</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：位元組 6 的高位不是 0x80</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points 0xd800-0xdfff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：未定義程式碼點 0xD800-0xDFFF</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: code points greater than 0x10ffff are not defined</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：未定義大於 0x10FFFF 的程式碼點</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: illegal byte (0xfe or 0xff)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：非法位元組 (0xfe 或 0xff)</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: isolated byte with 0x80 bit set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：設定為 0x80 位的隔離位元組</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 2-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：超長 2 位元組序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 3-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：超長 3 位元組序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 4-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：超長 4 位元組序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 5-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：超長 5 位元組序列</translation>
+    </message>
+    <message>
+        <source>UTF-8 error: overlong 6-byte sequence</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>UTF-8 錯誤：超長 6 位元組序列</translation>
+    </message>
+    <message>
+        <source>\C is not allowed in a lookbehind assertion in UTF-16 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 UTF-16 模式下，後發斷言中不允許使用 \C</translation>
+    </message>
+    <message>
+        <source>\N{U+dddd} is supported only in Unicode (UTF) mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\N{U+dddd} 僅在 Unicode (UTF) 模式下受支援</translation>
+    </message>
+    <message>
+        <source>\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\g 後面沒有括號，角括號或引用的 名稱/數字 或普通數字</translation>
+    </message>
+    <message>
+        <source>\k is not followed by a braced, angle-bracketed, or quoted name</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\k 後面沒有括號，角括號或引用的名稱</translation>
+    </message>
+    <message>
+        <source>a relative value of zero is not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不允許相對值為零</translation>
+    </message>
+    <message>
+        <source>atomic assertion expected after (?( or (?(?C)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 (?( 或 (?(?C) 後預期有原子斷言</translation>
+    </message>
+    <message>
+        <source>backreference condition or recursion test is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支援反向引用條件或遞迴測試</translation>
+    </message>
+    <message>
+        <source>bad offset into UTF string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>到 UTF 字串的錯誤偏移量</translation>
+    </message>
+    <message>
+        <source>bad serialized data</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>錯誤的序列化資料</translation>
+    </message>
+    <message>
+        <source>bad substitution in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>替換字串中的替換錯誤</translation>
+    </message>
+    <message>
+        <source>callout error code</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>呼叫錯誤程式碼</translation>
+    </message>
+    <message>
+        <source>callout string is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>呼叫字串過長</translation>
+    </message>
+    <message>
+        <source>closing parenthesis for (?C expected</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?C 需要右括號</translation>
+    </message>
+    <message>
+        <source>conditional subpattern contains more than two branches</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>條件子模式包含多於兩個分支</translation>
+    </message>
+    <message>
+        <source>different names for subpatterns of the same number are not allowed</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不允許同一編號的子模式有不同的名稱</translation>
+    </message>
+    <message>
+        <source>digit expected after (?+ or (?-</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?+ 或 (?- 之後應為數字</translation>
+    </message>
+    <message>
+        <source>digits missing in \x{} or \o{} or \N{U+}</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\x{} 或 \o{} 或 \N{U+} 中缺少數字</translation>
+    </message>
+    <message>
+        <source>escape sequence is invalid in character class</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>字元類中的轉義序列無效</translation>
+    </message>
+    <message>
+        <source>expected closing curly bracket in replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>替換字串中應有右大括號</translation>
+    </message>
+    <message>
+        <source>function is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配不支援該功能</translation>
+    </message>
+    <message>
+        <source>heap limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>超出堆記憶體限制</translation>
+    </message>
+    <message>
+        <source>internal error - duplicate substitution match</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤 - 重複的替換匹配</translation>
+    </message>
+    <message>
+        <source>internal error in pcre2_study(): should not occur</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>pcre2_study() 中的內部錯誤：不應發生</translation>
+    </message>
+    <message>
+        <source>internal error: bad code value in parsed_skip()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：parsed_skip() 中的錯誤程式碼值</translation>
+    </message>
+    <message>
+        <source>internal error: overran compiling workspace</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：超過編譯工作區</translation>
+    </message>
+    <message>
+        <source>internal error: parsed pattern overflow</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：解析的模式溢位</translation>
+    </message>
+    <message>
+        <source>internal error: previously-checked referenced subpattern not found</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：找不到先前檢查過的引用子模式</translation>
+    </message>
+    <message>
+        <source>internal error: unexpected repeat</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：異常的重複</translation>
+    </message>
+    <message>
+        <source>internal error: unknown code in parsed pattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：解析模式中的未知程式碼</translation>
+    </message>
+    <message>
+        <source>internal error: unknown meta code in check_lookbehinds()</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>內部錯誤：check_lookbehinds() 中的未知元程式碼</translation>
+    </message>
+    <message>
+        <source>invalid data in workspace for DFA restart</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>工作區中用於重新啟動 DFA 的資料無效</translation>
+    </message>
+    <message>
+        <source>invalid hyphen in option setting</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>選項設定中的連字元無效</translation>
+    </message>
+    <message>
+        <source>invalid option bits with PCRE2_LITERAL</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>與 PCRE2_LITERAL 相關的選項位無效</translation>
+    </message>
+    <message>
+        <source>invalid replacement string</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>無效的替換字串</translation>
+    </message>
+    <message>
+        <source>invalid syntax</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>無效的語法</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is not fixed length</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>後發斷言不是固定的長度</translation>
+    </message>
+    <message>
+        <source>lookbehind assertion is too long</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>後發斷言太長</translation>
+    </message>
+    <message>
+        <source>lookbehind is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>後發斷言過於複雜</translation>
+    </message>
+    <message>
+        <source>magic number missing</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>魔數缺失</translation>
+    </message>
+    <message>
+        <source>match with end before start or start moved backwards is not supported</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>不支援結束位置在開始位置之前或開始位置向後移動的匹配</translation>
+    </message>
+    <message>
+        <source>matching depth limit exceeded</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>超出匹配深度限制</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>缺少右括號</translation>
+    </message>
+    <message>
+        <source>missing closing parenthesis for condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>條件缺少右括號</translation>
+    </message>
+    <message>
+        <source>missing opening brace after \o</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\o 後面缺少左大括號</translation>
+    </message>
+    <message>
+        <source>missing terminating delimiter for callout with string argument</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>帶字串引數的呼叫缺少終止分隔符</translation>
+    </message>
+    <message>
+        <source>nested recursion at the same subject position</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在同一主題位置巢狀遞迴</translation>
+    </message>
+    <message>
+        <source>non-hex character in \x{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\x{} 中非十六進位制字元 (右大括號丟失？)</translation>
+    </message>
+    <message>
+        <source>non-octal character in \o{} (closing brace missing?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>\o{} 中非八進位制字元 (右大括號丟失？)</translation>
+    </message>
+    <message>
+        <source>obsolete error (should not occur)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>過時錯誤（不應發生）</translation>
+    </message>
+    <message>
+        <source>octal value is greater than \377 in 8-bit non-UTF-8 mode</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在 8 位非 UTF-8 模式下，八進位制值大於 \377</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>括號巢狀太深</translation>
+    </message>
+    <message>
+        <source>parentheses are too deeply nested (stack check)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>括號巢狀太深( 堆疊檢查)</translation>
+    </message>
+    <message>
+        <source>pattern compiled in wrong mode: 8/16/32-bit error</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式編譯錯誤：8/16/32 位錯誤</translation>
+    </message>
+    <message>
+        <source>pattern contains an item that is not supported for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式包含 DFA 匹配不支援的項</translation>
+    </message>
+    <message>
+        <source>pattern string is longer than the limit set by the application</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式字串長於應用程式設定的限制</translation>
+    </message>
+    <message>
+        <source>patterns do not all use the same character tables</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>模式並不都使用相同的字元表</translation>
+    </message>
+    <message>
+        <source>reference to non-existent subpattern</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>引用不存在的子模式</translation>
+    </message>
+    <message>
+        <source>regular expression is too complicated</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>正規表示式太複雜</translation>
+    </message>
+    <message>
+        <source>requested value is not available</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>請求的值不可用</translation>
+    </message>
+    <message>
+        <source>requested value is not set</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>請求的值未設定</translation>
+    </message>
+    <message>
+        <source>script runs require Unicode support, which this version of PCRE2 does not have</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>指令碼執行需要 Unicode 支援，而此版本的 PCRE2 不支援</translation>
+    </message>
+    <message>
+        <source>subpattern name is too long (maximum 32 code units)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名稱太長（最多32個程式碼單元）</translation>
+    </message>
+    <message>
+        <source>subpattern name must start with a non-digit</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名稱必須以非數字開頭</translation>
+    </message>
+    <message>
+        <source>subpattern number is too big</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式編號過大</translation>
+    </message>
+    <message>
+        <source>syntax error in subpattern name (missing terminator?)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>子模式名稱中的語法錯誤（缺少終止符？）</translation>
+    </message>
+    <message>
+        <source>syntax error or number too big in (?(VERSION condition</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?(VERSION 條件中的語法錯誤或數字過大</translation>
+    </message>
+    <message>
+        <source>too many capturing groups (maximum 65535)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>捕獲組過多（最大 65535 個）</translation>
+    </message>
+    <message>
+        <source>too much recursion for DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配的遞迴太多</translation>
+    </message>
+    <message>
+        <source>two named subpatterns have the same name (PCRE2_DUPNAMES not set)</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>兩個命名的子模式具有相同的名稱 (未設定 PCRE2_DUPNAMES)</translation>
+    </message>
+    <message>
+        <source>unmatched closing parenthesis</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>右括號不匹配</translation>
+    </message>
+    <message>
+        <source>unrecognized string delimiter follows (?C</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>(?C 之後是無法識別的字串分隔符</translation>
+    </message>
+    <message>
+        <source>using \C is disabled in this PCRE2 library</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>在此 PCRE2 庫中禁止使用 \C</translation>
+    </message>
+    <message>
+        <source>workspace size exceeded in DFA matching</source>
+        <extracomment>Fallback for a diagnostic missing from the bundled Qt Traditional Chinese catalog.</extracomment>
+        <translation>DFA 匹配中超出工作區大小</translation>
     </message>
 </context>
 </TS>
