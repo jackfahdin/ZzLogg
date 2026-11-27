@@ -60,6 +60,7 @@ class RegularExpression {
     HsRegularExpression hsExpression_;
 
     friend class PatternMatcher;
+    friend class BooleanSearchHighlighter;
 };
 
 class PatternMatcher {

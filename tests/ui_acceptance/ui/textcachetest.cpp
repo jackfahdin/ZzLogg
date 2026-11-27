@@ -4,6 +4,7 @@
 #include <QStatusBar>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QScopeGuard>
 #include <QToolButton>
 #include "abstractlogview.h"
 #include "codesyntax.h"
@@ -357,6 +358,96 @@ private Q_SLOTS:
         const auto expected = capture();
         QVERIFY(before != expected);
         QCOMPARE(actual, expected);
+    }
+    void combinedSearchHighlights_data() {
+        QTest::addColumn<QString>("expression");
+        QTest::addColumn<QString>("visiblePattern");
+        QTest::addColumn<bool>("plainText");
+        QTest::newRow("and-exclude") << QString("\"ERROR\" and not(\"missing\")") << QString("ERROR") << true;
+        QTest::newRow("or") << QString("\"ERROR\" or \"marker\"") << QString("ERROR|marker") << true;
+        QTest::newRow("failed-branch") << QString("(\"ERROR\" and \"missing\") or \"marker\"") << QString("marker") << true;
+        QTest::newRow("rejected-line") << QString("\"ERROR\" and not(\"marker\")") << QString() << true;
+        QTest::newRow("only-exclusion") << QString("not(\"missing\")") << QString() << true;
+        QTest::newRow("double-not") << QString("not(not(\"ERROR\"))") << QString("ERROR") << true;
+        QTest::newRow("symbols") << QString("\"ERROR\" & !(\"missing\")") << QString("ERROR") << true;
+        QTest::newRow("regex") << QString("\"ERR.R\" and not(\"miss.*\")") << QString("ERR.R") << false;
+    }
+    void combinedSearchHighlights() {
+        QFETCH(QString, expression);
+        QFETCH(QString, visiblePattern);
+        QFETCH(bool, plainText);
+        auto& config = Configuration::get();
+        const auto enabled = config.mainSearchHighlight();
+        const auto color = config.mainSearchBackColor();
+        const auto restore = qScopeGuard([&] {
+            config.setEnableMainSearchHighlight(enabled);
+            config.setMainSearchBackColor(color);
+        });
+        config.setEnableMainSearchHighlight(true);
+        config.setMainSearchBackColor(QColor("#ffdc00"));
+        view_->setSearchPattern(RegularExpressionPattern(visiblePattern, true, false, false, false));
+        const auto expected = frame();
+        view_->setSearchPattern(RegularExpressionPattern(expression, true, false, true, plainText));
+        QCOMPARE(frame(), expected);
+        scrollSequence();
+    }
+    void combinedHighlightSettingRefreshesBothViewsAndClears() {
+        auto& config = Configuration::get();
+        const auto enabled = config.mainSearchHighlight();
+        const auto color = config.mainSearchBackColor();
+        const auto restore = qScopeGuard([&] {
+            config.setEnableMainSearchHighlight(enabled);
+            config.setMainSearchBackColor(color);
+        });
+        const QColor highlightColor("#f4cd13");
+        config.setEnableMainSearchHighlight(false);
+        config.setMainSearchBackColor(highlightColor);
+        MainWindow window{WindowSession{std::make_shared<Session>(), "combined-highlight", 0}};
+        window.resize(1000, 700);
+        window.show();
+        window.loadFileNonInteractive(file_);
+        auto* crawler = window.findChild<CrawlerWidget*>();
+        QVERIFY(crawler);
+        QTRY_VERIFY_WITH_TIMEOUT(CrawlerAccess::loaded(*crawler), 10000);
+        auto* main = crawler->findChild<LogMainView*>();
+        auto* filtered = crawler->findChild<FilteredView*>();
+        auto* edit = crawler->findChild<QComboBox*>("mainSearchEdit");
+        auto* search = crawler->findChild<QToolButton*>("mainSearchButton");
+        auto* clear = crawler->findChild<QToolButton*>("clearSearchButton");
+        auto* combination = crawler->findChild<QToolButton*>("booleanButton");
+        auto* regex = crawler->findChild<QToolButton*>("useRegexpButton");
+        QVERIFY(main && filtered && edit && search && clear && combination && regex);
+        regex->setChecked(false);
+        combination->setChecked(true);
+        edit->setCurrentText("\"ERROR\" and not(\"missing\")");
+        search->click();
+        QTRY_COMPARE_WITH_TIMEOUT(CrawlerAccess::matches(*crawler), 500, 10000);
+        const auto hasHighlight = [&](AbstractLogView* view) {
+            QApplication::processEvents();
+            view->viewport()->repaint();
+            const auto image = view->viewport()->grab().toImage();
+            for (int y = 0; y < image.height(); ++y)
+                for (int x = 0; x < image.width(); ++x)
+                    if (image.pixelColor(x, y) == highlightColor) return true;
+            return false;
+        };
+        QVERIFY(!hasHighlight(main));
+        QVERIFY(!hasHighlight(filtered));
+        config.setEnableMainSearchHighlight(true);
+        crawler->applyConfiguration();
+        QTRY_VERIFY(hasHighlight(main));
+        QTRY_VERIFY(hasHighlight(filtered));
+        config.setEnableMainSearchHighlight(false);
+        crawler->applyConfiguration();
+        QTRY_VERIFY(!hasHighlight(main));
+        QTRY_VERIFY(!hasHighlight(filtered));
+        config.setEnableMainSearchHighlight(true);
+        crawler->applyConfiguration();
+        QTRY_VERIFY(hasHighlight(main));
+        clear->click();
+        QTRY_VERIFY(edit->currentText().isEmpty());
+        QTRY_VERIFY(!hasHighlight(main));
+        QTRY_VERIFY(!hasHighlight(filtered));
     }
     void highlighterChangeAndPartialSelection() {
         view_->setSearchPattern(RegularExpressionPattern("ERROR", true, false, false, true));

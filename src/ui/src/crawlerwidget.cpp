@@ -886,8 +886,12 @@ void CrawlerWidget::useRegexpChangeHandler( bool )
     resetStateOnSearchPatternChanges();
 }
 
-void CrawlerWidget::searchTextChangeHandler( QString )
+void CrawlerWidget::searchTextChangeHandler( QString text )
 {
+    if (text.isEmpty()) {
+        logMainView_->setSearchPattern({});
+        filteredView_->setSearchPattern({});
+    }
     resetStateOnSearchPatternChanges();
     updatePredefinedFiltersWidget();
 }
@@ -1511,6 +1515,8 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
         }
     }
     else {
+        logMainView_->setSearchPattern({});
+        filteredView_->setSearchPattern({});
         searchState_.resetState();
         printSearchInfoMessage();
     }

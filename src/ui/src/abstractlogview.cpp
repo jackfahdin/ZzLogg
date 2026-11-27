@@ -81,6 +81,7 @@
 #include "abstractlogview.h"
 #include "containers.h"
 #include "highlightedmatch.h"
+#include "booleansearchhighlighter.h"
 #include "linetypes.h"
 
 #include "active_screen.h"
@@ -1302,6 +1303,7 @@ void AbstractLogView::allowFollowMode( bool allow )
 void AbstractLogView::setSearchPattern( const RegularExpressionPattern& pattern )
 {
     searchPattern_ = pattern;
+    booleanSearchHighlighter_.reset();
     forceRefresh();
 }
 
@@ -2379,19 +2381,27 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
     const auto highlightPatternMatches = Configuration::get().mainSearchHighlight();
     const auto variateHighlightPatternMatches = Configuration::get().variateMainSearchHighlight();
 
-    std::optional<Highlighter> patternHighlight;
-    if ( highlightPatternMatches && !searchPattern_.isBoolean && !searchPattern_.isExclude
-         && !searchPattern_.pattern.isEmpty() ) {
-        const auto mainSearchBackColor = Configuration::get().mainSearchBackColor();
-        patternHighlight = Highlighter{};
-        patternHighlight->setHighlightOnlyMatch( true );
-        patternHighlight->setVariateColors( variateHighlightPatternMatches );
-        patternHighlight->setPattern( searchPattern_.pattern );
-        patternHighlight->setIgnoreCase( !searchPattern_.isCaseSensitive );
-        patternHighlight->setUseRegex( !searchPattern_.isPlainText );
-
-        patternHighlight->setBackColor( mainSearchBackColor );
-        patternHighlight->setForeColor( Qt::black );
+    if (highlightPatternMatches && searchPattern_.isBoolean && !searchPattern_.isExclude
+        && !searchPattern_.pattern.isEmpty() && !booleanSearchHighlighter_) {
+        booleanSearchHighlighter_ = std::make_unique<BooleanSearchHighlighter>(searchPattern_);
+    }
+    std::vector<Highlighter> patternHighlights;
+    if (highlightPatternMatches && !searchPattern_.isExclude && !searchPattern_.pattern.isEmpty()) {
+        const auto addHighlighter = [&](const RegularExpressionPattern& pattern) {
+            Highlighter highlighter;
+            highlighter.setHighlightOnlyMatch(true);
+            highlighter.setVariateColors(variateHighlightPatternMatches);
+            highlighter.setPattern(pattern.pattern);
+            highlighter.setIgnoreCase(!pattern.isCaseSensitive);
+            highlighter.setUseRegex(!pattern.isPlainText);
+            highlighter.setBackColor(Configuration::get().mainSearchBackColor());
+            highlighter.setForeColor(Qt::black);
+            patternHighlights.push_back(std::move(highlighter));
+        };
+        if (booleanSearchHighlighter_) {
+            for (const auto& pattern : booleanSearchHighlighter_->patterns()) addHighlighter(pattern);
+        }
+        else if (!searchPattern_.isBoolean) addHighlighter(searchPattern_);
     }
 
     klogg::vector<Highlighter> additionalHighlighters;
@@ -2461,10 +2471,15 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                     backColor = highlighterMatches.front().backColor();
                 }
 
-                if ( patternHighlight ) {
-                    klogg::vector<HighlightedMatch> patternMatches;
-                    patternHighlight->matchLine( logLine, patternMatches );
-                    highlighterMatches.addMatches( patternMatches );
+                if (!patternHighlights.empty()) {
+                    const auto indices = booleanSearchHighlighter_
+                        ? booleanSearchHighlighter_->matchingPatternIndices(logLine)
+                        : std::vector<size_t>{0};
+                    for (const auto index : indices) {
+                        klogg::vector<HighlightedMatch> patternMatches;
+                        patternHighlights[index].matchLine(logLine, patternMatches);
+                        highlighterMatches.addMatches(patternMatches);
+                    }
                 }
 
                 // highlighterMatches.reserve( additionalHighlighters.size() );

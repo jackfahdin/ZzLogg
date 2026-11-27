@@ -1,5 +1,7 @@
 add_library(
   klogg_regex STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/booleansearchhighlighter.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/booleansearchhighlighter.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/hsregularexpression.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/regularexpression.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/booleanevaluator.cpp

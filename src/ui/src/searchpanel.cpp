@@ -301,7 +301,10 @@ SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
              &SearchPanel::editHistoryRequested );
     connect( searchButton_, &QToolButton::clicked, this, &SearchPanel::searchRequested );
     connect( stopButton_, &QToolButton::clicked, this, &SearchPanel::stopRequested );
-    connect( clearButton_, &QToolButton::clicked, searchLineEdit_, &QComboBox::clearEditText );
+    connect( clearButton_, &QToolButton::clicked, this, [this] {
+        searchLineEdit_->clearEditText();
+        Q_EMIT patternEdited(QString{});
+    } );
     connect( visibilityBox_, QOverload<int>::of( &QComboBox::currentIndexChanged ), this,
              &SearchPanel::visibilityChanged );
     connect( searchRefreshButton_, &QToolButton::toggled, this, &SearchPanel::autoRefreshChanged );

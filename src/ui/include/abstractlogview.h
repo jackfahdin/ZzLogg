@@ -74,6 +74,7 @@ class QMenu;
 class QAction;
 class QShortcut;
 class HighlightersMenu;
+class BooleanSearchHighlighter;
 
 // Utility class representing a buffer for number entered on the keyboard
 // The buffer keep at most 7 digits, and reset itself after a timeout.
@@ -362,6 +363,7 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
 
     Selection selection_;
     RegularExpressionPattern searchPattern_;
+    std::unique_ptr<BooleanSearchHighlighter> booleanSearchHighlighter_;
 
     std::vector<QuickHighlighters> quickHighlighters_ = std::vector<QuickHighlighters>{ 9 };
 

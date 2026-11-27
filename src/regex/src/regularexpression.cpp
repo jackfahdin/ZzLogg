@@ -103,6 +103,9 @@ parseBooleanExpressions( QString& pattern, bool isCaseSensitive, bool isPlainTex
     }
 
     pattern = pattern.toLower();
+    // Quoted patterns are already replaced by identifiers, so literal ! inside
+    // a search term stays intact. ExprTk requires the function spelling not(...).
+    pattern.replace(QLatin1Char('!'), QStringLiteral("not"));
     LOG_INFO << "Parsed pattern: " << pattern;
     QRegularExpression finalPatternCheck( "^(and|nand|or|nor|xor|xnor|not|[ ()!|&]|p_[0-9]+)+$" );
     if ( !finalPatternCheck.match( pattern ).hasMatch() ) {
