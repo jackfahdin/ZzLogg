@@ -50,41 +50,111 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QStandardItemModel>
+#include <QStylePainter>
+#include <QStyleOptionToolButton>
+#include <ZzFluentUI/ZzFluentStyle.h>
+#include <ZzFluentUI/ZzThemeSnapshot.h>
+#include <ZzFluentUI/ZzMetricToken.h>
 #include <QStringListModel>
 #include <limits>
 
 namespace {
 
-void updateSearchHelp( QToolButton& regexButton, QToolButton& combinationButton )
+// Keep QToolButton's geometry, icons and input handling. Only the checked
+// surface differs from the application's standard tool button appearance.
+class SearchOptionButton final : public QToolButton {
+protected:
+    void paintEvent(QPaintEvent* event) override
+    {
+        if (!isChecked() || !isEnabled()) {
+            QToolButton::paintEvent(event);
+            return;
+        }
+        QStyleOptionToolButton option;
+        initStyleOption(&option);
+        QStylePainter painter(this);
+        qreal radius = 3.0;
+        qreal stroke = 1.0;
+        if (const auto* fluent = qobject_cast<const ZzFluentUI::ZzFluentStyle*>(style())) {
+            const auto theme = fluent->themeSnapshot();
+            radius = theme->metric(ZzFluentUI::ZzMetricToken::CornerRadiusSmall);
+            stroke = theme->metric(ZzFluentUI::ZzMetricToken::StrokeThin);
+        }
+        const QColor base = palette().color(QPalette::Button);
+        const QColor accent = palette().color(QPalette::Highlight);
+        const qreal tint = isDown() ? 0.18 : underMouse() ? 0.13 : 0.09;
+        const auto mix = [](int background, int foreground, qreal weight) {
+            return qRound(background * (1.0 - weight) + foreground * weight);
+        };
+        const QColor fill(mix(base.red(), accent.red(), tint),
+                          mix(base.green(), accent.green(), tint),
+                          mix(base.blue(), accent.blue(), tint));
+        QColor border = accent;
+        border.setAlphaF(0.45F);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(QPen(border, stroke));
+        painter.setBrush(fill);
+        painter.drawRoundedRect(QRectF(rect()).adjusted(stroke / 2, stroke / 2,
+                                                       -stroke / 2, -stroke / 2), radius, radius);
+        // Preserve the original icon and its foreground; do not apply an accent tint.
+        painter.setRenderHint(QPainter::Antialiasing, false);
+        painter.drawControl(QStyle::CE_ToolButtonLabel, option);
+        if (hasFocus()) {
+            QStyleOptionFocusRect focus;
+            focus.initFrom(this);
+            focus.rect = rect().adjusted(3, 3, -3, -3);
+            focus.backgroundColor = fill;
+            painter.drawPrimitive(QStyle::PE_FrameFocusRect, focus);
+        }
+    }
+};
+
+QString syntaxRow(const QString& syntax, const QString& meaning)
 {
-    regexButton.setAccessibleName( QCoreApplication::translate( "CrawlerWidget", "Use regex" ) );
-    regexButton.setToolTip( regexButton.accessibleName() + QStringLiteral( "\n\n" )
-        + QCoreApplication::translate( "CrawlerWidget",
-            "Match text using patterns. Common syntax:\n"
-            ".  any character;  .*  any number of characters\n"
-            "^  start of line;  $  end of line\n"
-            "[0-9] or \\d  a digit;  \\s  whitespace\n"
-            "*  zero or more;  +  one or more;  ?  zero or one\n"
-            "{n,m}  repeat the preceding item n to m times\n"
-            "(error|warn)  match error or warn\n"
-            "\\.  a literal dot;  \\[  a literal left bracket\n"
-            "\n"
-            "Example: ^ERROR.*timeout\n"
-            "Lines starting with ERROR and containing timeout later." ) );
-    combinationButton.setAccessibleName(
-        QCoreApplication::translate( "CrawlerWidget", "Combine filter conditions" ) );
-    combinationButton.setToolTip( combinationButton.accessibleName() + QStringLiteral( "\n\n" )
-        + QCoreApplication::translate( "CrawlerWidget",
-            "Combine conditions for the same log line.\n"
-            "Enclose each condition in straight double quotes: \"text\".\n"
-            "and / &  both match;  or / |  either matches\n"
-            "not(\"text\") / !(\"text\")  exclude matching lines\n"
-            "( ... )  group conditions and control evaluation order\n"
-            "xor  exactly one matches;  xnor  both or neither match\n"
-            "nand  not both match;  nor  neither matches\n"
-            "\n"
-            "Example: \"error\" and not(\"debug\")\n"
-            "Lines containing error but not debug." ) );
+    return QStringLiteral("<tr><td valign='top' style='padding-right:12px'><code>%1</code></td>"
+                          "<td>%2</td></tr>").arg(syntax.toHtmlEscaped(), meaning.toHtmlEscaped());
+}
+
+QString helpCard(const QString& title, const QString& introduction, const QString& rows,
+                 const QString& example, const QString& explanation)
+{
+    return QStringLiteral("<qt><b>%1</b><br/>%2"
+                          "<table cellspacing='0' cellpadding='2' style='margin-top:6px;margin-bottom:6px'>%3</table>"
+                          "<b>%4</b> <code>%5</code><br/>%6</qt>")
+        .arg(title.toHtmlEscaped(), introduction.toHtmlEscaped(), rows,
+             QCoreApplication::translate("SearchHelp", "Example:").toHtmlEscaped(),
+             example.toHtmlEscaped(), explanation.toHtmlEscaped());
+}
+
+void updateSearchHelp(QToolButton& regexButton, QToolButton& combinationButton)
+{
+    regexButton.setAccessibleName(QCoreApplication::translate("CrawlerWidget", "Use regex"));
+    const auto regexRows =
+        syntaxRow(QStringLiteral(". / .*"), QCoreApplication::translate("SearchHelp", "Any character / any number of characters"))
+        + syntaxRow(QStringLiteral("^ / $"), QCoreApplication::translate("SearchHelp", "Start / end of line"))
+        + syntaxRow(QStringLiteral("[0-9], \\d / \\s"), QCoreApplication::translate("SearchHelp", "A digit / whitespace"))
+        + syntaxRow(QStringLiteral("* / + / ?"), QCoreApplication::translate("SearchHelp", "Repeat zero or more / one or more / zero or one times"))
+        + syntaxRow(QStringLiteral("{n,m}"), QCoreApplication::translate("SearchHelp", "Repeat the preceding item n to m times"))
+        + syntaxRow(QStringLiteral("(error|warn)"), QCoreApplication::translate("SearchHelp", "Match error or warn"))
+        + syntaxRow(QStringLiteral("\\. / \\["), QCoreApplication::translate("SearchHelp", "A literal dot / left bracket"));
+    regexButton.setToolTip(helpCard(regexButton.accessibleName(),
+        QCoreApplication::translate("SearchHelp", "Match text using patterns."), regexRows,
+        QStringLiteral("^ERROR.*timeout"),
+        QCoreApplication::translate("SearchHelp", "Lines starting with ERROR and containing timeout later.")));
+    combinationButton.setAccessibleName(QCoreApplication::translate("CrawlerWidget", "Combine filter conditions"));
+    const auto combinationRows =
+        syntaxRow(QStringLiteral("and / &"), QCoreApplication::translate("SearchHelp", "Both conditions match"))
+        + syntaxRow(QStringLiteral("or / |"), QCoreApplication::translate("SearchHelp", "Either condition matches"))
+        + syntaxRow(QStringLiteral("not(\"text\") / !(\"text\")"), QCoreApplication::translate("SearchHelp", "Exclude matching lines"))
+        + syntaxRow(QStringLiteral("( ... )"), QCoreApplication::translate("SearchHelp", "Group conditions and control evaluation order"))
+        + syntaxRow(QStringLiteral("xor / xnor"), QCoreApplication::translate("SearchHelp", "Exactly one matches / both or neither match"))
+        + syntaxRow(QStringLiteral("nand / nor"), QCoreApplication::translate("SearchHelp", "Not both match / neither matches"));
+    combinationButton.setToolTip(helpCard(combinationButton.accessibleName(),
+        QCoreApplication::translate("SearchHelp", "Combine conditions for one log line. Quote each condition: \"text\"."),
+        combinationRows, QStringLiteral("\"error\" and not(\"debug\")"),
+        QCoreApplication::translate("SearchHelp", "Lines containing error but not debug.")));
+    regexButton.setToolTipDuration(30000);
+    combinationButton.setToolTipDuration(30000);
 }
 
 } // namespace
@@ -158,31 +228,31 @@ SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
     searchInfoLine_->setSizePolicy( searchInfoLineSizePolicy );
     searchInfoLine_->setContentsMargins( 2, 2, 2, 2 );
 
-    matchCaseButton_ = new QToolButton();
+    matchCaseButton_ = new SearchOptionButton();
     matchCaseButton_->setObjectName( QStringLiteral( "matchCaseButton" ) );
     matchCaseButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Match case" ) );
     matchCaseButton_->setCheckable( true );
     matchCaseButton_->setFocusPolicy( Qt::NoFocus );
     matchCaseButton_->setContentsMargins( 2, 2, 2, 2 );
 
-    useRegexpButton_ = new QToolButton();
+    useRegexpButton_ = new SearchOptionButton();
     useRegexpButton_->setCheckable( true );
     useRegexpButton_->setFocusPolicy( Qt::NoFocus );
     useRegexpButton_->setContentsMargins( 2, 2, 2, 2 );
 
-    inverseButton_ = new QToolButton();
+    inverseButton_ = new SearchOptionButton();
     inverseButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Inverse match" ) );
     inverseButton_->setCheckable( true );
     inverseButton_->setFocusPolicy( Qt::NoFocus );
     inverseButton_->setContentsMargins( 2, 2, 2, 2 );
 
-    booleanButton_ = new QToolButton();
+    booleanButton_ = new SearchOptionButton();
     updateSearchHelp( *useRegexpButton_, *booleanButton_ );
     booleanButton_->setCheckable( true );
     booleanButton_->setFocusPolicy( Qt::NoFocus );
     booleanButton_->setContentsMargins( 2, 2, 2, 2 );
 
-    searchRefreshButton_ = new QToolButton();
+    searchRefreshButton_ = new SearchOptionButton();
     searchRefreshButton_->setObjectName( QStringLiteral( "searchRefreshButton" ) );
     searchRefreshButton_->setToolTip(
         QCoreApplication::translate( "CrawlerWidget", "Auto-refresh" ) );
@@ -236,7 +306,7 @@ SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
     searchButton_->setAutoRaise( true );
     searchButton_->setContentsMargins( 2, 2, 2, 2 );
 
-    keepSearchResultsButton_ = new QToolButton();
+    keepSearchResultsButton_ = new SearchOptionButton();
     keepSearchResultsButton_->setObjectName( QStringLiteral( "keepSearchResultsButton" ) );
     keepSearchResultsButton_->setText(
         QCoreApplication::translate( "CrawlerWidget", "Keep Results" ) );

@@ -30,6 +30,8 @@
 #include "scratchpad.h"
 #include <QPlainTextEdit>
 #include <QToolBar>
+#include <QToolTip>
+#include <QHelpEvent>
 #include "uithemecontext.h"
 #include "windowchrome.h"
 #include <ZzFluentUI/ZzFluentTitleBar.h>
@@ -1823,6 +1825,35 @@ void ApplicationTranslationTest::rendersLayoutsAcrossThemesAndLanguages()
                     .arg(mode == ZzFluentUI::ZzThemeMode::Dark ? "dark" : "light", language)
                     .arg(width);
                 QVERIFY(window.grab().save(QDir(captureDir).filePath(name)));
+                const auto inputRect = panel->searchLineEdit()->geometry();
+                const auto regexRect = panel->useRegexpButton()->geometry();
+                const auto regexIcon = panel->useRegexpButton()->icon().cacheKey();
+                panel->useRegexpButton()->setChecked(true);
+                panel->booleanButton()->setChecked(true);
+                QCoreApplication::processEvents();
+                QCOMPARE(panel->searchLineEdit()->geometry(), inputRect);
+                QCOMPARE(panel->useRegexpButton()->geometry(), regexRect);
+                QCOMPARE(panel->useRegexpButton()->icon().cacheKey(), regexIcon);
+                QVERIFY(panel->grab().save(QDir(captureDir).filePath("search-on-" + name)));
+                for (auto* button : {panel->useRegexpButton(), panel->booleanButton()}) {
+                    QToolTip::hideText();
+                    QHelpEvent hover(QEvent::ToolTip, button->rect().center(),
+                                     button->mapToGlobal(button->rect().center()));
+                    QApplication::sendEvent(button, &hover);
+                    QTRY_VERIFY(QToolTip::isVisible());
+                    QWidget* popup = nullptr;
+                    for (auto* top : QApplication::topLevelWidgets()) {
+                        if (top->isVisible() && top->windowType() == Qt::ToolTip) popup = top;
+                    }
+                    QVERIFY(popup);
+                    QVERIFY(popup->grab().save(QDir(captureDir).filePath(button->objectName() + "-" + name)));
+                }
+                QToolTip::hideText();
+                panel->useRegexpButton()->setChecked(false);
+                panel->booleanButton()->setChecked(false);
+                QCoreApplication::processEvents();
+                QCOMPARE(panel->searchLineEdit()->geometry(), inputRect);
+                QVERIFY(panel->grab().save(QDir(captureDir).filePath("search-off-" + name)));
             }
         }
     }

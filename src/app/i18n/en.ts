@@ -4418,4 +4418,79 @@ Update log and recovery backup:</translation>
         <translation>workspace size exceeded in DFA matching</translation>
     </message>
 </context>
+<context>
+    <name>SearchHelp</name>
+    <message>
+        <source>Example:</source>
+        <translation>Example:</translation>
+    </message>
+    <message>
+        <source>Match text using patterns.</source>
+        <translation>Match text using patterns.</translation>
+    </message>
+    <message>
+        <source>Any character / any number of characters</source>
+        <translation>Any character / any number of characters</translation>
+    </message>
+    <message>
+        <source>Start / end of line</source>
+        <translation>Start / end of line</translation>
+    </message>
+    <message>
+        <source>A digit / whitespace</source>
+        <translation>A digit / whitespace</translation>
+    </message>
+    <message>
+        <source>Repeat zero or more / one or more / zero or one times</source>
+        <translation>Repeat zero or more / one or more / zero or one times</translation>
+    </message>
+    <message>
+        <source>Repeat the preceding item n to m times</source>
+        <translation>Repeat the preceding item n to m times</translation>
+    </message>
+    <message>
+        <source>Match error or warn</source>
+        <translation>Match error or warn</translation>
+    </message>
+    <message>
+        <source>A literal dot / left bracket</source>
+        <translation>A literal dot / left bracket</translation>
+    </message>
+    <message>
+        <source>Lines starting with ERROR and containing timeout later.</source>
+        <translation>Lines starting with ERROR and containing timeout later.</translation>
+    </message>
+    <message>
+        <source>Both conditions match</source>
+        <translation>Both conditions match</translation>
+    </message>
+    <message>
+        <source>Either condition matches</source>
+        <translation>Either condition matches</translation>
+    </message>
+    <message>
+        <source>Exclude matching lines</source>
+        <translation>Exclude matching lines</translation>
+    </message>
+    <message>
+        <source>Group conditions and control evaluation order</source>
+        <translation>Group conditions and control evaluation order</translation>
+    </message>
+    <message>
+        <source>Exactly one matches / both or neither match</source>
+        <translation>Exactly one matches / both or neither match</translation>
+    </message>
+    <message>
+        <source>Not both match / neither matches</source>
+        <translation>Not both match / neither matches</translation>
+    </message>
+    <message>
+        <source>Combine conditions for one log line. Quote each condition: "text".</source>
+        <translation>Combine conditions for one log line. Quote each condition: "text".</translation>
+    </message>
+    <message>
+        <source>Lines containing error but not debug.</source>
+        <translation>Lines containing error but not debug.</translation>
+    </message>
+</context>
 </TS>

@@ -4418,4 +4418,79 @@ Update log and recovery backup:</source>
         <translation>DFA 匹配中超出工作區大小</translation>
     </message>
 </context>
+<context>
+    <name>SearchHelp</name>
+    <message>
+        <source>Example:</source>
+        <translation>範例：</translation>
+    </message>
+    <message>
+        <source>Match text using patterns.</source>
+        <translation>使用運算式比對文字。</translation>
+    </message>
+    <message>
+        <source>Any character / any number of characters</source>
+        <translation>任意一個字元 / 任意數量的字元</translation>
+    </message>
+    <message>
+        <source>Start / end of line</source>
+        <translation>行首 / 行尾</translation>
+    </message>
+    <message>
+        <source>A digit / whitespace</source>
+        <translation>數字 / 空白字元</translation>
+    </message>
+    <message>
+        <source>Repeat zero or more / one or more / zero or one times</source>
+        <translation>重複零次或多次 / 一次或多次 / 零次或一次</translation>
+    </message>
+    <message>
+        <source>Repeat the preceding item n to m times</source>
+        <translation>前面的內容重複 n 到 m 次</translation>
+    </message>
+    <message>
+        <source>Match error or warn</source>
+        <translation>比對 error 或 warn</translation>
+    </message>
+    <message>
+        <source>A literal dot / left bracket</source>
+        <translation>比對點號本身 / 左方括號本身</translation>
+    </message>
+    <message>
+        <source>Lines starting with ERROR and containing timeout later.</source>
+        <translation>比對以 ERROR 開頭，後面包含 timeout 的行。</translation>
+    </message>
+    <message>
+        <source>Both conditions match</source>
+        <translation>兩個條件都符合</translation>
+    </message>
+    <message>
+        <source>Either condition matches</source>
+        <translation>至少符合一個條件</translation>
+    </message>
+    <message>
+        <source>Exclude matching lines</source>
+        <translation>排除符合條件的日誌行</translation>
+    </message>
+    <message>
+        <source>Group conditions and control evaluation order</source>
+        <translation>將條件分組，控制計算順序</translation>
+    </message>
+    <message>
+        <source>Exactly one matches / both or neither match</source>
+        <translation>恰好符合一個 / 兩個都符合或都不符合</translation>
+    </message>
+    <message>
+        <source>Not both match / neither matches</source>
+        <translation>不同時符合 / 兩個都不符合</translation>
+    </message>
+    <message>
+        <source>Combine conditions for one log line. Quote each condition: "text".</source>
+        <translation>組合條件篩選同一行，每個條件用英文雙引號括起："text"。</translation>
+    </message>
+    <message>
+        <source>Lines containing error but not debug.</source>
+        <translation>比對包含 error 且不包含 debug 的行。</translation>
+    </message>
+</context>
 </TS>
