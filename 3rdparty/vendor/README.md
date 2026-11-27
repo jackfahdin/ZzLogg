@@ -27,7 +27,7 @@
 | `mimalloc/` | mimalloc | 2.1.7 | 微软高性能内存分配器 | [mimalloc/README_Z.md](mimalloc/README_Z.md) |
 | `monocypher/` | Monocypher | 4.0.3 | 无 Qt 更新核心的 Ed25519 签名验证 | [来源与校验摘要](monocypher/README.zzlogg.md) |
 | `nlohmann-json/` | nlohmann/json | 3.12.0 | 更新协议的严格 JSON 解析 | [来源与校验摘要](nlohmann-json/README.zzlogg.md) |
-| `ZzPureTools/` | ZzPureTools | d8afb260 | Qt UI 框架，按组件静态集成 | [框架说明](ZzPureTools/README.md) |
+| `ZzPureTools/` | ZzPureTools | dcbda5cc | Qt UI 框架，按组件静态集成 | [框架说明](ZzPureTools/README.md) |
 | `syntax-highlighting/` | KSyntaxHighlighting | 6.31.0 | 代码语法高亮，静态链接并内嵌语法和主题 | [来源与本地集成](syntax-highlighting/README.zzlogg.md) |
 | `extra-cmake-modules/` | Extra CMake Modules | 6.31.0 | KSyntaxHighlighting 的构建模块 | [来源与本地集成](extra-cmake-modules/README.zzlogg.md) |
 

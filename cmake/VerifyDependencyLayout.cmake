@@ -6,7 +6,7 @@ if(NOT DEFINED GIT_EXECUTABLE OR NOT EXISTS "${GIT_EXECUTABLE}")
 endif()
 
 set(expected_zzpuretools_commit
-  "d8afb2607884289ed872bd3fa785e3392e96f74b")
+  "dcbda5cc39e97533a11f34d671b24887977e95ae")
 execute_process(
   COMMAND "${GIT_EXECUTABLE}" -C "${SOURCE_ROOT}" ls-files -s --
           "3rdparty/vendor/ZzPureTools"
