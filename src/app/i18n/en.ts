@@ -249,8 +249,8 @@
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1074"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1760"/>
-        <source>Enable regular expression logical combining</source>
-        <translation>Enable regular expression logical combining</translation>
+        <source>Combine filter conditions</source>
+        <translation>Combine filter conditions</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1081"/>
@@ -329,6 +329,52 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1789"/>
         <source>Detected as %1</source>
         <translation>Detected as %1</translation>
+    </message>
+    <message>
+        <source>Match text using patterns. Common syntax:
+.  any character;  .*  any number of characters
+^  start of line;  $  end of line
+[0-9] or \d  a digit;  \s  whitespace
+*  zero or more;  +  one or more;  ?  zero or one
+{n,m}  repeat the preceding item n to m times
+(error|warn)  match error or warn
+\.  a literal dot;  \[  a literal left bracket
+
+Example: ^ERROR.*timeout
+Lines starting with ERROR and containing timeout later.</source>
+        <translation>Match text using patterns. Common syntax:
+.  any character;  .*  any number of characters
+^  start of line;  $  end of line
+[0-9] or \d  a digit;  \s  whitespace
+*  zero or more;  +  one or more;  ?  zero or one
+{n,m}  repeat the preceding item n to m times
+(error|warn)  match error or warn
+\.  a literal dot;  \[  a literal left bracket
+
+Example: ^ERROR.*timeout
+Lines starting with ERROR and containing timeout later.</translation>
+    </message>
+    <message>
+        <source>Combine conditions for the same log line.
+Enclose each condition in straight double quotes: "text".
+and / &amp;  both match;  or / |  either matches
+not("text") / !("text")  exclude matching lines
+( ... )  group conditions and control evaluation order
+xor  exactly one matches;  xnor  both or neither match
+nand  not both match;  nor  neither matches
+
+Example: "error" and not("debug")
+Lines containing error but not debug.</source>
+        <translation>Combine conditions for the same log line.
+Enclose each condition in straight double quotes: "text".
+and / &amp;  both match;  or / |  either matches
+not("text") / !("text")  exclude matching lines
+( ... )  group conditions and control evaluation order
+xor  exactly one matches;  xnor  both or neither match
+nand  not both match;  nor  neither matches
+
+Example: "error" and not("debug")
+Lines containing error but not debug.</translation>
     </message>
 </context>
 <context>

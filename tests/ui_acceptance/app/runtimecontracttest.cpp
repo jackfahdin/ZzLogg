@@ -339,13 +339,8 @@ private Q_SLOTS:
         auto* const searchEdit
             = crawler->findChild<QComboBox*>( QStringLiteral( "mainSearchEdit" ) );
         QVERIFY( searchEdit );
-        QToolButton* regexpButton = nullptr;
-        for ( auto* const button : crawler->findChildren<QToolButton*>() ) {
-            if ( button->toolTip() == QStringLiteral( "Use regex" ) ) {
-                regexpButton = button;
-                break;
-            }
-        }
+        auto* const regexpButton
+            = crawler->findChild<QToolButton*>( QStringLiteral( "useRegexpButton" ) );
         QVERIFY( regexpButton );
         regexpButton->setChecked( true );
         searchEdit->setEditText( QStringLiteral( "[" ) );

@@ -1246,13 +1246,7 @@ void ApplicationTranslationTest::retranslatesCrawlerSemanticSearchStatus()
     auto* const filteredResultsTabs = child<QTabWidget>( *crawler, "filteredResultsTabs" );
     QVERIFY( searchInfo );
 
-    QToolButton* regexpButton = nullptr;
-    for ( auto* candidate : crawler->findChildren<QToolButton*>() ) {
-        if ( candidate->toolTip() == QStringLiteral( "Use regex" ) ) {
-            regexpButton = candidate;
-            break;
-        }
-    }
+    auto* const regexpButton = child<QToolButton>( *crawler, "useRegexpButton" );
     QVERIFY( regexpButton );
     regexpButton->setChecked( true );
     searchEdit->setCurrentText( QStringLiteral( "[" ) );

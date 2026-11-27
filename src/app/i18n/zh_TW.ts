@@ -249,8 +249,8 @@
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1074"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1760"/>
-        <source>Enable regular expression logical combining</source>
-        <translation>啟用正規表達式邏輯組合</translation>
+        <source>Combine filter conditions</source>
+        <translation>組合篩選條件</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1081"/>
@@ -329,6 +329,52 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1789"/>
         <source>Detected as %1</source>
         <translation>偵測為 %1</translation>
+    </message>
+    <message>
+        <source>Match text using patterns. Common syntax:
+.  any character;  .*  any number of characters
+^  start of line;  $  end of line
+[0-9] or \d  a digit;  \s  whitespace
+*  zero or more;  +  one or more;  ?  zero or one
+{n,m}  repeat the preceding item n to m times
+(error|warn)  match error or warn
+\.  a literal dot;  \[  a literal left bracket
+
+Example: ^ERROR.*timeout
+Lines starting with ERROR and containing timeout later.</source>
+        <translation>依文字規律比對。常用寫法：
+.  任意單一字元；.*  任意數量的字元
+^  行首；$  行尾
+[0-9] 或 \d  一個數字；\s  空白字元
+*  前一項出現零次或多次；+  一次或多次；?  零次或一次
+{n,m}  前一項重複 n 到 m 次
+(error|warn)  比對 error 或 warn
+\.  比對點號本身；\[  比對左方括號本身
+
+範例：^ERROR.*timeout
+尋找以 ERROR 開頭，後面包含 timeout 的行。</translation>
+    </message>
+    <message>
+        <source>Combine conditions for the same log line.
+Enclose each condition in straight double quotes: "text".
+and / &amp;  both match;  or / |  either matches
+not("text") / !("text")  exclude matching lines
+( ... )  group conditions and control evaluation order
+xor  exactly one matches;  xnor  both or neither match
+nand  not both match;  nor  neither matches
+
+Example: "error" and not("debug")
+Lines containing error but not debug.</source>
+        <translation>在同一行日誌中組合多個條件。
+每個條件用英文雙引號包住，例如 "文字"。
+and / &amp;  兩者都符合；or / |  至少一個符合
+not("文字") / !("文字")  排除符合的行
+( ... )  將條件分組，明確運算順序
+xor  兩者只有一個符合；xnor  兩者都符合或都不符合
+nand  兩者不同時符合；nor  兩者都不符合
+
+範例："error" and not("debug")
+尋找包含 error，但不包含 debug 的行。</translation>
     </message>
 </context>
 <context>

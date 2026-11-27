@@ -10,7 +10,7 @@ QStringList runtimeSources()
     return { QStringLiteral( "Match case" ),
              QStringLiteral( "Use regex" ),
              QStringLiteral( "Inverse match" ),
-             QStringLiteral( "Enable regular expression logical combining" ),
+             QStringLiteral( "Combine filter conditions" ),
              QStringLiteral( "Auto-refresh" ),
              QStringLiteral( "Edit search history" ),
              QStringLiteral(

@@ -53,6 +53,42 @@
 #include <QStringListModel>
 #include <limits>
 
+namespace {
+
+void updateSearchHelp( QToolButton& regexButton, QToolButton& combinationButton )
+{
+    regexButton.setAccessibleName( QCoreApplication::translate( "CrawlerWidget", "Use regex" ) );
+    regexButton.setToolTip( regexButton.accessibleName() + QStringLiteral( "\n\n" )
+        + QCoreApplication::translate( "CrawlerWidget",
+            "Match text using patterns. Common syntax:\n"
+            ".  any character;  .*  any number of characters\n"
+            "^  start of line;  $  end of line\n"
+            "[0-9] or \\d  a digit;  \\s  whitespace\n"
+            "*  zero or more;  +  one or more;  ?  zero or one\n"
+            "{n,m}  repeat the preceding item n to m times\n"
+            "(error|warn)  match error or warn\n"
+            "\\.  a literal dot;  \\[  a literal left bracket\n"
+            "\n"
+            "Example: ^ERROR.*timeout\n"
+            "Lines starting with ERROR and containing timeout later." ) );
+    combinationButton.setAccessibleName(
+        QCoreApplication::translate( "CrawlerWidget", "Combine filter conditions" ) );
+    combinationButton.setToolTip( combinationButton.accessibleName() + QStringLiteral( "\n\n" )
+        + QCoreApplication::translate( "CrawlerWidget",
+            "Combine conditions for the same log line.\n"
+            "Enclose each condition in straight double quotes: \"text\".\n"
+            "and / &  both match;  or / |  either matches\n"
+            "not(\"text\") / !(\"text\")  exclude matching lines\n"
+            "( ... )  group conditions and control evaluation order\n"
+            "xor  exactly one matches;  xnor  both or neither match\n"
+            "nand  not both match;  nor  neither matches\n"
+            "\n"
+            "Example: \"error\" and not(\"debug\")\n"
+            "Lines containing error but not debug." ) );
+}
+
+} // namespace
+
 SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
     : QWidget( parent )
 {
@@ -130,7 +166,6 @@ SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
     matchCaseButton_->setContentsMargins( 2, 2, 2, 2 );
 
     useRegexpButton_ = new QToolButton();
-    useRegexpButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Use regex" ) );
     useRegexpButton_->setCheckable( true );
     useRegexpButton_->setFocusPolicy( Qt::NoFocus );
     useRegexpButton_->setContentsMargins( 2, 2, 2, 2 );
@@ -142,8 +177,7 @@ SearchPanel::SearchPanel( const QStringList& history, QWidget* parent )
     inverseButton_->setContentsMargins( 2, 2, 2, 2 );
 
     booleanButton_ = new QToolButton();
-    booleanButton_->setToolTip( QCoreApplication::translate(
-        "CrawlerWidget", "Enable regular expression logical combining" ) );
+    updateSearchHelp( *useRegexpButton_, *booleanButton_ );
     booleanButton_->setCheckable( true );
     booleanButton_->setFocusPolicy( Qt::NoFocus );
     booleanButton_->setContentsMargins( 2, 2, 2, 2 );
@@ -287,15 +321,13 @@ void SearchPanel::updateHistory( const QStringList& history )
 
 void SearchPanel::retranslateUi()
 {
+    updateSearchHelp( *useRegexpButton_, *booleanButton_ );
     visibilityBox_->setItemText(
         0, QCoreApplication::translate( "CrawlerWidget", "Marks and matches" ) );
     visibilityBox_->setItemText( 1, QCoreApplication::translate( "CrawlerWidget", "Marks" ) );
     visibilityBox_->setItemText( 2, QCoreApplication::translate( "CrawlerWidget", "Matches" ) );
     matchCaseButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Match case" ) );
-    useRegexpButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Use regex" ) );
     inverseButton_->setToolTip( QCoreApplication::translate( "CrawlerWidget", "Inverse match" ) );
-    booleanButton_->setToolTip( QCoreApplication::translate(
-        "CrawlerWidget", "Enable regular expression logical combining" ) );
     searchRefreshButton_->setToolTip(
         QCoreApplication::translate( "CrawlerWidget", "Auto-refresh" ) );
     clearSearchHistoryAction_->setText(

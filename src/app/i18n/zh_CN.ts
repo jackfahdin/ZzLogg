@@ -238,7 +238,7 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1062"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1758"/>
         <source>Use regex</source>
-        <translation>使用正则匹配</translation>
+        <translation>使用正则表达式</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1068"/>
@@ -249,8 +249,8 @@
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1074"/>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1760"/>
-        <source>Enable regular expression logical combining</source>
-        <translation>启用正则表达式逻辑组合</translation>
+        <source>Combine filter conditions</source>
+        <translation>组合筛选条件</translation>
     </message>
     <message>
         <location filename="../../ui/src/crawlerwidget.cpp" line="1081"/>
@@ -329,6 +329,52 @@
         <location filename="../../ui/src/crawlerwidget.cpp" line="1789"/>
         <source>Detected as %1</source>
         <translation>检测到编码: %1</translation>
+    </message>
+    <message>
+        <source>Match text using patterns. Common syntax:
+.  any character;  .*  any number of characters
+^  start of line;  $  end of line
+[0-9] or \d  a digit;  \s  whitespace
+*  zero or more;  +  one or more;  ?  zero or one
+{n,m}  repeat the preceding item n to m times
+(error|warn)  match error or warn
+\.  a literal dot;  \[  a literal left bracket
+
+Example: ^ERROR.*timeout
+Lines starting with ERROR and containing timeout later.</source>
+        <translation>按文字规律匹配。常用写法：
+.  任意单个字符；.*  任意数量的字符
+^  行首；$  行尾
+[0-9] 或 \d  一个数字；\s  空白字符
+*  前一项出现零次或多次；+  一次或多次；?  零次或一次
+{n,m}  前一项重复 n 到 m 次
+(error|warn)  匹配 error 或 warn
+\.  匹配点号本身；\[  匹配左方括号本身
+
+示例：^ERROR.*timeout
+查找以 ERROR 开头，后面包含 timeout 的行。</translation>
+    </message>
+    <message>
+        <source>Combine conditions for the same log line.
+Enclose each condition in straight double quotes: "text".
+and / &amp;  both match;  or / |  either matches
+not("text") / !("text")  exclude matching lines
+( ... )  group conditions and control evaluation order
+xor  exactly one matches;  xnor  both or neither match
+nand  not both match;  nor  neither matches
+
+Example: "error" and not("debug")
+Lines containing error but not debug.</source>
+        <translation>在同一行日志中组合多个条件。
+每个条件用英文双引号包住，例如 "文字"。
+and / &amp;  两者都匹配；or / |  至少一个匹配
+not("文字") / !("文字")  排除匹配的行
+( ... )  将条件分组，明确运算顺序
+xor  两者只有一个匹配；xnor  两者都匹配或都不匹配
+nand  两者不同时匹配；nor  两者都不匹配
+
+示例："error" and not("debug")
+查找包含 error，但不包含 debug 的行。</translation>
     </message>
 </context>
 <context>
