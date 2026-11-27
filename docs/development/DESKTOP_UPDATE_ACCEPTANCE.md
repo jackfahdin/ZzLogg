@@ -54,3 +54,36 @@
 - 日志位于 Qt `AppLocalDataLocation` 下的 `updates/install-logs/<UUID>.log`，界面可直接打开。应包含包管理器输出、退出状态和错误原因。
 
 Linux 复制与校验使用私有的 `0700` 暂存目录和 `0600` 包文件。销毁界面对象不会主动终止已经运行的系统包事务；强制杀进程或断电仍应使用发行版的包管理恢复流程，不能据此宣称自动回滚。
+
+## Windows：提交前启动检查与真实重启验收
+
+更新器现在分两次确认：文件替换后、事务提交前运行 `ZzLogg.exe --update-probe`，检查 Qt 原生平台插件、隔离临时存储及基础控件初始化；探测失败则恢复旧文件（安装版同时恢复注册表版本）。正式重启还必须等候真实用户存储和主界面初始化完成、事件循环发出 StartupReady，不能仅凭进程创建成功或单实例端口出现判定成功。
+
+探测进程若无法终止，保留事务/备份供恢复，不在它仍占用程序文件时回滚。便携版的回滚目前仍是进程内回滚，不具备断电后自动重放的持久化事务日志；不要把本次改造当作断电恢复保证。安装版原有 journal/recover 路径继续适用。
+
+### 两个本地版本（在隔离 Windows 测试机中）
+
+使用 x64 MSVC 开发终端构建两个带本地测试 feed 的版本。以下版本号仅用于测试：
+
+```powershell
+python scripts/dev/windows_local_update.py build --version 26.11.90 --qt D:\SoftWare\Qt\6.11.1\msvc2022_64
+python scripts/dev/windows_local_update.py build --version 26.11.91 --qt D:\SoftWare\Qt\6.11.1\msvc2022_64
+```
+
+安装 `out/local-windows/packages/26.11.90/` 中的旧包，关闭程序，然后从**非管理员终端**执行：
+
+```powershell
+python scripts/dev/windows_local_update.py serve --version 26.11.91 --app 'C:\Program Files\ZzLogg\ZzLogg.exe' --verify
+```
+
+在自动打开的程序中正常点击检查更新、下载、安装，并确认 UAC。验收器自动检查旧 PID 退出、新 PID 有可响应的主窗口且继续存活、二进制哈希改变、目标版本一致、测试数据保留、更新器结果为 complete。900 秒内未完成或检测到失败，命令返回非零；结果写入 `out/local-windows/acceptance-26.11.91.json`。这仍需用户点击更新/UAC，不是假装全自动的模拟升级。
+
+套件用例 08 也可传入 `-UpdateOriginalProcessId`、`-UpdateExpectedVersion`、`-UpdateDataDirectory` 观察已启动的旧版程序，不再固定跳过。缺少现场参数仍明确 SKIP，不计作通过。
+
+### 诊断与兼容
+
+- 安装版协调日志：当前 `--data-dir` 对应数据根目录下的 `logs/update-last.log`，记录失败阶段、子进程退出码及最后结果，不包含认证 token。
+- 安装版引擎日志/备份：`%ProgramData%\ZzLogg\UpdateTransactions`。
+- 便携版日志/备份：此次更新的 staging 目录内 `portable-update.log` 和 `backup`。
+- 从未包含这次改造的旧版本启动更新时，仍由旧版本携带的协调/便携 helper 运行；目标安装包中的新引擎可以执行新探测，但完整的新重启确认和协调日志需要测试基线也含本次改造。因此必须做上述两个本地版本测试，并另测正式旧版本迁入路径。
+- Windows 原生 CTest 新增 `zzlogg_updater.startupcheck`（失败退出、无确认、超时、过早 IPC）、`zzlogg_updater.application_probe`（实际 Qt GUI exe 经原生探测器启动）及 `zzlogg_updater.application_readiness`（实际主实例启动就绪）。Linux 的 offscreen 结果和 MinGW 交叉编译不能替代这些 Windows 检查。

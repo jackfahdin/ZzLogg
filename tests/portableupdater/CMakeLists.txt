@@ -22,6 +22,7 @@ if(WIN32)
   set_tests_properties(zzlogg_portable.installer PROPERTIES TIMEOUT 120
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
   add_executable(zzlogg_portable_restart_fixture restartfixture_win.cpp)
+  target_link_libraries(zzlogg_portable_restart_fixture PRIVATE zzlogg_updater_handoff)
   add_dependencies(zzlogg_portable_installer_test zzlogg_portable_restart_fixture)
   add_executable(zzlogg_portable_helper_test helpertest_win.cpp)
   target_include_directories(zzlogg_portable_helper_test PRIVATE ../../src/portableupdater)

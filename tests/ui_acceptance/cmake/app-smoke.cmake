@@ -99,3 +99,13 @@ if(WIN32)
     PROPERTY ENVIRONMENT_MODIFICATION
     "PATH=path_list_prepend:$<TARGET_FILE_DIR:klogg>")
 endif()
+
+add_test(NAME zzlogg_ui.update_probe
+  COMMAND "${CMAKE_COMMAND}" "-DAPP=$<TARGET_FILE:klogg>"
+    "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/update-probe"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/app/updateprobetest.cmake")
+set_tests_properties(zzlogg_ui.update_probe PROPERTIES TIMEOUT 50)
+if(WIN32)
+  set_property(TEST zzlogg_ui.update_probe PROPERTY ENVIRONMENT_MODIFICATION
+    "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+endif()

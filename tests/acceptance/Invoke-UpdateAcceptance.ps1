@@ -10,6 +10,9 @@ param(
     [string]$SetupExe,        # 安装包路径；缺省时所有需要安装包的用例 SKIP
     [string]$InstallDir,      # 默认 "$env:ProgramFiles\ZzLogg"（CI 传显式路径）
     [string]$Filter = "*",    # 用例名通配
+    [int]$UpdateOriginalProcessId,
+    [string]$UpdateExpectedVersion,
+    [string]$UpdateDataDirectory,
     [string]$ReportPath       # 可选，写 junit-ish 文本报告
 )
 
@@ -22,6 +25,9 @@ if (-not $InstallDir) {
 # ---------- 共享上下文与助手（cases dot-source 后可见） ----------
 
 $script:CaseContext = @{
+    UpdateOriginalProcessId = $UpdateOriginalProcessId
+    UpdateExpectedVersion = $UpdateExpectedVersion
+    UpdateDataDirectory = $UpdateDataDirectory
     SetupExe        = $SetupExe
     SetupProvided   = -not [string]::IsNullOrWhiteSpace($SetupExe)
     SetupAvailable  = (-not [string]::IsNullOrWhiteSpace($SetupExe)) -and (Test-Path -LiteralPath $SetupExe)

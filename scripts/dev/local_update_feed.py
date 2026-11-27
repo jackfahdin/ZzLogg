@@ -24,6 +24,7 @@ import http.server
 import json
 import os
 import subprocess
+import shutil
 import re
 import time
 from pathlib import Path
@@ -61,6 +62,8 @@ def main():
     parser.add_argument('--no-serve', action='store_true', help='Sign only, do not start the http server')
     parser.add_argument('--workspace', type=Path, default=WORKSPACE, help='Directory for the local feed and package')
     parser.add_argument('--launch', type=Path, help='Start this installed test client after binding the HTTP server')
+    parser.add_argument('--acceptance-report', type=Path, help='Windows: verify the real update and write JSON results')
+    parser.add_argument('--acceptance-data-dir', type=Path, help='Isolated data directory passed to the application')
     parser.add_argument('--launch-args', nargs=argparse.REMAINDER, default=[],
                         help='Client arguments; this option must be last')
     args = parser.parse_args()
@@ -73,6 +76,13 @@ def main():
         parser.error('--launch requires an existing executable and cannot be combined with --no-serve')
     if args.launch_args and not args.launch:
         parser.error('--launch-args requires --launch')
+    verifier_shell = None
+    if args.acceptance_report:
+        if os.name != 'nt' or not args.launch or not args.acceptance_data_dir:
+            parser.error('--acceptance-report requires Windows, --launch and --acceptance-data-dir')
+        verifier_shell = shutil.which('pwsh') or shutil.which('powershell')
+        if not verifier_shell:
+            parser.error('PowerShell is required for update acceptance')
     installer = Path(args.installer).resolve()
     if not installer.is_file():
         parser.error(f'installer not found: {installer}')
@@ -144,11 +154,31 @@ def main():
                 ZZLOGG_UPDATE_FEED_PREVIEW_URL=f'http://127.0.0.1:{args.port}/stable.json',
                 ZZLOGG_UPDATE_FEED_KEY=f'{KEY_ID}:{public}',
                 ZZLOGG_UPDATE_FEED_HOSTS='127.0.0.1;localhost')
-            subprocess.Popen([str(args.launch.resolve()), *args.launch_args], env=environment,
+            client = subprocess.Popen([str(args.launch.resolve()), *args.launch_args], env=environment,
                              cwd=args.launch.resolve().parent)
+            print(f'Base application PID: {client.pid}', flush=True)
         try:
-            server.serve_forever()
+            if args.acceptance_report:
+                verifier = subprocess.Popen([verifier_shell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                    '-File', str(REPO_ROOT / 'tests/acceptance/Verify-UpdateRestart.ps1'),
+                    '-Application', str(args.launch.resolve()), '-OriginalProcessId', str(client.pid),
+                    '-ExpectedVersion', args.version, '-DataDirectory', str(args.acceptance_data_dir.resolve()),
+                    '-ReportPath', str(args.acceptance_report.resolve())])
+                server.timeout = 0.25
+                try:
+                    while verifier.poll() is None:
+                        server.handle_request()
+                    if verifier.returncode:
+                        raise SystemExit(verifier.returncode)
+                finally:
+                    if verifier.poll() is None:
+                        verifier.terminate()
+                        verifier.wait(timeout=5)
+            else:
+                server.serve_forever()
         except KeyboardInterrupt:
+            if args.acceptance_report:
+                raise SystemExit(130)
             pass
 
 

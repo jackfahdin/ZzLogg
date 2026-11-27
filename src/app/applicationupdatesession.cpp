@@ -13,6 +13,7 @@
 #ifdef Q_OS_WIN
 #include "bootstrap_win_p.h"
 #include "coordinator_p.h"
+#include "handofftiming.h"
 #endif
 
 QString updateRestartDataDirectory( const StorageContext& storage )
@@ -62,7 +63,7 @@ class CoordinatorSession final : public ApplicationUpdateHandoff::CoordinationSe
                         << static_cast<quint64>( GetLastError() );
             return ApplicationUpdateHandoff::Failure::PeerRejected;
         }
-        const auto waiting = coordinator_.awaitAppExit( updater::after( 300000 ) );
+        const auto waiting = coordinator_.awaitAppExit( updater::after( zzlogg::updater::timing::ReadyForExitMs ) );
         if ( waiting == updater::CoordinationResult::WaitingForAppExit ) {
             return ApplicationUpdateHandoff::Failure::None;
         }
@@ -77,11 +78,11 @@ class CoordinatorSession final : public ApplicationUpdateHandoff::CoordinationSe
     }
     bool commitExit() override
     {
-        return coordinator_.commitExit( updater::after( 5000 ) );
+        return coordinator_.commitExit( updater::after( zzlogg::updater::timing::ControlMs ) );
     }
     void cancel() override
     {
-        coordinator_.cancel( updater::after( 5000 ) );
+        coordinator_.cancel( updater::after( zzlogg::updater::timing::ControlMs ) );
     }
 
   private:

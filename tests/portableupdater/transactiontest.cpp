@@ -43,12 +43,38 @@ int main() {
         // The transaction treats hashes as opaque; the executable supplies BCrypt SHA-256.
         const std::vector<File> files={{"ZzLogg.exe",3,"new"},{"plugins/new.dll",6,"newlib"}};
         const Hasher hash=[](const fs::path& p){return get(p);};
-        replaceFiles(root,payload,base/"backup",old,files,hash);
+        // A new binary can pass its hash check but fail to load a DLL. The
+        // validation must run after placement, while rollback is still possible.
+        bool probed=false;
+        rejects([&]{replaceFiles(root,payload,base/"probe-backup",old,files,hash,[&] {
+            probed=true;
+            check(get(root/"ZzLogg.exe")=="new", "probe ran before executable placement");
+            check(!fs::exists(root/"obsolete.dll"), "probe ran before obsolete removal");
+            throw std::runtime_error("new executable cannot start");
+        });}, "failed startup committed transaction");
+        check(probed,"startup validation was skipped");
+        check(get(root/"ZzLogg.exe")=="old", "startup failure did not restore executable");
+        check(get(root/"obsolete.dll")=="oldlib", "startup failure did not restore deleted file");
+        check(!fs::exists(root/"plugins/new.dll"), "startup failure retained new file");
+        check(get(root/"data/config/ZzLogg.ini")=="settings", "probe rollback changed settings");
+        bool accepted=false;
+        replaceFiles(root,payload,base/"backup",old,files,hash,[&] {
+            check(get(root/"plugins/new.dll")=="newlib","startup validation missed new files");
+            accepted=true;
+        });
+        check(accepted,"successful startup validation was skipped");
         check(get(root/"ZzLogg.exe")=="new", "new executable not installed");
         check(!fs::exists(root/"obsolete.dll"), "obsolete package file not removed");
         check(get(root/"data/config/ZzLogg.ini")=="settings", "settings changed");
         check(get(root/"notes.txt")=="notes", "unknown file changed");
         check(get(base/"backup/ZzLogg.exe")=="old", "backup not retained");
+        const auto blockedRoot=base/"blocked-app";
+        put(blockedRoot/"ZzLogg.exe","old");
+        rejects([&]{replaceFiles(blockedRoot,payload,base/"blocked-backup",{"ZzLogg.exe"},
+            {{"ZzLogg.exe",3,"new"}},hash,[] {throw RollbackBlocked("probe cannot be stopped");});},
+            "stuck probe reported success");
+        check(get(blockedRoot/"ZzLogg.exe")=="new","rollback replaced an image still in use");
+        check(get(base/"blocked-backup/ZzLogg.exe")=="old","stuck probe lost recovery backup");
 #ifdef _WIN32
         // A scanner can open a freshly copied executable after verification.
         // Reproduce that sharing violation until the scanner releases its handle.

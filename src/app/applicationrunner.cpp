@@ -18,6 +18,9 @@
  */
 
 #include "applicationrunner.h"
+#ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
+#include "startupreadiness_win.h"
+#endif
 
 #include "log.h"
 #include <QtGlobal>
@@ -753,5 +756,19 @@ int runKloggApplication( int argc, char* argv[], KloggApplicationOptions options
         } );
     }
 
+#ifdef ZZLOGG_HAS_INSTALLATION_ACTIVITY
+    // KDSingleApplication begins listening during construction, before real
+    // storage/UI startup. Publish readiness only once initialization succeeded
+    // and the main event loop has dispatched work.
+    const auto readyName
+        = zzlogg::updater::detail::startupReadyEventName( GetCurrentProcessId() );
+    zzlogg::updater::detail::Handle updateReady(
+        CreateEventW( nullptr, TRUE, FALSE, readyName.c_str() ) );
+    QTimer::singleShot( 0, &app, [ handle = updateReady.get() ] {
+        if ( handle ) {
+            SetEvent( handle );
+        }
+    } );
+#endif
     return app.exec();
 }

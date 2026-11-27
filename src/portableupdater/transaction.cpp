@@ -118,7 +118,8 @@ void validateTransaction(const fs::path& root, const fs::path& payload,
 }
 void replaceFiles(const fs::path& root, const fs::path& payload, const fs::path& backup,
                   const std::vector<std::string>& oldFiles,
-                  const std::vector<File>& newFiles, const Hasher& hash) {
+                  const std::vector<File>& newFiles, const Hasher& hash,
+                  const std::function<void()>& validateInstalled) {
     validateTransaction(root,payload,oldFiles,newFiles,hash);
     require(!pathExists(backup),"Backup directory already exists; preserve it for recovery");
     fs::create_directories(backup);
@@ -152,6 +153,9 @@ void replaceFiles(const fs::path& root, const fs::path& payload, const fs::path&
         for(const auto& name:oldFiles) if(!newNames.count(folded(name))) {
             validateTreePath(root,name); changed.push_back(name); fs::remove(root/fs::u8path(name));
         }
+        if(validateInstalled) validateInstalled();
+    } catch(const RollbackBlocked&) {
+        throw;
     } catch(const std::exception& original) {
         std::string recoveryError;
         if(!temporary.empty()) { std::error_code ec; fs::remove(temporary,ec); }

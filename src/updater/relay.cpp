@@ -1,18 +1,12 @@
 #include "relay_p.h"
+#include "handofftiming.h"
 #include "stablepackage_p.h"
+#include "startupcheck_win.h"
+#include "txcontract_win_p.h"
+#include <filesystem>
 #include <string>
 namespace zzlogg::updater::detail {
 namespace {
-// The UAC prompt and the installer's own extraction both happen inside this
-// budget; the engine only appears once the user accepted the elevation.
-constexpr DWORD LaunchBudgetMs=300000;
-// Engine prepare is a read-only scan, but it covers the whole installation.
-constexpr DWORD PrepareBudgetMs=180000;
-constexpr DWORD ShortBudgetMs=5000;
-// Transaction execution plus the registration writes; exceeding this reports a
-// failure instead of waiting without a bound.
-constexpr DWORD FinishBudgetMs=600000;
-constexpr DWORD RestartBudgetMs=60000;
 // Proceed gate poll interval; the gate itself is the application's real exit.
 constexpr DWORD ProceedPollMs=50;
 
@@ -30,28 +24,40 @@ bool packageUnchanged(const BootstrapData& data) {
     return lease.verifyContent(data.packageSize,hexDigest(data.packageSha256))
         ==zzlogg::update::PackageVerificationError::None;
 }
+// Survives the GUI and temporary coordinator. No token or credential is
+// written here. Engine logs remain in ProgramData beside the journal.
+class UpdateLog {
+public:
+    explicit UpdateLog(const std::wstring& dataDirectory) {
+        if(dataDirectory.empty())return;
+        const auto directory=std::filesystem::path(dataDirectory)/L"logs";
+        std::error_code error;std::filesystem::create_directories(directory,error);
+        if(error)return;
+        file_.reset(CreateFileW((directory/L"update-last.log").c_str(),GENERIC_WRITE,
+            FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr));
+    }
+    void line(const std::string& text) {
+        if(!file_)return;
+        const auto record=std::to_string(GetTickCount64())+" "+text+"\r\n";
+        DWORD written=0;WriteFile(file_.get(),record.data(),static_cast<DWORD>(record.size()),&written,nullptr);
+        FlushFileBuffers(file_.get());
+    }
+    void peerExit(const ProcessIdentity& peer) {
+        DWORD code=STILL_ACTIVE;
+        if(peer.handle() && GetExitCodeProcess(peer.handle(),&code))line("peer_exit="+std::to_string(code));
+    }
+private:
+    Handle file_;
+};
 int fail(LocalChannel& channel,Message message,int code) {
-    message.kind=MessageKind::Failed;channel.send(message,after(ShortBudgetMs));
+    message.kind=MessageKind::Failed;channel.send(message,after(timing::ControlMs));
     return code;
 }
 // A rolled-back transaction leaves the installation intact but the
 // application already exited for the update; bring it back instead of
 // leaving the user with a silently vanished program.
-std::wstring quoteWindowsArgument(const std::wstring& value) {
-    std::wstring quoted=L"\"";
-    std::size_t backslashes=0;
-    for(const auto character:value) {
-        if(character==L'\\') {++backslashes;continue;}
-        quoted.append(backslashes*(character==L'"'?2:1),L'\\');
-        backslashes=0;
-        if(character==L'"')quoted+=L'\\';
-        quoted+=character;
-    }
-    quoted.append(backslashes*2,L'\\');
-    return quoted+L'"';
-}
-void relaunchAfterFailedTransaction(const std::wstring& installRoot,const std::wstring& dataDirectory) {
-    if(installRoot.empty())return;
+bool relaunchAfterFailedTransaction(const std::wstring& installRoot,const std::wstring& dataDirectory) {
+    if(installRoot.empty())return false;
     const std::wstring image=installRoot+L"\\ZzLogg.exe";
     std::wstring command=quoteWindowsArgument(image);
     if(!dataDirectory.empty())command+=L" --data-dir "+quoteWindowsArgument(dataDirectory);
@@ -60,10 +66,17 @@ void relaunchAfterFailedTransaction(const std::wstring& installRoot,const std::w
         installRoot.c_str(),&startup,&launched)) {
         CloseHandle(launched.hThread);
         CloseHandle(launched.hProcess);
+        // The restored release may predate the readiness event. Report launch
+        // only; it must not be mislabeled as a successfully installed update.
+        return true;
     }
+    return false;
 }
 }
 int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options) {
+    UpdateLog log(bootstrap.data().dataDirectory);
+    std::string stage="bootstrap";
+    log.line("stage="+stage);
     LocalChannel channel;const auto deadline=after(3000);
     if(!channel.connect(bootstrap.data().transaction,bootstrap.parent(),deadline))return BootstrapRejected;
     Message message{MessageKind::Hello,bootstrap.data().transaction,bootstrap.data().token};
@@ -72,44 +85,70 @@ int runInstallRelay(ChildBootstrap& bootstrap,const CoordinatorOptions& options)
     if(!ready || ready->kind!=MessageKind::Ready || ready->transaction!=message.transaction
         || ready->token!=message.token || !bootstrap.parent().alive())return BootstrapRejected;
     const auto& data=bootstrap.data();
-    if(!data.installerPath[0])return fail(channel,message,ExecutionDisabled);
-    if(!packageUnchanged(data))return fail(channel,message,PackageRejected);
+    if(!data.installerPath[0]) {log.line("result=failed stage=package code=execution_disabled");return fail(channel,message,ExecutionDisabled);}
+    if(!packageUnchanged(data)) {log.line("result=failed stage=package code=package_rejected");return fail(channel,message,PackageRejected);}
     Coordinator coordinator;
+    const auto failed=[&](int code) {
+        log.peerExit(coordinator.process());
+        log.line("result=failed stage="+stage+" code="+std::to_string(code));
+        return fail(channel,message,code);
+    };
+    const auto enter=[&](const char* next) {stage=next;log.line("stage="+stage);};
     const InstallerRequest request{data.installerPath,data.installRoot,data.dataDirectory};
     const DirectoryIdentity* reserved=bootstrap.directoryReserved()?&data.directory:nullptr;
     LaunchError launch=LaunchError::Failed;
+    enter("installer_launch");
     if(!coordinator.startInstaller(request,reserved,&bootstrap.parent(),options,&launch))
-        return fail(channel,message,
+        return failed(
             launch==LaunchError::Cancelled?ElevationDeclined:InstallerLaunchFailed);
-    if(!coordinator.authenticate(after(LaunchBudgetMs)))return fail(channel,message,RelayFailed);
-    if(coordinator.awaitAppExit(after(PrepareBudgetMs))!=CoordinationResult::WaitingForAppExit)
-        return fail(channel,message,RelayFailed);
+    enter("installer_authenticate");
+    if(!coordinator.authenticate(after(timing::InstallerLaunchMs)))return failed(RelayFailed);
+    enter("prepare");
+    if(coordinator.awaitAppExit(after(timing::EnginePrepareMs))!=CoordinationResult::WaitingForAppExit)
+        return failed(RelayFailed);
     // The engine is waiting: only now may the GUI be told to commit its exit.
     message.kind=MessageKind::AwaitingAppExit;
-    if(!channel.send(message,after(ShortBudgetMs)))return fail(channel,message,RelayFailed);
-    const auto commit=channel.receive(after(LaunchBudgetMs));
-    if(!commit || commit->kind!=MessageKind::CommitExit)return fail(channel,message,RelayFailed);
-    if(!coordinator.commitExit(after(ShortBudgetMs)))return fail(channel,message,RelayFailed);
+    if(!channel.send(message,after(timing::ControlMs)))return failed(RelayFailed);
+    enter("commit_exit");
+    const auto commit=channel.receive(after(timing::CommitExitMs));
+    if(!commit || commit->kind!=MessageKind::CommitExit)return failed(RelayFailed);
+    if(!coordinator.commitExit(after(timing::ControlMs)))return failed(RelayFailed);
     // Proceed is never released before the GUI process has really exited.
+    enter("wait_application_exit");
     auto proceeded=CoordinationResult::PeerRunning;
-    for(DWORD waited=0;waited<LaunchBudgetMs && proceeded==CoordinationResult::PeerRunning;waited+=ProceedPollMs) {
-        proceeded=coordinator.proceedIfExited(after(ShortBudgetMs));
+    const auto exitDeadline=after(timing::ApplicationExitMs);
+    while(remaining(exitDeadline) && proceeded==CoordinationResult::PeerRunning) {
+        proceeded=coordinator.proceedIfExited(after(timing::ControlMs));
         if(proceeded==CoordinationResult::PeerRunning)Sleep(ProceedPollMs);
     }
-    if(proceeded!=CoordinationResult::ProceedSent)return fail(channel,message,RelayFailed);
-    const auto finished=coordinator.finish(after(FinishBudgetMs));
+    if(proceeded!=CoordinationResult::ProceedSent)return failed(RelayFailed);
+    enter("install");
+    const auto finished=coordinator.finish(after(timing::InstallMs));
     if(finished!=CoordinationResult::Complete) {
+        DWORD engineCode=STILL_ACTIVE;
         if(finished!=CoordinationResult::ManualRestartRequired && coordinator.process().handle()
-            && WaitForSingleObject(coordinator.process().handle(),ShortBudgetMs)==WAIT_OBJECT_0) {
+            && WaitForSingleObject(coordinator.process().handle(),timing::ControlMs)==WAIT_OBJECT_0
+            && GetExitCodeProcess(coordinator.process().handle(),&engineCode)
+            && (engineCode==exitForOutcome(TxOutcome::RolledBack)
+                || engineCode==exitForOutcome(TxOutcome::Conflict)
+                || engineCode==exitForOutcome(TxOutcome::Rejected))) {
             coordinator.releaseDirectoryObserver();
             bootstrap.releaseDirectoryObserver();
-            relaunchAfterFailedTransaction(data.installRoot,data.dataDirectory);
+            enter("restore_restart");
+            log.line(relaunchAfterFailedTransaction(data.installRoot,data.dataDirectory)
+                ?"restored_application=launched":"restored_application=restart_failed");
         }
+        log.peerExit(coordinator.process());
+        log.line(finished==CoordinationResult::ManualRestartRequired
+            ?"result=manual_restart_required":"result=failed stage="+stage);
         return finished==CoordinationResult::ManualRestartRequired?RestartPending:RelayFailed;
     }
     // This bootstrap owns a second observer independently of Coordinator.
     // Both handles must close after confirmed completion and before restart.
     bootstrap.releaseDirectoryObserver();
-    return coordinator.restart(after(RestartBudgetMs))==CoordinationResult::Restarted?0:RestartPending;
+    enter("restart");
+    const bool restarted=coordinator.restart(after(timing::RestartMs))==CoordinationResult::Restarted;
+    log.line(restarted?"result=complete":"result=installed_restart_failed");
+    return restarted?0:RestartPending;
 }
 }

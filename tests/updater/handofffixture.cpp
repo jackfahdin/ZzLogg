@@ -1,3 +1,4 @@
+#include "startupreadiness_win.h"
 #include "bootstrap_win_p.h"
 #include "installationactivity_win.h"
 #include "txengine_win.h"
@@ -220,6 +221,8 @@ int runGuiFixture(int argc,wchar_t** argv) {
     Handle pipe(CreateNamedPipeW(name.c_str(),PIPE_ACCESS_DUPLEX,
         PIPE_TYPE_MESSAGE|PIPE_READMODE_MESSAGE|PIPE_WAIT|PIPE_REJECT_REMOTE_CLIENTS,1,64,64,0,nullptr));
     if(!pipe) return 8;
+    const auto readyName=startupReadyEventName(GetCurrentProcessId());
+    Handle ready(CreateEventW(nullptr,TRUE,TRUE,readyName.c_str()));
     Sleep(4000);
     return 0;
 }

@@ -839,6 +839,23 @@ void testProductionExe(const fs::path& root,const fs::path& txExe) {
     check(snapshotDir(install)==before,"refused recovery touched nothing");
 }
 }
+static void startupRollback(const fs::path& root,const std::wstring& user) {
+    auto sc=buildScenario(root/L"probe-failure",0x3c020);
+    const auto before=snapshotDir(sc.install);
+    auto options=testOptions(sc.registry,user);
+    bool sawNew=false;
+    options.startupProbe=[&](const std::wstring&) {
+        sawNew=readText(sc.install,L"small.txt")=="new-small"
+            && sc.registry.strings[L"DisplayVersion"]==L"2.0.0";
+        StartupProbeResult result;result.detail=L"simulated missing DLL";return result;
+    };
+    TxEngine engine(requestFor(sc),options);
+    check(engine.prepare().outcome==TxOutcome::Prepared,"probe fixture prepared");
+    check(engine.execute().outcome==TxOutcome::RolledBack,"failed startup rolls back");
+    check(sawNew,"probe follows file and registration placement");
+    check(snapshotDir(sc.install)==before,"probe failure restores all files including manifest");
+    check(sc.registry.strings[L"DisplayVersion"]==L"1.0.0","probe failure restores registered version");
+}
 int wmain(int argc,wchar_t** argv) {
     if(argc!=3){std::cerr<<"usage: txenginetest <handofffixture> <ZzLoggUpdateTx>\n";return 2;}
     const auto temp=detail::testTempDirectory();
@@ -851,6 +868,7 @@ int wmain(int argc,wchar_t** argv) {
     const auto txExe=fs::path(argv[2]).make_preferred();
     testManifest(root);
     testRunHappy(root,user);
+    startupRollback(root,user);
     testConflictRollback(root,user);
     testRegistryFailureRollback(root,user);
     testPrepareRejections(root,user);

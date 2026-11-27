@@ -169,9 +169,15 @@ def serve(args):
               'Use a non-elevated terminal to test automatic restart.', flush=True)
     print('Close all existing ZzLogg instances before continuing. Keep this terminal open.', flush=True)
     print(f'Test session/configuration directory: {data}', flush=True)
+    acceptance = []
+    if args.verify:
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            raise ValueError('Use a non-elevated terminal for automatic-restart acceptance')
+        acceptance = ['--acceptance-report', WORK / f'acceptance-{args.version}.json',
+                      '--acceptance-data-dir', data]
     run([sys.executable, '-u', ROOT / 'scripts/dev/local_update_feed.py',
          '--installer', package, '--version', args.version, '--port', args.port,
-         '--workspace', WORK / f'feed-{args.port}', '--launch', application,
+         '--workspace', WORK / f'feed-{args.port}', '--launch', application, *acceptance,
          '--launch-args', '--data-dir', data])
 
 
@@ -186,6 +192,7 @@ def main():
     server.add_argument('--version', required=True, type=version_argument, help='Newer package version')
     server.add_argument('--app', type=Path, required=True, help='Installed base-version ZzLogg.exe')
     server.add_argument('--port', type=int, default=8765)
+    server.add_argument('--verify', action='store_true', help='Verify the real update/restart and write an acceptance report')
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('Run this entry on Windows in an x64 MSVC developer terminal')

@@ -5,6 +5,9 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
+
+#include "applicationupdateprobe.h"
 
 #include <ZzCore/ZzError.h>
 #include <ZzWindowKit/ZzWindowKitBootstrap.h>
@@ -15,6 +18,9 @@
 
 int main( int argc, char* argv[] )
 {
+    if ( argc > 1 && std::strcmp( argv[ 1 ], "--update-probe" ) == 0 ) {
+        return runApplicationUpdateProbe( argc, argv );
+    }
     // A local update feed is a Test trust environment, which the download path
     // only accepts under Qt test mode; enable it before any path resolution.
     if ( zzlogg::updateqt::localUpdateFeedRequested() ) {

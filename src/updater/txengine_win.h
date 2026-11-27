@@ -1,5 +1,6 @@
 #pragma once
 #include "txjournal_win.h"
+#include "startupcheck_win.h"
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -101,6 +102,8 @@ bool protectedRootAclShape(const void* ownerSid,const void* dacl);
 using TxProtectedImageCheck=std::function<bool(const std::wstring& image,const std::wstring& root)>;
 
 struct TxEngineOptions {
+    // Production binds runStartupProbe; tests may inject a failed startup.
+    std::function<detail::StartupProbeResult(const std::wstring&)> startupProbe;
     TxJournalOptions journal;
     TxRegistry* registry=nullptr;       // nullptr selects productionRegistry()
     TxProtectedImageCheck protectedImage; // empty selects productionProtectedImage

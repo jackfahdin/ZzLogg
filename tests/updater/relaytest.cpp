@@ -323,6 +323,10 @@ int runRelayTest(int argc,wchar_t** argv) {
         check(observed.proceedAfterApplicationExit,
             "Proceed was released only after the application process really exited");
         awaitRestartedGui(chain/L"record.txt");
+        const auto report=readLines(fs::path(good.dataDirectory)/L"logs"/L"update-last.log");
+        check(std::any_of(report.begin(),report.end(),[&](const std::wstring& line) {
+            return line.find(self.elevated()?L"result=manual_restart_required":L"result=complete")!=std::wstring::npos;
+        }),"relay writes durable final result after completion");
 
         const auto failedRoot=root/L"failed-chain";
         const auto failedChain=failedRoot/L"chain";
@@ -341,6 +345,10 @@ int runRelayTest(int argc,wchar_t** argv) {
         for(int tries=0;tries<600 && !hasGuiDataDirectory(readLines(failedRecord),good.dataDirectory);++tries)
             Sleep(ObservationPollMs);
         awaitRestartedGui(failedRecord);
+        const auto failedReport=readLines(fs::path(good.dataDirectory)/L"logs"/L"update-last.log");
+        check(std::any_of(failedReport.begin(),failedReport.end(),[](const std::wstring& line) {
+            return line.find(L"result=failed")!=std::wstring::npos;
+        }),"relay preserves failure result after restoring application");
         const auto lines=readLines(failedRecord);
         check(failedObserved.proceedAfterApplicationExit,
             "failed transaction begins only after the application exits");

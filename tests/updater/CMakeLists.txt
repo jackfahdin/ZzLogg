@@ -97,4 +97,21 @@ set_tests_properties(zzlogg_updater.relay_production zzlogg_updater.relay_fixtur
 
 # Warning relaxation for test-only targets (see the function comment in the
 # top-level CMakeLists.txt; -Werror arrives via linked interfaces).
+
+add_executable(zzlogg_updater_startupcheck_test startupchecktest.cpp)
+target_link_libraries(zzlogg_updater_startupcheck_test PRIVATE zzlogg_updater_handoff)
+zzlogg_update_runtime(zzlogg_updater_startupcheck_test TRUE)
+add_test(NAME zzlogg_updater.startupcheck COMMAND zzlogg_updater_startupcheck_test)
+set_tests_properties(zzlogg_updater.startupcheck PROPERTIES TIMEOUT 30)
+
+add_test(NAME zzlogg_updater.application_probe
+  COMMAND zzlogg_updater_startupcheck_test --application "$<TARGET_FILE:klogg>")
+set_tests_properties(zzlogg_updater.application_probe PROPERTIES TIMEOUT 75
+  ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+
+add_test(NAME zzlogg_updater.application_readiness
+  COMMAND zzlogg_updater_startupcheck_test --application-readiness "$<TARGET_FILE:klogg>")
+set_tests_properties(zzlogg_updater.application_readiness PROPERTIES TIMEOUT 35 RUN_SERIAL TRUE
+  ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+
 zzlogg_relax_test_warnings_in_current_dir()

@@ -96,7 +96,8 @@ add_custom_target(zzlogg_documentation DEPENDS ${DOCUMENTATION_HTML}
   ${CMAKE_BINARY_DIR}/generated/documentation-zh_TW.html)
 
 add_executable(klogg ${OS_BUNDLE} ${MAIN_SOURCES}
-  ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+  ${KLOGG_UI_COMMON_SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/applicationupdateprobe.cpp)
 # Keep the experimental command-line frontend available for explicit builds,
 # but do not include it in the default build until its runtime issues are fixed.
 add_executable(klogg_grep EXCLUDE_FROM_ALL ${MAIN_SOURCES} ${KLOGG_GREP_SOURCES})

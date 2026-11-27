@@ -1,4 +1,5 @@
 #include "coordinator_p.h"
+#include "startupcheck_win.h"
 #include "installationactivity_win.h"
 #include <shellapi.h>
 #include <cstring>
@@ -250,8 +251,8 @@ CoordinationResult Coordinator::restart(Deadline deadline){
     impl_->directoryObserver.reset();
     // Ordinary-user relaunch: the coordinator never elevates the GUI, and
     // only the bounded --data-dir value rides the command line.
-    std::wstring command=L"\""+image+L"\"";
-    if(!impl_->dataDirectory.empty())command+=L" --data-dir \""+impl_->dataDirectory+L"\"";
+    std::wstring command=quoteWindowsArgument(image);
+    if(!impl_->dataDirectory.empty())command+=L" --data-dir "+quoteWindowsArgument(impl_->dataDirectory);
     STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION launched{};
     if(!CreateProcessW(image.c_str(),command.data(),nullptr,nullptr,FALSE,0,nullptr,impl_->installRoot.c_str(),&startup,&launched))
         return fail();
@@ -267,16 +268,8 @@ CoordinationResult Coordinator::restart(Deadline deadline){
     // Bounded startup confirmation: process alive AND the directory-scoped
     // single-instance endpoint present. Installation completion is never
     // treated as startup health.
-    const auto endpoint=singleInstancePipeName(impl_->installIdentity,L"ZzLogg.exe");
-    if(endpoint.empty())return fail();
-    while(remaining(deadline)){
-        if(!impl_->restarted.alive())return fail();
-        if(WaitNamedPipeW(endpoint.c_str(),20)!=FALSE && impl_->restarted.alive())
-            return CoordinationResult::Restarted;
-        // A missing endpoint fails WaitNamedPipeW instantly; never busy-poll.
-        Sleep(20);
-    }
-    return fail();
+    return confirmApplicationStarted(impl_->restarted.handle(),impl_->installIdentity,deadline)
+        ?CoordinationResult::Restarted:fail();
 }
 void Coordinator::releaseDirectoryObserver(){impl_->directoryObserver.reset();}
 void Coordinator::cancel(Deadline deadline){

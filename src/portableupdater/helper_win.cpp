@@ -1,5 +1,6 @@
 // No Qt dependency: this executable runs after the GUI and its DLLs exit.
 #include "transaction.h"
+#include "startupcheck_win.h"
 #include "sha256_win.h"
 #include "installlock_win.h"
 #include "installlock_win_p.h"
@@ -15,6 +16,7 @@
 #include <stdexcept>
 using namespace zzlogg::portable;
 using zzlogg::updater::detail::Handle;
+using zzlogg::updater::detail::quoteWindowsArgument;
 namespace {
 void require(bool condition,const std::string& message) { if(!condition) throw std::runtime_error(message); }
 void writeStatus(const fs::path& stage,const char* name,const std::string& contents) {
@@ -28,19 +30,6 @@ std::string line(std::istream& input) {
 std::size_t count(std::istream& input) {
     auto value=line(input); require(!value.empty() && value.find_first_not_of("0123456789")==std::string::npos,"Invalid plan count");
     const auto number=std::stoull(value);require(number>0 && number<=20000,"Invalid plan file count");return static_cast<std::size_t>(number);
-}
-std::wstring quoteWindowsArgument(const std::wstring& value) {
-    std::wstring quoted=L"\"";
-    std::size_t backslashes=0;
-    for(const auto character:value) {
-        if(character==L'\\') {++backslashes;continue;}
-        quoted.append(backslashes*(character==L'"'?2:1),L'\\');
-        backslashes=0;
-        if(character==L'"')quoted+=L'\\';
-        quoted+=character;
-    }
-    quoted.append(backslashes*2,L'\\');
-    return quoted+L'"';
 }
 void parsePlan(const fs::path& path,std::vector<std::string>& oldFiles,std::vector<File>& files) {
     require(fs::file_size(path)<=8*1024*1024,"Transaction plan too large");
@@ -155,14 +144,24 @@ int wmain(int argc,wchar_t** argv) {
         require(hashFile(root/L".zzlogg-portable-files.json")==expectedOld,"Installed package ownership changed before replacement");
         availableTargets(root,oldFiles);
         log<<"Replacing package-owned files\n";log.flush();
-        replaceFiles(root,stage/L"payload",stage/L"backup",oldFiles,files,hashFile);
+        replaceFiles(root,stage/L"payload",stage/L"backup",oldFiles,files,hashFile,[&] {
+            log<<"Checking installed application startup\n";log.flush();
+            const auto probe=zzlogg::updater::detail::runStartupProbe(root.wstring());
+            const auto detail=fs::path(probe.detail).u8string();
+            if(!probe.processExited) throw RollbackBlocked(detail);
+            require(probe.passed,detail);
+        });
         log<<"Replacement complete; backup retained at "<<(stage/L"backup").u8string()<<"\n";log.flush();
         ReleaseMutex(mutex.get());mutexOwned=false;mutex.reset(); directories.clear();staged.clear();
         STARTUPINFOW startup{}; startup.cb=sizeof(startup); PROCESS_INFORMATION process{};
         std::wstring command=quoteWindowsArgument(expectedImage)+L" --data-dir "+quoteWindowsArgument(dataDirectory);
         require(CreateProcessW(expectedImage.c_str(),command.data(),nullptr,nullptr,FALSE,0,nullptr,root.c_str(),&startup,&process),
             "Update installed successfully, but restarting ZzLogg failed; start it manually");
-        CloseHandle(process.hThread);CloseHandle(process.hProcess);
+        Handle restarted(process.hProcess),thread(process.hThread);
+        log<<"Waiting for restarted application, pid="<<process.dwProcessId<<"\n";log.flush();
+        require(zzlogg::updater::detail::confirmApplicationStarted(restarted.get(),identity,
+                    zzlogg::updater::detail::after(60000)),
+            "Update installed, but the application exited or did not become ready; backup retained");
         writeStatus(stage,"complete","Update installed and application restarted.\n");return 0;
     } catch(const std::exception& error) {
         log<<"FAILED: "<<error.what()<<"\n";log.flush();

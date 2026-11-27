@@ -16,6 +16,7 @@
 #include "bootstrap_win_p.h"
 #include "txcontract_win_p.h"
 #include "txengine_win.h"
+#include "handofftiming.h"
 namespace {
 using namespace zzlogg::updater;
 using namespace zzlogg::updater::detail;
@@ -45,7 +46,9 @@ bool parseArguments(int argc,wchar_t** argv,EngineArguments& out) {
         && !out.install.empty() && !out.staging.empty() && !out.txroot.empty() && !out.version.empty();
 }
 TxEngineOptions productionOptions() {
-    TxEngineOptions options; options.journal=TxJournalOptions::production(); return options;
+    TxEngineOptions options; options.journal=TxJournalOptions::production();
+    options.startupProbe=[](const std::wstring& root){return runStartupProbe(root);};
+    return options;
 }
 int runRecovery(int argc,wchar_t** argv) {
     const auto install=argument(argc,argv,L"--install");
@@ -91,11 +94,11 @@ int wmain(int argc,wchar_t** argv) {
     if(!channel.send(message,after(3000))) return ProtocolViolation;
     // Gate: CommitExit must arrive first, then Proceed. Nothing else opens the
     // transaction, and execute() performs the first modification.
-    const auto commit=channel.receive(after(60000));
+    const auto commit=channel.receive(after(timing::EngineCommitWaitMs));
     if(!commit || commit->kind!=MessageKind::CommitExit) {
         message.kind=MessageKind::Failed; channel.send(message,after(3000)); return ProtocolViolation;
     }
-    const auto proceed=channel.receive(after(60000));
+    const auto proceed=channel.receive(after(timing::EngineProceedWaitMs));
     if(!proceed || proceed->kind!=MessageKind::Proceed) {
         message.kind=MessageKind::Failed; channel.send(message,after(3000)); return ProtocolViolation;
     }

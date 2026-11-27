@@ -755,6 +755,15 @@ TxEngineResult TxEngine::execute(){
                 (L"manifest placement failed "+std::to_wstring(placementError)).c_str());
         }
     }
+    if(state.options.startupProbe) {
+        engineLogLine(state.request.journalRoot,state.request.txid,L"checking installed application startup");
+        const auto probe=state.options.startupProbe(state.request.installRoot);
+        if(!probe.processExited) {
+            engineLogLine(state.request.journalRoot,state.request.txid,probe.detail);
+            return {TxOutcome::NeedsAuthorizedRecovery,probe.detail};
+        }
+        if(!probe.passed)return fail(TxOutcome::RolledBack,probe.detail.c_str());
+    }
     TxJournalRecord complete{};complete.op=TxOperation::Complete;
     if(!append(complete))return fail(TxOutcome::RolledBack,L"completion record failed");
     engineLogLine(state.request.journalRoot,state.request.txid,L"applied");
