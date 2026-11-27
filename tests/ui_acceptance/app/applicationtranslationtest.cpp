@@ -46,7 +46,8 @@
 #include <QComboBox>
 #include <QFile>
 #include <QElapsedTimer>
-#include <QFileSystemWatcher>
+#include <chrono>
+#include <filesystem>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
@@ -984,19 +985,28 @@ void ApplicationTranslationTest::changingLanguageDoesNotWriteProgramDirectory()
         const StorageLocation selectedLocation = storagePage->location();
         const bool selectionValid = storagePage->isSelectionValid();
 
-        QFileSystemWatcher watcher;
-        QVERIFY( watcher.addPath( applicationDirectory ) );
-        QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
+        const auto directory = QFileInfo{ applicationDirectory }.filesystemFilePath();
+        // Probe files are created and removed during validation. An old mtime
+        // detects those writes without depending on delayed filesystem events.
+        std::error_code error;
+        std::filesystem::last_write_time( directory,
+            std::filesystem::file_time_type::clock::now() - std::chrono::hours{ 24 }, error );
+        QVERIFY2( !error, error.message().c_str() );
+        const auto before = std::filesystem::last_write_time( directory );
 
         QCOMPARE( MainWindow::installLanguage( QStringLiteral( "zh_CN" ) ), 0 );
         QCoreApplication::sendPostedEvents();
         QCoreApplication::processEvents();
         QTest::qWait( 200 );
 
-        QCOMPARE( directoryChanged.count(), 0 );
+        QVERIFY( std::filesystem::last_write_time( directory ) == before );
         QCOMPARE( storagePage->location().mode, selectedLocation.mode );
         QCOMPARE( storagePage->location().dataRoot, selectedLocation.dataRoot );
         QCOMPARE( storagePage->isSelectionValid(), selectionValid );
+
+        // Positive control: a real validation must change this same baseline.
+        storagePage->setLocation( selectedLocation );
+        QVERIFY( std::filesystem::last_write_time( directory ) != before );
     }
 
     qApp->setProperty( "zzlogg.test.applicationDirectory", {} );
@@ -1018,10 +1028,6 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     QVERIFY( file.write( "user data" ) > 0 );
     file.close();
 
-    QFileSystemWatcher watcher;
-    QVERIFY( watcher.addPath( invalidRoot ) );
-    QSignalSpy directoryChanged{ &watcher, &QFileSystemWatcher::directoryChanged };
-
     StorageLocationPage page;
     page.setLocation( { StorageMode::CustomDirectory, invalidRoot, {}, false } );
     const StorageLocation selectedLocation = page.location();
@@ -1030,9 +1036,15 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     QCOMPARE( page.validationError(),
               QStringLiteral( "storage directory is not an empty managed directory: %1" )
                   .arg( normalizedRoot ) );
-    QTRY_VERIFY_WITH_TIMEOUT( directoryChanged.count() > 0, 5000 );
-    QCoreApplication::processEvents();
-    directoryChanged.clear();
+    const auto directory = QFileInfo{ invalidRoot }.filesystemFilePath();
+    // Ignore notifications still queued by setLocation's write probes on macOS.
+    // Backdate the directory so even coarse timestamp resolution detects a
+    // new create/delete cycle while the language change is processed.
+    std::error_code error;
+    std::filesystem::last_write_time( directory,
+        std::filesystem::file_time_type::clock::now() - std::chrono::hours{ 24 }, error );
+    QVERIFY2( !error, error.message().c_str() );
+    const auto before = std::filesystem::last_write_time( directory );
 
     QSignalSpy validityChanged{ &page, &StorageLocationPage::validityChanged };
 
@@ -1048,10 +1060,13 @@ void ApplicationTranslationTest::retranslatesInvalidStorageValidationWithoutWrit
     QCOMPARE( page.location().dataRoot, selectedLocation.dataRoot );
     QVERIFY( !page.isSelectionValid() );
     QCOMPARE( validityChanged.count(), 0 );
-    QCOMPARE( directoryChanged.count(), 0 );
+    QVERIFY( std::filesystem::last_write_time( directory ) == before );
     QFile unchangedFile{ sentinelPath };
     QVERIFY( unchangedFile.open( QIODevice::ReadOnly ) );
     QCOMPARE( unchangedFile.readAll(), QByteArray( "user data" ) );
+
+    page.setLocation( selectedLocation );
+    QVERIFY( std::filesystem::last_write_time( directory ) != before );
 }
 
 void ApplicationTranslationTest::changingOnlyLanguageDoesNotRequestRestart()
